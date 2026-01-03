@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block title %}Admin Dashboard - University Procurement System{% endblock %}
 
 {% block extra_css %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<!-- Bootstrap Icons -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 <style>
     :root {
@@ -19,7 +19,6 @@
         --hover-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
 
-    /* Breadcrumb */
     .breadcrumb {
         display: flex;
         align-items: center;
@@ -46,7 +45,6 @@
         color: #94A3B8;
     }
 
-    /* Main Statistics - 4 cards in one line */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -117,7 +115,6 @@
         color: var(--primary-color);
     }
 
-    /* Chart Cards */
     .chart-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -137,6 +134,7 @@
         padding: 24px;
         box-shadow: var(--card-shadow);
         border: 1px solid var(--border-color);
+        margin-bottom: 24px;
     }
 
     .card-header {
@@ -172,7 +170,6 @@
         height: 250px;
     }
 
-    /* Performance Metrics */
     .performance-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -203,7 +200,6 @@
         letter-spacing: 0.3px;
     }
 
-    /* Metric Badges */
     .metric-badge {
         display: inline-flex;
         align-items: center;
@@ -216,7 +212,6 @@
         font-weight: 600;
     }
 
-    /* Chart styling */
     canvas {
         max-width: 100%;
     }
@@ -233,12 +228,12 @@
     </div>
 </div>
 
-<!-- Main Statistics - 4 Important Cards -->
+<!-- Main Statistics -->
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-content">
             <div class="stat-info">
-                <h3>{{ total_requisitions }}</h3>
+                <h3>{{ total_requisitions|intcomma }}</h3>
                 <p>Total Requisitions</p>
             </div>
             <div class="stat-icon">
@@ -250,7 +245,7 @@
     <div class="stat-card">
         <div class="stat-content">
             <div class="stat-info">
-                <h3>{{ total_pos }}</h3>
+                <h3>{{ total_pos|intcomma }}</h3>
                 <p>Purchase Orders</p>
             </div>
             <div class="stat-icon">
@@ -262,7 +257,7 @@
     <div class="stat-card">
         <div class="stat-content">
             <div class="stat-info">
-                <h3>KES {{ system_stats.total_spend|floatformat:0 }}</h3>
+                <h3>KES {{ system_stats.total_spend|floatformat:0|intcomma }}</h3>
                 <p>Total Spend</p>
             </div>
             <div class="stat-icon">
@@ -274,7 +269,7 @@
     <div class="stat-card">
         <div class="stat-content">
             <div class="stat-info">
-                <h3>{{ total_suppliers }}</h3>
+                <h3>{{ total_suppliers|intcomma }}</h3>
                 <p>Active Suppliers</p>
             </div>
             <div class="stat-icon">
@@ -294,7 +289,7 @@
             </h2>
             <div class="metric-badge">
                 <i class="bi bi-currency-exchange"></i>
-                KES {{ system_stats.total_spend|floatformat:0 }}
+                KES {{ system_stats.total_spend|floatformat:0|intcomma }}
             </div>
         </div>
         <div class="chart-container">
@@ -342,6 +337,60 @@
     </div>
 </div>
 
+<!-- Supplier & Department Analytics -->
+<div class="chart-grid">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-building"></i>
+                Top Suppliers by Value
+            </h2>
+        </div>
+        <div class="chart-container-small">
+            <canvas id="topSuppliersChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-diagram-3"></i>
+                Department Spend
+            </h2>
+        </div>
+        <div class="chart-container-small">
+            <canvas id="deptSpendChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Tender & Contract Analytics -->
+<div class="chart-grid">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-file-text"></i>
+                Tender Status
+            </h2>
+        </div>
+        <div class="chart-container-small">
+            <canvas id="tenderStatusChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-file-earmark-ruled"></i>
+                Contract by Type
+            </h2>
+        </div>
+        <div class="chart-container-small">
+            <canvas id="contractTypeChart"></canvas>
+        </div>
+    </div>
+</div>
+
 <!-- Performance Metrics -->
 <div class="card">
     <div class="card-header">
@@ -374,7 +423,6 @@
 
 {% block extra_js %}
 <script>
-    // Color schemes - muted professional colors
     const colors = {
         primary: '#2563EB',
         primaryLight: 'rgba(37, 99, 235, 0.1)',
@@ -383,15 +431,17 @@
         successLight: 'rgba(5, 150, 105, 0.1)',
         warning: '#D97706',
         warningLight: 'rgba(217, 119, 6, 0.1)',
+        danger: '#DC2626',
+        purple: '#7C3AED',
         gray: '#94A3B8',
         grayLight: 'rgba(148, 163, 184, 0.1)'
     };
 
-    // Chart gradient function
     function createGradient(ctx, color, opacity = 0.2) {
         const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, `rgba(${hexToRgb(color)}, ${opacity})`);
-        gradient.addColorStop(1, `rgba(${hexToRgb(color)}, 0)`);
+        const rgb = hexToRgb(color);
+        gradient.addColorStop(0, `rgba(${rgb}, ${opacity})`);
+        gradient.addColorStop(1, `rgba(${rgb}, 0)`);
         return gradient;
     }
 
@@ -402,7 +452,7 @@
             '37, 99, 235';
     }
 
-    // Monthly Spend Trend Chart with fading effect
+    // Monthly Spend Trend Chart
     const spendCtx = document.getElementById('spendTrendChart').getContext('2d');
     const spendGradient = createGradient(spendCtx, colors.primary);
     
@@ -415,14 +465,14 @@
                 data: {{ spend_chart.values|safe }},
                 borderColor: colors.primary,
                 backgroundColor: spendGradient,
-                borderWidth: 2,
+                borderWidth: 3,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 4,
+                pointRadius: 5,
                 pointBackgroundColor: colors.primary,
                 pointBorderColor: '#ffffff',
                 pointBorderWidth: 2,
-                pointHoverRadius: 6,
+                pointHoverRadius: 7,
                 pointHoverBackgroundColor: colors.primary
             }]
         },
@@ -435,7 +485,8 @@
                     position: 'top',
                     labels: {
                         usePointStyle: true,
-                        padding: 20
+                        padding: 20,
+                        color: colors.secondary
                     }
                 },
                 tooltip: {
@@ -443,11 +494,12 @@
                     intersect: false,
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     titleColor: '#1E293B',
-                    bodyColor: '#475569',
+                    bodyColor: colors.secondary,
                     borderColor: colors.primary,
                     borderWidth: 1,
+                    padding: 12,
                     callbacks: {
-                        label: (context) => `KES ${context.parsed.y.toLocaleString()}`
+                        label: (context) => `Spend: KES ${context.parsed.y.toLocaleString()}`
                     }
                 }
             },
@@ -472,15 +524,11 @@
                         callback: (value) => `KES ${value.toLocaleString()}`
                     }
                 }
-            },
-            interaction: {
-                intersect: false,
-                mode: 'index'
             }
         }
     });
 
-    // Budget Utilization Chart
+    // Budget Chart
     new Chart(document.getElementById('budgetChart'), {
         type: 'doughnut',
         data: {
@@ -488,11 +536,9 @@
             datasets: [{
                 data: {{ budget_chart.values|safe }},
                 backgroundColor: [
-                    colors.primary,
-                    colors.success,
+                    colors.danger,
                     colors.warning,
-                    colors.gray,
-                    '#7C3AED'
+                    colors.success
                 ],
                 borderWidth: 0,
                 borderColor: '#ffffff',
@@ -531,6 +577,8 @@
                     colors.primary,
                     colors.success,
                     colors.warning,
+                    colors.danger,
+                    colors.purple,
                     colors.gray
                 ],
                 borderWidth: 0,
@@ -544,16 +592,17 @@
                 legend: { 
                     position: 'right',
                     labels: {
-                        padding: 20,
+                        padding: 15,
                         usePointStyle: true,
-                        color: colors.secondary
+                        color: colors.secondary,
+                        font: { size: 11 }
                     }
                 }
             }
         }
     });
 
-    // PO Trend Chart with fading effect
+    // PO Trend Chart
     const poCtx = document.getElementById('poTrendChart').getContext('2d');
     const poGradient = createGradient(poCtx, colors.success);
     
@@ -566,8 +615,8 @@
                 data: {{ po_trend_chart.count|safe }},
                 backgroundColor: poGradient,
                 borderColor: colors.success,
-                borderWidth: 1,
-                borderRadius: 6,
+                borderWidth: 2,
+                borderRadius: 8,
             }]
         },
         options: {
@@ -579,28 +628,165 @@
                     position: 'top',
                     labels: {
                         usePointStyle: true,
-                        padding: 20
+                        padding: 20,
+                        color: colors.secondary
                     }
                 }
             },
             scales: {
                 x: {
-                    grid: {
-                        display: true,
-                        color: colors.grayLight
-                    },
-                    ticks: {
-                        color: colors.secondary
-                    }
+                    grid: { display: false },
+                    ticks: { color: colors.secondary }
                 },
                 y: {
                     beginAtZero: true,
-                    grid: {
-                        display: true,
-                        color: colors.grayLight
-                    },
-                    ticks: {
+                    grid: { color: colors.grayLight },
+                    ticks: { color: colors.secondary }
+                }
+            }
+        }
+    });
+
+    // Top Suppliers Chart
+    new Chart(document.getElementById('topSuppliersChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ top_suppliers_chart.labels|safe }},
+            datasets: [{
+                label: 'Total Value (KES)',
+                data: {{ top_suppliers_chart.values|safe }},
+                backgroundColor: colors.primary,
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `KES ${context.parsed.x.toLocaleString()}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: colors.grayLight },
+                    ticks: { 
+                        color: colors.secondary,
+                        callback: (value) => `KES ${value.toLocaleString()}`
+                    }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: colors.secondary }
+                }
+            }
+        }
+    });
+
+    // Department Spend Chart
+    new Chart(document.getElementById('deptSpendChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ dept_spend_chart.labels|safe }},
+            datasets: [{
+                label: 'Department Spend (KES)',
+                data: {{ dept_spend_chart.values|safe }},
+                backgroundColor: colors.warning,
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `KES ${context.parsed.y.toLocaleString()}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: colors.secondary }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: colors.grayLight },
+                    ticks: { 
+                        color: colors.secondary,
+                        callback: (value) => `KES ${value.toLocaleString()}`
+                    }
+                }
+            }
+        }
+    });
+
+    // Tender Status Chart
+    new Chart(document.getElementById('tenderStatusChart'), {
+        type: 'pie',
+        data: {
+            labels: {{ tender_status_chart.labels|safe }},
+            datasets: [{
+                data: {{ tender_status_chart.values|safe }},
+                backgroundColor: [
+                    colors.primary,
+                    colors.success,
+                    colors.warning,
+                    colors.danger,
+                    colors.purple
+                ],
+                borderWidth: 0,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    position: 'right',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true,
                         color: colors.secondary
+                    }
+                }
+            }
+        }
+    });
+
+    // Contract Type Chart
+    new Chart(document.getElementById('contractTypeChart'), {
+        type: 'polarArea',
+        data: {
+            labels: {{ contract_type_chart.labels|safe }},
+            datasets: [{
+                data: {{ contract_type_chart.values|safe }},
+                backgroundColor: [
+                    colors.primary,
+                    colors.success,
+                    colors.warning,
+                    colors.danger,
+                    colors.purple
+                ],
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    position: 'right',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true,
+                        color: colors.secondary,
+                        font: { size: 11 }
                     }
                 }
             }

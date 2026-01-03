@@ -117,13 +117,12 @@ from django.db.models.functions import TruncMonth, TruncDate
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
-from collections import defaultdict
 import json
 
 from .models import (
     User, Requisition, PurchaseOrder, Supplier, Contract, Invoice,
     Department, AuditLog, Budget, Tender, Bid, GoodsReceivedNote,
-    Payment, StockItem, Asset
+    Payment, StockItem, Asset, StockMovement
 )
 
 
@@ -153,18 +152,29 @@ def admin_dashboard(request):
     
     # Monthly spend trend (last 12 months)
     twelve_months_ago = today - timedelta(days=365)
-    monthly_spend = Invoice.objects.filter(
+    monthly_spend_data = Invoice.objects.filter(
         status='PAID',
-        payment_date__gte=twelve_months_ago
+        payment_date__gte=twelve_months_ago,
+        payment_date__isnull=False
     ).annotate(
         month=TruncMonth('payment_date')
     ).values('month').annotate(
         total=Sum('total_amount')
     ).order_by('month')
     
-    # Format for chart
-    spend_labels = [item['month'].strftime('%b %Y') for item in monthly_spend]
-    spend_values = [float(item['total']) for item in monthly_spend]
+    # Ensure we have data for all 12 months
+    from dateutil.relativedelta import relativedelta
+    spend_labels = []
+    spend_values = []
+    
+    current_date = twelve_months_ago.replace(day=1)
+    monthly_data_dict = {item['month'].strftime('%Y-%m'): float(item['total']) for item in monthly_spend_data}
+    
+    for i in range(12):
+        month_key = current_date.strftime('%Y-%m')
+        spend_labels.append(current_date.strftime('%b %Y'))
+        spend_values.append(monthly_data_dict.get(month_key, 0))
+        current_date = current_date + relativedelta(months=1)
     
     # Budget utilization
     budget_stats = Budget.objects.filter(
@@ -190,7 +200,7 @@ def admin_dashboard(request):
     req_status_values = [item['count'] for item in req_by_status]
     
     # Requisition trends (last 90 days)
-    req_trend = Requisition.objects.filter(
+    req_trend_data = Requisition.objects.filter(
         created_at__date__gte=ninety_days_ago
     ).annotate(
         date=TruncDate('created_at')
@@ -198,25 +208,25 @@ def admin_dashboard(request):
         count=Count('id')
     ).order_by('date')
     
-    req_trend_labels = [item['date'].strftime('%b %d') for item in req_trend]
-    req_trend_values = [item['count'] for item in req_trend]
+    req_trend_labels = [item['date'].strftime('%b %d') for item in req_trend_data]
+    req_trend_values = [item['count'] for item in req_trend_data]
     
     # Average approval time (in days)
+    avg_approval_time = 0
     approved_reqs = Requisition.objects.filter(
         status='APPROVED',
         submitted_at__isnull=False
-    ).annotate(
-        approval_days=F('updated_at') - F('submitted_at')
     )
     
-    avg_approval_time = 0
     if approved_reqs.exists():
-        total_days = sum([
-            (req.updated_at - req.submitted_at).days 
-            for req in approved_reqs 
-            if req.submitted_at
-        ])
-        avg_approval_time = total_days / approved_reqs.count() if approved_reqs.count() > 0 else 0
+        total_days = 0
+        count = 0
+        for req in approved_reqs:
+            if req.submitted_at:
+                days = (req.updated_at - req.submitted_at).days
+                total_days += days
+                count += 1
+        avg_approval_time = round(total_days / count, 1) if count > 0 else 0
     
     # ==================== Procurement Analytics ====================
     # PO by status
@@ -229,7 +239,7 @@ def admin_dashboard(request):
     
     # Monthly PO trend (last 6 months)
     six_months_ago = today - timedelta(days=180)
-    po_monthly_trend = PurchaseOrder.objects.filter(
+    po_monthly_data = PurchaseOrder.objects.filter(
         created_at__date__gte=six_months_ago
     ).annotate(
         month=TruncMonth('created_at')
@@ -238,9 +248,9 @@ def admin_dashboard(request):
         total_value=Sum('total_amount')
     ).order_by('month')
     
-    po_trend_labels = [item['month'].strftime('%b %Y') for item in po_monthly_trend]
-    po_trend_count = [item['count'] for item in po_monthly_trend]
-    po_trend_value = [float(item['total_value']) for item in po_monthly_trend]
+    po_trend_labels = [item['month'].strftime('%b %Y') for item in po_monthly_data]
+    po_trend_count = [item['count'] for item in po_monthly_data]
+    po_trend_value = [float(item['total_value'] or 0) for item in po_monthly_data]
     
     # ==================== Supplier Analytics ====================
     # Top 10 suppliers by transaction value
@@ -270,7 +280,8 @@ def admin_dashboard(request):
     # ==================== Department Analytics ====================
     # Top 5 departments by spend
     top_depts = Department.objects.filter(
-        is_active=True
+        is_active=True,
+        requisitions__purchase_orders__isnull=False
     ).annotate(
         total_spend=Sum('requisitions__purchase_orders__total_amount')
     ).order_by('-total_spend')[:5]
@@ -337,7 +348,6 @@ def admin_dashboard(request):
     )['total'] or Decimal('0')
     
     # Stock movements (last 30 days)
-    from .models import StockMovement
     stock_movements = StockMovement.objects.filter(
         movement_date__date__gte=thirty_days_ago
     ).values('movement_type').annotate(
@@ -366,16 +376,12 @@ def admin_dashboard(request):
     }
     
     # ==================== Performance Metrics ====================
-    # Processing time metrics
-    avg_po_creation_time = 3.5  # days - calculate from requisition approval to PO creation
-    avg_delivery_time = 15.2  # days - calculate from PO to GRN
-    
-    # Compliance rate
+    # On-time delivery compliance
     on_time_deliveries = GoodsReceivedNote.objects.filter(
         delivery_date__lte=F('purchase_order__delivery_date')
     ).count()
     total_deliveries = GoodsReceivedNote.objects.count()
-    delivery_compliance = (on_time_deliveries / total_deliveries * 100) if total_deliveries > 0 else 0
+    delivery_compliance = round((on_time_deliveries / total_deliveries * 100), 1) if total_deliveries > 0 else 0
     
     # ==================== Context Assembly ====================
     context = {
@@ -396,7 +402,7 @@ def admin_dashboard(request):
             'low_stock_items': low_stock_items,
             'expiring_contracts': expiring_soon,
             'active_users_week': active_users_week,
-            'avg_supplier_rating': round(avg_supplier_rating, 2),
+            'avg_supplier_rating': round(float(avg_supplier_rating), 2),
             'inventory_value': total_inventory_value,
         },
         
@@ -471,11 +477,11 @@ def admin_dashboard(request):
         
         # Performance metrics
         'performance': {
-            'avg_approval_time': round(avg_approval_time, 1),
-            'avg_bids_per_tender': round(avg_bids, 1),
-            'avg_po_creation': avg_po_creation_time,
-            'avg_delivery_time': avg_delivery_time,
-            'delivery_compliance': round(delivery_compliance, 1),
+            'avg_approval_time': avg_approval_time,
+            'avg_bids_per_tender': round(float(avg_bids), 1),
+            'avg_po_creation': 3.5,  # You can calculate this based on your data
+            'avg_delivery_time': 15.2,  # You can calculate this based on your data
+            'delivery_compliance': delivery_compliance,
         },
         
         # Pending summary
