@@ -3,6 +3,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Sum, Count
+from decimal import Decimal
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from .models import (
     # User & Role Management
@@ -148,36 +150,122 @@ class BudgetCategoryAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at']
 
 
+from decimal import Decimal
+from django.contrib import admin
+from django.utils.html import format_html
 @admin.register(Budget)
 class BudgetAdmin(admin.ModelAdmin):
-    list_display = ['department', 'category', 'budget_year', 'budget_type', 'allocated_amount', 'committed_amount', 'actual_spent', 'get_available_balance', 'is_active']
-    list_filter = ['budget_year', 'budget_type', 'is_active', 'department', 'created_at']
-    search_fields = ['department__name', 'category__name', 'reference_number']
-    ordering = ['-created_at']
-    readonly_fields = ['created_at', 'updated_at', 'get_available_balance']
-    
+    list_display = (
+        'department',
+        'category',
+        'budget_year',
+        'budget_type',
+        'formatted_allocated_amount',
+        'formatted_committed_amount',
+        'formatted_actual_spent',
+        'formatted_available_balance',
+        'is_active',
+    )
+
+    list_filter = (
+        'budget_year',
+        'budget_type',
+        'is_active',
+        'department',
+        'created_at',
+    )
+
+    search_fields = (
+        'department__name',
+        'category__name',
+        'reference_number',
+    )
+
+    ordering = ('-created_at',)
+
+    readonly_fields = (
+        'created_at',
+        'updated_at',
+        'formatted_available_balance',
+    )
+
     fieldsets = (
         ('Budget Information', {
-            'fields': ('budget_year', 'department', 'category', 'budget_type', 'reference_number')
+            'fields': (
+                'budget_year',
+                'department',
+                'category',
+                'budget_type',
+                'reference_number',
+            )
         }),
         ('Financial Details', {
-            'fields': ('allocated_amount', 'committed_amount', 'actual_spent', 'get_available_balance')
+            'fields': (
+                'allocated_amount',
+                'committed_amount',
+                'actual_spent',
+                'formatted_available_balance',
+            )
         }),
         ('Additional Information', {
-            'fields': ('description', 'is_active', 'created_by')
+            'fields': (
+                'description',
+                'is_active',
+                'created_by',
+            )
         }),
         ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
+            'fields': (
+                'created_at',
+                'updated_at',
+            ),
+            'classes': ('collapse',),
         }),
     )
-    
-    def get_available_balance(self, obj):
+
+    # ============================
+    # SAFE FORMATTERS (ADMIN ONLY)
+    # ============================
+
+    @admin.display(description='Allocated Amount')
+    def formatted_allocated_amount(self, obj):
+        return self._format_money(obj.allocated_amount)
+
+    @admin.display(description='Committed Amount')
+    def formatted_committed_amount(self, obj):
+        return self._format_money(obj.committed_amount)
+
+    @admin.display(description='Actual Spent')
+    def formatted_actual_spent(self, obj):
+        return self._format_money(obj.actual_spent)
+
+    @admin.display(description='Available Balance')
+    def formatted_available_balance(self, obj):
         balance = obj.available_balance
         color = 'green' if balance > 0 else 'red'
-        return format_html('<span style="color: {};">{:,.2f}</span>', color, balance)
-    get_available_balance.short_description = 'Available Balance'
+        return self._format_money(balance, color=color)
 
+    # ============================
+    # HELPER (ONE SOURCE OF TRUTH)
+    # ============================
+
+    def _format_money(self, value, color=None):
+        """
+        Ensures:
+        - value is numeric
+        - formatting happens ONCE
+        - no SafeString contamination
+        """
+        value = Decimal(value or 0)
+
+        if color:
+            return format_html(
+                '<span style="color: {}; font-weight: 600;">{:,.2f}</span>',
+                color,
+                value,
+            )
+
+        return format_html('{:,.2f}', value)
 
 @admin.register(BudgetReallocation)
 class BudgetReallocationAdmin(admin.ModelAdmin):
