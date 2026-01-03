@@ -1,0 +1,132 @@
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <span class="logo-text">PMS</span>
+    </div>
+
+    <!-- Main Section -->
+    <div class="menu-section">
+        <div class="menu-title">MAIN</div>
+        <a href="{% url 'dashboard' %}" class="menu-item active">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="#" class="menu-item">
+            <i class="fas fa-chart-line"></i>
+            <span>Procurement Analytics</span>
+        </a>
+    </div>
+
+    <!-- Requisitions Section -->
+    <div class="menu-section">
+        <div class="menu-title">REQUISITIONS</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-inbox"></i>
+            <span>All Requisitions</span>
+            <span class="badge">8</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-clock"></i>
+            <span>Pending Processing</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-check"></i>
+            <span>Processed</span>
+        </a>
+    </div>
+
+    <!-- Procurement Operations -->
+    <div class="menu-section">
+        <div class="menu-title">PROCUREMENT</div>
+        
+        <div class="menu-item has-submenu" data-submenu="tenders">
+            <i class="fas fa-gavel"></i>
+            <span>Tenders</span>
+            <i class="fas fa-chevron-right arrow"></i>
+        </div>
+        <div class="submenu" id="submenu-tenders">
+            <a href="#" class="submenu-item">Active Tenders</a>
+            <a href="#" class="submenu-item">Create Tender</a>
+            <a href="#" class="submenu-item">Closed Tenders</a>
+            <a href="#" class="submenu-item">Tender Evaluation</a>
+        </div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-file-signature"></i>
+            <span>Bids Management</span>
+        </a>
+        
+        <div class="menu-item has-submenu" data-submenu="orders">
+            <i class="fas fa-shopping-bag"></i>
+            <span>Purchase Orders</span>
+            <i class="fas fa-chevron-right arrow"></i>
+        </div>
+        <div class="submenu" id="submenu-orders">
+            <a href="#" class="submenu-item">All Orders</a>
+            <a href="#" class="submenu-item">Create Order</a>
+            <a href="#" class="submenu-item">Pending Orders</a>
+            <a href="#" class="submenu-item">Completed Orders</a>
+        </div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-file-contract"></i>
+            <span>Contracts</span>
+        </a>
+    </div>
+
+    <!-- Suppliers Section -->
+    <div class="menu-section">
+        <div class="menu-title">SUPPLIERS</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-truck"></i>
+            <span>All Suppliers</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-user-plus"></i>
+            <span>Add Supplier</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-star"></i>
+            <span>Supplier Evaluation</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-ban"></i>
+            <span>Blacklisted</span>
+        </a>
+    </div>
+
+    <!-- Reports -->
+    <div class="menu-section">
+        <div class="menu-title">REPORTS</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-chart-bar"></i>
+            <span>Procurement Reports</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <span>Spend Analysis</span>
+        </a>
+    </div>
+
+    <!-- Help & Support -->
+    <div class="menu-section">
+        <div class="menu-title">SUPPORT</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-life-ring"></i>
+            <span>Help Center</span>
+        </a>
+    </div>
+
+</div>

@@ -1,0 +1,64 @@
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <span class="logo-text">PMS</span>
+    </div>
+
+    <!-- Main Section -->
+    <div class="menu-section">
+        <div class="menu-title">MAIN</div>
+        <a href="{% url 'dashboard' %}" class="menu-item active">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+    </div>
+
+    <!-- Requisitions Section -->
+    <div class="menu-section">
+        <div class="menu-title">REQUISITIONS</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-file-alt"></i>
+            <span>My Requisitions</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-plus-circle"></i>
+            <span>New Requisition</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-clock"></i>
+            <span>Pending</span>
+            <span class="badge">3</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-check"></i>
+            <span>Approved</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-times"></i>
+            <span>Rejected</span>
+        </a>
+    </div>
+
+    <!-- Help & Support -->
+    <div class="menu-section">
+        <div class="menu-title">SUPPORT</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-life-ring"></i>
+            <span>Help Center</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-book"></i>
+            <span>Guidelines</span>
+        </a>
+    </div>
+
+</div>

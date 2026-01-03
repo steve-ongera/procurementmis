@@ -1,0 +1,177 @@
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <span class="logo-text">PMS</span>
+    </div>
+
+    <!-- Main Section -->
+    <div class="menu-section">
+        <div class="menu-title">MAIN</div>
+        <a href="{% url 'dashboard' %}" class="menu-item active">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="#" class="menu-item">
+            <i class="fas fa-chart-line"></i>
+            <span>Analytics</span>
+        </a>
+        <a href="#" class="menu-item">
+            <i class="fas fa-chart-pie"></i>
+            <span>Reports</span>
+        </a>
+    </div>
+
+    <!-- Requisitions Section -->
+    <div class="menu-section">
+        <div class="menu-title">REQUISITIONS</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-file-alt"></i>
+            <span>All Requisitions</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-plus-circle"></i>
+            <span>New Requisition</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-clock"></i>
+            <span>Pending</span>
+            <span class="badge">12</span>
+        </a>
+    </div>
+
+    <!-- Approvals Section -->
+    <div class="menu-section">
+        <div class="menu-title">APPROVALS</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-check-circle"></i>
+            <span>Pending Approvals</span>
+            <span class="badge">5</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-check-double"></i>
+            <span>Approved</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-times-circle"></i>
+            <span>Rejected</span>
+        </a>
+    </div>
+
+    <!-- Procurement Section -->
+    <div class="menu-section">
+        <div class="menu-title">PROCUREMENT</div>
+        
+        <div class="menu-item has-submenu" data-submenu="procurement">
+            <i class="fas fa-shopping-bag"></i>
+            <span>Procurement</span>
+            <i class="fas fa-chevron-right arrow"></i>
+        </div>
+        <div class="submenu" id="submenu-procurement">
+            <a href="#" class="submenu-item">All Requisitions</a>
+            <a href="#" class="submenu-item">Tenders</a>
+            <a href="#" class="submenu-item">Bids</a>
+            <a href="#" class="submenu-item">Purchase Orders</a>
+            <a href="#" class="submenu-item">Contracts</a>
+        </div>
+
+        <a href="#" class="menu-item">
+            <i class="fas fa-truck"></i>
+            <span>Suppliers</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-handshake"></i>
+            <span>Vendor Management</span>
+        </a>
+    </div>
+
+    <!-- Finance Section -->
+    <div class="menu-section">
+        <div class="menu-title">FINANCE</div>
+        
+        <div class="menu-item has-submenu" data-submenu="finance">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>Finance</span>
+            <i class="fas fa-chevron-right arrow"></i>
+        </div>
+        <div class="submenu" id="submenu-finance">
+            <a href="#" class="submenu-item">Budgets</a>
+            <a href="#" class="submenu-item">Budget Allocation</a>
+            <a href="#" class="submenu-item">Invoices</a>
+            <a href="#" class="submenu-item">Payments</a>
+            <a href="#" class="submenu-item">Financial Reports</a>
+            <a href="#" class="submenu-item">Expenditure</a>
+        </div>
+    </div>
+
+    <!-- Inventory Section -->
+    <div class="menu-section">
+        <div class="menu-title">INVENTORY</div>
+        
+        <div class="menu-item has-submenu" data-submenu="stores">
+            <i class="fas fa-warehouse"></i>
+            <span>Stores</span>
+            <i class="fas fa-chevron-right arrow"></i>
+        </div>
+        <div class="submenu" id="submenu-stores">
+            <a href="#" class="submenu-item">Goods Receipt</a>
+            <a href="#" class="submenu-item">Stock Items</a>
+            <a href="#" class="submenu-item">Stock Issues</a>
+            <a href="#" class="submenu-item">Assets</a>
+            <a href="#" class="submenu-item">Stock Takes</a>
+        </div>
+    </div>
+
+    <!-- System Administration -->
+    <div class="menu-section">
+        <div class="menu-title">SYSTEM</div>
+        
+        <div class="menu-item has-submenu" data-submenu="admin">
+            <i class="fas fa-cog"></i>
+            <span>Administration</span>
+            <i class="fas fa-chevron-right arrow"></i>
+        </div>
+        <div class="submenu" id="submenu-admin">
+            <a href="#" class="submenu-item">Users Management</a>
+            <a href="#" class="submenu-item">Roles & Permissions</a>
+            <a href="#" class="submenu-item">Departments</a>
+            <a href="#" class="submenu-item">System Settings</a>
+            <a href="#" class="submenu-item">Audit Trail</a>
+            <a href="#" class="submenu-item">Activity Logs</a>
+        </div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-bell"></i>
+            <span>Notifications</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-database"></i>
+            <span>Backup & Restore</span>
+        </a>
+    </div>
+
+    <!-- Help & Support -->
+    <div class="menu-section">
+        <div class="menu-title">SUPPORT</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-life-ring"></i>
+            <span>Help Center</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-book"></i>
+            <span>Documentation</span>
+        </a>
+    </div>
+
+</div>

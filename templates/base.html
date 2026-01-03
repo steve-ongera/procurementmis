@@ -630,134 +630,26 @@
     <!-- Sidebar Overlay for Mobile -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-shopping-cart"></i>
-            </div>
-            <span class="logo-text">PMS</span>
-        </div>
-
-        <div class="menu-section">
-            <div class="menu-title">MAIN</div>
-            <a href="{% url 'dashboard' %}" class="menu-item active">
-                <i class="fas fa-home"></i>
-                <span>Dashboard</span>
-            </a>
-            <a href="#" class="menu-item">
-                <i class="fas fa-chart-line"></i>
-                <span>Analytics</span>
-            </a>
-        </div>
-
-        {% if user.role in 'STAFF,HOD,ADMIN' %}
-        <div class="menu-section">
-            <div class="menu-title">REQUISITIONS</div>
-            
-            <a href="#" class="menu-item">
-                <i class="fas fa-file-alt"></i>
-                <span>My Requisitions</span>
-            </a>
-            
-            <a href="#" class="menu-item">
-                <i class="fas fa-plus-circle"></i>
-                <span>New Requisition</span>
-            </a>
-        </div>
-        {% endif %}
-
-        {% if user.role in 'HOD,ADMIN' %}
-        <div class="menu-section">
-            <div class="menu-title">APPROVALS</div>
-            
-            <a href="#" class="menu-item">
-                <i class="fas fa-check-circle"></i>
-                <span>Pending Approvals</span>
-                <span class="badge">5</span>
-            </a>
-        </div>
-        {% endif %}
-
-        {% if user.role in 'PROCUREMENT,ADMIN' %}
-        <div class="menu-section">
-            <div class="menu-title">PROCUREMENT</div>
-            
-            <div class="menu-item has-submenu" data-submenu="procurement">
-                <i class="fas fa-shopping-bag"></i>
-                <span>Procurement</span>
-                <i class="fas fa-chevron-right arrow"></i>
-            </div>
-            <div class="submenu" id="submenu-procurement">
-                <a href="#" class="submenu-item">All Requisitions</a>
-                <a href="#" class="submenu-item">Tenders</a>
-                <a href="#" class="submenu-item">Bids</a>
-                <a href="#" class="submenu-item">Purchase Orders</a>
-                <a href="#" class="submenu-item">Contracts</a>
-            </div>
-
-            <a href="#" class="menu-item">
-                <i class="fas fa-truck"></i>
-                <span>Suppliers</span>
-            </a>
-        </div>
-        {% endif %}
-
-        {% if user.role in 'FINANCE,ADMIN' %}
-        <div class="menu-section">
-            <div class="menu-title">FINANCE</div>
-            
-            <div class="menu-item has-submenu" data-submenu="finance">
-                <i class="fas fa-money-bill-wave"></i>
-                <span>Finance</span>
-                <i class="fas fa-chevron-right arrow"></i>
-            </div>
-            <div class="submenu" id="submenu-finance">
-                <a href="#" class="submenu-item">Budgets</a>
-                <a href="#" class="submenu-item">Invoices</a>
-                <a href="#" class="submenu-item">Payments</a>
-                <a href="#" class="submenu-item">Reports</a>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if user.role in 'STORES,ADMIN' %}
-        <div class="menu-section">
-            <div class="menu-title">INVENTORY</div>
-            
-            <div class="menu-item has-submenu" data-submenu="stores">
-                <i class="fas fa-warehouse"></i>
-                <span>Stores</span>
-                <i class="fas fa-chevron-right arrow"></i>
-            </div>
-            <div class="submenu" id="submenu-stores">
-                <a href="#" class="submenu-item">Goods Receipt</a>
-                <a href="#" class="submenu-item">Stock Items</a>
-                <a href="#" class="submenu-item">Stock Issues</a>
-                <a href="#" class="submenu-item">Assets</a>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if user.role == 'ADMIN' %}
-        <div class="menu-section">
-            <div class="menu-title">SYSTEM</div>
-            
-            <div class="menu-item has-submenu" data-submenu="admin">
-                <i class="fas fa-cog"></i>
-                <span>Administration</span>
-                <i class="fas fa-chevron-right arrow"></i>
-            </div>
-            <div class="submenu" id="submenu-admin">
-                <a href="#" class="submenu-item">Users</a>
-                <a href="#" class="submenu-item">Departments</a>
-                <a href="#" class="submenu-item">Settings</a>
-                <a href="#" class="submenu-item">Audit Trail</a>
-            </div>
-        </div>
-        {% endif %}
-
-    </div>
+    <!-- Sidebar - Dynamic Include Based on User Role -->
+    {% if user.role == 'ADMIN' %}
+        {% include 'includes/admin_sidebar.html' %}
+    {% elif user.role == 'STAFF' %}
+        {% include 'includes/staff_sidebar.html' %}
+    {% elif user.role == 'HOD' %}
+        {% include 'includes/hod_sidebar.html' %}
+    {% elif user.role == 'PROCUREMENT' %}
+        {% include 'includes/procurement_sidebar.html' %}
+    {% elif user.role == 'FINANCE' %}
+        {% include 'includes/finance_sidebar.html' %}
+    {% elif user.role == 'STORES' %}
+        {% include 'includes/stores_sidebar.html' %}
+    {% elif user.role == 'SUPPLIER' %}
+        {% include 'includes/supplier_sidebar.html' %}
+    {% elif user.role == 'AUDITOR' %}
+        {% include 'includes/auditor_sidebar.html' %}
+    {% else %}
+        {% include 'includes/default_sidebar.html' %}
+    {% endif %}
 
     <!-- Main Content -->
     <div class="main-content" id="mainContent">

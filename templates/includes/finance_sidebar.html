@@ -1,0 +1,119 @@
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <span class="logo-text">PMS</span>
+    </div>
+
+    <!-- Main Section -->
+    <div class="menu-section">
+        <div class="menu-title">MAIN</div>
+        <a href="{% url 'dashboard' %}" class="menu-item active">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="#" class="menu-item">
+            <i class="fas fa-chart-line"></i>
+            <span>Financial Analytics</span>
+        </a>
+    </div>
+
+    <!-- Finance Operations -->
+    <div class="menu-section">
+        <div class="menu-title">FINANCE</div>
+        
+        <div class="menu-item has-submenu" data-submenu="budgets">
+            <i class="fas fa-wallet"></i>
+            <span>Budgets</span>
+            <i class="fas fa-chevron-right arrow"></i>
+        </div>
+        <div class="submenu" id="submenu-budgets">
+            <a href="#" class="submenu-item">All Budgets</a>
+            <a href="#" class="submenu-item">Create Budget</a>
+            <a href="#" class="submenu-item">Budget Allocation</a>
+            <a href="#" class="submenu-item">Budget Tracking</a>
+        </div>
+        
+        <div class="menu-item has-submenu" data-submenu="invoices">
+            <i class="fas fa-file-invoice"></i>
+            <span>Invoices</span>
+            <i class="fas fa-chevron-right arrow"></i>
+        </div>
+        <div class="submenu" id="submenu-invoices">
+            <a href="#" class="submenu-item">All Invoices</a>
+            <a href="#" class="submenu-item">Pending Invoices</a>
+            <a href="#" class="submenu-item">Paid Invoices</a>
+            <a href="#" class="submenu-item">Overdue</a>
+        </div>
+        
+        <div class="menu-item has-submenu" data-submenu="payments">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>Payments</span>
+            <i class="fas fa-chevron-right arrow"></i>
+        </div>
+        <div class="submenu" id="submenu-payments">
+            <a href="#" class="submenu-item">All Payments</a>
+            <a href="#" class="submenu-item">Process Payment</a>
+            <a href="#" class="submenu-item">Payment Schedule</a>
+            <a href="#" class="submenu-item">Payment History</a>
+        </div>
+    </div>
+
+    <!-- Approvals -->
+    <div class="menu-section">
+        <div class="menu-title">APPROVALS</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-check-circle"></i>
+            <span>Pending Approvals</span>
+            <span class="badge">7</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-check-double"></i>
+            <span>Approved</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-times-circle"></i>
+            <span>Rejected</span>
+        </a>
+    </div>
+
+    <!-- Financial Reports -->
+    <div class="menu-section">
+        <div class="menu-title">REPORTS</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <span>Expenditure Reports</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-chart-pie"></i>
+            <span>Budget vs Actual</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-balance-scale"></i>
+            <span>Financial Statements</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-receipt"></i>
+            <span>Transaction Reports</span>
+        </a>
+    </div>
+
+    <!-- Help & Support -->
+    <div class="menu-section">
+        <div class="menu-title">SUPPORT</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-life-ring"></i>
+            <span>Help Center</span>
+        </a>
+    </div>
+
+</div>

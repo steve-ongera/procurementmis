@@ -1,0 +1,136 @@
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <span class="logo-text">PMS</span>
+    </div>
+
+    <!-- Main Section -->
+    <div class="menu-section">
+        <div class="menu-title">MAIN</div>
+        <a href="{% url 'dashboard' %}" class="menu-item active">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="#" class="menu-item">
+            <i class="fas fa-chart-line"></i>
+            <span>Audit Analytics</span>
+        </a>
+    </div>
+
+    <!-- Audit Management -->
+    <div class="menu-section">
+        <div class="menu-title">AUDITS</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-clipboard-list"></i>
+            <span>All Audits</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-plus-circle"></i>
+            <span>New Audit</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-play-circle"></i>
+            <span>Active Audits</span>
+            <span class="badge">3</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-check-double"></i>
+            <span>Completed Audits</span>
+        </a>
+    </div>
+
+    <!-- Reviews & Monitoring -->
+    <div class="menu-section">
+        <div class="menu-title">REVIEWS</div>
+        
+        <div class="menu-item has-submenu" data-submenu="transactions">
+            <i class="fas fa-search-dollar"></i>
+            <span>Transaction Reviews</span>
+            <i class="fas fa-chevron-right arrow"></i>
+        </div>
+        <div class="submenu" id="submenu-transactions">
+            <a href="#" class="submenu-item">Requisitions</a>
+            <a href="#" class="submenu-item">Purchase Orders</a>
+            <a href="#" class="submenu-item">Payments</a>
+            <a href="#" class="submenu-item">Contracts</a>
+        </div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-user-shield"></i>
+            <span>Compliance Review</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Flagged Items</span>
+            <span class="badge">5</span>
+        </a>
+    </div>
+
+    <!-- Audit Trail -->
+    <div class="menu-section">
+        <div class="menu-title">SYSTEM AUDIT</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-shoe-prints"></i>
+            <span>Audit Trail</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-history"></i>
+            <span>Activity Logs</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-key"></i>
+            <span>Access Logs</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-database"></i>
+            <span>Data Changes</span>
+        </a>
+    </div>
+
+    <!-- Reports & Findings -->
+    <div class="menu-section">
+        <div class="menu-title">REPORTS</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-file-alt"></i>
+            <span>Audit Reports</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-bug"></i>
+            <span>Findings</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-tasks"></i>
+            <span>Recommendations</span>
+        </a>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-chart-pie"></i>
+            <span>Risk Assessment</span>
+        </a>
+    </div>
+
+    <!-- Help & Support -->
+    <div class="menu-section">
+        <div class="menu-title">SUPPORT</div>
+        
+        <a href="#" class="menu-item">
+            <i class="fas fa-life-ring"></i>
+            <span>Help Center</span>
+        </a>
+    </div>
+
+</div>
