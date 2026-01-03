@@ -19,164 +19,186 @@
         }
 
         :root {
-            --primary-color: #1E40AF;
-            --primary-hover: #1E3A8A;
-            --secondary-color: #3B82F6;
-            --accent-color: #60A5FA;
-            --dark-bg: #0F172A;
-            --card-bg: #FFFFFF;
-            --text-primary: #0F172A;
-            --text-secondary: #64748B;
-            --border-color: #E2E8F0;
-            --success-color: #10B981;
-            --danger-color: #EF4444;
-            --gradient-1: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
-            --gradient-2: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+            --primary-color: #2563EB;
+            --primary-hover: #1D4ED8;
+            --secondary-color: #7C3AED;
+            --accent-color: #8B5CF6;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --border-color: #E5E7EB;
+            --success-color: #059669;
+            --danger-color: #DC2626;
+            --gradient-primary: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+            --gradient-secondary: linear-gradient(135deg, #F3F4F6 0%, #F9FAFB 100%);
+            --card-shadow: 0 20px 60px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.04);
+            --hover-shadow: 0 30px 80px rgba(37, 99, 235, 0.15);
+            --border-radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--gradient-1);
+            background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
-        /* Animated Background */
-        .bg-animation {
+        /* Premium Background Pattern */
+        .bg-pattern {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(37, 99, 235, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 80% 20%, rgba(124, 58, 237, 0.08) 0%, transparent 40%);
             z-index: 0;
         }
 
-        .bg-animation span {
+        /* Animated Gradient Orbs */
+        .gradient-orbs {
             position: absolute;
-            display: block;
-            width: 20px;
-            height: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            animation: move 25s infinite;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .orb-1 {
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(124, 58, 237, 0.15) 100%);
+            top: -200px;
+            right: -200px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
             bottom: -150px;
+            left: -150px;
+            animation-delay: -5s;
         }
 
-        .bg-animation span:nth-child(1) {
-            left: 25%;
-            width: 80px;
-            height: 80px;
-            animation-delay: 0s;
-        }
-
-        .bg-animation span:nth-child(2) {
+        .orb-3 {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+            top: 50%;
             left: 10%;
-            width: 20px;
-            height: 20px;
-            animation-delay: 2s;
-            animation-duration: 12s;
+            animation-delay: -10s;
         }
 
-        .bg-animation span:nth-child(3) {
-            left: 70%;
-            width: 40px;
-            height: 40px;
-            animation-delay: 4s;
-        }
-
-        .bg-animation span:nth-child(4) {
-            left: 40%;
-            width: 60px;
-            height: 60px;
-            animation-delay: 0s;
-            animation-duration: 18s;
-        }
-
-        .bg-animation span:nth-child(5) {
-            left: 65%;
-            width: 20px;
-            height: 20px;
-            animation-delay: 0s;
-        }
-
-        @keyframes move {
-            0% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 1;
-                border-radius: 0;
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
             }
-            100% {
-                transform: translateY(-1000px) rotate(720deg);
-                opacity: 0;
-                border-radius: 50%;
+            25% {
+                transform: translate(20px, 20px) scale(1.05);
+            }
+            50% {
+                transform: translate(-10px, 10px) scale(0.95);
+            }
+            75% {
+                transform: translate(10px, -10px) scale(1.02);
             }
         }
 
+        /* Login Container */
         .login-container {
             position: relative;
-            z-index: 1;
+            z-index: 2;
             width: 100%;
             max-width: 450px;
             padding: 20px;
         }
 
+        /* Login Card */
         .login-card {
-            background: var(--card-bg);
-            border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 48px 40px;
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            padding: 40px 40px 36px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            position: relative;
+            overflow: hidden;
         }
 
+        /* Header Section */
         .login-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 32px;
         }
 
         .logo-container {
-            width: 80px;
-            height: 80px;
-            background: var(--gradient-1);
-            border-radius: 20px;
+            width: 64px;
+            height: 64px;
+            background: var(--gradient-primary);
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 20px;
-            box-shadow: 0 10px 30px rgba(30, 64, 175, 0.3);
+            box-shadow: 0 12px 32px rgba(37, 99, 235, 0.25);
+            transition: var(--transition);
+        }
+
+        .logo-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 40px rgba(37, 99, 235, 0.3);
         }
 
         .logo-container i {
-            font-size: 40px;
+            font-size: 32px;
             color: white;
         }
 
         .login-header h1 {
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 800;
             color: var(--text-primary);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, #374151 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .login-header p {
-            font-size: 15px;
+            font-size: 14px;
             color: var(--text-secondary);
             font-weight: 500;
+            letter-spacing: 0.2px;
         }
 
+        /* Form Elements */
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .form-label {
             display: block;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 8px;
+            letter-spacing: 0.3px;
         }
 
         .input-wrapper {
@@ -189,28 +211,35 @@
             top: 50%;
             transform: translateY(-50%);
             color: var(--text-secondary);
-            font-size: 18px;
+            font-size: 16px;
+            transition: var(--transition);
         }
 
         .form-control {
             width: 100%;
-            padding: 14px 16px 14px 48px;
-            font-size: 15px;
+            padding: 13px 18px 13px 48px;
+            font-size: 14px;
             font-weight: 500;
             border: 2px solid var(--border-color);
             border-radius: 12px;
             outline: none;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             font-family: 'Inter', sans-serif;
+            background: white;
+            color: var(--text-primary);
         }
 
         .form-control:focus {
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
         }
 
         .form-control::placeholder {
-            color: #CBD5E1;
+            color: #9CA3AF;
+        }
+
+        .form-control:focus + .input-icon {
+            color: var(--primary-color);
         }
 
         .password-toggle {
@@ -222,20 +251,23 @@
             border: none;
             color: var(--text-secondary);
             cursor: pointer;
-            font-size: 18px;
-            padding: 4px;
-            transition: color 0.3s ease;
+            font-size: 16px;
+            padding: 6px;
+            transition: var(--transition);
+            border-radius: 8px;
         }
 
         .password-toggle:hover {
             color: var(--primary-color);
+            background: rgba(37, 99, 235, 0.05);
         }
 
+        /* Form Options */
         .form-options {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
         }
 
         .remember-me {
@@ -245,12 +277,15 @@
         }
 
         .custom-checkbox {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             border: 2px solid var(--border-color);
             border-radius: 6px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: var(--transition);
+            position: relative;
+            appearance: none;
+            background: white;
         }
 
         .custom-checkbox:checked {
@@ -258,80 +293,111 @@
             border-color: var(--primary-color);
         }
 
+        .custom-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
         .remember-me label {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             color: var(--text-secondary);
             cursor: pointer;
         }
 
         .forgot-password {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--primary-color);
             text-decoration: none;
-            transition: color 0.3s ease;
+            transition: var(--transition);
+            padding: 4px 6px;
+            border-radius: 6px;
         }
 
         .forgot-password:hover {
             color: var(--primary-hover);
+            background: rgba(37, 99, 235, 0.05);
+            text-decoration: none;
         }
 
+        /* Submit Button */
         .btn-login {
             width: 100%;
-            padding: 16px;
-            background: var(--gradient-1);
+            padding: 14px;
+            background: var(--gradient-primary);
             color: white;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             border: none;
             border-radius: 12px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 20px rgba(30, 64, 175, 0.3);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
         }
 
         .btn-login:hover {
+            box-shadow: var(--hover-shadow);
             transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(30, 64, 175, 0.4);
+        }
+
+        .btn-login:hover::before {
+            left: 100%;
         }
 
         .btn-login:active {
             transform: translateY(0);
         }
 
+        /* Alerts */
         .alert {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 14px 16px;
-            margin-bottom: 24px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
             border-radius: 12px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            animation: slideIn 0.4s ease forwards;
+            animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .alert-success {
-            background-color: #ECFDF5;
-            border-left: 4px solid var(--success-color);
+            background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
             color: #065F46;
         }
 
         .alert-error, .alert-danger {
-            background-color: #FEF2F2;
-            border-left: 4px solid var(--danger-color);
+            background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
             color: #7F1D1D;
         }
 
         .alert i {
-            font-size: 18px;
+            font-size: 16px;
         }
 
         @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: translateY(-10px);
+                transform: translateY(-12px);
             }
             to {
                 opacity: 1;
@@ -339,9 +405,10 @@
             }
         }
 
+        /* Divider */
         .divider {
             text-align: center;
-            margin: 32px 0;
+            margin: 28px 0 24px;
             position: relative;
         }
 
@@ -352,38 +419,47 @@
             top: 50%;
             width: 100%;
             height: 1px;
-            background: var(--border-color);
+            background: linear-gradient(90deg, transparent, var(--border-color), transparent);
         }
 
         .divider span {
             position: relative;
-            background: var(--card-bg);
+            background: white;
             padding: 0 16px;
             color: var(--text-secondary);
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
         }
 
+        /* Help Text */
         .help-text {
             text-align: center;
-            margin-top: 24px;
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
+            line-height: 1.6;
         }
 
         .help-text a {
             color: var(--primary-color);
             font-weight: 600;
             text-decoration: none;
+            transition: var(--transition);
+            padding: 2px 4px;
+            border-radius: 6px;
         }
 
         .help-text a:hover {
-            text-decoration: underline;
+            color: var(--primary-hover);
+            background: rgba(37, 99, 235, 0.05);
+            text-decoration: none;
         }
 
-        @media (max-width: 480px) {
+        /* Responsive Design */
+        @media (max-width: 576px) {
             .login-card {
-                padding: 36px 28px;
+                padding: 32px 28px;
             }
 
             .login-header h1 {
@@ -395,19 +471,35 @@
             }
 
             .btn-login {
-                padding: 14px;
+                padding: 13px;
             }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <!-- Animated Background -->
-    <div class="bg-animation">
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
+    <!-- Premium Background -->
+    <div class="bg-pattern"></div>
+    
+    <!-- Animated Gradient Orbs -->
+    <div class="gradient-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
     </div>
 
     <!-- Login Container -->
@@ -415,10 +507,10 @@
         <div class="login-card">
             <div class="login-header">
                 <div class="logo-container">
-                    <i class="fas fa-shopping-cart"></i>
+                    <i class="fas fa-handshake"></i>
                 </div>
-                <h1>Welcome Back</h1>
-                <p>University Procurement Management System</p>
+                <h1>University Procurement</h1>
+                <p>Secure Login Portal</p>
             </div>
 
             <!-- Django Messages -->
@@ -436,11 +528,11 @@
             {% endif %}
 
             <!-- Login Form -->
-            <form method="POST" action="{% url 'login' %}">
+            <form method="POST" action="{% url 'login' %}" id="loginForm">
                 {% csrf_token %}
                 
                 <div class="form-group">
-                    <label for="username" class="form-label">Username or Email</label>
+                    <label for="username" class="form-label">University ID / Email</label>
                     <div class="input-wrapper">
                         <i class="fas fa-user input-icon"></i>
                         <input 
@@ -448,7 +540,7 @@
                             id="username" 
                             name="username" 
                             class="form-control" 
-                            placeholder="Enter your username"
+                            placeholder="Enter your university ID or email"
                             required
                             autofocus
                         >
@@ -481,22 +573,24 @@
                             name="remember_me" 
                             class="custom-checkbox"
                         >
-                        <label for="remember_me">Remember me</label>
+                        <label for="remember_me">Keep me signed in</label>
                     </div>
                     <a href="#" class="forgot-password">Forgot password?</a>
                 </div>
 
-                <button type="submit" class="btn-login">
-                    <i class="fas fa-sign-in-alt"></i> Sign In
+                <button type="submit" class="btn-login" id="submitBtn">
+                    <i class="fas fa-sign-in-alt"></i> Sign In to Dashboard
                 </button>
             </form>
 
             <div class="divider">
-                <span>OR</span>
+                <span>Need Assistance?</span>
             </div>
 
             <div class="help-text">
-                Need help? <a href="#">Contact Support</a>
+                Contact the Procurement Office at 
+                <a href="mailto:procurement@university.edu">procurement@university.edu</a>
+               
             </div>
         </div>
     </div>
@@ -506,6 +600,8 @@
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
         const toggleIcon = togglePassword.querySelector('i');
+        const loginForm = document.getElementById('loginForm');
+        const submitBtn = document.getElementById('submitBtn');
 
         togglePassword.addEventListener('click', () => {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -515,12 +611,27 @@
             toggleIcon.classList.toggle('fa-eye-slash');
         });
 
+        // Form submission with loading state
+        loginForm.addEventListener('submit', (e) => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                e.preventDefault();
+                return;
+            }
+            
+            submitBtn.innerHTML = '<span class="loading"></span> Signing In...';
+            submitBtn.disabled = true;
+        });
+
         // Auto-dismiss alerts after 5 seconds
         document.addEventListener('DOMContentLoaded', () => {
             const alerts = document.querySelectorAll('.alert');
             alerts.forEach(alert => {
                 setTimeout(() => {
                     alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-10px)';
                     setTimeout(() => {
                         alert.remove();
                     }, 300);
@@ -528,10 +639,25 @@
             });
         });
 
+        // Input focus effects
+        const inputs = document.querySelectorAll('.form-control');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', () => {
+                input.parentElement.classList.remove('focused');
+            });
+        });
+
         // Enter key submit
         document.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                document.querySelector('form').submit();
+                const focused = document.activeElement;
+                if (focused && focused.type !== 'submit') {
+                    loginForm.submit();
+                }
             }
         });
     </script>
