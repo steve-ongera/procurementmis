@@ -130,7 +130,7 @@ def admin_dashboard(request):
             )['total'] or Decimal('0'),
         }
     }
-    return render(request, 'pms/dashboards/admin_dashboard.html', context)
+    return render(request, 'dashboards/admin_dashboard.html', context)
 
 
 def staff_dashboard(request):
@@ -156,7 +156,7 @@ def staff_dashboard(request):
             is_read=False
         ).order_by('-created_at')[:5],
     }
-    return render(request, 'pms/dashboards/staff_dashboard.html', context)
+    return render(request, 'dashboards/staff_dashboard.html', context)
 
 
 def hod_dashboard(request):
@@ -185,7 +185,7 @@ def hod_dashboard(request):
         ),
         'monthly_spend': get_monthly_spend(department),
     }
-    return render(request, 'pms/dashboards/hod_dashboard.html', context)
+    return render(request, 'dashboards/hod_dashboard.html', context)
 
 
 def procurement_dashboard(request):
@@ -216,7 +216,7 @@ def procurement_dashboard(request):
             'active_contracts': Contract.objects.filter(status='ACTIVE').count(),
         }
     }
-    return render(request, 'pms/dashboards/procurement_dashboard.html', context)
+    return render(request, 'dashboards/procurement_dashboard.html', context)
 
 
 def finance_dashboard(request):
@@ -242,7 +242,7 @@ def finance_dashboard(request):
         },
         'budget_utilization': get_budget_utilization(),
     }
-    return render(request, 'pms/dashboards/finance_dashboard.html', context)
+    return render(request, 'dashboards/finance_dashboard.html', context)
 
 
 def stores_dashboard(request):
@@ -266,7 +266,7 @@ def stores_dashboard(request):
         },
         'recent_movements': StockMovement.objects.all().order_by('-movement_date')[:10],
     }
-    return render(request, 'pms/dashboards/stores_dashboard.html', context)
+    return render(request, 'dashboards/stores_dashboard.html', context)
 
 
 def supplier_dashboard(request):
@@ -299,7 +299,7 @@ def supplier_dashboard(request):
     except Supplier.DoesNotExist:
         context = {'supplier': None}
     
-    return render(request, 'pms/dashboards/supplier_dashboard.html', context)
+    return render(request, 'dashboards/supplier_dashboard.html', context)
 
 
 def auditor_dashboard(request):
@@ -321,7 +321,7 @@ def auditor_dashboard(request):
         ).order_by('-created_at')[:10],
         'supplier_performance': SupplierPerformance.objects.all().order_by('-reviewed_at')[:10],
     }
-    return render(request, 'pms/dashboards/auditor_dashboard.html', context)
+    return render(request, 'dashboards/auditor_dashboard.html', context)
 
 
 # Helper Functions
