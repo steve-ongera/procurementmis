@@ -1534,3 +1534,590 @@ def export_report_excel(request):
         for col_num, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col_num)
             cell.fill = header_fill
+            
+            
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q, Sum, Count, Avg
+from django.http import JsonResponse
+from django.core.paginator import Paginator
+from django.utils import timezone
+from django.db import transaction
+from decimal import Decimal
+import json
+
+from .models import (
+    Requisition, RequisitionItem, RequisitionAttachment, RequisitionApproval,
+    Department, Budget, Item, User, AuditLog, Notification
+)
+
+
+@login_required
+def requisition_list(request):
+    """List all requisitions with filters"""
+    requisitions = Requisition.objects.select_related(
+        'department', 'budget', 'requested_by'
+    ).prefetch_related('items')
+    
+    # Filters
+    status_filter = request.GET.get('status', '')
+    priority_filter = request.GET.get('priority', '')
+    department_filter = request.GET.get('department', '')
+    search_query = request.GET.get('search', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    if status_filter:
+        requisitions = requisitions.filter(status=status_filter)
+    
+    if priority_filter:
+        requisitions = requisitions.filter(priority=priority_filter)
+    
+    if department_filter:
+        requisitions = requisitions.filter(department_id=department_filter)
+    
+    if search_query:
+        requisitions = requisitions.filter(
+            Q(requisition_number__icontains=search_query) |
+            Q(title__icontains=search_query) |
+            Q(justification__icontains=search_query)
+        )
+    
+    if date_from:
+        requisitions = requisitions.filter(created_at__gte=date_from)
+    
+    if date_to:
+        requisitions = requisitions.filter(created_at__lte=date_to)
+    
+    # Role-based filtering
+    if request.user.role == 'STAFF':
+        requisitions = requisitions.filter(requested_by=request.user)
+    elif request.user.role == 'HOD':
+        requisitions = requisitions.filter(department=request.user.department)
+    
+    # Statistics
+    total_count = requisitions.count()
+    pending_count = requisitions.filter(status='SUBMITTED').count()
+    approved_count = requisitions.filter(status='APPROVED').count()
+    rejected_count = requisitions.filter(status='REJECTED').count()
+    total_amount = requisitions.aggregate(Sum('estimated_amount'))['estimated_amount__sum'] or 0
+    
+    # Pagination
+    paginator = Paginator(requisitions.order_by('-created_at'), 15)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Get departments for filter
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'requisitions': page_obj,
+        'page_obj': page_obj,
+        'departments': departments,
+        'status_filter': status_filter,
+        'priority_filter': priority_filter,
+        'department_filter': department_filter,
+        'search_query': search_query,
+        'date_from': date_from,
+        'date_to': date_to,
+        'total_count': total_count,
+        'pending_count': pending_count,
+        'approved_count': approved_count,
+        'rejected_count': rejected_count,
+        'total_amount': total_amount,
+        'status_choices': Requisition.STATUS_CHOICES,
+        'priority_choices': Requisition.PRIORITY_CHOICES,
+    }
+    
+    return render(request, 'requisitions/requisition_list.html', context)
+
+
+@login_required
+def requisition_create(request):
+    """Create new requisition"""
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Create requisition
+                requisition = Requisition.objects.create(
+                    title=request.POST.get('title'),
+                    department_id=request.POST.get('department'),
+                    budget_id=request.POST.get('budget') if request.POST.get('budget') else None,
+                    requested_by=request.user,
+                    justification=request.POST.get('justification'),
+                    estimated_amount=Decimal(request.POST.get('estimated_amount', 0)),
+                    required_date=request.POST.get('required_date'),
+                    priority=request.POST.get('priority', 'MEDIUM'),
+                    is_emergency=request.POST.get('is_emergency') == 'on',
+                    emergency_justification=request.POST.get('emergency_justification', ''),
+                    notes=request.POST.get('notes', ''),
+                    status='DRAFT'
+                )
+                
+                # Create requisition items
+                items_data = json.loads(request.POST.get('items_json', '[]'))
+                total_estimated = Decimal('0')
+                
+                for item_data in items_data:
+                    item = RequisitionItem.objects.create(
+                        requisition=requisition,
+                        item_id=item_data.get('item_id') if item_data.get('item_id') else None,
+                        item_description=item_data.get('description'),
+                        specifications=item_data.get('specifications', ''),
+                        quantity=Decimal(item_data.get('quantity')),
+                        unit_of_measure=item_data.get('unit'),
+                        estimated_unit_price=Decimal(item_data.get('unit_price')),
+                        notes=item_data.get('notes', '')
+                    )
+                    total_estimated += item.estimated_total
+                
+                # Update estimated amount
+                requisition.estimated_amount = total_estimated
+                requisition.save()
+                
+                # Handle file attachments
+                if request.FILES:
+                    for file_key in request.FILES:
+                        file = request.FILES[file_key]
+                        RequisitionAttachment.objects.create(
+                            requisition=requisition,
+                            attachment_type=request.POST.get(f'{file_key}_type', 'OTHER'),
+                            file_name=file.name,
+                            file=file,
+                            description=request.POST.get(f'{file_key}_description', ''),
+                            uploaded_by=request.user
+                        )
+                
+                # Create audit log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='CREATE',
+                    model_name='Requisition',
+                    object_id=str(requisition.id),
+                    object_repr=requisition.requisition_number,
+                    changes={'status': 'DRAFT', 'created': True}
+                )
+                
+                messages.success(request, f'Requisition {requisition.requisition_number} created successfully!')
+                
+                # Check if submit action
+                if request.POST.get('action') == 'submit':
+                    return redirect('requisition_submit', pk=requisition.id)
+                
+                return redirect('requisition_detail', pk=requisition.id)
+                
+        except Exception as e:
+            messages.error(request, f'Error creating requisition: {str(e)}')
+            return redirect('requisition_create')
+    
+    # GET request - show form
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    budgets = Budget.objects.filter(is_active=True).select_related('category', 'department')
+    items = Item.objects.filter(is_active=True).select_related('category').order_by('name')
+    
+    # Filter budgets by user's department if not admin
+    if request.user.role not in ['ADMIN', 'PROCUREMENT', 'FINANCE']:
+        if request.user.department:
+            budgets = budgets.filter(department=request.user.department)
+    
+    context = {
+        'departments': departments,
+        'budgets': budgets,
+        'items': items,
+        'priority_choices': Requisition.PRIORITY_CHOICES,
+    }
+    
+    return render(request, 'requisitions/requisition_create.html', context)
+
+
+@login_required
+def requisition_detail(request, pk):
+    """View requisition details"""
+    requisition = get_object_or_404(
+        Requisition.objects.select_related(
+            'department', 'budget', 'requested_by'
+        ).prefetch_related(
+            'items__item',
+            'attachments',
+            'approvals__approver',
+            'purchase_orders'
+        ),
+        pk=pk
+    )
+    
+    # Check permissions
+    can_edit = False
+    can_approve = False
+    can_submit = False
+    
+    if request.user.role == 'ADMIN':
+        can_edit = True
+        can_approve = True
+    elif request.user == requisition.requested_by and requisition.status == 'DRAFT':
+        can_edit = True
+        can_submit = True
+    elif request.user.role == 'HOD' and request.user.department == requisition.department:
+        can_approve = requisition.status == 'SUBMITTED'
+    elif request.user.role == 'PROCUREMENT':
+        can_approve = requisition.status in ['HOD_APPROVED', 'FACULTY_APPROVED', 'BUDGET_APPROVED']
+    elif request.user.role == 'FINANCE':
+        can_approve = requisition.status in ['HOD_APPROVED', 'FACULTY_APPROVED']
+    
+    # Get approval history
+    approvals = requisition.approvals.all().order_by('sequence')
+    
+    # Calculate totals
+    items_total = requisition.items.aggregate(Sum('estimated_total'))['estimated_total__sum'] or 0
+    
+    context = {
+        'requisition': requisition,
+        'can_edit': can_edit,
+        'can_approve': can_approve,
+        'can_submit': can_submit,
+        'approvals': approvals,
+        'items_total': items_total,
+    }
+    
+    return render(request, 'requisitions/requisition_detail.html', context)
+
+
+@login_required
+def requisition_update(request, pk):
+    """Update requisition"""
+    requisition = get_object_or_404(Requisition, pk=pk)
+    
+    # Check permissions
+    if requisition.status != 'DRAFT' and request.user.role != 'ADMIN':
+        messages.error(request, 'You can only edit draft requisitions.')
+        return redirect('requisition_detail', pk=pk)
+    
+    if requisition.requested_by != request.user and request.user.role != 'ADMIN':
+        messages.error(request, 'You do not have permission to edit this requisition.')
+        return redirect('requisition_detail', pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Store old values for audit
+                old_values = {
+                    'title': requisition.title,
+                    'estimated_amount': str(requisition.estimated_amount),
+                    'status': requisition.status
+                }
+                
+                # Update requisition
+                requisition.title = request.POST.get('title')
+                requisition.department_id = request.POST.get('department')
+                requisition.budget_id = request.POST.get('budget') if request.POST.get('budget') else None
+                requisition.justification = request.POST.get('justification')
+                requisition.required_date = request.POST.get('required_date')
+                requisition.priority = request.POST.get('priority', 'MEDIUM')
+                requisition.is_emergency = request.POST.get('is_emergency') == 'on'
+                requisition.emergency_justification = request.POST.get('emergency_justification', '')
+                requisition.notes = request.POST.get('notes', '')
+                
+                # Delete existing items
+                requisition.items.all().delete()
+                
+                # Create new items
+                items_data = json.loads(request.POST.get('items_json', '[]'))
+                total_estimated = Decimal('0')
+                
+                for item_data in items_data:
+                    item = RequisitionItem.objects.create(
+                        requisition=requisition,
+                        item_id=item_data.get('item_id') if item_data.get('item_id') else None,
+                        item_description=item_data.get('description'),
+                        specifications=item_data.get('specifications', ''),
+                        quantity=Decimal(item_data.get('quantity')),
+                        unit_of_measure=item_data.get('unit'),
+                        estimated_unit_price=Decimal(item_data.get('unit_price')),
+                        notes=item_data.get('notes', '')
+                    )
+                    total_estimated += item.estimated_total
+                
+                requisition.estimated_amount = total_estimated
+                requisition.save()
+                
+                # Handle new attachments
+                if request.FILES:
+                    for file_key in request.FILES:
+                        file = request.FILES[file_key]
+                        RequisitionAttachment.objects.create(
+                            requisition=requisition,
+                            attachment_type=request.POST.get(f'{file_key}_type', 'OTHER'),
+                            file_name=file.name,
+                            file=file,
+                            description=request.POST.get(f'{file_key}_description', ''),
+                            uploaded_by=request.user
+                        )
+                
+                # Create audit log
+                new_values = {
+                    'title': requisition.title,
+                    'estimated_amount': str(requisition.estimated_amount),
+                    'status': requisition.status
+                }
+                
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='UPDATE',
+                    model_name='Requisition',
+                    object_id=str(requisition.id),
+                    object_repr=requisition.requisition_number,
+                    changes={'old': old_values, 'new': new_values}
+                )
+                
+                messages.success(request, f'Requisition {requisition.requisition_number} updated successfully!')
+                return redirect('requisition_detail', pk=pk)
+                
+        except Exception as e:
+            messages.error(request, f'Error updating requisition: {str(e)}')
+    
+    # GET request
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    budgets = Budget.objects.filter(is_active=True).select_related('category', 'department')
+    items = Item.objects.filter(is_active=True).select_related('category').order_by('name')
+    
+    context = {
+        'requisition': requisition,
+        'departments': departments,
+        'budgets': budgets,
+        'items': items,
+        'priority_choices': Requisition.PRIORITY_CHOICES,
+    }
+    
+    return render(request, 'requisitions/requisition_update.html', context)
+
+
+@login_required
+def requisition_delete(request, pk):
+    """Delete requisition"""
+    requisition = get_object_or_404(Requisition, pk=pk)
+    
+    # Check permissions
+    if requisition.status != 'DRAFT' and request.user.role != 'ADMIN':
+        messages.error(request, 'You can only delete draft requisitions.')
+        return redirect('requisition_detail', pk=pk)
+    
+    if requisition.requested_by != request.user and request.user.role != 'ADMIN':
+        messages.error(request, 'You do not have permission to delete this requisition.')
+        return redirect('requisition_detail', pk=pk)
+    
+    if request.method == 'POST':
+        req_number = requisition.requisition_number
+        
+        # Create audit log before deletion
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE',
+            model_name='Requisition',
+            object_id=str(requisition.id),
+            object_repr=req_number,
+            changes={'deleted': True}
+        )
+        
+        requisition.delete()
+        messages.success(request, f'Requisition {req_number} deleted successfully!')
+        return redirect('requisition_list')
+    
+    return render(request, 'requisitions/requisition_delete.html', {'requisition': requisition})
+
+
+@login_required
+def requisition_submit(request, pk):
+    """Submit requisition for approval"""
+    requisition = get_object_or_404(Requisition, pk=pk)
+    
+    # Check permissions
+    if requisition.requested_by != request.user and request.user.role != 'ADMIN':
+        messages.error(request, 'You do not have permission to submit this requisition.')
+        return redirect('requisition_detail', pk=pk)
+    
+    if requisition.status != 'DRAFT':
+        messages.error(request, 'Only draft requisitions can be submitted.')
+        return redirect('requisition_detail', pk=pk)
+    
+    if not requisition.items.exists():
+        messages.error(request, 'Cannot submit requisition without items.')
+        return redirect('requisition_detail', pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Update status
+                requisition.status = 'SUBMITTED'
+                requisition.submitted_at = timezone.now()
+                requisition.save()
+                
+                # Create approval workflow
+                sequence = 1
+                
+                # HOD Approval
+                if requisition.department.hod:
+                    RequisitionApproval.objects.create(
+                        requisition=requisition,
+                        approval_stage='HOD',
+                        approver=requisition.department.hod,
+                        sequence=sequence
+                    )
+                    sequence += 1
+                    
+                    # Create notification
+                    Notification.objects.create(
+                        user=requisition.department.hod,
+                        notification_type='APPROVAL',
+                        priority='HIGH',
+                        title='Requisition Pending Approval',
+                        message=f'Requisition {requisition.requisition_number} requires your approval.',
+                        link_url=f'/requisitions/{requisition.id}/'
+                    )
+                
+                # Budget approval
+                finance_users = User.objects.filter(role='FINANCE', is_active=True).first()
+                if finance_users:
+                    RequisitionApproval.objects.create(
+                        requisition=requisition,
+                        approval_stage='BUDGET',
+                        approver=finance_users,
+                        sequence=sequence
+                    )
+                    sequence += 1
+                
+                # Procurement approval
+                procurement_users = User.objects.filter(role='PROCUREMENT', is_active=True).first()
+                if procurement_users:
+                    RequisitionApproval.objects.create(
+                        requisition=requisition,
+                        approval_stage='PROCUREMENT',
+                        approver=procurement_users,
+                        sequence=sequence
+                    )
+                
+                # Create audit log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='SUBMIT',
+                    model_name='Requisition',
+                    object_id=str(requisition.id),
+                    object_repr=requisition.requisition_number,
+                    changes={'status': 'SUBMITTED'}
+                )
+                
+                messages.success(request, f'Requisition {requisition.requisition_number} submitted for approval!')
+                return redirect('requisition_detail', pk=pk)
+                
+        except Exception as e:
+            messages.error(request, f'Error submitting requisition: {str(e)}')
+    
+    return render(request, 'requisitions/requisition_submit.html', {'requisition': requisition})
+
+
+@login_required
+def pending_requisitions(request):
+    """View pending requisitions for approval"""
+    requisitions = Requisition.objects.none()
+    
+    # Get requisitions based on user role
+    if request.user.role == 'HOD':
+        requisitions = Requisition.objects.filter(
+            department=request.user.department,
+            status='SUBMITTED'
+        ).select_related('department', 'requested_by')
+    
+    elif request.user.role == 'FINANCE':
+        requisitions = Requisition.objects.filter(
+            status__in=['HOD_APPROVED', 'FACULTY_APPROVED']
+        ).select_related('department', 'requested_by')
+    
+    elif request.user.role == 'PROCUREMENT':
+        requisitions = Requisition.objects.filter(
+            status__in=['HOD_APPROVED', 'FACULTY_APPROVED', 'BUDGET_APPROVED']
+        ).select_related('department', 'requested_by')
+    
+    elif request.user.role == 'ADMIN':
+        requisitions = Requisition.objects.filter(
+            status__in=['SUBMITTED', 'HOD_APPROVED', 'FACULTY_APPROVED', 'BUDGET_APPROVED']
+        ).select_related('department', 'requested_by')
+    
+    # Pagination
+    paginator = Paginator(requisitions.order_by('-created_at'), 15)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    total_count = requisitions.count()
+    total_amount = requisitions.aggregate(Sum('estimated_amount'))['estimated_amount__sum'] or 0
+    
+    context = {
+        'requisitions': page_obj,
+        'page_obj': page_obj,
+        'total_count': total_count,
+        'total_amount': total_amount,
+    }
+    
+    return render(request, 'requisitions/pending_requisitions.html', context)
+
+
+# API Views
+@login_required
+def get_budget_info(request, budget_id):
+    """API: Get budget information"""
+    try:
+        budget = Budget.objects.select_related('category', 'department').get(id=budget_id)
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'id': str(budget.id),
+                'category': budget.category.name,
+                'allocated_amount': float(budget.allocated_amount),
+                'available_balance': float(budget.available_balance),
+                'department': budget.department.name
+            }
+        })
+    except Budget.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Budget not found'}, status=404)
+
+
+@login_required
+def get_item_info(request, item_id):
+    """API: Get item information"""
+    try:
+        item = Item.objects.select_related('category').get(id=item_id)
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'id': str(item.id),
+                'name': item.name,
+                'code': item.code,
+                'description': item.description,
+                'unit_of_measure': item.unit_of_measure,
+                'standard_price': float(item.standard_price) if item.standard_price else None,
+                'specifications': item.specifications,
+                'category': item.category.name
+            }
+        })
+    except Item.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Item not found'}, status=404)
+
+
+@login_required
+def delete_attachment(request, attachment_id):
+    """API: Delete requisition attachment"""
+    try:
+        attachment = get_object_or_404(RequisitionAttachment, id=attachment_id)
+        requisition = attachment.requisition
+        
+        # Check permissions
+        if requisition.requested_by != request.user and request.user.role != 'ADMIN':
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        
+        if requisition.status != 'DRAFT':
+            return JsonResponse({'success': False, 'error': 'Can only delete attachments from draft requisitions'}, status=400)
+        
+        attachment.delete()
+        return JsonResponse({'success': True, 'message': 'Attachment deleted successfully'})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
