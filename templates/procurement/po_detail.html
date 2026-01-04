@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}{{ po.po_number }} - Purchase Order Details{% endblock %}
+{% block title %}{{ po.po_number }} - Purchase Order Details - University Procurement System{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
@@ -9,367 +9,319 @@
     :root {
         --primary-color: #2563EB;
         --primary-light: #EFF6FF;
-        --secondary-color: #475569;
-        --success-color: #059669;
-        --warning-color: #D97706;
-        --danger-color: #DC2626;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
         --border-color: #E2E8F0;
-        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    body {
+        background: #F8FAFC;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
     }
 
     .breadcrumb {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 14px;
+        gap: 0.5rem;
+        font-size: 0.875rem;
         color: var(--secondary-color);
-        margin-bottom: 24px;
+        margin: 0;
     }
 
     .breadcrumb a {
         color: var(--primary-color);
         text-decoration: none;
+        transition: color 0.2s;
     }
 
-    .po-header {
-        background: white;
-        border-radius: 12px;
-        padding: 32px;
-        box-shadow: var(--card-shadow);
-        border: 1px solid var(--border-color);
-        margin-bottom: 24px;
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
     }
 
-    .po-header-top {
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
         display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 24px;
-        padding-bottom: 24px;
-        border-bottom: 2px solid var(--border-color);
-    }
-
-    .po-title-section h1 {
-        font-size: 32px;
-        font-weight: 800;
-        color: #1E293B;
-        margin-bottom: 8px;
-    }
-
-    .po-meta {
-        display: flex;
-        gap: 24px;
+        gap: 0.75rem;
         flex-wrap: wrap;
     }
 
-    .meta-item {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
     }
 
-    .meta-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: #94A3B8;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
     }
 
-    .meta-value {
-        font-size: 15px;
-        font-weight: 600;
-        color: #1E293B;
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
     }
 
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    .btn-warning {
+        background: var(--warning-color);
+        color: white;
+        border-color: var(--warning-color);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-secondary {
+        background: white;
+        color: var(--secondary-color);
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: #F8FAFC;
+    }
+
+    /* Status Badges */
     .status-badge {
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 700;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
         text-transform: uppercase;
-        display: inline-block;
+        letter-spacing: 0.05em;
     }
 
     .status-draft { background: #F1F5F9; color: #64748B; }
     .status-pending_approval { background: #FEF3C7; color: #92400E; }
-    .status-approved { background: #D1FAE5; color: #065F46; }
+    .status-approved { background: #DCFCE7; color: #065F46; }
     .status-sent { background: #DBEAFE; color: #1E40AF; }
-    .status-delivered { background: #D1FAE5; color: #065F46; }
+    .status-delivered { background: #DCFCE7; color: #065F46; }
     .status-cancelled { background: #FEE2E2; color: #991B1B; }
 
-    .action-buttons {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-
-    .action-btn {
-        padding: 10px 20px;
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .action-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
-    }
-
-    .btn-success { background: var(--success-color); }
-    .btn-warning { background: var(--warning-color); }
-    .btn-danger { background: var(--danger-color); }
-    .btn-secondary { background: white; color: var(--secondary-color); border: 1px solid var(--border-color); }
-
+    /* Info Grid */
     .info-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 32px;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
     }
 
-    @media (max-width: 768px) {
-        .info-grid {
-            grid-template-columns: 1fr;
-        }
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
     }
 
-    .info-section {
+    .info-header {
         display: flex;
-        flex-direction: column;
-        gap: 16px;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
     }
 
     .info-title {
-        font-size: 16px;
-        font-weight: 700;
+        font-size: 1rem;
+        font-weight: 600;
         color: #1E293B;
-        margin-bottom: 8px;
+        margin: 0;
+    }
+
+    .info-body {
         display: flex;
-        align-items: center;
-        gap: 8px;
+        flex-direction: column;
+        gap: 0.75rem;
     }
 
     .info-row {
-        display: grid;
-        grid-template-columns: 140px 1fr;
-        gap: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
     }
 
     .info-label {
-        font-size: 14px;
-        font-weight: 600;
-        color: #64748B;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        min-width: 120px;
     }
 
     .info-value {
-        font-size: 14px;
+        font-size: 0.875rem;
         color: #1E293B;
+        text-align: right;
+        flex: 1;
     }
 
-    .card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: var(--card-shadow);
+    .info-value strong {
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+
+    /* Progress Cards */
+    .progress-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .progress-card {
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
-        margin-bottom: 24px;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
     }
 
-    .card-header {
+    .progress-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 16px;
-        border-bottom: 2px solid var(--border-color);
+        margin-bottom: 1rem;
     }
 
-    .card-title {
-        font-size: 18px;
+    .progress-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .progress-percentage {
+        font-size: 1rem;
         font-weight: 700;
-        color: #1E293B;
-        display: flex;
-        align-items: center;
-        gap: 12px;
+        color: var(--primary-color);
     }
 
     .progress-bar-container {
-        background: #F1F5F9;
-        border-radius: 8px;
-        height: 32px;
+        background: var(--hover-bg);
+        border-radius: 0.375rem;
+        height: 0.75rem;
         overflow: hidden;
-        margin-bottom: 8px;
     }
 
     .progress-bar {
         height: 100%;
-        background: linear-gradient(90deg, var(--success-color), #10B981);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: 700;
-        font-size: 13px;
-        transition: width 0.3s;
+        background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+        border-radius: 0.375rem;
+        transition: width 0.3s ease;
+    }
+
+    .progress-bar.success {
+        background: linear-gradient(90deg, var(--success-color), #059669);
     }
 
     .progress-label {
-        font-size: 13px;
-        color: #64748B;
-        text-align: right;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    th {
-        padding: 12px;
-        text-align: left;
-        font-size: 12px;
-        font-weight: 700;
+        font-size: 0.75rem;
         color: var(--secondary-color);
-        text-transform: uppercase;
-        background: #F8FAFC;
-        border-bottom: 2px solid var(--border-color);
-    }
-
-    td {
-        padding: 16px 12px;
-        border-bottom: 1px solid var(--border-color);
-        font-size: 14px;
-    }
-
-    .amount-column {
         text-align: right;
-        font-weight: 700;
+        margin-top: 0.5rem;
     }
 
-    .totals-section {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        padding: 20px;
-        background: #F8FAFC;
-        border-radius: 8px;
-        margin-top: 16px;
-    }
-
-    .total-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 14px;
-    }
-
-    .total-row.grand-total {
-        padding-top: 12px;
-        border-top: 2px solid var(--border-color);
-        font-size: 18px;
-        font-weight: 800;
-        color: #1E293B;
-    }
-
-    .timeline {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .timeline-item {
-        display: flex;
-        gap: 16px;
-        position: relative;
-    }
-
-    .timeline-item:not(:last-child)::after {
-        content: '';
-        position: absolute;
-        left: 15px;
-        top: 40px;
-        bottom: -20px;
-        width: 2px;
-        background: var(--border-color);
-    }
-
-    .timeline-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background: var(--primary-light);
-        color: var(--primary-color);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .timeline-content {
-        flex: 1;
-        padding-bottom: 4px;
-    }
-
-    .timeline-title {
-        font-weight: 700;
-        color: #1E293B;
-        margin-bottom: 4px;
-    }
-
-    .timeline-meta {
-        font-size: 13px;
-        color: #64748B;
-        margin-bottom: 8px;
-    }
-
-    .timeline-description {
-        font-size: 14px;
-        color: var(--secondary-color);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 40px;
-        color: #94A3B8;
-    }
-
-    .empty-state i {
-        font-size: 36px;
-        margin-bottom: 12px;
-        opacity: 0.5;
-    }
-
+    /* Tab Navigation */
     .tab-navigation {
         display: flex;
-        gap: 8px;
-        border-bottom: 2px solid var(--border-color);
-        margin-bottom: 24px;
+        gap: 0.25rem;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
     }
 
     .tab-btn {
-        padding: 12px 24px;
+        padding: 0.75rem 1.5rem;
         background: none;
         border: none;
-        border-bottom: 3px solid transparent;
-        font-weight: 600;
-        color: #64748B;
+        border-bottom: 2px solid transparent;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--secondary-color);
         cursor: pointer;
         transition: all 0.2s;
-        margin-bottom: -2px;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: -1px;
+    }
+
+    .tab-btn:hover {
+        color: var(--primary-color);
     }
 
     .tab-btn.active {
         color: var(--primary-color);
         border-bottom-color: var(--primary-color);
+        font-weight: 600;
     }
 
     .tab-content {
@@ -379,123 +331,363 @@
     .tab-content.active {
         display: block;
     }
+
+    /* Data Cards */
+    .data-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    /* Tables */
+    .table-responsive {
+        overflow-x: auto;
+        margin-top: 1rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    th {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        background: var(--table-header);
+        font-weight: 600;
+        color: var(--secondary-color);
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        color: #1E293B;
+    }
+
+    tbody tr {
+        transition: background 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .amount-column {
+        text-align: right;
+        font-family: 'Roboto Mono', monospace;
+        font-weight: 600;
+    }
+
+    /* Totals Section */
+    .totals-section {
+        background: var(--table-header);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+    }
+
+    .total-row:last-child {
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+        margin-top: 0.5rem;
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1E293B;
+    }
+
+    /* Timeline */
+    .timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .timeline-item {
+        display: flex;
+        gap: 1rem;
+        position: relative;
+    }
+
+    .timeline-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 1.125rem;
+        top: 2.5rem;
+        bottom: -1.5rem;
+        width: 1px;
+        background: var(--border-color);
+    }
+
+    .timeline-icon {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 50%;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        z-index: 1;
+    }
+
+    .timeline-content {
+        flex: 1;
+        padding-bottom: 0.25rem;
+    }
+
+    .timeline-title {
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .timeline-meta {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .timeline-description {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        line-height: 1.5;
+    }
+
+    .timeline-description strong {
+        color: #1E293B;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: var(--secondary-color);
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        color: #CBD5E1;
+        margin-bottom: 1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .progress-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .tab-navigation {
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            min-width: 140px;
+            justify-content: center;
+        }
+        
+        .card-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .info-row {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .info-label, .info-value {
+            text-align: left;
+            width: 100%;
+        }
+        
+        .header-actions {
+            flex-direction: column;
+        }
+        
+        .header-actions .btn {
+            width: 100%;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="breadcrumb">
-    <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
-    <i class="bi bi-chevron-right"></i>
-    <a href="{% url 'po_dashboard' %}">Purchase Orders</a>
-    <i class="bi bi-chevron-right"></i>
-    <span>{{ po.po_number }}</span>
-</div>
-
-<!-- PO Header -->
-<div class="po-header">
-    <div class="po-header-top">
-        <div class="po-title-section">
-            <h1>{{ po.po_number }}</h1>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-cart-check"></i>
+            {{ po.po_number }}
             <span class="status-badge status-{{ po.status|lower }}">{{ po.get_status_display }}</span>
-        </div>
-        <div class="action-buttons">
-            {% if po.status == 'DRAFT' or po.status == 'PENDING_APPROVAL' %}
-            <a href="{% url 'po_update' po.id %}" class="action-btn btn-secondary">
-                <i class="bi bi-pencil"></i> Edit
+        </h1>
+        <p class="page-subtitle">Purchase Order Details • {{ po.po_date|date:"F d, Y" }}</p>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
             </a>
-            {% endif %}
-            
-            {% if po.status == 'PENDING_APPROVAL' and user.role in 'PROCUREMENT,FINANCE,ADMIN' %}
-            <a href="{% url 'po_approve' po.id %}" class="action-btn btn-success">
-                <i class="bi bi-check-circle"></i> Approve
-            </a>
-            {% endif %}
-            
-            {% if po.status == 'APPROVED' %}
-            <a href="{% url 'po_send' po.id %}" class="action-btn">
-                <i class="bi bi-send"></i> Send to Supplier
-            </a>
-            {% endif %}
-            
-            {% if po.status not in 'DELIVERED,CLOSED,CANCELLED' %}
-            <a href="{% url 'po_amendment_create' po.id %}" class="action-btn btn-warning">
-                <i class="bi bi-file-earmark-diff"></i> Amendment
-            </a>
-            <a href="{% url 'po_cancel' po.id %}" class="action-btn btn-danger">
-                <i class="bi bi-x-circle"></i> Cancel
-            </a>
-            {% endif %}
-            
-            <button onclick="window.print()" class="action-btn btn-secondary">
-                <i class="bi bi-printer"></i> Print
-            </button>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'po_dashboard' %}">Purchase Orders</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ po.po_number }}</span>
         </div>
     </div>
-
-    <div class="po-meta">
-        <div class="meta-item">
-            <span class="meta-label">PO Date</span>
-            <span class="meta-value">{{ po.po_date|date:"F d, Y" }}</span>
-        </div>
-        <div class="meta-item">
-            <span class="meta-label">Delivery Date</span>
-            <span class="meta-value">{{ po.delivery_date|date:"F d, Y" }}</span>
-        </div>
-        <div class="meta-item">
-            <span class="meta-label">Total Amount</span>
-            <span class="meta-value" style="color: var(--primary-color); font-size: 18px;">
-                KES {{ po.total_amount|floatformat:0|intcomma }}
-            </span>
-        </div>
-        <div class="meta-item">
-            <span class="meta-label">Requisition</span>
-            <span class="meta-value">
-                <a href="{% url 'requisition_detail' po.requisition.id %}" style="color: var(--primary-color); text-decoration: none;">
-                    {{ po.requisition.requisition_number }}
-                </a>
-            </span>
-        </div>
-        {% if po.created_by %}
-        <div class="meta-item">
-            <span class="meta-label">Created By</span>
-            <span class="meta-value">{{ po.created_by.get_full_name }}</span>
-        </div>
+    <div class="header-actions">
+        {% if po.status == 'DRAFT' or po.status == 'PENDING_APPROVAL' %}
+        <a href="{% url 'po_update' po.id %}" class="btn btn-secondary">
+            <i class="bi bi-pencil"></i>
+            Edit
+        </a>
         {% endif %}
+        
+        {% if po.status == 'PENDING_APPROVAL' and user.role in 'PROCUREMENT,FINANCE,ADMIN' %}
+        <a href="{% url 'po_approve' po.id %}" class="btn btn-success">
+            <i class="bi bi-check-circle"></i>
+            Approve
+        </a>
+        {% endif %}
+        
+        {% if po.status == 'APPROVED' %}
+        <a href="{% url 'po_send' po.id %}" class="btn btn-primary">
+            <i class="bi bi-send"></i>
+            Send to Supplier
+        </a>
+        {% endif %}
+        
+        <button onclick="window.print()" class="btn btn-secondary">
+            <i class="bi bi-printer"></i>
+            Print
+        </button>
     </div>
 </div>
 
 <!-- Progress Indicators -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 24px;">
-    <div class="card">
-        <h3 style="font-size: 14px; font-weight: 700; color: #64748B; margin-bottom: 12px;">DELIVERY PROGRESS</h3>
+<div class="progress-grid">
+    <div class="progress-card">
+        <div class="progress-header">
+            <h3 class="progress-title">Delivery Progress</h3>
+            <span class="progress-percentage">{{ delivery_progress }}%</span>
+        </div>
         <div class="progress-bar-container">
-            <div class="progress-bar" style="width: {{ delivery_progress }}%;">
-                {{ delivery_progress }}%
-            </div>
+            <div class="progress-bar success" style="width: {{ delivery_progress }}%;"></div>
         </div>
         <div class="progress-label">{{ delivery_progress }}% items delivered</div>
     </div>
 
-    <div class="card">
-        <h3 style="font-size: 14px; font-weight: 700; color: #64748B; margin-bottom: 12px;">INVOICE PROGRESS</h3>
+    <div class="progress-card">
+        <div class="progress-header">
+            <h3 class="progress-title">Invoice Progress</h3>
+            <span class="progress-percentage">{{ invoice_progress }}%</span>
+        </div>
         <div class="progress-bar-container">
-            <div class="progress-bar" style="width: {{ invoice_progress }}%; background: linear-gradient(90deg, var(--primary-color), #3B82F6);">
-                {{ invoice_progress }}%
-            </div>
+            <div class="progress-bar" style="width: {{ invoice_progress }}%;"></div>
         </div>
         <div class="progress-label">{{ invoice_progress }}% invoiced</div>
     </div>
 </div>
 
-<!-- Main Content Grid -->
+<!-- Main Information Grid -->
 <div class="info-grid">
-    <!-- Supplier Information -->
-    <div class="card">
-        <div class="info-title">
-            <i class="bi bi-building" style="color: var(--primary-color);"></i>
-            Supplier Information
+    <!-- PO Information -->
+    <div class="info-card">
+        <div class="info-header">
+            <i class="bi bi-file-earmark-text" style="color: var(--primary-color);"></i>
+            <h3 class="info-title">Order Information</h3>
         </div>
-        <div class="info-section">
+        <div class="info-body">
+            <div class="info-row">
+                <span class="info-label">PO Date:</span>
+                <span class="info-value">{{ po.po_date|date:"F d, Y" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Delivery Date:</span>
+                <span class="info-value">{{ po.delivery_date|date:"F d, Y" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Requisition:</span>
+                <span class="info-value">
+                    <a href="{% url 'requisition_detail' po.requisition.id %}" style="color: var(--primary-color); text-decoration: none;">
+                        {{ po.requisition.requisition_number }}
+                    </a>
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Created By:</span>
+                <span class="info-value">{{ po.created_by.get_full_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Total Amount:</span>
+                <span class="info-value">
+                    <strong>KES {{ po.total_amount|floatformat:0|intcomma }}</strong>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supplier Information -->
+    <div class="info-card">
+        <div class="info-header">
+            <i class="bi bi-building" style="color: var(--success-color);"></i>
+            <h3 class="info-title">Supplier Information</h3>
+        </div>
+        <div class="info-body">
             <div class="info-row">
                 <span class="info-label">Name:</span>
                 <span class="info-value">{{ po.supplier.name }}</span>
@@ -516,14 +708,14 @@
     </div>
 
     <!-- Delivery Information -->
-    <div class="card">
-        <div class="info-title">
-            <i class="bi bi-truck" style="color: var(--success-color);"></i>
-            Delivery Information
+    <div class="info-card">
+        <div class="info-header">
+            <i class="bi bi-truck" style="color: var(--warning-color);"></i>
+            <h3 class="info-title">Delivery Information</h3>
         </div>
-        <div class="info-section">
+        <div class="info-body">
             <div class="info-row">
-                <span class="info-label">Delivery Address:</span>
+                <span class="info-label">Address:</span>
                 <span class="info-value">{{ po.delivery_address }}</span>
             </div>
             <div class="info-row">
@@ -540,63 +732,90 @@
     </div>
 </div>
 
-<!-- Tabs -->
+<!-- Tab Navigation -->
 <div class="tab-navigation">
     <button class="tab-btn active" onclick="switchTab('items')">
-        <i class="bi bi-list-ul"></i> Items
+        <i class="bi bi-list-ul"></i> Order Items
     </button>
     <button class="tab-btn" onclick="switchTab('amendments')">
-        <i class="bi bi-file-earmark-diff"></i> Amendments ({{ amendments.count }})
+        <i class="bi bi-file-earmark-diff"></i> Amendments
+        {% if amendments.count > 0 %}
+        <span style="background: var(--primary-color); color: white; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.75rem;">
+            {{ amendments.count }}
+        </span>
+        {% endif %}
     </button>
     <button class="tab-btn" onclick="switchTab('deliveries')">
-        <i class="bi bi-box-seam"></i> Deliveries ({{ grns.count }})
+        <i class="bi bi-box-seam"></i> Deliveries
+        {% if grns.count > 0 %}
+        <span style="background: var(--success-color); color: white; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.75rem;">
+            {{ grns.count }}
+        </span>
+        {% endif %}
     </button>
     <button class="tab-btn" onclick="switchTab('invoices')">
-        <i class="bi bi-receipt"></i> Invoices ({{ invoices.count }})
+        <i class="bi bi-receipt"></i> Invoices
+        {% if invoices.count > 0 %}
+        <span style="background: var(--warning-color); color: white; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.75rem;">
+            {{ invoices.count }}
+        </span>
+        {% endif %}
     </button>
 </div>
 
 <!-- Items Tab -->
 <div id="items-tab" class="tab-content active">
-    <div class="card">
+    <div class="data-card">
         <div class="card-header">
             <h2 class="card-title">
                 <i class="bi bi-cart"></i>
                 Order Items
             </h2>
+            <div class="header-actions" style="padding: 0; border: none;">
+                {% if po.status not in 'DELIVERED,CLOSED,CANCELLED' %}
+                <a href="{% url 'po_amendment_create' po.id %}" class="btn btn-warning">
+                    <i class="bi bi-file-earmark-diff"></i> Create Amendment
+                </a>
+                <a href="{% url 'po_cancel' po.id %}" class="btn btn-danger">
+                    <i class="bi bi-x-circle"></i> Cancel PO
+                </a>
+                {% endif %}
+            </div>
         </div>
         
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 40%;">Item Description</th>
-                    <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Total</th>
-                    <th>Delivered</th>
-                    <th>Pending</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in po_items %}
-                <tr>
-                    <td>
-                        <div style="font-weight: 600;">{{ item.item_description }}</div>
-                        {% if item.specifications %}
-                        <div style="font-size: 12px; color: #64748B; margin-top: 4px;">
-                            {{ item.specifications|truncatewords:15 }}
-                        </div>
-                        {% endif %}
-                    </td>
-                    <td>{{ item.quantity|floatformat:2 }} {{ item.unit_of_measure }}</td>
-                    <td class="amount-column">{{ item.unit_price|floatformat:2|intcomma }}</td>
-                    <td class="amount-column">{{ item.total_price|floatformat:2|intcomma }}</td>
-                    <td>{{ item.quantity_delivered|floatformat:2 }}</td>
-                    <td>{{ item.quantity_pending|floatformat:2 }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Item Description</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Total</th>
+                        <th>Delivered</th>
+                        <th>Pending</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in po_items %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">{{ item.item_description }}</div>
+                            {% if item.specifications %}
+                            <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                                {{ item.specifications|truncatewords:10 }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.quantity|floatformat:2 }} {{ item.unit_of_measure }}</td>
+                        <td class="amount-column">KES {{ item.unit_price|floatformat:2|intcomma }}</td>
+                        <td class="amount-column">KES {{ item.total_price|floatformat:2|intcomma }}</td>
+                        <td>{{ item.quantity_delivered|floatformat:2 }}</td>
+                        <td>{{ item.quantity_pending|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
         <div class="totals-section">
             <div class="total-row">
@@ -607,30 +826,34 @@
                 <span>Tax (16%):</span>
                 <span>KES {{ po.tax_amount|floatformat:2|intcomma }}</span>
             </div>
-            <div class="total-row grand-total">
+            <div class="total-row">
                 <span>Grand Total:</span>
-                <span>KES {{ po.total_amount|floatformat:2|intcomma }}</span>
+                <span><strong>KES {{ po.total_amount|floatformat:2|intcomma }}</strong></span>
             </div>
         </div>
     </div>
 
     <!-- Terms and Conditions -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
-        <div class="card">
-            <div class="info-title">
+    <div class="info-grid">
+        <div class="info-card">
+            <div class="info-header">
                 <i class="bi bi-file-text" style="color: var(--primary-color);"></i>
-                Payment Terms
+                <h3 class="info-title">Payment Terms</h3>
             </div>
-            <p style="margin-top: 12px; color: var(--secondary-color);">{{ po.payment_terms }}</p>
+            <div style="margin-top: 0.5rem; color: var(--secondary-color); line-height: 1.5;">
+                {{ po.payment_terms }}
+            </div>
         </div>
 
         {% if po.warranty_terms %}
-        <div class="card">
-            <div class="info-title">
+        <div class="info-card">
+            <div class="info-header">
                 <i class="bi bi-shield-check" style="color: var(--success-color);"></i>
-                Warranty Terms
+                <h3 class="info-title">Warranty Terms</h3>
             </div>
-            <p style="margin-top: 12px; color: var(--secondary-color);">{{ po.warranty_terms }}</p>
+            <div style="margin-top: 0.5rem; color: var(--secondary-color); line-height: 1.5;">
+                {{ po.warranty_terms }}
+            </div>
         </div>
         {% endif %}
     </div>
@@ -638,15 +861,17 @@
 
 <!-- Amendments Tab -->
 <div id="amendments-tab" class="tab-content">
-    <div class="card">
+    <div class="data-card">
         <div class="card-header">
             <h2 class="card-title">
                 <i class="bi bi-file-earmark-diff"></i>
                 PO Amendments
             </h2>
-            <a href="{% url 'po_amendment_create' po.id %}" class="action-btn">
+            {% if po.status not in 'DELIVERED,CLOSED,CANCELLED' %}
+            <a href="{% url 'po_amendment_create' po.id %}" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> New Amendment
             </a>
+            {% endif %}
         </div>
 
         {% if amendments %}
@@ -657,11 +882,13 @@
                     <i class="bi bi-pencil"></i>
                 </div>
                 <div class="timeline-content">
-                    <div class="timeline-title">{{ amendment.amendment_number }} - {{ amendment.get_amendment_type_display }}</div>
+                    <div class="timeline-title">
+                        {{ amendment.amendment_number }} - {{ amendment.get_amendment_type_display }}
+                    </div>
                     <div class="timeline-meta">
-                        {{ amendment.created_at|date:"M d, Y H:i" }} by {{ amendment.requested_by.get_full_name }}
+                        {{ amendment.created_at|date:"M d, Y H:i" }} • Requested by {{ amendment.requested_by.get_full_name }}
                         {% if amendment.approved_by %}
-                        | Approved by {{ amendment.approved_by.get_full_name }}
+                        • Approved by {{ amendment.approved_by.get_full_name }}
                         {% endif %}
                     </div>
                     <div class="timeline-description">
@@ -687,7 +914,7 @@
 
 <!-- Deliveries Tab -->
 <div id="deliveries-tab" class="tab-content">
-    <div class="card">
+    <div class="data-card">
         <div class="card-header">
             <h2 class="card-title">
                 <i class="bi bi-box-seam"></i>
@@ -696,42 +923,44 @@
         </div>
 
         {% if grns %}
-        <table>
-            <thead>
-                <tr>
-                    <th>GRN Number</th>
-                    <th>Delivery Date</th>
-                    <th>Received By</th>
-                    <th>Store</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for grn in grns %}
-                <tr>
-                    <td>
-                        <a href="{% url 'grn_detail' grn.id %}" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">
-                            {{ grn.grn_number }}
-                        </a>
-                    </td>
-                    <td>{{ grn.delivery_date|date:"M d, Y" }}</td>
-                    <td>{{ grn.received_by.get_full_name }}</td>
-                    <td>{{ grn.store.name }}</td>
-                    <td>
-                        <span class="status-badge status-{{ grn.status|lower }}">
-                            {{ grn.get_status_display }}
-                        </span>
-                    </td>
-                    <td>
-                        <a href="{% url 'grn_detail' grn.id %}" style="color: var(--primary-color);">
-                            <i class="bi bi-eye"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>GRN Number</th>
+                        <th>Delivery Date</th>
+                        <th>Received By</th>
+                        <th>Store</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grn in grns %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'grn_detail' grn.id %}" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">
+                                {{ grn.grn_number }}
+                            </a>
+                        </td>
+                        <td>{{ grn.delivery_date|date:"M d, Y" }}</td>
+                        <td>{{ grn.received_by.get_full_name }}</td>
+                        <td>{{ grn.store.name }}</td>
+                        <td>
+                            <span class="status-badge status-{{ grn.status|lower }}">
+                                {{ grn.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'grn_detail' grn.id %}" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
         <div class="empty-state">
             <i class="bi bi-box-seam"></i>
@@ -743,7 +972,7 @@
 
 <!-- Invoices Tab -->
 <div id="invoices-tab" class="tab-content">
-    <div class="card">
+    <div class="data-card">
         <div class="card-header">
             <h2 class="card-title">
                 <i class="bi bi-receipt"></i>
@@ -752,42 +981,44 @@
         </div>
 
         {% if invoices %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Invoice Number</th>
-                    <th>Invoice Date</th>
-                    <th>Due Date</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for invoice in invoices %}
-                <tr>
-                    <td>
-                        <a href="{% url 'invoice_detail' invoice.id %}" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">
-                            {{ invoice.invoice_number }}
-                        </a>
-                    </td>
-                    <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
-                    <td>{{ invoice.due_date|date:"M d, Y" }}</td>
-                    <td class="amount-column">KES {{ invoice.total_amount|floatformat:0|intcomma }}</td>
-                    <td>
-                        <span class="status-badge status-{{ invoice.status|lower }}">
-                            {{ invoice.get_status_display }}
-                        </span>
-                    </td>
-                    <td>
-                        <a href="{% url 'invoice_detail' invoice.id %}" style="color: var(--primary-color);">
-                            <i class="bi bi-eye"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Invoice Number</th>
+                        <th>Invoice Date</th>
+                        <th>Due Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'invoice_detail' invoice.id %}" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">
+                                {{ invoice.invoice_number }}
+                            </a>
+                        </td>
+                        <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                        <td>{{ invoice.due_date|date:"M d, Y" }}</td>
+                        <td class="amount-column">KES {{ invoice.total_amount|floatformat:0|intcomma }}</td>
+                        <td>
+                            <span class="status-badge status-{{ invoice.status|lower }}">
+                                {{ invoice.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
         <div class="empty-state">
             <i class="bi bi-receipt"></i>
@@ -796,7 +1027,6 @@
         {% endif %}
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
@@ -814,7 +1044,7 @@
         
         // Show selected tab
         document.getElementById(tabName + '-tab').classList.add('active');
-        event.target.classList.add('active');
+        event.currentTarget.classList.add('active');
     }
 </script>
 {% endblock %}

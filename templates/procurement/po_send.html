@@ -1,127 +1,450 @@
-
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}Send {{ po.po_number }} to Supplier{% endblock %}
+{% block title %}Send {{ po.po_number }} to Supplier - University Procurement System{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 <style>
     :root {
         --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
         --border-color: #E2E8F0;
-        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
     }
 
-    .send-card {
-        background: white;
-        border-radius: 12px;
-        padding: 40px;
-        box-shadow: var(--card-shadow);
+    body {
+        background: #F8FAFC;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
         border: 1px solid var(--border-color);
-        max-width: 700px;
-        margin: 40px auto;
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-secondary {
+        background: white;
+        color: var(--secondary-color);
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: #F8FAFC;
+    }
+
+    /* Confirmation Card */
+    .confirmation-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 3rem;
+        max-width: 600px;
+        margin: 2rem auto;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
         text-align: center;
     }
 
-    .icon-circle {
-        width: 80px;
-        height: 80px;
-        background: #EFF6FF;
+    @media (max-width: 768px) {
+        .confirmation-card {
+            padding: 2rem;
+            margin: 1.5rem;
+        }
+    }
+
+    .confirmation-icon {
+        width: 4rem;
+        height: 4rem;
+        background: var(--primary-light);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 24px;
-        font-size: 36px;
+        margin: 0 auto 1.5rem;
+        font-size: 1.75rem;
         color: var(--primary-color);
     }
 
-    .supplier-info {
-        background: #F8FAFC;
-        border-radius: 8px;
-        padding: 24px;
-        margin: 24px 0;
+    .confirmation-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .confirmation-subtitle {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0 0 2rem 0;
+    }
+
+    /* Supplier Card */
+    .supplier-card {
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
         text-align: left;
     }
 
+    .supplier-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .supplier-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .supplier-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .supplier-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .supplier-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        min-width: 120px;
+    }
+
+    .supplier-value {
+        font-size: 0.875rem;
+        color: #1E293B;
+        text-align: right;
+        flex: 1;
+    }
+
+    /* Alert Card */
+    .alert-card {
+        background: var(--primary-light);
+        border-left: 4px solid var(--primary-color);
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin: 1.5rem 0;
+        text-align: left;
+    }
+
+    .alert-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .alert-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 0;
+    }
+
+    .alert-content {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    /* Action Buttons */
     .action-buttons {
         display: flex;
         justify-content: center;
-        gap: 16px;
-        margin-top: 32px;
+        gap: 1rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
     }
 
     .action-btn {
-        padding: 14px 40px;
-        border: none;
-        border-radius: 8px;
-        font-weight: 700;
-        font-size: 15px;
-        cursor: pointer;
+        padding: 0.875rem 2rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
         text-decoration: none;
+        transition: all 0.2s;
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 0.5rem;
+        border: 1px solid transparent;
+        cursor: pointer;
+        min-width: 160px;
+        justify-content: center;
     }
 
-    .btn-send {
+    .action-btn-primary {
         background: var(--primary-color);
         color: white;
+        border-color: var(--primary-color);
     }
 
-    .btn-cancel {
+    .action-btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .action-btn-secondary {
         background: white;
-        color: #64748B;
-        border: 1px solid var(--border-color);
+        color: var(--secondary-color);
+        border-color: var(--border-color);
+    }
+
+    .action-btn-secondary:hover {
+        background: var(--hover-bg);
+        border-color: var(--border-color);
+        transform: translateY(-1px);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .supplier-row {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .supplier-label, .supplier-value {
+            text-align: left;
+            width: 100%;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .confirmation-card {
+            padding: 1.5rem;
+            margin: 1rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .action-btn {
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="send-card">
-    <div class="icon-circle">
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-send"></i>
+            Send Purchase Order
+        </h1>
+        <p class="page-subtitle">Send purchase order document to supplier for processing</p>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'po_dashboard' %}">Purchase Orders</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'po_detail' po.id %}">{{ po.po_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Send to Supplier</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'po_detail' po.id %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Back to PO
+        </a>
+    </div>
+</div>
+
+<!-- Confirmation Card -->
+<div class="confirmation-card">
+    <div class="confirmation-icon">
         <i class="bi bi-send"></i>
     </div>
 
-    <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 12px;">
-        Send Purchase Order
-    </h1>
-    <p style="color: #64748B; font-size: 16px;">
-        Send {{ po.po_number }} to supplier
+    <h2 class="confirmation-title">Send Purchase Order</h2>
+    <p class="confirmation-subtitle">
+        Send {{ po.po_number }} to supplier for processing
     </p>
 
-    <div class="supplier-info">
-        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">
-            Supplier Contact Information
-        </h3>
-        <div style="margin-bottom: 12px;">
-            <strong>Company:</strong> {{ po.supplier.name }}
+    <!-- Supplier Information -->
+    <div class="supplier-card">
+        <div class="supplier-header">
+            <i class="bi bi-building" style="color: var(--primary-color);"></i>
+            <h3 class="supplier-title">Supplier Contact Information</h3>
         </div>
-        <div style="margin-bottom: 12px;">
-            <strong>Email:</strong> {{ po.supplier.email }}
-        </div>
-        <div style="margin-bottom: 12px;">
-            <strong>Contact Person:</strong> {{ po.supplier.contact_person }}
-        </div>
-        <div>
-            <strong>Phone:</strong> {{ po.supplier.contact_person_phone }}
+        <div class="supplier-body">
+            <div class="supplier-row">
+                <span class="supplier-label">Company:</span>
+                <span class="supplier-value">{{ po.supplier.name }}</span>
+            </div>
+            <div class="supplier-row">
+                <span class="supplier-label">Email:</span>
+                <span class="supplier-value">{{ po.supplier.email }}</span>
+            </div>
+            <div class="supplier-row">
+                <span class="supplier-label">Contact Person:</span>
+                <span class="supplier-value">{{ po.supplier.contact_person }}</span>
+            </div>
+            <div class="supplier-row">
+                <span class="supplier-label">Phone:</span>
+                <span class="supplier-value">{{ po.supplier.contact_person_phone|default:"Not specified" }}</span>
+            </div>
+            <div class="supplier-row">
+                <span class="supplier-label">PO Amount:</span>
+                <span class="supplier-value" style="font-weight: 600; color: var(--primary-color);">
+                    KES {{ po.total_amount|floatformat:0|intcomma }}
+                </span>
+            </div>
         </div>
     </div>
 
-    <div style="background: #EFF6FF; border-left: 4px solid var(--primary-color); padding: 16px; border-radius: 4px; text-align: left; margin: 24px 0;">
-        <strong style="color: var(--primary-color);">Note:</strong>
-        <p style="margin: 8px 0 0 0; color: #64748B;">
-            The purchase order document will be sent to the supplier's email address. Make sure all details are correct before sending.
+    <!-- Alert Card -->
+    <div class="alert-card">
+        <div class="alert-header">
+            <i class="bi bi-info-circle" style="color: var(--primary-color);"></i>
+            <h4 class="alert-title">Important Note</h4>
+        </div>
+        <p class="alert-content">
+            The purchase order document will be sent to the supplier's email address. 
+            Please ensure all details are correct before sending. Once sent, the PO status will be updated to "SENT".
         </p>
     </div>
 
+    <!-- Action Buttons -->
     <form method="post" class="action-buttons">
         {% csrf_token %}
-        <a href="{% url 'po_detail' po.id %}" class="action-btn btn-cancel">
+        <a href="{% url 'po_detail' po.id %}" class="action-btn action-btn-secondary">
             <i class="bi bi-x"></i> Cancel
         </a>
-        <button type="submit" class="action-btn btn-send">
+        <button type="submit" class="action-btn action-btn-primary">
             <i class="bi bi-send"></i> Send to Supplier
         </button>
     </form>
