@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Inspect GRN {{ grn.grn_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Inspect GRN: {{ grn.grn_number }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'grn_list' %}">Goods Receipt</a>
+            <span>/</span>
+            <a href="{% url 'grn_detail' grn.id %}">{{ grn.grn_number }}</a>
+            <span>/</span>
+            <span>Inspect</span>
+        </div>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="card">
+        <div class="card-header">
+            <h2>Inspection Details</h2>
+        </div>
+        <div class="card-body">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item Description</th>
+                        <th>Delivered Qty</th>
+                        <th>Accepted Qty *</th>
+                        <th>Rejected Qty *</th>
+                        <th>Status *</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>{{ item.po_item.item_description }}</td>
+                        <td>{{ item.quantity_delivered|floatformat:2 }}</td>
+                        <td>
+                            <input type="number" 
+                                   name="qty_accepted_{{ item.id }}" 
+                                   step="0.01" 
+                                   min="0" 
+                                   max="{{ item.quantity_delivered }}"
+                                   value="{{ item.quantity_delivered }}"
+                                   required>
+                        </td>
+                        <td>
+                            <input type="number" 
+                                   name="qty_rejected_{{ item.id }}" 
+                                   step="0.01" 
+                                   min="0" 
+                                   max="{{ item.quantity_delivered }}"
+                                   value="0">
+                        </td>
+                        <td>
+                            <select name="status_{{ item.id }}" required>
+                                <option value="ACCEPTED">Accepted</option>
+                                <option value="REJECTED">Rejected</option>
+                                <option value="DAMAGED">Damaged</option>
+                                <option value="INCOMPLETE">Incomplete</option>
+                            </select>
+                        </td>
+                        <td>
+                            <textarea name="remarks_{{ item.id }}" rows="2"></textarea>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <div class="form-group">
+                <label>General Condition</label>
+                <textarea name="general_condition" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Rejection Reason (if applicable)</label>
+                <textarea name="rejection_reason" rows="3"></textarea>
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-actions">
+        <a href="{% url 'grn_detail' grn.id %}" class="btn">Cancel</a>
+        <button type="submit" class="btn btn-primary">Complete Inspection</button>
+    </div>
+</form>
+{% endblock %}

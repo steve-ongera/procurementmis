@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}GRN {{ grn.grn_number }} - Details{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>GRN Details: {{ grn.grn_number }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'grn_list' %}">Goods Receipt</a>
+            <span>/</span>
+            <span>{{ grn.grn_number }}</span>
+        </div>
+    </div>
+    <div class="actions">
+        {% if grn.status == 'DRAFT' and user.role in 'STORES,ADMIN' %}
+        <a href="{% url 'grn_inspect' grn.id %}" class="btn btn-primary">Inspect GRN</a>
+        {% endif %}
+        <a href="{% url 'grn_list' %}" class="btn">Back to List</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>GRN Information</h2>
+        <span class="status-badge status-{{ grn.status|lower }}">{{ grn.get_status_display }}</span>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>GRN Number</label>
+                <p>{{ grn.grn_number }}</p>
+            </div>
+            <div class="info-item">
+                <label>Purchase Order</label>
+                <p><a href="{% url 'po_detail' grn.purchase_order.id %}">{{ grn.purchase_order.po_number }}</a></p>
+            </div>
+            <div class="info-item">
+                <label>Supplier</label>
+                <p>{{ grn.purchase_order.supplier.name }}</p>
+            </div>
+            <div class="info-item">
+                <label>Store</label>
+                <p>{{ grn.store.name }}</p>
+            </div>
+            <div class="info-item">
+                <label>Delivery Note Number</label>
+                <p>{{ grn.delivery_note_number }}</p>
+            </div>
+            <div class="info-item">
+                <label>Delivery Date</label>
+                <p>{{ grn.delivery_date|date:"M d, Y" }}</p>
+            </div>
+            <div class="info-item">
+                <label>Received Date</label>
+                <p>{{ grn.received_date|date:"M d, Y" }}</p>
+            </div>
+            <div class="info-item">
+                <label>Received By</label>
+                <p>{{ grn.received_by.get_full_name }}</p>
+            </div>
+            {% if grn.inspected_by %}
+            <div class="info-item">
+                <label>Inspected By</label>
+                <p>{{ grn.inspected_by.get_full_name }}</p>
+            </div>
+            <div class="info-item">
+                <label>Inspection Date</label>
+                <p>{{ grn.inspection_date|date:"M d, Y" }}</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if grn.general_condition %}
+        <div class="info-item full-width">
+            <label>General Condition</label>
+            <p>{{ grn.general_condition }}</p>
+        </div>
+        {% endif %}
+        
+        {% if grn.rejection_reason %}
+        <div class="info-item full-width alert-danger">
+            <label>Rejection Reason</label>
+            <p>{{ grn.rejection_reason }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>Items Received</h2>
+    </div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Description</th>
+                    <th>Ordered Qty</th>
+                    <th>Delivered Qty</th>
+                    <th>Accepted Qty</th>
+                    <th>Rejected Qty</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.po_item.item_description }}</td>
+                    <td>{{ item.quantity_ordered|floatformat:2 }}</td>
+                    <td>{{ item.quantity_delivered|floatformat:2 }}</td>
+                    <td>{{ item.quantity_accepted|floatformat:2 }}</td>
+                    <td>{{ item.quantity_rejected|floatformat:2 }}</td>
+                    <td><span class="badge badge-{{ item.item_status|lower }}">{{ item.get_item_status_display }}</span></td>
+                    <td>{{ item.remarks|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

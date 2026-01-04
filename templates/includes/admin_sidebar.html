@@ -124,11 +124,26 @@
             <i class="fas fa-chevron-right arrow"></i>
         </div>
         <div class="submenu" id="submenu-stores">
-            <a href="#" class="submenu-item">Goods Receipt</a>
-            <a href="#" class="submenu-item">Stock Items</a>
-            <a href="#" class="submenu-item">Stock Issues</a>
-            <a href="#" class="submenu-item">Assets</a>
-            <a href="#" class="submenu-item">Stock Takes</a>
+            <a href="{% url 'grn_list' %}" class="submenu-item">
+                <i class="fas fa-inbox"></i>
+                Goods Receipt
+            </a>
+            <a href="{% url 'stock_list' %}" class="submenu-item">
+                <i class="fas fa-boxes"></i>
+                Stock Items
+            </a>
+            <a href="{% url 'issue_list' %}" class="submenu-item">
+                <i class="fas fa-arrow-right"></i>
+                Stock Issues
+            </a>
+            <a href="{% url 'asset_list' %}" class="submenu-item">
+                <i class="fas fa-archive"></i>
+                Assets
+            </a>
+            <a href="#" class="submenu-item">
+                <i class="fas fa-clipboard-check"></i>
+                Stock Takes
+            </a>
         </div>
     </div>
 

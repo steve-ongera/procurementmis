@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Create Goods Received Note{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Create Goods Received Note</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'grn_list' %}">Goods Receipt</a>
+            <span>/</span>
+            <span>Create</span>
+        </div>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="card">
+        <div class="card-header">
+            <h2>GRN Details</h2>
+        </div>
+        <div class="card-body">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Purchase Order *</label>
+                    <select name="purchase_order" id="po-select" required onchange="loadPOItems(this.value)">
+                        <option value="">Select Purchase Order</option>
+                        {% for po in pending_pos %}
+                        <option value="{{ po.id }}" {% if po.id == po.id %}selected{% endif %}>
+                            {{ po.po_number }} - {{ po.supplier.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Store *</label>
+                    <select name="store" required>
+                        <option value="">Select Store</option>
+                        {% for store in stores %}
+                        <option value="{{ store.id }}">{{ store.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Delivery Note Number *</label>
+                    <input type="text" name="delivery_note_number" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Delivery Date *</label>
+                    <input type="date" name="delivery_date" required>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if po %}
+    <div class="card">
+        <div class="card-header">
+            <h2>Items to Receive</h2>
+        </div>
+        <div class="card-body">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item Description</th>
+                        <th>PO Quantity</th>
+                        <th>Already Received</th>
+                        <th>Pending</th>
+                        <th>Quantity Delivered *</th>
+                    </tr>
+                </thead>
+                <tbody id="items-tbody">
+                    {% for item in po.items.all %}
+                    <tr>
+                        <td>{{ item.item_description }}</td>
+                        <td>{{ item.quantity|floatformat:2 }} {{ item.unit_of_measure }}</td>
+                        <td>{{ item.quantity_delivered|floatformat:2 }}</td>
+                        <td>{{ item.quantity_pending|floatformat:2 }}</td>
+                        <td>
+                            <input type="number" 
+                                   name="qty_delivered_{{ item.id }}" 
+                                   step="0.01" 
+                                   min="0" 
+                                   max="{{ item.quantity_pending }}"
+                                   placeholder="0.00">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="form-actions">
+        <a href="{% url 'grn_list' %}" class="btn">Cancel</a>
+        <button type="submit" class="btn btn-primary">Create GRN</button>
+    </div>
+</form>
+
+<script>
+function loadPOItems(poId) {
+    if (poId) {
+        window.location.href = "{% url 'grn_create' %}?po=" + poId;
+    }
+}
+</script>
+{% endblock %}

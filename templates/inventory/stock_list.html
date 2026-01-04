@@ -1,0 +1,387 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Stock Items - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        background: var(--table-header);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .item-name {
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .item-name:hover {
+        text-decoration: underline;
+    }
+
+    .stock-level {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        font-family: ui-monospace, monospace;
+    }
+
+    .stock-low {
+        color: var(--danger-color);
+    }
+
+    .stock-ok {
+        color: var(--success-color);
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Stock Items</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Stock Items</span>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Item name or code..." value="{{ filters.search }}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Store</label>
+                <select name="store" class="form-control">
+                    <option value="">All Stores</option>
+                    {% for store in stores %}
+                    <option value="{{ store.id }}" {% if filters.store == store.id|stringformat:"s" %}selected{% endif %}>{{ store.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-control">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Stock Level</label>
+                <select name="low_stock" class="form-control">
+                    <option value="">All Items</option>
+                    <option value="1" {% if filters.low_stock %}selected{% endif %}>Low Stock Only</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="filter-actions">
+            <a href="{% url 'stock_list' %}" class="btn"><i class="bi bi-x-circle"></i> Clear</a>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Apply</button>
+        </div>
+    </form>
+</div>
+
+<!-- Summary -->
+<div class="stats-summary">
+    <div class="summary-card">
+        <div class="summary-value">{{ total_items|intcomma }}</div>
+        <div class="summary-label">Total Items</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ low_stock_count|intcomma }}</div>
+        <div class="summary-label">Low Stock Items</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ total_value|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Stock Value</div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title"><i class="bi bi-boxes"></i> Stock Items ({{ stocks.count }})</h2>
+    </div>
+
+    {% if stocks %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Code</th>
+                    <th>Item Name</th>
+                    <th>Store</th>
+                    <th>Quantity</th>
+                    <th>Reorder Level</th>
+                    <th>Unit Cost</th>
+                    <th>Total Value</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in stocks %}
+                <tr>
+                    <td>{{ stock.item.code }}</td>
+                    <td>
+                        <a href="{% url 'stock_detail' stock.id %}" class="item-name">{{ stock.item.name }}</a>
+                    </td>
+                    <td>{{ stock.store.name }}</td>
+                    <td>
+                        <span class="stock-level {% if stock.quantity_on_hand <= stock.reorder_level %}stock-low{% else %}stock-ok{% endif %}">
+                            {{ stock.quantity_on_hand|floatformat:2 }} {{ stock.item.unit_of_measure }}
+                            {% if stock.quantity_on_hand <= stock.reorder_level %}
+                            <i class="bi bi-exclamation-triangle"></i>
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>{{ stock.reorder_level|floatformat:2 }}</td>
+                    <td>KES {{ stock.average_unit_cost|floatformat:2|intcomma }}</td>
+                    <td>KES {{ stock.total_value|floatformat:0|intcomma }}</td>
+                    <td>
+                        <a href="{% url 'stock_detail' stock.id %}" class="action-btn" title="View"><i class="bi bi-eye"></i></a>
+                        {% if user.role in 'STORES,ADMIN' %}
+                        <a href="{% url 'stock_adjustment' stock.id %}" class="action-btn" title="Adjust"><i class="bi bi-sliders"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 4rem 2rem; color: #94A3B8;">
+        <i class="bi bi-boxes" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+        <p>No stock items found</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
