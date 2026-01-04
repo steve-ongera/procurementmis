@@ -1,0 +1,465 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Delete Requisition - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --secondary-color: #475569;
+        --danger-color: #DC2626;
+        --danger-light: #FEE2E2;
+        --border-color: #E2E8F0;
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--secondary-color);
+        margin-bottom: 24px;
+        padding: 12px 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb i {
+        font-size: 12px;
+        color: #94A3B8;
+    }
+
+    .page-title {
+        font-size: 28px;
+        font-weight: 800;
+        color: #1E293B;
+        margin-bottom: 8px;
+    }
+
+    .delete-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .warning-banner {
+        background: var(--danger-light);
+        border: 2px solid var(--danger-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .warning-icon {
+        font-size: 48px;
+        color: var(--danger-color);
+        flex-shrink: 0;
+    }
+
+    .warning-content {
+        flex: 1;
+    }
+
+    .warning-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--danger-color);
+        margin-bottom: 8px;
+    }
+
+    .warning-text {
+        font-size: 15px;
+        color: #991B1B;
+        line-height: 1.6;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .card-header {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 16px;
+        margin-bottom: 12px;
+    }
+
+    .info-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+
+    .info-value {
+        font-size: 14px;
+        color: #1E293B;
+        font-weight: 500;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-draft {
+        background: #F1F5F9;
+        color: #64748B;
+    }
+
+    .items-preview {
+        background: #F8FAFC;
+        padding: 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 16px;
+    }
+
+    .items-preview h4 {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 12px;
+    }
+
+    .items-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .items-list li {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 13px;
+        color: var(--secondary-color);
+    }
+
+    .items-list li:last-child {
+        border-bottom: none;
+    }
+
+    .items-total {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1E293B;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 2px solid var(--border-color);
+    }
+
+    .consequence-box {
+        background: #FEF3C7;
+        border: 1px solid #FDE68A;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 24px;
+    }
+
+    .consequence-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #92400E;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .consequence-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .consequence-list li {
+        padding: 6px 0;
+        padding-left: 24px;
+        position: relative;
+        font-size: 14px;
+        color: #92400E;
+    }
+
+    .consequence-list li::before {
+        content: "•";
+        position: absolute;
+        left: 8px;
+        font-weight: bold;
+    }
+
+    .confirmation-box {
+        background: white;
+        border: 2px solid var(--danger-color);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    .confirmation-label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #1E293B;
+        cursor: pointer;
+    }
+
+    .confirmation-label input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-secondary {
+        background: #E2E8F0;
+        color: var(--secondary-color);
+    }
+
+    .btn-secondary:hover {
+        background: #CBD5E1;
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #B91C1C;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);
+    }
+
+    .btn-danger:disabled {
+        background: #FCA5A5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .attachments-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #F1F5F9;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="delete-container">
+    <h1 class="page-title">Delete Requisition</h1>
+    <div class="breadcrumb">
+        <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+        <i class="bi bi-chevron-right"></i>
+        <a href="{% url 'requisition_list' %}">Requisitions</a>
+        <i class="bi bi-chevron-right"></i>
+        <a href="{% url 'requisition_detail' requisition.id %}">{{ requisition.requisition_number }}</a>
+        <i class="bi bi-chevron-right"></i>
+        <span>Delete</span>
+    </div>
+
+    <!-- Warning Banner -->
+    <div class="warning-banner">
+        <div class="warning-icon">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div class="warning-content">
+            <div class="warning-title">Confirm Deletion</div>
+            <div class="warning-text">
+                You are about to permanently delete this requisition. This action cannot be undone. 
+                All associated data including items and attachments will be permanently removed from the system.
+            </div>
+        </div>
+    </div>
+
+    <!-- Requisition Details -->
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-file-earmark-text"></i>
+            Requisition Details
+        </div>
+
+        <div class="info-grid">
+            <div class="info-label">Requisition Number:</div>
+            <div class="info-value"><strong>{{ requisition.requisition_number }}</strong></div>
+
+            <div class="info-label">Title:</div>
+            <div class="info-value">{{ requisition.title }}</div>
+
+            <div class="info-label">Department:</div>
+            <div class="info-value">{{ requisition.department.name }}</div>
+
+            <div class="info-label">Requested By:</div>
+            <div class="info-value">{{ requisition.requested_by.get_full_name }}</div>
+
+            <div class="info-label">Status:</div>
+            <div class="info-value">
+                <span class="badge badge-draft">
+                    <i class="bi bi-pencil"></i> {{ requisition.get_status_display }}
+                </span>
+            </div>
+
+            <div class="info-label">Created Date:</div>
+            <div class="info-value">{{ requisition.created_at|date:"M d, Y H:i" }}</div>
+
+            <div class="info-label">Estimated Amount:</div>
+            <div class="info-value" style="color: var(--danger-color); font-weight: 700; font-size: 16px;">
+                KES {{ requisition.estimated_amount|floatformat:2|intcomma }}
+            </div>
+        </div>
+
+        {% if requisition.items.all %}
+        <div class="items-preview">
+            <h4><i class="bi bi-list-ul"></i> Items to be Deleted ({{ requisition.items.count }})</h4>
+            <ul class="items-list">
+                {% for item in requisition.items.all|slice:":5" %}
+                <li>
+                    <i class="bi bi-box"></i> 
+                    {{ item.item_description|truncatewords:10 }} - 
+                    {{ item.quantity }} {{ item.unit_of_measure }} @ 
+                    KES {{ item.estimated_unit_price|floatformat:2|intcomma }}
+                </li>
+                {% endfor %}
+                {% if requisition.items.count > 5 %}
+                <li style="font-style: italic; color: #94A3B8;">
+                    ...and {{ requisition.items.count|add:"-5" }} more item(s)
+                </li>
+                {% endif %}
+            </ul>
+            <div class="items-total">
+                Total: KES {{ requisition.estimated_amount|floatformat:2|intcomma }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if requisition.attachments.all %}
+        <div style="margin-top: 16px;">
+            <span class="attachments-count">
+                <i class="bi bi-paperclip"></i>
+                {{ requisition.attachments.count }} Attachment(s) will be deleted
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Consequences -->
+    <div class="consequence-box">
+        <div class="consequence-title">
+            <i class="bi bi-exclamation-circle"></i>
+            What will be deleted:
+        </div>
+        <ul class="consequence-list">
+            <li>The requisition record ({{ requisition.requisition_number }})</li>
+            <li>All {{ requisition.items.count }} requisition item(s)</li>
+            {% if requisition.attachments.all %}
+            <li>All {{ requisition.attachments.count }} attached document(s)</li>
+            {% endif %}
+            <li>All approval workflow records</li>
+            <li>All related history and audit trail entries</li>
+        </ul>
+    </div>
+
+    <!-- Confirmation Form -->
+    <form method="post" id="deleteForm">
+        {% csrf_token %}
+        
+        <div class="confirmation-box">
+            <label class="confirmation-label">
+                <input type="checkbox" id="confirmDelete" required>
+                <span>
+                    I understand that this action is permanent and cannot be undone. 
+                    I want to delete requisition <strong>{{ requisition.requisition_number }}</strong>.
+                </span>
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'requisition_detail' requisition.id %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i>
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-danger" id="deleteButton" disabled>
+                <i class="bi bi-trash"></i>
+                Delete Requisition
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Enable delete button only when checkbox is checked
+document.getElementById('confirmDelete').addEventListener('change', function() {
+    document.getElementById('deleteButton').disabled = !this.checked;
+});
+
+// Confirm before deletion
+document.getElementById('deleteForm').addEventListener('submit', function(e) {
+    if (!confirm('Are you absolutely sure you want to delete this requisition? This action CANNOT be undone!')) {
+        e.preventDefault();
+        return false;
+    }
+    
+    // Disable button to prevent double submission
+    document.getElementById('deleteButton').disabled = true;
+    document.getElementById('deleteButton').innerHTML = '<i class="bi bi-hourglass-split"></i> Deleting...';
+});
+</script>
+{% endblock %}
