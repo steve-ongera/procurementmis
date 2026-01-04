@@ -2121,3 +2121,694 @@ def delete_attachment(request, attachment_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q, Sum, Count, Avg, Max, Min
+from django.http import JsonResponse
+from django.core.paginator import Paginator
+from django.utils import timezone
+from django.db import transaction
+from decimal import Decimal
+import json
+
+from .models import (
+    Tender, TenderDocument, Bid, BidItem, BidDocument, BidEvaluation,
+    EvaluationCriteria, Requisition, Supplier, User, AuditLog, Notification,
+    RequisitionItem
+)
+
+
+@login_required
+def tender_list(request):
+    """List all tenders with filters"""
+    # Check permissions
+    if request.user.role not in ['PROCUREMENT', 'ADMIN', 'HOD', 'FINANCE']:
+        messages.error(request, 'You do not have permission to access tenders.')
+        return redirect('dashboard')
+    
+    tenders = Tender.objects.select_related(
+        'requisition__department', 'created_by'
+    ).prefetch_related('invited_suppliers', 'bids')
+    
+    # Filters
+    status_filter = request.GET.get('status', '')
+    tender_type_filter = request.GET.get('tender_type', '')
+    method_filter = request.GET.get('method', '')
+    search_query = request.GET.get('search', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    if status_filter:
+        tenders = tenders.filter(status=status_filter)
+    
+    if tender_type_filter:
+        tenders = tenders.filter(tender_type=tender_type_filter)
+    
+    if method_filter:
+        tenders = tenders.filter(procurement_method=method_filter)
+    
+    if search_query:
+        tenders = tenders.filter(
+            Q(tender_number__icontains=search_query) |
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    if date_from:
+        tenders = tenders.filter(created_at__gte=date_from)
+    
+    if date_to:
+        tenders = tenders.filter(created_at__lte=date_to)
+    
+    # Statistics
+    total_count = tenders.count()
+    published_count = tenders.filter(status='PUBLISHED').count()
+    closed_count = tenders.filter(status='CLOSED').count()
+    evaluating_count = tenders.filter(status='EVALUATING').count()
+    awarded_count = tenders.filter(status='AWARDED').count()
+    total_value = tenders.aggregate(Sum('estimated_budget'))['estimated_budget__sum'] or 0
+    
+    # Pagination
+    paginator = Paginator(tenders.order_by('-created_at'), 15)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'tenders': page_obj,
+        'page_obj': page_obj,
+        'status_filter': status_filter,
+        'tender_type_filter': tender_type_filter,
+        'method_filter': method_filter,
+        'search_query': search_query,
+        'date_from': date_from,
+        'date_to': date_to,
+        'total_count': total_count,
+        'published_count': published_count,
+        'closed_count': closed_count,
+        'evaluating_count': evaluating_count,
+        'awarded_count': awarded_count,
+        'total_value': total_value,
+        'status_choices': Tender.STATUS_CHOICES,
+        'tender_type_choices': Tender.TENDER_TYPES,
+        'method_choices': Tender.METHOD_CHOICES,
+    }
+    
+    return render(request, 'tenders/tender_list.html', context)
+
+
+@login_required
+def tender_create(request):
+    """Create new tender"""
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to create tenders.')
+        return redirect('tender_list')
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Get requisition
+                requisition_id = request.POST.get('requisition')
+                requisition = get_object_or_404(Requisition, id=requisition_id)
+                
+                # Create tender
+                tender = Tender.objects.create(
+                    requisition=requisition,
+                    title=request.POST.get('title'),
+                    tender_type=request.POST.get('tender_type'),
+                    procurement_method=request.POST.get('procurement_method'),
+                    description=request.POST.get('description'),
+                    closing_date=request.POST.get('closing_date'),
+                    bid_opening_date=request.POST.get('bid_opening_date'),
+                    estimated_budget=Decimal(request.POST.get('estimated_budget')),
+                    created_by=request.user,
+                    status='DRAFT'
+                )
+                
+                # Add invited suppliers if restricted tender
+                if tender.procurement_method == 'RESTRICTED':
+                    supplier_ids = request.POST.getlist('invited_suppliers')
+                    if supplier_ids:
+                        tender.invited_suppliers.set(supplier_ids)
+                
+                # Create evaluation criteria
+                criteria_data = json.loads(request.POST.get('criteria_json', '[]'))
+                for idx, criterion in enumerate(criteria_data, 1):
+                    EvaluationCriteria.objects.create(
+                        tender=tender,
+                        criterion_name=criterion['name'],
+                        criterion_type=criterion['type'],
+                        description=criterion['description'],
+                        weight=Decimal(criterion['weight']),
+                        max_score=Decimal(criterion['max_score']),
+                        is_mandatory=criterion.get('is_mandatory', False),
+                        sequence=idx
+                    )
+                
+                # Handle tender documents
+                if request.FILES:
+                    for file_key in request.FILES:
+                        file = request.FILES[file_key]
+                        TenderDocument.objects.create(
+                            tender=tender,
+                            document_name=file.name,
+                            file=file,
+                            description=request.POST.get(f'{file_key}_description', ''),
+                            is_mandatory=request.POST.get(f'{file_key}_mandatory') == 'on'
+                        )
+                
+                # Create audit log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='CREATE',
+                    model_name='Tender',
+                    object_id=str(tender.id),
+                    object_repr=tender.tender_number,
+                    changes={'status': 'DRAFT', 'created': True}
+                )
+                
+                messages.success(request, f'Tender {tender.tender_number} created successfully!')
+                
+                # Check if publish action
+                if request.POST.get('action') == 'publish':
+                    return redirect('tender_publish', pk=tender.id)
+                
+                return redirect('tender_detail', pk=tender.id)
+                
+        except Exception as e:
+            messages.error(request, f'Error creating tender: {str(e)}')
+            return redirect('tender_create')
+    
+    # GET request - show form
+    # Get approved requisitions without tenders
+    requisitions = Requisition.objects.filter(
+        status='APPROVED',
+        tenders__isnull=True
+    ).select_related('department', 'requested_by')
+    
+    suppliers = Supplier.objects.filter(status='APPROVED').order_by('name')
+    
+    context = {
+        'requisitions': requisitions,
+        'suppliers': suppliers,
+        'tender_type_choices': Tender.TENDER_TYPES,
+        'method_choices': Tender.METHOD_CHOICES,
+    }
+    
+    return render(request, 'tenders/tender_create.html', context)
+
+
+@login_required
+def tender_detail(request, pk):
+    """View tender details"""
+    tender = get_object_or_404(
+        Tender.objects.select_related(
+            'requisition__department', 'created_by'
+        ).prefetch_related(
+            'documents',
+            'bids__supplier',
+            'bids__evaluations',
+            'evaluation_criteria',
+            'invited_suppliers'
+        ),
+        pk=pk
+    )
+    
+    # Check permissions
+    can_edit = False
+    can_publish = False
+    can_evaluate = False
+    can_award = False
+    
+    if request.user.role == 'ADMIN':
+        can_edit = True
+        can_publish = True
+        can_evaluate = True
+        can_award = True
+    elif request.user.role == 'PROCUREMENT':
+        can_edit = tender.status == 'DRAFT'
+        can_publish = tender.status == 'DRAFT'
+        can_evaluate = tender.status in ['CLOSED', 'EVALUATING']
+        can_award = tender.status == 'EVALUATING'
+    
+    # Get bids statistics
+    bids_stats = {
+        'total': tender.bids.count(),
+        'submitted': tender.bids.filter(status='SUBMITTED').count(),
+        'qualified': tender.bids.filter(status='QUALIFIED').count(),
+        'disqualified': tender.bids.filter(status='DISQUALIFIED').count(),
+        'lowest_bid': tender.bids.aggregate(Min('bid_amount'))['bid_amount__min'],
+        'highest_bid': tender.bids.aggregate(Max('bid_amount'))['bid_amount__max'],
+        'average_bid': tender.bids.aggregate(Avg('bid_amount'))['bid_amount__avg'],
+    }
+    
+    # Get evaluation summary
+    evaluation_complete = False
+    if tender.status == 'EVALUATING':
+        total_bids = tender.bids.exclude(status='DISQUALIFIED').count()
+        evaluated_bids = tender.bids.exclude(status='DISQUALIFIED').filter(
+            evaluations__isnull=False
+        ).distinct().count()
+        evaluation_complete = total_bids > 0 and total_bids == evaluated_bids
+    
+    context = {
+        'tender': tender,
+        'can_edit': can_edit,
+        'can_publish': can_publish,
+        'can_evaluate': can_evaluate,
+        'can_award': can_award,
+        'bids_stats': bids_stats,
+        'evaluation_complete': evaluation_complete,
+    }
+    
+    return render(request, 'tenders/tender_detail.html', context)
+
+
+@login_required
+def tender_publish(request, pk):
+    """Publish tender"""
+    tender = get_object_or_404(Tender, pk=pk)
+    
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to publish tenders.')
+        return redirect('tender_detail', pk=pk)
+    
+    if tender.status != 'DRAFT':
+        messages.error(request, 'Only draft tenders can be published.')
+        return redirect('tender_detail', pk=pk)
+    
+    # Validate tender is ready
+    if not tender.documents.exists():
+        messages.error(request, 'Please upload tender documents before publishing.')
+        return redirect('tender_detail', pk=pk)
+    
+    if not tender.evaluation_criteria.exists():
+        messages.error(request, 'Please add evaluation criteria before publishing.')
+        return redirect('tender_detail', pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                tender.status = 'PUBLISHED'
+                tender.publish_date = timezone.now()
+                tender.save()
+                
+                # Create notifications for invited suppliers (if restricted)
+                if tender.procurement_method == 'RESTRICTED':
+                    for supplier in tender.invited_suppliers.all():
+                        if supplier.user_set.exists():
+                            for user in supplier.user_set.filter(role='SUPPLIER'):
+                                Notification.objects.create(
+                                    user=user,
+                                    notification_type='TENDER',
+                                    priority='HIGH',
+                                    title='New Tender Invitation',
+                                    message=f'You are invited to bid on tender {tender.tender_number}: {tender.title}',
+                                    link_url=f'/tenders/{tender.id}/'
+                                )
+                
+                # Create audit log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='UPDATE',
+                    model_name='Tender',
+                    object_id=str(tender.id),
+                    object_repr=tender.tender_number,
+                    changes={'status': 'PUBLISHED', 'publish_date': str(timezone.now())}
+                )
+                
+                messages.success(request, f'Tender {tender.tender_number} published successfully!')
+                return redirect('tender_detail', pk=pk)
+                
+        except Exception as e:
+            messages.error(request, f'Error publishing tender: {str(e)}')
+    
+    return render(request, 'tenders/tender_publish.html', {'tender': tender})
+
+
+@login_required
+def tender_close(request, pk):
+    """Close tender for bidding"""
+    tender = get_object_or_404(Tender, pk=pk)
+    
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to close tenders.')
+        return redirect('tender_detail', pk=pk)
+    
+    if tender.status != 'PUBLISHED':
+        messages.error(request, 'Only published tenders can be closed.')
+        return redirect('tender_detail', pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                tender.status = 'CLOSED'
+                tender.save()
+                
+                # Update all submitted bids
+                tender.bids.filter(status='SUBMITTED').update(status='OPENED')
+                
+                # Create audit log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='UPDATE',
+                    model_name='Tender',
+                    object_id=str(tender.id),
+                    object_repr=tender.tender_number,
+                    changes={'status': 'CLOSED'}
+                )
+                
+                messages.success(request, f'Tender {tender.tender_number} closed successfully! You can now proceed to evaluation.')
+                return redirect('tender_detail', pk=pk)
+                
+        except Exception as e:
+            messages.error(request, f'Error closing tender: {str(e)}')
+    
+    return render(request, 'tenders/tender_close.html', {'tender': tender})
+
+
+@login_required
+def tender_evaluate(request, pk):
+    """Start tender evaluation"""
+    tender = get_object_or_404(Tender, pk=pk)
+    
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to evaluate tenders.')
+        return redirect('tender_detail', pk=pk)
+    
+    if tender.status not in ['CLOSED', 'EVALUATING']:
+        messages.error(request, 'Only closed tenders can be evaluated.')
+        return redirect('tender_detail', pk=pk)
+    
+    if tender.status == 'CLOSED':
+        tender.status = 'EVALUATING'
+        tender.save()
+    
+    # Get bids for evaluation
+    bids = tender.bids.exclude(status='DISQUALIFIED').select_related('supplier')
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                bid_id = request.POST.get('bid_id')
+                bid = get_object_or_404(Bid, id=bid_id, tender=tender)
+                
+                # Create evaluation
+                evaluation = BidEvaluation.objects.create(
+                    bid=bid,
+                    evaluator=request.user,
+                    technical_compliance=request.POST.get('technical_compliance') == 'on',
+                    financial_compliance=request.POST.get('financial_compliance') == 'on',
+                    technical_score=Decimal(request.POST.get('technical_score')),
+                    financial_score=Decimal(request.POST.get('financial_score')),
+                    strengths=request.POST.get('strengths', ''),
+                    weaknesses=request.POST.get('weaknesses', ''),
+                    recommendation=request.POST.get('recommendation')
+                )
+                
+                # Update bid scores
+                bid.technical_score = evaluation.technical_score
+                bid.financial_score = evaluation.financial_score
+                bid.evaluation_score = evaluation.total_score
+                
+                # Determine if qualified
+                if evaluation.technical_compliance and evaluation.financial_compliance:
+                    bid.status = 'QUALIFIED'
+                else:
+                    bid.status = 'DISQUALIFIED'
+                    bid.disqualification_reason = request.POST.get('disqualification_reason', '')
+                
+                bid.save()
+                
+                # Create audit log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='UPDATE',
+                    model_name='Bid',
+                    object_id=str(bid.id),
+                    object_repr=bid.bid_number,
+                    changes={'evaluated': True, 'score': float(evaluation.total_score)}
+                )
+                
+                messages.success(request, f'Bid {bid.bid_number} evaluated successfully!')
+                return redirect('tender_evaluate', pk=pk)
+                
+        except Exception as e:
+            messages.error(request, f'Error evaluating bid: {str(e)}')
+    
+    context = {
+        'tender': tender,
+        'bids': bids,
+        'criteria': tender.evaluation_criteria.all().order_by('sequence'),
+    }
+    
+    return render(request, 'tenders/tender_evaluate.html', context)
+
+
+@login_required
+def tender_award(request, pk):
+    """Award tender to winning bidder"""
+    tender = get_object_or_404(Tender, pk=pk)
+    
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to award tenders.')
+        return redirect('tender_detail', pk=pk)
+    
+    if tender.status != 'EVALUATING':
+        messages.error(request, 'Only evaluated tenders can be awarded.')
+        return redirect('tender_detail', pk=pk)
+    
+    # Get qualified bids ranked by score
+    qualified_bids = tender.bids.filter(
+        status='QUALIFIED'
+    ).order_by('-evaluation_score', 'bid_amount')
+    
+    if not qualified_bids.exists():
+        messages.error(request, 'No qualified bids available for award.')
+        return redirect('tender_detail', pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                bid_id = request.POST.get('winning_bid')
+                winning_bid = get_object_or_404(Bid, id=bid_id, tender=tender)
+                
+                # Update tender status
+                tender.status = 'AWARDED'
+                tender.save()
+                
+                # Update winning bid
+                winning_bid.status = 'AWARDED'
+                winning_bid.save()
+                
+                # Rank all qualified bids
+                for idx, bid in enumerate(qualified_bids, 1):
+                    bid.rank = idx
+                    if bid.id != winning_bid.id:
+                        bid.status = 'REJECTED'
+                    bid.save()
+                
+                # Create notification for winning supplier
+                if winning_bid.supplier.user_set.exists():
+                    for user in winning_bid.supplier.user_set.filter(role='SUPPLIER'):
+                        Notification.objects.create(
+                            user=user,
+                            notification_type='TENDER',
+                            priority='URGENT',
+                            title='Tender Award',
+                            message=f'Congratulations! Your bid {winning_bid.bid_number} has been awarded for tender {tender.tender_number}',
+                            link_url=f'/bids/{winning_bid.id}/'
+                        )
+                
+                # Create audit log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='UPDATE',
+                    model_name='Tender',
+                    object_id=str(tender.id),
+                    object_repr=tender.tender_number,
+                    changes={'status': 'AWARDED', 'winning_bid': winning_bid.bid_number}
+                )
+                
+                messages.success(request, f'Tender {tender.tender_number} awarded to {winning_bid.supplier.name}!')
+                return redirect('tender_detail', pk=pk)
+                
+        except Exception as e:
+            messages.error(request, f'Error awarding tender: {str(e)}')
+    
+    context = {
+        'tender': tender,
+        'qualified_bids': qualified_bids,
+    }
+    
+    return render(request, 'tenders/tender_award.html', context)
+
+
+@login_required
+def tender_cancel(request, pk):
+    """Cancel tender"""
+    tender = get_object_or_404(Tender, pk=pk)
+    
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to cancel tenders.')
+        return redirect('tender_detail', pk=pk)
+    
+    if tender.status == 'AWARDED':
+        messages.error(request, 'Cannot cancel awarded tenders.')
+        return redirect('tender_detail', pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                cancellation_reason = request.POST.get('cancellation_reason')
+                
+                # Update tender status
+                old_status = tender.status
+                tender.status = 'CANCELLED'
+                tender.save()
+                
+                # Create audit log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='UPDATE',
+                    model_name='Tender',
+                    object_id=str(tender.id),
+                    object_repr=tender.tender_number,
+                    changes={
+                        'status': 'CANCELLED',
+                        'old_status': old_status,
+                        'reason': cancellation_reason
+                    }
+                )
+                
+                messages.success(request, f'Tender {tender.tender_number} cancelled successfully!')
+                return redirect('tender_detail', pk=pk)
+                
+        except Exception as e:
+            messages.error(request, f'Error cancelling tender: {str(e)}')
+    
+    return render(request, 'tenders/tender_cancel.html', {'tender': tender})
+
+
+# BID MANAGEMENT VIEWS
+
+@login_required
+def bid_list(request, tender_id):
+    """List all bids for a tender"""
+    tender = get_object_or_404(Tender, pk=tender_id)
+    
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to view bids.')
+        return redirect('tender_detail', pk=tender_id)
+    
+    bids = tender.bids.select_related('supplier').prefetch_related(
+        'items', 'documents', 'evaluations'
+    ).order_by('-submitted_at')
+    
+    # Filter
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        bids = bids.filter(status=status_filter)
+    
+    # Statistics
+    stats = {
+        'total': bids.count(),
+        'submitted': bids.filter(status='SUBMITTED').count(),
+        'qualified': bids.filter(status='QUALIFIED').count(),
+        'disqualified': bids.filter(status='DISQUALIFIED').count(),
+        'average_amount': bids.aggregate(Avg('bid_amount'))['bid_amount__avg'],
+    }
+    
+    context = {
+        'tender': tender,
+        'bids': bids,
+        'status_filter': status_filter,
+        'stats': stats,
+    }
+    
+    return render(request, 'tenders/bid_list.html', context)
+
+
+@login_required
+def bid_detail(request, pk):
+    """View bid details"""
+    bid = get_object_or_404(
+        Bid.objects.select_related(
+            'tender', 'supplier'
+        ).prefetch_related(
+            'items__requisition_item',
+            'documents',
+            'evaluations__evaluator'
+        ),
+        pk=pk
+    )
+    
+    # Check permissions
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        # Suppliers can only view their own bids
+        if request.user.role == 'SUPPLIER':
+            if not bid.supplier.user_set.filter(id=request.user.id).exists():
+                messages.error(request, 'You do not have permission to view this bid.')
+                return redirect('dashboard')
+        else:
+            messages.error(request, 'You do not have permission to view bids.')
+            return redirect('dashboard')
+    
+    # Calculate totals
+    items_total = bid.items.aggregate(Sum('quoted_total'))['quoted_total__sum'] or 0
+    
+    context = {
+        'bid': bid,
+        'items_total': items_total,
+    }
+    
+    return render(request, 'tenders/bid_detail.html', context)
+
+
+# API ENDPOINTS
+
+@login_required
+def get_requisition_items(request, requisition_id):
+    """API: Get requisition items for tender creation"""
+    try:
+        requisition = Requisition.objects.get(id=requisition_id)
+        items = requisition.items.all().select_related('item')
+        
+        items_data = [{
+            'id': str(item.id),
+            'description': item.item_description,
+            'specifications': item.specifications,
+            'quantity': float(item.quantity),
+            'unit': item.unit_of_measure,
+            'estimated_price': float(item.estimated_unit_price),
+        } for item in items]
+        
+        return JsonResponse({
+            'success': True,
+            'items': items_data,
+            'total': float(requisition.estimated_amount)
+        })
+    except Requisition.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Requisition not found'}, status=404)
+
+
+@login_required
+def get_tender_statistics(request):
+    """API: Get tender statistics for dashboard"""
+    try:
+        stats = {
+            'total_tenders': Tender.objects.count(),
+            'active_tenders': Tender.objects.filter(status='PUBLISHED').count(),
+            'closed_tenders': Tender.objects.filter(status='CLOSED').count(),
+            'awarded_tenders': Tender.objects.filter(status='AWARDED').count(),
+            'total_value': float(Tender.objects.aggregate(Sum('estimated_budget'))['estimated_budget__sum'] or 0),
+            'average_bids': float(Tender.objects.annotate(
+                bid_count=Count('bids')
+            ).aggregate(Avg('bid_count'))['bid_count__avg'] or 0),
+        }
+        
+        return JsonResponse({'success': True, 'data': stats})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
