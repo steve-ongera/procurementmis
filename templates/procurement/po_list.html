@@ -9,163 +9,208 @@
     :root {
         --primary-color: #2563EB;
         --primary-light: #EFF6FF;
-        --secondary-color: #475569;
-        --success-color: #059669;
-        --warning-color: #D97706;
-        --danger-color: #DC2626;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
         --border-color: #E2E8F0;
-        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-        --hover-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
     }
 
     .breadcrumb {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 14px;
+        gap: 0.5rem;
+        font-size: 0.875rem;
         color: var(--secondary-color);
-        margin-bottom: 24px;
+        margin: 0;
     }
 
     .breadcrumb a {
         color: var(--primary-color);
         text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
     }
 
     .breadcrumb i {
-        font-size: 12px;
+        font-size: 0.75rem;
         color: #94A3B8;
     }
 
-    .filter-card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: var(--card-shadow);
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
         border: 1px solid var(--border-color);
-        margin-bottom: 24px;
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
     }
 
     .filter-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-        margin-bottom: 16px;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
     }
 
     .form-group {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 0.375rem;
     }
 
     .form-label {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--secondary-color);
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
     }
 
     .form-control {
-        padding: 10px 12px;
+        padding: 0.5rem 0.75rem;
         border: 1px solid var(--border-color);
-        border-radius: 8px;
-        font-size: 14px;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
         transition: all 0.2s;
     }
 
     .form-control:focus {
         outline: none;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px var(--primary-light);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
     .filter-actions {
         display: flex;
-        gap: 12px;
         justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
     }
 
-    .action-btn {
-        padding: 10px 20px;
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .action-btn:hover {
-        background: #1D4ED8;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
-    }
-
-    .btn-secondary {
-        background: white;
-        color: var(--secondary-color);
-        border: 1px solid var(--border-color);
-    }
-
-    .btn-secondary:hover {
-        background: #F8FAFC;
-        border-color: var(--secondary-color);
-    }
-
+    /* Summary Stats */
     .stats-summary {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
     .summary-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: var(--card-shadow);
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
     .summary-value {
-        font-size: 24px;
-        font-weight: 800;
+        font-size: 1.5rem;
+        font-weight: 600;
         color: #1E293B;
-        margin-bottom: 4px;
+        margin-bottom: 0.25rem;
     }
 
     .summary-label {
-        font-size: 13px;
-        font-weight: 600;
+        font-size: 0.875rem;
         color: var(--secondary-color);
+        font-weight: 500;
     }
 
+    /* Table Card */
     .table-card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: var(--card-shadow);
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
         overflow: hidden;
     }
 
     .table-header {
-        padding: 20px 24px;
+        padding: 1.25rem 1.5rem;
         border-bottom: 1px solid var(--border-color);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        background: var(--table-header);
     }
 
     .table-title {
-        font-size: 18px;
-        font-weight: 700;
+        font-size: 1rem;
+        font-weight: 600;
         color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
     }
 
     .table-responsive {
@@ -178,75 +223,197 @@
     }
 
     thead {
-        background: #F8FAFC;
+        background: var(--table-header);
     }
 
     th {
-        padding: 16px 24px;
+        padding: 1rem 1.5rem;
         text-align: left;
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--secondary-color);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 2px solid var(--border-color);
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
     }
 
     td {
-        padding: 16px 24px;
+        padding: 1rem 1.5rem;
         border-bottom: 1px solid var(--border-color);
-        font-size: 14px;
-        color: #1E293B;
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
     }
 
-    tr:hover {
-        background: #F8FAFC;
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
     }
 
     .po-number {
-        font-weight: 700;
+        font-weight: 600;
         color: var(--primary-color);
         text-decoration: none;
+        transition: color 0.2s;
     }
 
     .po-number:hover {
+        color: var(--primary-dark);
         text-decoration: underline;
     }
 
-    .status-badge {
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        display: inline-block;
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
-    .status-draft { background: #F1F5F9; color: #64748B; }
-    .status-pending_approval { background: #FEF3C7; color: #92400E; }
-    .status-approved { background: #D1FAE5; color: #065F46; }
-    .status-sent { background: #DBEAFE; color: #1E40AF; }
-    .status-acknowledged { background: #E0E7FF; color: #3730A3; }
-    .status-partial_delivery { background: #FED7AA; color: #92400E; }
-    .status-delivered { background: #D1FAE5; color: #065F46; }
-    .status-closed { background: #E2E8F0; color: #475569; }
-    .status-cancelled { background: #FEE2E2; color: #991B1B; }
+    .date-cell {
+        color: var(--secondary-color);
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .status-badge i {
+        font-size: 0.625rem;
+    }
+
+    .status-draft { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+    .status-pending_approval { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-approved { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-sent { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .status-acknowledged { 
+        background: #E0E7FF; 
+        color: #3730A3; 
+        border-color: #C7D2FE;
+    }
+    .status-partial_delivery { 
+        background: #FED7AA; 
+        color: #92400E; 
+        border-color: #FDBA74;
+    }
+    .status-delivered { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-closed { 
+        background: #E2E8F0; 
+        color: #475569; 
+        border-color: #CBD5E1;
+    }
+    .status-cancelled { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .action-btn i {
+        font-size: 1rem;
+    }
 
     .empty-state {
         text-align: center;
-        padding: 60px 24px;
+        padding: 4rem 2rem;
         color: #94A3B8;
     }
 
     .empty-state i {
-        font-size: 48px;
-        margin-bottom: 16px;
+        font-size: 3rem;
+        margin-bottom: 1rem;
         opacity: 0.5;
     }
 
     .empty-state p {
-        font-size: 16px;
-        margin-bottom: 24px;
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .stats-summary {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}
@@ -256,19 +423,24 @@
     <div>
         <h1 class="page-title">Purchase Orders</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
-            <a href="{% url 'po_dashboard' %}">Purchase Orders</a>
+            <a href="{% url 'po_dashboard' %}">Purchase Orders Dashboard</a>
             <i class="bi bi-chevron-right"></i>
-            <span>All POs</span>
+            <span>All Purchase Orders</span>
         </div>
     </div>
-    <div style="display: flex; gap: 12px;">
-        <a href="{% url 'po_dashboard' %}" class="action-btn btn-secondary">
-            <i class="bi bi-graph-up"></i> Dashboard
+    <div class="header-actions">
+        <a href="{% url 'po_dashboard' %}" class="btn">
+            <i class="bi bi-graph-up"></i>
+            Dashboard
         </a>
-        <a href="{% url 'po_create' %}" class="action-btn">
-            <i class="bi bi-plus-circle"></i> Create PO
+        <a href="{% url 'po_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create PO
         </a>
     </div>
 </div>
@@ -278,8 +450,11 @@
     <form method="get" action="{% url 'po_list' %}">
         <div class="filter-grid">
             <div class="form-group">
-                <label class="form-label">Search</label>
-                <input type="text" name="search" class="form-control" placeholder="PO number, supplier..." value="{{ filters.search }}">
+                <label class="form-label">Search PO</label>
+                <div style="position: relative;">
+                    <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94A3B8; font-size: 0.875rem;"></i>
+                    <input type="text" name="search" class="form-control" placeholder="PO number, supplier..." value="{{ filters.search }}" style="padding-left: 2.25rem;">
+                </div>
             </div>
 
             <div class="form-group">
@@ -317,22 +492,22 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">Date From</label>
-                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Date To</label>
-                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+                <label class="form-label">Date Range</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}" placeholder="From">
+                    <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}" placeholder="To">
+                </div>
             </div>
         </div>
 
         <div class="filter-actions">
-            <a href="{% url 'po_list' %}" class="action-btn btn-secondary">
-                <i class="bi bi-x-circle"></i> Clear
+            <a href="{% url 'po_list' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
             </a>
-            <button type="submit" class="action-btn">
-                <i class="bi bi-search"></i> Apply Filters
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Apply Filters
             </button>
         </div>
     </form>
@@ -342,7 +517,7 @@
 <div class="stats-summary">
     <div class="summary-card">
         <div class="summary-value">{{ pos.count|intcomma }}</div>
-        <div class="summary-label">Total POs</div>
+        <div class="summary-label">Total Purchase Orders</div>
     </div>
     <div class="summary-card">
         <div class="summary-value">KES {{ total_value|floatformat:0|intcomma }}</div>
@@ -353,7 +528,10 @@
 <!-- POs Table -->
 <div class="table-card">
     <div class="table-header">
-        <h2 class="table-title">Purchase Orders ({{ pos.count }})</h2>
+        <h2 class="table-title">
+            <i class="bi bi-file-earmark-text"></i>
+            Purchase Orders ({{ pos.count }})
+        </h2>
     </div>
 
     {% if pos %}
@@ -375,22 +553,39 @@
                 {% for po in pos %}
                 <tr>
                     <td>
-                        <a href="{% url 'po_detail' po.id %}" class="po-number">{{ po.po_number }}</a>
+                        <a href="{% url 'po_detail' po.id %}" class="po-number">
+                            {{ po.po_number }}
+                            <i class="bi bi-arrow-up-right" style="font-size: 0.75rem; margin-left: 0.25rem;"></i>
+                        </a>
                     </td>
                     <td>{{ po.supplier.name }}</td>
                     <td>{{ po.requisition.department.name }}</td>
-                    <td>{{ po.po_date|date:"M d, Y" }}</td>
-                    <td>{{ po.delivery_date|date:"M d, Y" }}</td>
-                    <td style="font-weight: 700;">KES {{ po.total_amount|floatformat:0|intcomma }}</td>
+                    <td class="date-cell">{{ po.po_date|date:"M d, Y" }}</td>
+                    <td class="date-cell">{{ po.delivery_date|date:"M d, Y" }}</td>
+                    <td class="amount-cell">KES {{ po.total_amount|floatformat:0|intcomma }}</td>
                     <td>
                         <span class="status-badge status-{{ po.status|lower }}">
+                            {% if po.status == 'DRAFT' %}<i class="bi bi-pencil"></i>{% endif %}
+                            {% if po.status == 'PENDING_APPROVAL' %}<i class="bi bi-clock"></i>{% endif %}
+                            {% if po.status == 'APPROVED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                            {% if po.status == 'SENT' %}<i class="bi bi-send"></i>{% endif %}
+                            {% if po.status == 'ACKNOWLEDGED' %}<i class="bi bi-envelope-check"></i>{% endif %}
+                            {% if po.status == 'PARTIAL_DELIVERY' %}<i class="bi bi-box-half"></i>{% endif %}
+                            {% if po.status == 'DELIVERED' %}<i class="bi bi-truck"></i>{% endif %}
+                            {% if po.status == 'CLOSED' %}<i class="bi bi-archive"></i>{% endif %}
+                            {% if po.status == 'CANCELLED' %}<i class="bi bi-x-circle"></i>{% endif %}
                             {{ po.get_status_display }}
                         </span>
                     </td>
                     <td>
-                        <a href="{% url 'po_detail' po.id %}" style="color: var(--primary-color); text-decoration: none;">
+                        <a href="{% url 'po_detail' po.id %}" class="action-btn" title="View Details">
                             <i class="bi bi-eye"></i>
                         </a>
+                        {% if user.role in 'PROCUREMENT,ADMIN' and po.status in 'DRAFT,PENDING_APPROVAL' %}
+                        <a href="{% url 'po_edit' po.id %}" class="action-btn" title="Edit PO">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -399,13 +594,13 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <i class="bi bi-inbox"></i>
-        <p>No purchase orders found</p>
-        <a href="{% url 'po_create' %}" class="action-btn">
-            <i class="bi bi-plus-circle"></i> Create First PO
+        <i class="bi bi-file-earmark-text"></i>
+        <p>No purchase orders found matching your criteria</p>
+        <a href="{% url 'po_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create Purchase Order
         </a>
     </div>
     {% endif %}
 </div>
-
 {% endblock %}
