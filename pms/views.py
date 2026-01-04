@@ -4187,52 +4187,551 @@ def payment_process(request, payment_id):
     return render(request, 'finance/payment_process.html', context)
 
 
-# ============================================================================
-# FINANCIAL REPORTS
-# ============================================================================
+from django.db.models import Sum, Count, Avg, Q, F, ExpressionWrapper, DecimalField
+from django.db.models.functions import TruncMonth, TruncYear
+from django.utils import timezone
+from datetime import timedelta, datetime
+import json
+from decimal import Decimal
 
 @login_required
 def financial_reports(request):
-    """Financial reports dashboard"""
+    """Financial reports dashboard with dynamic data and audit analytics"""
     
+    # Get filters from request
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    budget_year_id = request.GET.get('budget_year')
+    
+    # Default to current year
     current_year = BudgetYear.objects.filter(is_active=True).first()
     
-    # Report types with data
+    if budget_year_id:
+        selected_year = BudgetYear.objects.filter(id=budget_year_id).first()
+    else:
+        selected_year = current_year
+    
+    # Set date range
+    if start_date:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+    else:
+        start_date = selected_year.start_date if selected_year else timezone.now().date().replace(month=1, day=1)
+    
+    if end_date:
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    else:
+        end_date = selected_year.end_date if selected_year else timezone.now().date()
+    
+    # ============================================================================
+    # 1. BUDGET UTILIZATION DATA
+    # ============================================================================
+    
+    budget_summary = Budget.objects.filter(
+        budget_year=selected_year
+    ).aggregate(
+        total_allocated=Sum('allocated_amount'),
+        total_committed=Sum('committed_amount'),
+        total_spent=Sum('actual_spent'),
+        count=Count('id')
+    )
+    
+    budget_utilization = []
+    if budget_summary['total_allocated']:
+        utilization_rate = (budget_summary['total_spent'] / budget_summary['total_allocated']) * 100
+    else:
+        utilization_rate = 0
+    
+    # Budget by department
+    dept_budgets = Budget.objects.filter(
+        budget_year=selected_year
+    ).values(
+        'department__name',
+        'department__code'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        committed=Sum('committed_amount'),
+        spent=Sum('actual_spent'),
+        available=Sum('allocated_amount') - Sum('committed_amount') - Sum('actual_spent')
+    ).order_by('-allocated')[:10]
+    
+    # Budget by category
+    category_budgets = Budget.objects.filter(
+        budget_year=selected_year
+    ).values(
+        'category__name',
+        'category__code'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        spent=Sum('actual_spent'),
+        utilization=ExpressionWrapper(
+            Sum('actual_spent') * 100 / Sum('allocated_amount'),
+            output_field=DecimalField()
+        )
+    ).order_by('-allocated')[:8]
+    
+    # ============================================================================
+    # 2. EXPENDITURE ANALYSIS DATA
+    # ============================================================================
+    
+    # Monthly expenditure trend
+    monthly_expenditure = Payment.objects.filter(
+        payment_date__gte=start_date,
+        payment_date__lte=end_date,
+        status='COMPLETED'
+    ).annotate(
+        month=TruncMonth('payment_date')
+    ).values('month').annotate(
+        amount=Sum('payment_amount'),
+        count=Count('id')
+    ).order_by('month')
+    
+    # Expenditure by department
+    dept_expenditure = Invoice.objects.filter(
+        created_at__gte=start_date,
+        created_at__lte=end_date,
+        status='PAID'
+    ).values(
+        'purchase_order__requisition__department__name'
+    ).annotate(
+        total=Sum('total_amount'),
+        count=Count('id')
+    ).order_by('-total')[:10]
+    
+    # Expenditure by category
+    category_expenditure = InvoiceItem.objects.filter(
+        invoice__created_at__gte=start_date,
+        invoice__created_at__lte=end_date,
+        invoice__status='PAID'
+    ).values(
+        'po_item__requisition_item__item__category__name'
+    ).annotate(
+        total=Sum('total_price'),
+        count=Count('id')
+    ).order_by('-total')[:10]
+    
+    # ============================================================================
+    # 3. SUPPLIER PAYMENTS DATA
+    # ============================================================================
+    
+    # Supplier payment summary
+    supplier_payments = Payment.objects.filter(
+        payment_date__gte=start_date,
+        payment_date__lte=end_date,
+        status='COMPLETED'
+    ).values(
+        'invoice__supplier__name',
+        'invoice__supplier__supplier_number'
+    ).annotate(
+        total=Sum('payment_amount'),
+        count=Count('id'),
+        avg_payment=Avg('payment_amount')
+    ).order_by('-total')[:15]
+    
+    # Payment method distribution
+    payment_methods = Payment.objects.filter(
+        payment_date__gte=start_date,
+        payment_date__lte=end_date,
+        status='COMPLETED'
+    ).values('payment_method').annotate(
+        total=Sum('payment_amount'),
+        count=Count('id')
+    ).order_by('-total')
+    
+    # Supplier performance
+    supplier_performance = SupplierPerformance.objects.filter(
+        reviewed_at__gte=start_date,
+        reviewed_at__lte=end_date
+    ).values(
+        'supplier__name'
+    ).annotate(
+        avg_rating=Avg('overall_rating'),
+        count=Count('id')
+    ).order_by('-avg_rating')[:10]
+    
+    # ============================================================================
+    # 4. INVOICE AGING ANALYSIS
+    # ============================================================================
+    
+    # Invoice aging buckets
+    today = timezone.now().date()
+    
+    aging_data = []
+    aging_buckets = [
+        ('Current', 0, 30),
+        ('31-60 days', 31, 60),
+        ('61-90 days', 61, 90),
+        ('Over 90 days', 91, 365),
+    ]
+    
+    for bucket_name, min_days, max_days in aging_buckets:
+        min_date = today - timedelta(days=max_days)
+        max_date = today - timedelta(days=min_days) if min_days > 0 else today
+        
+        invoices = Invoice.objects.filter(
+            created_at__range=[min_date, max_date],
+            status__in=['SUBMITTED', 'VERIFYING', 'MATCHED', 'APPROVED']
+        ).aggregate(
+            total=Sum('total_amount'),
+            count=Count('id'),
+            avg_age=Avg(today - F('created_at'))
+        )
+        
+        aging_data.append({
+            'bucket': bucket_name,
+            'total': invoices['total'] or 0,
+            'count': invoices['count'] or 0,
+            'avg_days': invoices['avg_age'].days if invoices['avg_age'] else 0
+        })
+    
+    # Overdue invoices
+    overdue_invoices = Invoice.objects.filter(
+        due_date__lt=today,
+        status__in=['SUBMITTED', 'VERIFYING', 'MATCHED', 'APPROVED']
+    ).aggregate(
+        total=Sum('total_amount'),
+        count=Count('id')
+    )
+    
+    # ============================================================================
+    # 5. CASH FLOW ANALYSIS
+    # ============================================================================
+    
+    # Monthly cash flow
+    monthly_cashflow = []
+    for i in range(11, -1, -1):
+        month_date = today - timedelta(days=30*i)
+        month_start = month_date.replace(day=1)
+        if i > 0:
+            next_month = month_date.replace(day=28) + timedelta(days=4)
+            month_end = next_month.replace(day=1) - timedelta(days=1)
+        else:
+            month_end = today
+        
+        # Cash in (allocations)
+        cash_in = BudgetReallocation.objects.filter(
+            status='APPROVED',
+            approved_at__gte=month_start,
+            approved_at__lte=month_end
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        # Cash out (payments)
+        cash_out = Payment.objects.filter(
+            payment_date__gte=month_start,
+            payment_date__lte=month_end,
+            status='COMPLETED'
+        ).aggregate(total=Sum('payment_amount'))['total'] or 0
+        
+        monthly_cashflow.append({
+            'month': month_start.strftime('%b %Y'),
+            'cash_in': cash_in,
+            'cash_out': cash_out,
+            'net_flow': cash_in - cash_out
+        })
+    
+    # ============================================================================
+    # 6. AUDIT & COMPLIANCE DATA
+    # ============================================================================
+    
+    # Audit trail summary
+    audit_summary = AuditLog.objects.filter(
+        timestamp__gte=start_date,
+        timestamp__lte=end_date
+    ).values('action').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # High-value transactions
+    high_value_payments = Payment.objects.filter(
+        payment_date__gte=start_date,
+        payment_date__lte=end_date,
+        status='COMPLETED',
+        payment_amount__gte=1000000  # Payments over 1M
+    ).select_related(
+        'invoice', 'invoice__supplier'
+    ).order_by('-payment_amount')[:10]
+    
+    # Compliance checks
+    compliance_data = {
+        'three_way_matched': Invoice.objects.filter(
+            is_three_way_matched=True,
+            created_at__gte=start_date,
+            created_at__lte=end_date
+        ).count(),
+        'unmatched_invoices': Invoice.objects.filter(
+            is_three_way_matched=False,
+            status='PAID',
+            created_at__gte=start_date,
+            created_at__lte=end_date
+        ).count(),
+        'suppliers_with_expired_docs': Supplier.objects.filter(
+            Q(tax_compliance_expiry__lt=today) | 
+            Q(registration_expiry__lt=today),
+            status='APPROVED'
+        ).count(),
+    }
+    
+    # ============================================================================
+    # 7. PROCUREMENT PERFORMANCE
+    # ============================================================================
+    
+    # Requisition to PO timeline
+    timeline_data = PurchaseOrder.objects.filter(
+        created_at__gte=start_date,
+        created_at__lte=end_date
+    ).annotate(
+        timeline=ExpressionWrapper(
+            F('created_at') - F('requisition__created_at'),
+            output_field=DurationField()
+        )
+    ).aggregate(
+        avg_days=Avg('timeline'),
+        min_days=Min('timeline'),
+        max_days=Max('timeline')
+    )
+    
+    # Tender success rate
+    tender_stats = Tender.objects.filter(
+        created_at__gte=start_date,
+        created_at__lte=end_date
+    ).aggregate(
+        total=Count('id'),
+        awarded=Count('id', filter=Q(status='AWARDED')),
+        cancelled=Count('id', filter=Q(status='CANCELLED'))
+    )
+    
+    if tender_stats['total']:
+        tender_success_rate = (tender_stats['awarded'] / tender_stats['total']) * 100
+    else:
+        tender_success_rate = 0
+    
+    # ============================================================================
+    # 8. REPORT TYPES WITH DYNAMIC DATA
+    # ============================================================================
+    
+    # Get all budget years for filter
+    budget_years = BudgetYear.objects.all().order_by('-start_date')
+    
     reports = {
         'budget_utilization': {
             'title': 'Budget Utilization Report',
-            'description': 'Detailed analysis of budget allocation and spending',
+            'description': f'Budget analysis for {selected_year.name if selected_year else "current year"}',
             'icon': 'chart-pie',
+            'data_available': budget_summary['count'] > 0,
+            'summary': {
+                'allocated': budget_summary['total_allocated'] or 0,
+                'spent': budget_summary['total_spent'] or 0,
+                'utilization': utilization_rate
+            }
         },
         'expenditure_analysis': {
             'title': 'Expenditure Analysis',
-            'description': 'Breakdown of expenditure by department and category',
+            'description': f'Expenditure breakdown from {start_date} to {end_date}',
             'icon': 'graph-up',
+            'data_available': monthly_expenditure.count() > 0,
+            'summary': {
+                'total': Payment.objects.filter(
+                    payment_date__gte=start_date,
+                    payment_date__lte=end_date,
+                    status='COMPLETED'
+                ).aggregate(total=Sum('payment_amount'))['total'] or 0,
+                'count': Payment.objects.filter(
+                    payment_date__gte=start_date,
+                    payment_date__lte=end_date,
+                    status='COMPLETED'
+                ).count()
+            }
         },
         'supplier_payments': {
             'title': 'Supplier Payment Report',
-            'description': 'Summary of payments made to suppliers',
+            'description': f'Supplier payments from {start_date} to {end_date}',
             'icon': 'people',
+            'data_available': supplier_payments.count() > 0,
+            'summary': {
+                'total_suppliers': supplier_payments.count(),
+                'total_paid': sum(p['total'] for p in supplier_payments),
+                'avg_per_supplier': sum(p['total'] for p in supplier_payments) / supplier_payments.count() if supplier_payments.count() > 0 else 0
+            }
         },
         'invoice_aging': {
             'title': 'Invoice Aging Report',
-            'description': 'Track overdue and pending invoices',
+            'description': 'Invoice status and aging analysis',
             'icon': 'clock-history',
+            'data_available': aging_data and any(d['count'] > 0 for d in aging_data),
+            'summary': {
+                'overdue_total': overdue_invoices['total'] or 0,
+                'overdue_count': overdue_invoices['count'] or 0,
+                'current_count': aging_data[0]['count'] if aging_data else 0
+            }
         },
         'cashflow': {
             'title': 'Cash Flow Report',
-            'description': 'Monthly cash flow analysis',
+            'description': f'Monthly cash flow from {start_date} to {end_date}',
             'icon': 'currency-exchange',
+            'data_available': len(monthly_cashflow) > 0,
+            'summary': {
+                'total_in': sum(c['cash_in'] for c in monthly_cashflow),
+                'total_out': sum(c['cash_out'] for c in monthly_cashflow),
+                'net_flow': sum(c['net_flow'] for c in monthly_cashflow)
+            }
         },
+        'audit_trail': {
+            'title': 'Audit Trail Report',
+            'description': f'System audit from {start_date} to {end_date}',
+            'icon': 'shield-check',
+            'data_available': audit_summary.count() > 0,
+            'summary': {
+                'total_actions': sum(a['count'] for a in audit_summary),
+                'top_action': audit_summary[0]['action'] if audit_summary else 'None',
+                'users_involved': AuditLog.objects.filter(
+                    timestamp__gte=start_date,
+                    timestamp__lte=end_date
+                ).values('user').distinct().count()
+            }
+        },
+        'compliance': {
+            'title': 'Compliance Report',
+            'description': 'Procurement compliance analysis',
+            'icon': 'file-check',
+            'data_available': True,
+            'summary': {
+                'matched_invoices': compliance_data['three_way_matched'],
+                'unmatched_invoices': compliance_data['unmatched_invoices'],
+                'suppliers_expired': compliance_data['suppliers_with_expired_docs']
+            }
+        },
+        'performance': {
+            'title': 'Procurement Performance',
+            'description': 'System performance metrics',
+            'icon': 'speedometer',
+            'data_available': True,
+            'summary': {
+                'avg_timeline': timeline_data['avg_days'].days if timeline_data['avg_days'] else 0,
+                'tender_success': tender_success_rate,
+                'high_value_count': high_value_payments.count()
+            }
+        }
     }
     
+    # Prepare chart data for JavaScript
     context = {
         'current_year': current_year,
+        'selected_year': selected_year,
+        'budget_years': budget_years,
+        'start_date': start_date,
+        'end_date': end_date,
+        'today': today,
+        
+        # Report data
         'reports': reports,
+        
+        # Chart data for quick preview
+        'chart_data': {
+            # Budget Utilization Charts
+            'budget_utilization': {
+                'labels': [d['department__name'] for d in dept_budgets],
+                'allocated': [float(d['allocated'] or 0) for d in dept_budgets],
+                'spent': [float(d['spent'] or 0) for d in dept_budgets],
+            },
+            'category_budget': {
+                'labels': [c['category__name'] for c in category_budgets],
+                'allocated': [float(c['allocated'] or 0) for c in category_budgets],
+                'utilization': [float(c['utilization'] or 0) for c in category_budgets],
+            },
+            
+            # Expenditure Charts
+            'monthly_expenditure': {
+                'labels': [m['month'].strftime('%b %Y') for m in monthly_expenditure],
+                'amounts': [float(m['amount'] or 0) for m in monthly_expenditure],
+                'counts': [m['count'] for m in monthly_expenditure],
+            },
+            'dept_expenditure': {
+                'labels': [d['purchase_order__requisition__department__name'] or 'Unknown' for d in dept_expenditure],
+                'amounts': [float(d['total'] or 0) for d in dept_expenditure],
+            },
+            
+            # Supplier Charts
+            'supplier_payments': {
+                'labels': [s['invoice__supplier__name'] for s in supplier_payments[:8]],
+                'amounts': [float(s['total'] or 0) for s in supplier_payments[:8]],
+            },
+            'payment_methods': {
+                'labels': [p['payment_method'] for p in payment_methods],
+                'amounts': [float(p['total'] or 0) for p in payment_methods],
+            },
+            'supplier_performance': {
+                'labels': [s['supplier__name'] for s in supplier_performance],
+                'ratings': [float(s['avg_rating'] or 0) for s in supplier_performance],
+            },
+            
+            # Invoice Aging Charts
+            'invoice_aging': {
+                'labels': [a['bucket'] for a in aging_data],
+                'amounts': [float(a['total'] or 0) for a in aging_data],
+                'counts': [a['count'] for a in aging_data],
+            },
+            
+            # Cash Flow Charts
+            'cash_flow': {
+                'labels': [c['month'] for c in monthly_cashflow],
+                'cash_in': [float(c['cash_in'] or 0) for c in monthly_cashflow],
+                'cash_out': [float(c['cash_out'] or 0) for c in monthly_cashflow],
+                'net_flow': [float(c['net_flow'] or 0) for c in monthly_cashflow],
+            },
+            
+            # Audit Charts
+            'audit_actions': {
+                'labels': [a['action'] for a in audit_summary[:10]],
+                'counts': [a['count'] for a in audit_summary[:10]],
+            },
+            
+            # Compliance Charts
+            'compliance_status': {
+                'labels': ['3-Way Matched', 'Unmatched Paid', 'Suppliers Expired'],
+                'values': [
+                    compliance_data['three_way_matched'],
+                    compliance_data['unmatched_invoices'],
+                    compliance_data['suppliers_with_expired_docs']
+                ],
+            },
+        },
+        
+        # Summary statistics for display
+        'summary_stats': {
+            'budget_allocated': budget_summary['total_allocated'] or 0,
+            'budget_spent': budget_summary['total_spent'] or 0,
+            'budget_utilization': round(utilization_rate, 2),
+            'total_payments': Payment.objects.filter(
+                payment_date__gte=start_date,
+                payment_date__lte=end_date,
+                status='COMPLETED'
+            ).aggregate(total=Sum('payment_amount'))['total'] or 0,
+            'total_invoices': Invoice.objects.filter(
+                created_at__gte=start_date,
+                created_at__lte=end_date
+            ).count(),
+            'total_suppliers': Supplier.objects.filter(status='APPROVED').count(),
+            'overdue_invoices': overdue_invoices['count'] or 0,
+            'overdue_amount': overdue_invoices['total'] or 0,
+            'avg_supplier_rating': Supplier.objects.filter(
+                status='APPROVED',
+                rating__gt=0
+            ).aggregate(avg=Avg('rating'))['avg'] or 0,
+            'procurement_timeline': timeline_data['avg_days'].days if timeline_data['avg_days'] else 0,
+        },
+        
+        # Table data for quick view
+        'table_data': {
+            'top_suppliers': list(supplier_payments[:5]),
+            'high_value_payments': high_value_payments,
+            'recent_audits': AuditLog.objects.filter(
+                timestamp__gte=start_date,
+                timestamp__lte=end_date
+            ).select_related('user').order_by('-timestamp')[:5],
+            'department_budgets': list(dept_budgets[:5]),
+        }
     }
     
     return render(request, 'finance/reports.html', context)
-
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Avg, Q, F, ExpressionWrapper, DurationField

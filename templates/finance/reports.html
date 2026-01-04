@@ -48,7 +48,7 @@
         gap: 0.5rem;
         font-size: 0.875rem;
         color: var(--secondary-color);
-        margin: 0 0 0.5rem 0;
+        margin: 0;
     }
 
     .breadcrumb a {
@@ -94,47 +94,75 @@
         transform: translateY(-1px);
     }
 
-    /* Period Selector */
-    .period-card {
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Filter Card */
+    .filter-card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
         border-radius: 0.5rem;
-        padding: 1.25rem 1.5rem;
+        padding: 1.5rem;
         margin-bottom: 1.5rem;
     }
 
-    .period-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.5rem;
-    }
-
-    .period-label {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #475569;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    .period-value {
+    .filter-title {
         font-size: 1rem;
         font-weight: 600;
-        color: var(--primary-color);
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
-    .period-dates {
-        font-size: 0.875rem;
-        color: var(--secondary-color);
-    }
-
-    /* Quick Stats */
-    .quick-stats {
+    .filter-form {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1rem;
-        margin-bottom: 1.5rem;
+        align-items: end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
     }
 
     .stat-card {
@@ -142,7 +170,6 @@
         border: 1px solid var(--border-color);
         border-radius: 0.5rem;
         padding: 1.25rem;
-        text-align: center;
         transition: all 0.2s;
     }
 
@@ -151,8 +178,45 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
+    .stat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-icon.primary {
+        background: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .stat-icon.success {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success-color);
+    }
+
+    .stat-icon.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning-color);
+    }
+
+    .stat-icon.danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger-color);
+    }
+
     .stat-value {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
         font-weight: 600;
         color: #1E293B;
         margin-bottom: 0.25rem;
@@ -164,12 +228,49 @@
         font-weight: 500;
     }
 
-    /* Reports Grid */
+    .stat-trend {
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-top: 0.5rem;
+    }
+
+    .stat-trend.up {
+        color: var(--success-color);
+    }
+
+    .stat-trend.down {
+        color: var(--danger-color);
+    }
+
+    /* Report Cards */
+    .reports-section {
+        margin-bottom: 2rem;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .section-line {
+        flex: 1;
+        height: 1px;
+        background: var(--border-color);
+    }
+
     .reports-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
+        gap: 1.25rem;
     }
 
     .report-card {
@@ -177,40 +278,63 @@
         border: 1px solid var(--border-color);
         border-radius: 0.5rem;
         padding: 1.5rem;
-        transition: all 0.2s;
-        text-decoration: none;
-        color: inherit;
-        display: block;
+        transition: all 0.3s;
         cursor: pointer;
         position: relative;
         overflow: hidden;
     }
 
+    .report-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--primary-color);
+        transform: scaleX(0);
+        transition: transform 0.3s;
+    }
+
     .report-card:hover {
         border-color: var(--primary-color);
-        box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
         transform: translateY(-2px);
     }
 
-    .report-card:active {
-        transform: translateY(0);
+    .report-card:hover::before {
+        transform: scaleX(1);
     }
 
-    .report-icon {
+    .report-card.unavailable {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .report-card.unavailable:hover {
+        transform: none;
+        box-shadow: none;
+        border-color: var(--border-color);
+    }
+
+    .report-icon-wrapper {
         width: 3rem;
         height: 3rem;
         border-radius: 0.5rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
-        background: var(--primary-light);
-        color: var(--primary-color);
         margin-bottom: 1rem;
+        background: var(--primary-light);
+    }
+
+    .report-icon {
+        font-size: 1.5rem;
+        color: var(--primary-color);
     }
 
     .report-title {
-        font-size: 1rem;
+        font-size: 1.125rem;
         font-weight: 600;
         color: #1E293B;
         margin: 0 0 0.5rem 0;
@@ -220,95 +344,144 @@
         font-size: 0.875rem;
         color: var(--secondary-color);
         line-height: 1.5;
-        margin: 0 0 1rem 0;
+        margin-bottom: 1rem;
     }
 
     .report-meta {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
         padding-top: 1rem;
         border-top: 1px solid var(--border-color);
+        margin-top: auto;
     }
 
-    .meta-label {
+    .report-meta-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .report-meta-label {
         font-size: 0.75rem;
-        font-weight: 600;
         color: var(--secondary-color);
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
 
-    .meta-value {
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: var(--primary-color);
-    }
-
-    /* Coming Soon Badge */
-    .coming-soon {
-        position: absolute;
-        top: 0;
-        right: 0;
-        background: var(--hover-bg);
-        color: var(--secondary-color);
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 0.375rem 0.75rem;
-        border-bottom-left-radius: 0.5rem;
-        border-top-right-radius: 0.5rem;
-    }
-
-    /* Info Box */
-    .info-box {
-        background: var(--primary-light);
-        border: 1px solid #93C5FD;
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-        margin-top: 2rem;
-    }
-
-    .info-header {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-    }
-
-    .info-icon {
-        color: var(--primary-color);
-        font-size: 1.25rem;
-        flex-shrink: 0;
-        margin-top: 0.125rem;
-    }
-
-    .info-title {
+    .report-meta-value {
         font-size: 1rem;
         font-weight: 600;
         color: #1E293B;
-        margin: 0 0 0.25rem 0;
     }
 
-    .info-content {
+    .report-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-top: 0.5rem;
+    }
+
+    .report-badge.available {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success-color);
+    }
+
+    .report-badge.unavailable {
+        background: rgba(100, 116, 139, 0.1);
+        color: var(--secondary-color);
+    }
+
+    .report-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .report-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
         font-size: 0.875rem;
-        color: #475569;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--secondary-color);
     }
 
-    .info-list {
+    .report-btn:hover {
+        background: var(--hover-bg);
+    }
+
+    .report-btn.primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .report-btn.primary:hover {
+        background: var(--primary-dark);
+    }
+
+    /* Quick Charts Section */
+    .quick-charts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .chart-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .chart-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .chart-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
         margin: 0;
-        padding-left: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
     }
 
-    .info-list li {
-        margin-bottom: 0.375rem;
+    .chart-title i {
+        color: var(--primary-color);
+        font-size: 1.25rem;
+    }
+
+    .chart-body {
+        padding: 1.5rem;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 250px;
     }
 
     /* Responsive */
     @media (max-width: 768px) {
-        .page-header {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 1rem;
+        .filter-form {
+            grid-template-columns: 1fr;
         }
         
         .header-actions {
@@ -324,20 +497,20 @@
             grid-template-columns: 1fr;
         }
         
-        .quick-stats {
-            grid-template-columns: repeat(2, 1fr);
+        .quick-charts {
+            grid-template-columns: 1fr;
         }
     }
 
     @media (max-width: 640px) {
-        .quick-stats {
-            grid-template-columns: 1fr;
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
         }
         
-        .period-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
+        .stats-grid {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -346,6 +519,8 @@
 {% block content %}
 <div class="page-header">
     <div>
+        <h1 class="page-title">Financial Reports Dashboard</h1>
+        <p class="page-subtitle">Comprehensive financial analytics and reporting</p>
         <div class="breadcrumb">
             <a href="{% url 'dashboard' %}">
                 <i class="bi bi-house"></i>
@@ -354,167 +529,576 @@
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'finance_dashboard' %}">Finance</a>
             <i class="bi bi-chevron-right"></i>
-            <span>Financial Reports</span>
+            <span>Reports</span>
         </div>
-        <h1 class="page-title">Financial Reports</h1>
-        <p class="page-subtitle">
-            Comprehensive financial analysis and reporting tools for informed decision-making
-        </p>
     </div>
     <div class="header-actions">
         <a href="{% url 'finance_dashboard' %}" class="btn">
             <i class="bi bi-arrow-left"></i>
             Back to Dashboard
         </a>
+        <button onclick="window.print()" class="btn">
+            <i class="bi bi-printer"></i>
+            Print
+        </button>
     </div>
 </div>
 
-<!-- Current Period -->
-{% if current_year %}
-<div class="period-card">
-    <div class="period-header">
-        <div>
-            <div class="period-label">Reporting Period</div>
-            <div class="period-value">{{ current_year.name }}</div>
+<!-- Filter Card -->
+<div class="filter-card">
+    <h3 class="filter-title">
+        <i class="bi bi-funnel"></i>
+        Report Filters
+    </h3>
+    <form method="get" class="filter-form">
+        <div class="form-group">
+            <label class="form-label">Start Date</label>
+            <input type="date" name="start_date" class="form-control" value="{{ start_date|date:'Y-m-d' }}">
         </div>
-        <div class="period-dates">
-            {{ current_year.start_date|date:"M d, Y" }} - {{ current_year.end_date|date:"M d, Y" }}
+        <div class="form-group">
+            <label class="form-label">End Date</label>
+            <input type="date" name="end_date" class="form-control" value="{{ end_date|date:'Y-m-d' }}">
         </div>
-    </div>
+        <div class="form-group">
+            <label class="form-label">Budget Year</label>
+            <select name="budget_year" class="form-control">
+                <option value="">All Years</option>
+                {% for year in budget_years %}
+                <option value="{{ year.id }}" {% if selected_year.id == year.id %}selected{% endif %}>
+                    {{ year.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Apply Filters
+            </button>
+        </div>
+    </form>
 </div>
-{% endif %}
 
-<!-- Quick Stats -->
-<div class="quick-stats">
+<!-- Summary Statistics -->
+<div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-value">5</div>
-        <div class="stat-label">Available Reports</div>
+        <div class="stat-header">
+            <div class="stat-icon primary">
+                <i class="bi bi-wallet2"></i>
+            </div>
+        </div>
+        <div class="stat-value">KES {{ summary_stats.budget_allocated|floatformat:0|intcomma }}</div>
+        <div class="stat-label">Total Budget Allocated</div>
+        <div class="stat-trend up">
+            <i class="bi bi-arrow-up"></i> {{ summary_stats.budget_utilization }}% Utilized
+        </div>
     </div>
+
     <div class="stat-card">
-        <div class="stat-value">Real-time</div>
-        <div class="stat-label">Data Updates</div>
+        <div class="stat-header">
+            <div class="stat-icon success">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+        </div>
+        <div class="stat-value">KES {{ summary_stats.total_payments|floatformat:0|intcomma }}</div>
+        <div class="stat-label">Total Payments Made</div>
+        <div class="stat-trend">
+            <i class="bi bi-file-earmark-text"></i> {{ summary_stats.total_invoices }} Invoices
+        </div>
     </div>
+
     <div class="stat-card">
-        <div class="stat-value">Multiple</div>
-        <div class="stat-label">Export Formats</div>
+        <div class="stat-header">
+            <div class="stat-icon warning">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+        </div>
+        <div class="stat-value">{{ summary_stats.overdue_invoices }}</div>
+        <div class="stat-label">Overdue Invoices</div>
+        <div class="stat-trend down">
+            <i class="bi bi-arrow-down"></i> KES {{ summary_stats.overdue_amount|floatformat:0|intcomma }}
+        </div>
     </div>
+
     <div class="stat-card">
-        <div class="stat-value">Auto</div>
-        <div class="stat-label">Scheduling</div>
-    </div>
-</div>
-
-<!-- Reports Grid -->
-<div class="reports-grid">
-    <!-- Budget Utilization Report -->
-    <a href="{% url 'expenditure_report' %}" class="report-card">
-        <div class="report-icon">
-            <i class="bi bi-pie-chart"></i>
+        <div class="stat-header">
+            <div class="stat-icon primary">
+                <i class="bi bi-people"></i>
+            </div>
         </div>
-        <h3 class="report-title">Budget Utilization Report</h3>
-        <p class="report-description">
-            Comprehensive analysis of budget allocation, commitment, and spending across all departments and categories.
-        </p>
-        <div class="report-meta">
-            <span class="meta-label">Type</span>
-            <span class="meta-value">Financial Analysis</span>
-        </div>
-    </a>
-
-    <!-- Expenditure Analysis -->
-    <a href="{% url 'expenditure_report' %}" class="report-card">
-        <div class="report-icon" style="background: #D1FAE5; color: var(--success-color);">
-            <i class="bi bi-graph-up"></i>
-        </div>
-        <h3 class="report-title">Expenditure Analysis</h3>
-        <p class="report-description">
-            Detailed breakdown of expenditure by department, category, and time period with variance analysis.
-        </p>
-        <div class="report-meta">
-            <span class="meta-label">Type</span>
-            <span class="meta-value">Spending Analysis</span>
-        </div>
-    </a>
-
-    <!-- Supplier Payment Report -->
-    <div class="report-card" onclick="showComingSoon('Supplier Payment Report')">
-        <div class="coming-soon">Coming Soon</div>
-        <div class="report-icon" style="background: #FEF3C7; color: var(--warning-color);">
-            <i class="bi bi-people"></i>
-        </div>
-        <h3 class="report-title">Supplier Payment Report</h3>
-        <p class="report-description">
-            Summary of all payments made to suppliers including payment methods, timelines, and outstanding amounts.
-        </p>
-        <div class="report-meta">
-            <span class="meta-label">Type</span>
-            <span class="meta-value">Payment Analysis</span>
+        <div class="stat-value">{{ summary_stats.total_suppliers }}</div>
+        <div class="stat-label">Active Suppliers</div>
+        <div class="stat-trend up">
+            <i class="bi bi-star"></i> {{ summary_stats.avg_supplier_rating|floatformat:1 }}/5.0 Avg Rating
         </div>
     </div>
 
-    <!-- Invoice Aging Report -->
-    <div class="report-card" onclick="showComingSoon('Invoice Aging Report')">
-        <div class="coming-soon">Coming Soon</div>
-        <div class="report-icon" style="background: #FEE2E2; color: var(--danger-color);">
-            <i class="bi bi-clock-history"></i>
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon success">
+                <i class="bi bi-check-circle"></i>
+            </div>
         </div>
-        <h3 class="report-title">Invoice Aging Report</h3>
-        <p class="report-description">
-            Track overdue invoices, pending approvals, and payment timelines to identify process bottlenecks.
-        </p>
-        <div class="report-meta">
-            <span class="meta-label">Type</span>
-            <span class="meta-value">Compliance</span>
+        <div class="stat-value">{{ summary_stats.procurement_timeline }} Days</div>
+        <div class="stat-label">Avg Procurement Timeline</div>
+        <div class="stat-trend">
+            <i class="bi bi-clock-history"></i> Requisition to PO
         </div>
     </div>
 
-    <!-- Cash Flow Report -->
-    <div class="report-card" onclick="showComingSoon('Cash Flow Report')">
-        <div class="coming-soon">Coming Soon</div>
-        <div class="report-icon" style="background: #E0E7FF; color: #6366F1;">
-            <i class="bi bi-currency-exchange"></i>
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon primary">
+                <i class="bi bi-graph-up"></i>
+            </div>
         </div>
-        <h3 class="report-title">Cash Flow Report</h3>
-        <p class="report-description">
-            Monthly cash flow analysis showing budget allocation, expenditure, and projections for future periods.
-        </p>
-        <div class="report-meta">
-            <span class="meta-label">Type</span>
-            <span class="meta-value">Financial Planning</span>
-        </div>
-    </div>
-
-    <!-- Variance Analysis -->
-    <div class="report-card" onclick="showComingSoon('Variance Analysis')">
-        <div class="coming-soon">Coming Soon</div>
-        <div class="report-icon" style="background: #DBEAFE; color: #1E40AF;">
-            <i class="bi bi-bar-chart-line"></i>
-        </div>
-        <h3 class="report-title">Variance Analysis</h3>
-        <p class="report-description">
-            Compare budgeted vs actual spending with detailed variance analysis and explanations for differences.
-        </p>
-        <div class="report-meta">
-            <span class="meta-label">Type</span>
-            <span class="meta-value">Budget Control</span>
+        <div class="stat-value">KES {{ summary_stats.budget_spent|floatformat:0|intcomma }}</div>
+        <div class="stat-label">Budget Spent</div>
+        <div class="stat-trend">
+            <i class="bi bi-piggy-bank"></i> Year to Date
         </div>
     </div>
 </div>
 
-<!-- Info Box -->
-<div class="info-box">
-    <div class="info-header">
-        <i class="bi bi-info-circle info-icon"></i>
-        <div>
-            <h3 class="info-title">Report Generation Tips</h3>
-            <div class="info-content">
-                <ul class="info-list">
-                    <li>Reports are generated in real-time from the latest data</li>
-                    <li>Use filters to narrow down your analysis for specific periods or departments</li>
-                    <li>Multiple export options (PDF, Excel, CSV) available for further analysis</li>
-                    <li>Schedule reports can be set up for regular automated delivery</li>
-                    <li>Contact support for custom report requirements</li>
-                </ul>
+<!-- Quick Charts Preview -->
+<div class="reports-section">
+    <div class="section-header">
+        <h2 class="section-title">Quick Overview</h2>
+        <div class="section-line"></div>
+    </div>
+    
+    <div class="quick-charts">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-graph-up"></i>
+                    Monthly Expenditure Trend
+                </h3>
+            </div>
+            <div class="chart-body">
+                <div class="chart-container">
+                    <canvas id="monthlyExpenseChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-pie-chart"></i>
+                    Budget by Category
+                </h3>
+            </div>
+            <div class="chart-body">
+                <div class="chart-container">
+                    <canvas id="categoryBudgetChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-building"></i>
+                    Top Departments by Spending
+                </h3>
+            </div>
+            <div class="chart-body">
+                <div class="chart-container">
+                    <canvas id="departmentSpendingChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Reports -->
+<div class="reports-section">
+    <div class="section-header">
+        <h2 class="section-title">Financial Reports</h2>
+        <div class="section-line"></div>
+    </div>
+    
+    <div class="reports-grid">
+        <!-- Budget Utilization Report -->
+        <div class="report-card {% if not reports.budget_utilization.data_available %}unavailable{% endif %}"
+             onclick="{% if reports.budget_utilization.data_available %}window.location.href='{% url 'budget_utilization_report' %}'{% endif %}">
+            <div class="report-icon-wrapper">
+                <i class="bi bi-{{ reports.budget_utilization.icon }} report-icon"></i>
+            </div>
+            <h3 class="report-title">{{ reports.budget_utilization.title }}</h3>
+            <p class="report-description">{{ reports.budget_utilization.description }}</p>
+            
+            <div class="report-meta">
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Allocated</span>
+                    <span class="report-meta-value">KES {{ reports.budget_utilization.summary.allocated|floatformat:0|intcomma }}</span>
+                </div>
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Utilized</span>
+                    <span class="report-meta-value">{{ reports.budget_utilization.summary.utilization|floatformat:1 }}%</span>
+                </div>
+            </div>
+            
+            <span class="report-badge {% if reports.budget_utilization.data_available %}available{% else %}unavailable{% endif %}">
+                <i class="bi bi-{% if reports.budget_utilization.data_available %}check-circle{% else %}x-circle{% endif %}"></i>
+                {% if reports.budget_utilization.data_available %}Data Available{% else %}No Data{% endif %}
+            </span>
+            
+            {% if reports.budget_utilization.data_available %}
+            <div class="report-actions">
+                <a href="{% url 'budget_utilization_report' %}" class="report-btn primary">
+                    <i class="bi bi-eye"></i>
+                    View Report
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Expenditure Analysis Report -->
+        <div class="report-card {% if not reports.expenditure_analysis.data_available %}unavailable{% endif %}"
+             onclick="{% if reports.expenditure_analysis.data_available %}window.location.href='{% url 'expenditure_report' %}'{% endif %}">
+            <div class="report-icon-wrapper">
+                <i class="bi bi-{{ reports.expenditure_analysis.icon }} report-icon"></i>
+            </div>
+            <h3 class="report-title">{{ reports.expenditure_analysis.title }}</h3>
+            <p class="report-description">{{ reports.expenditure_analysis.description }}</p>
+            
+            <div class="report-meta">
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Total Spent</span>
+                    <span class="report-meta-value">KES {{ reports.expenditure_analysis.summary.total|floatformat:0|intcomma }}</span>
+                </div>
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Transactions</span>
+                    <span class="report-meta-value">{{ reports.expenditure_analysis.summary.count }}</span>
+                </div>
+            </div>
+            
+            <span class="report-badge {% if reports.expenditure_analysis.data_available %}available{% else %}unavailable{% endif %}">
+                <i class="bi bi-{% if reports.expenditure_analysis.data_available %}check-circle{% else %}x-circle{% endif %}"></i>
+                {% if reports.expenditure_analysis.data_available %}Data Available{% else %}No Data{% endif %}
+            </span>
+            
+            {% if reports.expenditure_analysis.data_available %}
+            <div class="report-actions">
+                <a href="{% url 'expenditure_report' %}" class="report-btn primary">
+                    <i class="bi bi-eye"></i>
+                    View Report
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Supplier Payments Report -->
+        <div class="report-card {% if not reports.supplier_payments.data_available %}unavailable{% endif %}"
+             onclick="{% if reports.supplier_payments.data_available %}window.location.href='{% url 'supplier_payments_report' %}'{% endif %}">
+            <div class="report-icon-wrapper">
+                <i class="bi bi-{{ reports.supplier_payments.icon }} report-icon"></i>
+            </div>
+            <h3 class="report-title">{{ reports.supplier_payments.title }}</h3>
+            <p class="report-description">{{ reports.supplier_payments.description }}</p>
+            
+            <div class="report-meta">
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Total Paid</span>
+                    <span class="report-meta-value">KES {{ reports.supplier_payments.summary.total_paid|floatformat:0|intcomma }}</span>
+                </div>
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Suppliers</span>
+                    <span class="report-meta-value">{{ reports.supplier_payments.summary.total_suppliers }}</span>
+                </div>
+            </div>
+            
+            <span class="report-badge {% if reports.supplier_payments.data_available %}available{% else %}unavailable{% endif %}">
+                <i class="bi bi-{% if reports.supplier_payments.data_available %}check-circle{% else %}x-circle{% endif %}"></i>
+                {% if reports.supplier_payments.data_available %}Data Available{% else %}No Data{% endif %}
+            </span>
+            
+            {% if reports.supplier_payments.data_available %}
+            <div class="report-actions">
+                <a href="{% url 'supplier_payments_report' %}" class="report-btn primary">
+                    <i class="bi bi-eye"></i>
+                    View Report
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Invoice Aging Report -->
+        <div class="report-card {% if not reports.invoice_aging.data_available %}unavailable{% endif %}"
+             onclick="{% if reports.invoice_aging.data_available %}window.location.href='{% url 'invoice_aging_report' %}'{% endif %}">
+            <div class="report-icon-wrapper">
+                <i class="bi bi-{{ reports.invoice_aging.icon }} report-icon"></i>
+            </div>
+            <h3 class="report-title">{{ reports.invoice_aging.title }}</h3>
+            <p class="report-description">{{ reports.invoice_aging.description }}</p>
+            
+            <div class="report-meta">
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Overdue</span>
+                    <span class="report-meta-value">{{ reports.invoice_aging.summary.overdue_count }}</span>
+                </div>
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Amount</span>
+                    <span class="report-meta-value">KES {{ reports.invoice_aging.summary.overdue_total|floatformat:0|intcomma }}</span>
+                </div>
+            </div>
+            
+            <span class="report-badge {% if reports.invoice_aging.data_available %}available{% else %}unavailable{% endif %}">
+                <i class="bi bi-{% if reports.invoice_aging.data_available %}check-circle{% else %}x-circle{% endif %}"></i>
+                {% if reports.invoice_aging.data_available %}Data Available{% else %}No Data{% endif %}
+            </span>
+            
+            {% if reports.invoice_aging.data_available %}
+            <div class="report-actions">
+                <a href="{% url 'invoice_aging_report' %}" class="report-btn primary">
+                    <i class="bi bi-eye"></i>
+                    View Report
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Cash Flow Report -->
+        <div class="report-card {% if not reports.cashflow.data_available %}unavailable{% endif %}"
+             onclick="{% if reports.cashflow.data_available %}window.location.href='{% url 'cashflow_report' %}'{% endif %}">
+            <div class="report-icon-wrapper">
+                <i class="bi bi-{{ reports.cashflow.icon }} report-icon"></i>
+            </div>
+            <h3 class="report-title">{{ reports.cashflow.title }}</h3>
+            <p class="report-description">{{ reports.cashflow.description }}</p>
+            
+            <div class="report-meta">
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Cash In</span>
+                    <span class="report-meta-value">KES {{ reports.cashflow.summary.total_in|floatformat:0|intcomma }}</span>
+                </div>
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Net Flow</span>
+                    <span class="report-meta-value">KES {{ reports.cashflow.summary.net_flow|floatformat:0|intcomma }}</span>
+                </div>
+            </div>
+            
+            <span class="report-badge {% if reports.cashflow.data_available %}available{% else %}unavailable{% endif %}">
+                <i class="bi bi-{% if reports.cashflow.data_available %}check-circle{% else %}x-circle{% endif %}"></i>
+                {% if reports.cashflow.data_available %}Data Available{% else %}No Data{% endif %}
+            </span>
+            
+            {% if reports.cashflow.data_available %}
+            <div class="report-actions">
+                <a href="{% url 'cashflow_report' %}" class="report-btn primary">
+                    <i class="bi bi-eye"></i>
+                    View Report
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Audit Trail Report -->
+        <div class="report-card {% if not reports.audit_trail.data_available %}unavailable{% endif %}"
+             onclick="{% if reports.audit_trail.data_available %}window.location.href='{% url 'audit_trail_report' %}'{% endif %}">
+            <div class="report-icon-wrapper">
+                <i class="bi bi-{{ reports.audit_trail.icon }} report-icon"></i>
+            </div>
+            <h3 class="report-title">{{ reports.audit_trail.title }}</h3>
+            <p class="report-description">{{ reports.audit_trail.description }}</p>
+            
+            <div class="report-meta">
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Total Actions</span>
+                    <span class="report-meta-value">{{ reports.audit_trail.summary.total_actions }}</span>
+                </div>
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Users</span>
+                    <span class="report-meta-value">{{ reports.audit_trail.summary.users_involved }}</span>
+                </div>
+            </div>
+            
+            <span class="report-badge {% if reports.audit_trail.data_available %}available{% else %}unavailable{% endif %}">
+                <i class="bi bi-{% if reports.audit_trail.data_available %}check-circle{% else %}x-circle{% endif %}"></i>
+                {% if reports.audit_trail.data_available %}Data Available{% else %}No Data{% endif %}
+            </span>
+            
+            {% if reports.audit_trail.data_available %}
+            <div class="report-actions">
+                <a href="{% url 'audit_trail_report' %}" class="report-btn primary">
+                    <i class="bi bi-eye"></i>
+                    View Report
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Compliance Report -->
+        <div class="report-card {% if not reports.compliance.data_available %}unavailable{% endif %}"
+             onclick="{% if reports.compliance.data_available %}window.location.href='{% url 'compliance_report' %}'{% endif %}">
+            <div class="report-icon-wrapper">
+                <i class="bi bi-{{ reports.compliance.icon }} report-icon"></i>
+            </div>
+            <h3 class="report-title">{{ reports.compliance.title }}</h3>
+            <p class="report-description">{{ reports.compliance.description }}</p>
+            
+            <div class="report-meta">
+                <div class="report-meta-item">
+                    <span class="report-meta-label">3-Way Matched</span>
+                    <span class="report-meta-value">{{ reports.compliance.summary.matched_invoices }}</span>
+                </div>
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Unmatched</span>
+                    <span class="report-meta-value">{{ reports.compliance.summary.unmatched_invoices }}</span>
+                </div>
+            </div>
+            
+            <span class="report-badge {% if reports.compliance.data_available %}available{% else %}unavailable{% endif %}">
+                <i class="bi bi-{% if reports.compliance.data_available %}check-circle{% else %}x-circle{% endif %}"></i>
+                {% if reports.compliance.data_available %}Data Available{% else %}No Data{% endif %}
+            </span>
+            
+            {% if reports.compliance.data_available %}
+            <div class="report-actions">
+                <a href="{% url 'compliance_report' %}" class="report-btn primary">
+                    <i class="bi bi-eye"></i>
+                    View Report
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Procurement Performance Report -->
+        <div class="report-card {% if not reports.performance.data_available %}unavailable{% endif %}"
+             onclick="{% if reports.performance.data_available %}window.location.href='{% url 'performance_report' %}'{% endif %}">
+            <div class="report-icon-wrapper">
+                <i class="bi bi-{{ reports.performance.icon }} report-icon"></i>
+            </div>
+            <h3 class="report-title">{{ reports.performance.title }}</h3>
+            <p class="report-description">{{ reports.performance.description }}</p>
+            
+            <div class="report-meta">
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Avg Timeline</span>
+                    <span class="report-meta-value">{{ reports.performance.summary.avg_timeline }} Days</span>
+                </div>
+                <div class="report-meta-item">
+                    <span class="report-meta-label">Success Rate</span>
+                    <span class="report-meta-value">{{ reports.performance.summary.tender_success|floatformat:1 }}%</span>
+                </div>
+            </div>
+            
+            <span class="report-badge {% if reports.performance.data_available %}available{% else %}unavailable{% endif %}">
+                <i class="bi bi-{% if reports.performance.data_available %}check-circle{% else %}x-circle{% endif %}"></i>
+                {% if reports.performance.data_available %}Data Available{% else %}No Data{% endif %}
+            </span>
+            
+            {% if reports.performance.data_available %}
+            <div class="report-actions">
+                <a href="{% url 'performance_report' %}" class="report-btn primary">
+                    <i class="bi bi-eye"></i>
+                    View Report
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity Section -->
+<div class="reports-section">
+    <div class="section-header">
+        <h2 class="section-title">Recent Activity</h2>
+        <div class="section-line"></div>
+    </div>
+    
+    <div class="quick-charts">
+        <!-- Top Suppliers -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-people"></i>
+                    Top Suppliers by Payment
+                </h3>
+            </div>
+            <div class="chart-body">
+                <div style="max-height: 300px; overflow-y: auto;">
+                    {% for supplier in table_data.top_suppliers %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+                        <div>
+                            <div style="font-weight: 600; color: #1E293B;">{{ supplier.invoice__supplier__name }}</div>
+                            <div style="font-size: 0.75rem; color: var(--secondary-color);">{{ supplier.count }} payments</div>
+                        </div>
+                        <div style="font-weight: 600; color: var(--primary-color); font-family: monospace;">
+                            KES {{ supplier.total|floatformat:0|intcomma }}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="text-align: center; padding: 2rem; color: #94A3B8;">
+                        No supplier data available
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- High Value Payments -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-cash-coin"></i>
+                    Recent High-Value Payments
+                </h3>
+            </div>
+            <div class="chart-body">
+                <div style="max-height: 300px; overflow-y: auto;">
+                    {% for payment in table_data.high_value_payments %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #1E293B;">{{ payment.invoice.supplier.name|truncatewords:4 }}</div>
+                            <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                                {{ payment.payment_number }} • {{ payment.payment_date|date:"M d, Y" }}
+                            </div>
+                        </div>
+                        <div style="font-weight: 600; color: var(--danger-color); font-family: monospace; white-space: nowrap; margin-left: 1rem;">
+                            KES {{ payment.payment_amount|floatformat:0|intcomma }}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="text-align: center; padding: 2rem; color: #94A3B8;">
+                        No high-value payments found
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Department Budgets -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-building"></i>
+                    Top Department Budgets
+                </h3>
+            </div>
+            <div class="chart-body">
+                <div style="max-height: 300px; overflow-y: auto;">
+                    {% for dept in table_data.department_budgets %}
+                    <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <div style="font-weight: 600; color: #1E293B;">{{ dept.department__name }}</div>
+                            <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                                {{ dept.spent|default:0|floatformat:0|intcomma }}/{{ dept.allocated|default:0|floatformat:0|intcomma }}
+                            </div>
+                        </div>
+                        <div style="background: #F1F5F9; border-radius: 0.5rem; height: 0.5rem; overflow: hidden;">
+                            {% widthratio dept.spent dept.allocated 100 as utilization %}
+                            <div style="height: 100%; background: {% if utilization > 80 %}var(--danger-color){% elif utilization > 60 %}var(--warning-color){% else %}var(--success-color){% endif %}; width: {{ utilization }}%;"></div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="text-align: center; padding: 2rem; color: #94A3B8;">
+                        No department budget data available
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
@@ -522,9 +1106,177 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    function showComingSoon(reportName) {
-        alert(`"${reportName}" is currently under development and will be available soon.`);
+    // Chart colors
+    const colors = {
+        primary: '#2563EB',
+        primaryLight: 'rgba(37, 99, 235, 0.1)',
+        success: '#10B981',
+        successLight: 'rgba(16, 185, 129, 0.1)',
+        warning: '#F59E0B',
+        warningLight: 'rgba(245, 158, 11, 0.1)',
+        danger: '#EF4444',
+        dangerLight: 'rgba(239, 68, 68, 0.1)',
+        purple: '#8B5CF6',
+        teal: '#14B8A6',
+        indigo: '#4F46E5'
+    };
+
+    // Chart defaults
+    Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#64748B';
+
+    // Create gradient
+    function createGradient(ctx, color) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+        gradient.addColorStop(0, color + '40');
+        gradient.addColorStop(1, color + '05');
+        return gradient;
     }
+
+    // Monthly Expenditure Chart
+    const monthlyCtx = document.getElementById('monthlyExpenseChart').getContext('2d');
+    const monthlyGradient = createGradient(monthlyCtx, colors.primary);
+    
+    new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_data.monthly_expenditure.labels|safe }},
+            datasets: [{
+                label: 'Expenditure (KES)',
+                data: {{ chart_data.monthly_expenditure.amounts|safe }},
+                borderColor: colors.primary,
+                backgroundColor: monthlyGradient,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: colors.primary,
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `KES ${context.parsed.y.toLocaleString()}`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(226, 232, 240, 0.5)' },
+                    ticks: {
+                        callback: (value) => value >= 1000000 ? 
+                            `${(value/1000000).toFixed(1)}M` : 
+                            `${(value/1000).toFixed(0)}K`
+                    }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // Category Budget Chart
+    const categoryCtx = document.getElementById('categoryBudgetChart').getContext('2d');
+    new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_data.category_budget.labels|safe }},
+            datasets: [{
+                data: {{ chart_data.category_budget.allocated|safe }},
+                backgroundColor: [
+                    colors.primary,
+                    colors.success,
+                    colors.warning,
+                    colors.danger,
+                    colors.purple,
+                    colors.teal,
+                    colors.indigo,
+                    colors.primaryLight
+                ],
+                borderWidth: 2,
+                borderColor: '#FFFFFF'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: { 
+                    position: 'right',
+                    labels: { 
+                        padding: 12,
+                        usePointStyle: true,
+                        font: { size: 11 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `${context.label}: KES ${context.parsed.toLocaleString()}`
+                    }
+                }
+            }
+        }
+    });
+
+    // Department Spending Chart
+    const deptCtx = document.getElementById('departmentSpendingChart').getContext('2d');
+    new Chart(deptCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ chart_data.budget_utilization.labels|safe }},
+            datasets: [{
+                label: 'Spending (KES)',
+                data: {{ chart_data.budget_utilization.spent|safe }},
+                backgroundColor: colors.success,
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `KES ${context.parsed.x.toLocaleString()}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(226, 232, 240, 0.5)' },
+                    ticks: {
+                        callback: (value) => value >= 1000000 ? 
+                            `${(value/1000000).toFixed(1)}M` : 
+                            `${(value/1000).toFixed(0)}K`
+                    }
+                },
+                y: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // Auto-resize charts on window resize
+    window.addEventListener('resize', function() {
+        Chart.instances.forEach(chart => {
+            chart.resize();
+        });
+    });
 </script>
 {% endblock %}
