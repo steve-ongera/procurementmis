@@ -722,3 +722,815 @@ def custom_404(request, exception):
 
 def custom_500(request):
     return render(request, 'errors/500.html', status=500)
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Count, Avg, F, Q, DecimalField, ExpressionWrapper
+from django.db.models.functions import TruncMonth, TruncYear, Coalesce
+from django.utils import timezone
+from django.http import HttpResponse
+from decimal import Decimal
+from datetime import timedelta, datetime
+import json
+import openpyxl
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+
+# ============================================================================
+# ADMIN ANALYTICS DASHBOARD
+# ============================================================================
+from datetime import datetime, timedelta
+from decimal import Decimal
+from django.db.models import (
+    Sum, Count, Avg, F
+)
+from django.db.models.functions import TruncMonth
+from django.shortcuts import render, redirect
+from django.utils import timezone
+
+
+@login_required
+def admin_analytics_dashboard(request):
+    """
+    Comprehensive admin analytics dashboard
+    """
+
+    if request.user.role != 'ADMIN':
+        messages.error(request, 'Access denied. Administrators only.')
+        return redirect('dashboard')
+
+    # =========================================================
+    # DATE RANGE FILTERS
+    # =========================================================
+    end_date = timezone.now().date()
+    start_date = end_date - timedelta(days=365)
+
+    filter_start = request.GET.get('start_date')
+    filter_end = request.GET.get('end_date')
+
+    if filter_start:
+        start_date = datetime.strptime(filter_start, '%Y-%m-%d').date()
+    if filter_end:
+        end_date = datetime.strptime(filter_end, '%Y-%m-%d').date()
+
+    # =========================================================
+    # SYSTEM STATISTICS
+    # =========================================================
+    total_requisitions = Requisition.objects.count()
+    total_pos = PurchaseOrder.objects.count()
+    total_suppliers = Supplier.objects.filter(status='APPROVED').count()
+    total_contracts = Contract.objects.count()
+
+    total_spend = PurchaseOrder.objects.filter(
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'DELIVERED']
+    ).aggregate(
+        total=Sum('total_amount')
+    )['total'] or Decimal('0.00')
+
+    # =========================================================
+    # MONTHLY SPEND TREND
+    # =========================================================
+    monthly_spend = PurchaseOrder.objects.filter(
+        po_date__gte=start_date,
+        po_date__lte=end_date,
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'DELIVERED']
+    ).annotate(
+        month=TruncMonth('po_date')
+    ).values('month').annotate(
+        total=Sum('total_amount')
+    ).order_by('month')
+
+    spend_chart = {
+        'labels': [m['month'].strftime('%b %Y') for m in monthly_spend],
+        'values': [float(m['total']) for m in monthly_spend]
+    }
+
+    # =========================================================
+    # BUDGET UTILIZATION
+    # =========================================================
+    budget_data = Budget.objects.filter(
+        budget_year__is_active=True
+    ).aggregate(
+        allocated=Sum('allocated_amount'),
+        committed=Sum('committed_amount'),
+        spent=Sum('actual_spent')
+    )
+
+    total_allocated = budget_data['allocated'] or Decimal('0.00')
+    total_committed = budget_data['committed'] or Decimal('0.00')
+    total_spent = budget_data['spent'] or Decimal('0.00')
+    available = total_allocated - total_committed - total_spent
+
+    budget_chart = {
+        'labels': ['Spent', 'Committed', 'Available'],
+        'values': [
+            float(total_spent),
+            float(total_committed),
+            float(available)
+        ]
+    }
+
+    # =========================================================
+    # REQUISITION STATUS
+    # =========================================================
+    req_status = Requisition.objects.values('status').annotate(
+        count=Count('id')
+    ).order_by('-count')
+
+    req_status_chart = {
+        'labels': [
+            dict(Requisition.STATUS_CHOICES).get(r['status'], r['status'])
+            for r in req_status
+        ],
+        'values': [r['count'] for r in req_status]
+    }
+
+    # =========================================================
+    # PURCHASE ORDER TRENDS
+    # =========================================================
+    po_trend = PurchaseOrder.objects.filter(
+        po_date__gte=start_date,
+        po_date__lte=end_date
+    ).annotate(
+        month=TruncMonth('po_date')
+    ).values('month').annotate(
+        count=Count('id'),
+        total=Sum('total_amount')
+    ).order_by('month')
+
+    po_trend_chart = {
+        'labels': [p['month'].strftime('%b %Y') for p in po_trend],
+        'count': [p['count'] for p in po_trend],
+        'values': [float(p['total']) for p in po_trend]
+    }
+
+    # =========================================================
+    # TOP SUPPLIERS
+    # =========================================================
+    top_suppliers = PurchaseOrder.objects.filter(
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'DELIVERED']
+    ).values('supplier__name').annotate(
+        total=Sum('total_amount')
+    ).order_by('-total')[:10]
+
+    top_suppliers_chart = {
+        'labels': [s['supplier__name'] for s in top_suppliers],
+        'values': [float(s['total']) for s in top_suppliers]
+    }
+
+    # =========================================================
+    # DEPARTMENT SPEND
+    # =========================================================
+    dept_spend = Requisition.objects.filter(
+        status='APPROVED',
+        purchase_orders__status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'DELIVERED']
+    ).values('department__name').annotate(
+        total=Sum('purchase_orders__total_amount')
+    ).order_by('-total')[:10]
+
+    dept_spend_chart = {
+        'labels': [d['department__name'] for d in dept_spend],
+        'values': [float(d['total'] or 0) for d in dept_spend]
+    }
+
+    # =========================================================
+    # TENDER STATUS
+    # =========================================================
+    tender_status = Tender.objects.values('status').annotate(
+        count=Count('id')
+    ).order_by('-count')
+
+    tender_status_chart = {
+        'labels': [
+            dict(Tender.STATUS_CHOICES).get(t['status'], t['status'])
+            for t in tender_status
+        ],
+        'values': [t['count'] for t in tender_status]
+    }
+
+    # =========================================================
+    # CONTRACT TYPES
+    # =========================================================
+    contract_type = Contract.objects.values('contract_type').annotate(
+        count=Count('id'),
+        total_value=Sum('contract_value')
+    ).order_by('-count')
+
+    contract_type_chart = {
+        'labels': [
+            dict(Contract.CONTRACT_TYPES).get(c['contract_type'], c['contract_type'])
+            for c in contract_type
+        ],
+        'values': [c['count'] for c in contract_type]
+    }
+
+    # =========================================================
+    # PERFORMANCE METRICS (FIXED)
+    # =========================================================
+    approved_reqs = Requisition.objects.filter(
+        status='APPROVED',
+        submitted_at__isnull=False,
+        updated_at__isnull=False
+    )
+
+    avg_approval_days = 0
+    if approved_reqs.exists():
+        total_seconds = sum(
+            (r.updated_at - r.submitted_at).total_seconds()
+            for r in approved_reqs
+        )
+        avg_approval_days = int(
+            total_seconds / approved_reqs.count() / 86400
+        )
+
+    avg_bids = Bid.objects.values('tender').annotate(
+        bid_count=Count('id')
+    ).aggregate(
+        avg=Avg('bid_count')
+    )['avg'] or 0
+
+    delivered_pos = PurchaseOrder.objects.filter(
+        status='DELIVERED',
+        sent_at__isnull=False,
+        updated_at__isnull=False
+    )
+
+    avg_delivery_days = 0
+    if delivered_pos.exists():
+        total_delivery_seconds = sum(
+            (po.updated_at - po.sent_at).total_seconds()
+            for po in delivered_pos
+        )
+        avg_delivery_days = int(
+            total_delivery_seconds / delivered_pos.count() / 86400
+        )
+
+    total_delivered = delivered_pos.count()
+    on_time = delivered_pos.filter(
+        updated_at__lte=F('delivery_date')
+    ).count()
+
+    delivery_compliance = int(
+        (on_time / total_delivered) * 100
+    ) if total_delivered > 0 else 0
+
+    performance = {
+        'avg_approval_time': avg_approval_days,
+        'avg_bids_per_tender': round(avg_bids, 1),
+        'avg_delivery_time': avg_delivery_days,
+        'delivery_compliance': delivery_compliance
+    }
+
+    # =========================================================
+    # CATEGORY SPEND
+    # =========================================================
+    category_spend = RequisitionItem.objects.filter(
+        requisition__status='APPROVED',
+        requisition__purchase_orders__status__in=[
+            'APPROVED', 'SENT', 'ACKNOWLEDGED', 'DELIVERED'
+        ]
+    ).values(
+        'item__category__name'
+    ).annotate(
+        total=Sum('estimated_total')
+    ).order_by('-total')[:8]
+
+    category_spend_chart = {
+        'labels': [
+            c['item__category__name'] or 'Uncategorized'
+            for c in category_spend
+        ],
+        'values': [float(c['total']) for c in category_spend]
+    }
+
+    # =========================================================
+    # SUPPLIER RATINGS
+    # =========================================================
+    supplier_ratings = SupplierPerformance.objects.values(
+        'supplier__name'
+    ).annotate(
+        avg_rating=Avg('overall_rating'),
+        count=Count('id')
+    ).order_by('-avg_rating')[:10]
+
+    supplier_rating_chart = {
+        'labels': [s['supplier__name'] for s in supplier_ratings],
+        'values': [float(s['avg_rating']) for s in supplier_ratings]
+    }
+
+    # =========================================================
+    # PAYMENT STATUS
+    # =========================================================
+    payment_status = Invoice.objects.values('status').annotate(
+        count=Count('id'),
+        total=Sum('total_amount')
+    ).order_by('-count')
+
+    payment_status_chart = {
+        'labels': [
+            dict(Invoice.STATUS_CHOICES).get(p['status'], p['status'])
+            for p in payment_status
+        ],
+        'values': [float(p['total'] or 0) for p in payment_status]
+    }
+
+    # =========================================================
+    # STOCK VALUE
+    # =========================================================
+    stock_value = StockItem.objects.values(
+        'store__name'
+    ).annotate(
+        total_value=Sum('total_value')
+    ).order_by('-total_value')
+
+    stock_value_chart = {
+        'labels': [s['store__name'] for s in stock_value],
+        'values': [float(s['total_value']) for s in stock_value]
+    }
+
+    # =========================================================
+    # CONTEXT
+    # =========================================================
+    context = {
+        'title': 'Admin Analytics Dashboard',
+        'total_requisitions': total_requisitions,
+        'total_pos': total_pos,
+        'total_suppliers': total_suppliers,
+        'total_contracts': total_contracts,
+        'system_stats': {
+            'total_spend': total_spend
+        },
+        'spend_chart': spend_chart,
+        'budget_chart': budget_chart,
+        'req_status_chart': req_status_chart,
+        'po_trend_chart': po_trend_chart,
+        'top_suppliers_chart': top_suppliers_chart,
+        'dept_spend_chart': dept_spend_chart,
+        'tender_status_chart': tender_status_chart,
+        'contract_type_chart': contract_type_chart,
+        'category_spend_chart': category_spend_chart,
+        'supplier_rating_chart': supplier_rating_chart,
+        'payment_status_chart': payment_status_chart,
+        'stock_value_chart': stock_value_chart,
+        'performance': performance,
+        'start_date': start_date,
+        'end_date': end_date,
+    }
+
+    return render(request, 'admin/analytics_dashboard.html', context)
+
+
+# ============================================================================
+# REPORTS VIEW WITH FILTERS
+# ============================================================================
+
+@login_required
+def admin_reports(request):
+    """
+    Reports page with advanced filtering and Excel export
+    """
+    if request.user.role != 'ADMIN':
+        messages.error(request, 'Access denied. Administrators only.')
+        return redirect('dashboard')
+    
+    # Get filter parameters
+    report_type = request.GET.get('report_type', 'requisitions')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    department_id = request.GET.get('department')
+    supplier_id = request.GET.get('supplier')
+    status_filter = request.GET.get('status')
+    category_id = request.GET.get('category')
+    
+    # Set default date range (last 90 days)
+    if not start_date:
+        start_date = (timezone.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+    if not end_date:
+        end_date = timezone.now().strftime('%Y-%m-%d')
+    
+    # Initialize data
+    report_data = []
+    chart_data = {}
+    summary_stats = {}
+    
+    # ========== REQUISITIONS REPORT ==========
+    if report_type == 'requisitions':
+        queryset = Requisition.objects.select_related(
+            'department', 'requested_by', 'budget'
+        ).filter(
+            created_at__date__gte=start_date,
+            created_at__date__lte=end_date
+        )
+        
+        if department_id:
+            queryset = queryset.filter(department_id=department_id)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        report_data = queryset.order_by('-created_at')
+        
+        # Summary stats
+        summary_stats = {
+            'total_count': queryset.count(),
+            'total_value': queryset.aggregate(Sum('estimated_amount'))['estimated_amount__sum'] or Decimal('0.00'),
+            'avg_value': queryset.aggregate(Avg('estimated_amount'))['estimated_amount__avg'] or Decimal('0.00'),
+            'pending': queryset.filter(status='SUBMITTED').count(),
+            'approved': queryset.filter(status='APPROVED').count(),
+            'rejected': queryset.filter(status='REJECTED').count(),
+        }
+        
+        # Chart: Status breakdown
+        status_data = queryset.values('status').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        chart_data['status_chart'] = {
+            'labels': [dict(Requisition.STATUS_CHOICES).get(item['status'], item['status']) for item in status_data],
+            'values': [item['count'] for item in status_data]
+        }
+        
+        # Chart: Monthly trend
+        monthly_data = queryset.annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            count=Count('id'),
+            total=Sum('estimated_amount')
+        ).order_by('month')
+        
+        chart_data['monthly_chart'] = {
+            'labels': [item['month'].strftime('%b %Y') for item in monthly_data],
+            'count': [item['count'] for item in monthly_data],
+            'values': [float(item['total']) for item in monthly_data]
+        }
+    
+    # ========== PURCHASE ORDERS REPORT ==========
+    elif report_type == 'purchase_orders':
+        queryset = PurchaseOrder.objects.select_related(
+            'supplier', 'requisition', 'created_by'
+        ).filter(
+            po_date__gte=start_date,
+            po_date__lte=end_date
+        )
+        
+        if supplier_id:
+            queryset = queryset.filter(supplier_id=supplier_id)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        report_data = queryset.order_by('-po_date')
+        
+        # Summary stats
+        summary_stats = {
+            'total_count': queryset.count(),
+            'total_value': queryset.aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0.00'),
+            'avg_value': queryset.aggregate(Avg('total_amount'))['total_amount__avg'] or Decimal('0.00'),
+            'pending': queryset.filter(status='PENDING_APPROVAL').count(),
+            'approved': queryset.filter(status='APPROVED').count(),
+            'delivered': queryset.filter(status='DELIVERED').count(),
+        }
+        
+        # Chart: Status breakdown
+        status_data = queryset.values('status').annotate(
+            count=Count('id'),
+            total=Sum('total_amount')
+        ).order_by('-count')
+        
+        chart_data['status_chart'] = {
+            'labels': [dict(PurchaseOrder.STATUS_CHOICES).get(item['status'], item['status']) for item in status_data],
+            'values': [float(item['total']) for item in status_data]
+        }
+        
+        # Chart: Top suppliers
+        supplier_data = queryset.values('supplier__name').annotate(
+            total=Sum('total_amount')
+        ).order_by('-total')[:10]
+        
+        chart_data['supplier_chart'] = {
+            'labels': [item['supplier__name'] for item in supplier_data],
+            'values': [float(item['total']) for item in supplier_data]
+        }
+    
+    # ========== SUPPLIER REPORT ==========
+    elif report_type == 'suppliers':
+        queryset = Supplier.objects.annotate(
+            po_count=Count('purchase_orders'),
+            total_value=Sum('purchase_orders__total_amount')
+        ).filter(
+            purchase_orders__po_date__gte=start_date,
+            purchase_orders__po_date__lte=end_date
+        ).distinct()
+        
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        report_data = queryset.order_by('-total_value')
+        
+        # Summary stats
+        summary_stats = {
+            'total_count': queryset.count(),
+            'total_spend': queryset.aggregate(Sum('total_value'))['total_value__sum'] or Decimal('0.00'),
+            'active': queryset.filter(status='APPROVED').count(),
+            'suspended': queryset.filter(status='SUSPENDED').count(),
+        }
+        
+        # Chart: Supplier ratings
+        rating_data = SupplierPerformance.objects.filter(
+            reviewed_at__date__gte=start_date,
+            reviewed_at__date__lte=end_date
+        ).values('supplier__name').annotate(
+            avg_rating=Avg('overall_rating')
+        ).order_by('-avg_rating')[:10]
+        
+        chart_data['rating_chart'] = {
+            'labels': [item['supplier__name'] for item in rating_data],
+            'values': [float(item['avg_rating']) for item in rating_data]
+        }
+    
+    # ========== BUDGET REPORT ==========
+    elif report_type == 'budget':
+        queryset = Budget.objects.select_related(
+            'department', 'budget_year', 'category'
+        ).filter(
+            budget_year__is_active=True
+        )
+        
+        if department_id:
+            queryset = queryset.filter(department_id=department_id)
+        
+        report_data = queryset.order_by('department__name')
+        
+        # Summary stats
+        summary_stats = {
+            'total_allocated': queryset.aggregate(Sum('allocated_amount'))['allocated_amount__sum'] or Decimal('0.00'),
+            'total_committed': queryset.aggregate(Sum('committed_amount'))['committed_amount__sum'] or Decimal('0.00'),
+            'total_spent': queryset.aggregate(Sum('actual_spent'))['actual_spent__sum'] or Decimal('0.00'),
+        }
+        summary_stats['available'] = summary_stats['total_allocated'] - summary_stats['total_committed'] - summary_stats['total_spent']
+        summary_stats['utilization_rate'] = (summary_stats['total_spent'] / summary_stats['total_allocated'] * 100) if summary_stats['total_allocated'] > 0 else 0
+        
+        # Chart: Department utilization
+        dept_data = queryset.values('department__name').annotate(
+            allocated=Sum('allocated_amount'),
+            spent=Sum('actual_spent')
+        ).order_by('-spent')[:10]
+        
+        chart_data['dept_chart'] = {
+            'labels': [item['department__name'] for item in dept_data],
+            'allocated': [float(item['allocated']) for item in dept_data],
+            'spent': [float(item['spent']) for item in dept_data]
+        }
+    
+    # ========== INVENTORY REPORT ==========
+    elif report_type == 'inventory':
+        queryset = StockItem.objects.select_related(
+            'store', 'item'
+        ).all()
+        
+        report_data = queryset.order_by('store__name', 'item__name')
+        
+        # Summary stats
+        summary_stats = {
+            'total_items': queryset.count(),
+            'total_value': queryset.aggregate(Sum('total_value'))['total_value__sum'] or Decimal('0.00'),
+            'low_stock': queryset.filter(quantity_on_hand__lte=F('reorder_level')).count(),
+        }
+        
+        # Chart: Stock value by store
+        store_data = queryset.values('store__name').annotate(
+            total=Sum('total_value')
+        ).order_by('-total')
+        
+        chart_data['store_chart'] = {
+            'labels': [item['store__name'] for item in store_data],
+            'values': [float(item['total']) for item in store_data]
+        }
+    
+    # Get filter options
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    suppliers = Supplier.objects.filter(status='APPROVED').order_by('name')
+    categories = ItemCategory.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'title': 'Reports & Analytics',
+        'report_type': report_type,
+        'report_data': report_data,
+        'chart_data': chart_data,
+        'summary_stats': summary_stats,
+        'start_date': start_date,
+        'end_date': end_date,
+        'department_id': department_id,
+        'supplier_id': supplier_id,
+        'status_filter': status_filter,
+        'category_id': category_id,
+        'departments': departments,
+        'suppliers': suppliers,
+        'categories': categories,
+        'requisition_statuses': Requisition.STATUS_CHOICES,
+        'po_statuses': PurchaseOrder.STATUS_CHOICES,
+        'supplier_statuses': Supplier.STATUS_CHOICES,
+    }
+    
+    return render(request, 'admin/reports.html', context)
+
+
+# ============================================================================
+# EXCEL EXPORT
+# ============================================================================
+
+@login_required
+def export_report_excel(request):
+    """
+    Export filtered report data to Excel
+    """
+    if request.user.role != 'ADMIN':
+        return HttpResponse('Access denied', status=403)
+    
+    report_type = request.GET.get('report_type', 'requisitions')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    department_id = request.GET.get('department')
+    supplier_id = request.GET.get('supplier')
+    status_filter = request.GET.get('status')
+    
+    # Create workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    
+    # Styling
+    header_fill = PatternFill(start_color='2563EB', end_color='2563EB', fill_type='solid')
+    header_font = Font(bold=True, color='FFFFFF', size=12)
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    # ========== REQUISITIONS EXPORT ==========
+    if report_type == 'requisitions':
+        ws.title = 'Requisitions Report'
+        
+        # Headers
+        headers = ['Req Number', 'Date', 'Department', 'Title', 'Requested By', 
+                   'Status', 'Priority', 'Estimated Amount', 'Required Date']
+        ws.append(headers)
+        
+        # Style headers
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = border
+        
+        # Get data
+        queryset = Requisition.objects.select_related(
+            'department', 'requested_by'
+        ).filter(
+            created_at__date__gte=start_date,
+            created_at__date__lte=end_date
+        )
+        
+        if department_id:
+            queryset = queryset.filter(department_id=department_id)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Add data rows
+        for req in queryset.order_by('-created_at'):
+            ws.append([
+                req.requisition_number,
+                req.created_at.strftime('%Y-%m-%d'),
+                req.department.name,
+                req.title,
+                req.requested_by.get_full_name(),
+                dict(Requisition.STATUS_CHOICES).get(req.status, req.status),
+                dict(Requisition.PRIORITY_CHOICES).get(req.priority, req.priority),
+                float(req.estimated_amount),
+                req.required_date.strftime('%Y-%m-%d')
+            ])
+        
+        # Auto-size columns
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column].width = adjusted_width
+    
+    # ========== PURCHASE ORDERS EXPORT ==========
+    elif report_type == 'purchase_orders':
+        ws.title = 'Purchase Orders Report'
+        
+        headers = ['PO Number', 'Date', 'Supplier', 'Requisition', 'Status', 
+                   'Subtotal', 'Tax', 'Total', 'Delivery Date']
+        ws.append(headers)
+        
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = border
+        
+        queryset = PurchaseOrder.objects.select_related(
+            'supplier', 'requisition'
+        ).filter(
+            po_date__gte=start_date,
+            po_date__lte=end_date
+        )
+        
+        if supplier_id:
+            queryset = queryset.filter(supplier_id=supplier_id)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        for po in queryset.order_by('-po_date'):
+            ws.append([
+                po.po_number,
+                po.po_date.strftime('%Y-%m-%d'),
+                po.supplier.name,
+                po.requisition.requisition_number,
+                dict(PurchaseOrder.STATUS_CHOICES).get(po.status, po.status),
+                float(po.subtotal),
+                float(po.tax_amount),
+                float(po.total_amount),
+                po.delivery_date.strftime('%Y-%m-%d')
+            ])
+        
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column].width = adjusted_width
+    
+    # ========== SUPPLIER EXPORT ==========
+    elif report_type == 'suppliers':
+        ws.title = 'Suppliers Report'
+        
+        headers = ['Supplier Number', 'Name', 'Email', 'Phone', 'Status', 
+                   'PO Count', 'Total Value', 'Rating']
+        ws.append(headers)
+        
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = border
+        
+        queryset = Supplier.objects.annotate(
+            po_count=Count('purchase_orders'),
+            total_value=Sum('purchase_orders__total_amount')
+        )
+        
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        for supplier in queryset.order_by('name'):
+            ws.append([
+                supplier.supplier_number,
+                supplier.name,
+                supplier.email,
+                supplier.phone_number,
+                dict(Supplier.STATUS_CHOICES).get(supplier.status, supplier.status),
+                supplier.po_count or 0,
+                float(supplier.total_value or 0),
+                float(supplier.rating)
+            ])
+        
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column].width = adjusted_width
+    
+    # ========== BUDGET EXPORT ==========
+    elif report_type == 'budget':
+        ws.title = 'Budget Report'
+        
+        headers = ['Department', 'Category', 'Budget Year', 'Allocated', 
+                   'Committed', 'Spent', 'Available', 'Utilization %']
+        ws.append(headers)
+        
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
