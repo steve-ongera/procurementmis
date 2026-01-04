@@ -1,51 +1,350 @@
 {% extends 'base.html' %}
+{% load math_filters %}
 {% load humanize %}
 
-{% block title %}Expenditure Analysis - University Procurement System{% endblock %}
+{% block title %}Expenditure Report - University Procurement System{% endblock %}
 
 {% block extra_css %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 <style>
     :root {
         --primary-color: #2563EB;
-        --success-color: #059669;
-        --warning-color: #D97706;
-        --danger-color: #DC2626;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
         --border-color: #E2E8F0;
-        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Date Filter */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Charts Grid */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     .card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: var(--card-shadow);
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
-        margin-bottom: 24px;
+        border-radius: 0.5rem;
+        overflow: hidden;
     }
 
     .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        padding-bottom: 16px;
-        border-bottom: 2px solid var(--border-color);
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
     }
 
     .card-title {
-        font-size: 18px;
-        font-weight: 700;
+        font-size: 1rem;
+        font-weight: 600;
         color: #1E293B;
+        margin: 0;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 0.75rem;
+    }
+
+    .card-title i {
+        color: var(--primary-color);
+        font-size: 1.25rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
     }
 
     .chart-container {
         position: relative;
-        height: 350px;
+        height: 300px;
+    }
+
+    .chart-container-small {
+        position: relative;
+        height: 250px;
+    }
+
+    /* Progress Bar */
+    .progress-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .progress-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .progress-value {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .progress-bar-container {
+        background: #F1F5F9;
+        border-radius: 0.5rem;
+        height: 1.25rem;
+        overflow: hidden;
+        margin-bottom: 0.75rem;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: var(--success-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.75rem;
+        transition: width 0.3s ease;
+        border-radius: 0.5rem;
+    }
+
+    .progress-bar.warning {
+        background: var(--warning-color);
+    }
+
+    .progress-bar.danger {
+        background: var(--danger-color);
+    }
+
+    .progress-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .progress-item {
+        text-align: center;
+    }
+
+    .progress-item .label {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-bottom: 0.25rem;
+    }
+
+    .progress-item .value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    /* Table */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
     }
 
     table {
@@ -54,66 +353,82 @@
     }
 
     thead {
-        background: #F8FAFC;
+        background: var(--table-header);
     }
 
     th {
-        padding: 16px;
+        padding: 1rem 1.5rem;
         text-align: left;
-        font-size: 12px;
-        font-weight: 700;
-        color: #475569;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
         text-transform: uppercase;
-        border-bottom: 2px solid var(--border-color);
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
     }
 
     td {
-        padding: 16px;
+        padding: 1rem 1.5rem;
         border-bottom: 1px solid var(--border-color);
-        font-size: 14px;
+        font-size: 0.875rem;
+        color: #334155;
     }
 
-    tr:hover {
-        background: #F8FAFC;
+    tbody tr {
+        transition: background-color 0.2s;
     }
 
-    .progress-cell {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+    tbody tr:hover {
+        background: var(--hover-bg);
     }
 
-    .progress-bar-mini {
-        flex: 1;
-        height: 8px;
-        background: #F1F5F9;
-        border-radius: 4px;
-        overflow: hidden;
-    }
-
-    .progress-fill {
-        height: 100%;
-        transition: width 0.3s;
-    }
-
-    .action-btn {
-        padding: 10px 20px;
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 8px;
+    .amount-cell {
         font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
-    .btn-secondary {
-        background: white;
-        color: var(--primary-color);
-        border: 1px solid var(--primary-color);
+    /* Period Display */
+    .period-display {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        padding: 1rem 1.5rem;
+        background: var(--primary-light);
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filter-form {
+            grid-template-columns: 1fr;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .chart-container,
+        .chart-container-small {
+            height: 250px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}
@@ -121,209 +436,356 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">Expenditure Analysis</h1>
-        <p style="color: #64748B; margin-top: 8px;">
-            Detailed spending analysis for {{ current_year.name }}
-        </p>
+        <h1 class="page-title">Expenditure Analysis Report</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'financial_reports' %}">Reports</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Expenditure Analysis</span>
+        </div>
     </div>
-    <div style="display: flex; gap: 12px;">
-        <button onclick="window.print()" class="action-btn btn-secondary">
-            <i class="bi bi-printer"></i> Print Report
-        </button>
-        <a href="{% url 'financial_reports' %}" class="action-btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Back
+    <div class="header-actions">
+        <a href="{% url 'financial_reports' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Reports
         </a>
+        <button onclick="exportReport()" class="btn btn-primary">
+            <i class="bi bi-download"></i>
+            Export Report
+        </button>
     </div>
 </div>
 
-<!-- Monthly Trend Chart -->
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">
-            <i class="bi bi-graph-up" style="color: var(--primary-color);"></i>
-            Monthly Expenditure Trend
-        </h2>
-    </div>
-    <div class="chart-container">
-        <canvas id="trendChart"></canvas>
-    </div>
+<!-- Date Filter -->
+<div class="filter-card">
+    <form method="get" class="filter-form">
+        <div class="form-group">
+            <label class="form-label">Start Date</label>
+            <input type="date" name="start_date" class="form-control" value="{{ start_date|date:'Y-m-d' }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">End Date</label>
+            <input type="date" name="end_date" class="form-control" value="{{ end_date|date:'Y-m-d' }}">
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-funnel"></i>
+                Apply Date Range
+            </button>
+        </div>
+    </form>
 </div>
 
-<!-- Department Expenditure -->
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">
-            <i class="bi bi-building" style="color: var(--success-color);"></i>
-            Department Expenditure Analysis
-        </h2>
-    </div>
-    
-    {% if dept_expenditure %}
-    <table>
-        <thead>
-            <tr>
-                <th>Department</th>
-                <th>Allocated</th>
-                <th>Committed</th>
-                <th>Spent</th>
-                <th>Available</th>
-                <th>Utilization</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for dept in dept_expenditure %}
-            <tr>
-                <td style="font-weight: 600;">{{ dept.department__name }}</td>
-                <td>KES {{ dept.allocated|floatformat:0|intcomma }}</td>
-                <td>KES {{ dept.committed|floatformat:0|intcomma }}</td>
-                <td style="font-weight: 700; color: var(--danger-color);">
-                    KES {{ dept.spent|floatformat:0|intcomma }}
-                </td>
-                <td style="color: var(--success-color); font-weight: 600;">
-                    {% widthratio dept.spent dept.allocated 100 as spent_pct %}
-                    KES {{ dept.allocated|sub:dept.spent|floatformat:0|intcomma }}
-                </td>
-                <td>
-                    <div class="progress-cell">
-                        {% widthratio dept.spent dept.allocated 100 as utilization %}
-                        <div class="progress-bar-mini">
-                            <div class="progress-fill" 
-                                 style="width: {{ utilization }}%; background: {% if utilization > 80 %}var(--danger-color){% elif utilization > 60 %}var(--warning-color){% else %}var(--success-color){% endif %};">
-                            </div>
-                        </div>
-                        <span style="font-size: 13px; font-weight: 700;">{{ utilization }}%</span>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-        <tfoot style="background: #F8FAFC; font-weight: 700;">
-            <tr>
-                <td>TOTAL</td>
-                <td>KES {% widthratio dept_expenditure|length 1 1 as count %}{{ dept_expenditure.0.allocated|add:dept_expenditure.1.allocated|floatformat:0|intcomma }}</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-            </tr>
-        </tfoot>
-    </table>
-    {% else %}
-    <p style="text-align: center; color: #94A3B8; padding: 40px;">
-        No expenditure data available
-    </p>
+<!-- Period Display -->
+<div class="period-display">
+    <i class="bi bi-calendar"></i>
+    Showing data from {{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}
+    {% if current_year %}
+    | Budget Year: {{ current_year.name }}
     {% endif %}
 </div>
 
-<!-- Category Expenditure -->
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">
-            <i class="bi bi-tags" style="color: var(--warning-color);"></i>
-            Category Expenditure Breakdown
+<!-- Quick Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">KES {{ stats.payment_total|floatformat:0|intcomma }}</div>
+        <div class="stat-label">Total Payments</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.payment_count|intcomma }}</div>
+        <div class="stat-label">Payment Transactions</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.invoice_count|intcomma }}</div>
+        <div class="stat-label">Total Invoices</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.utilization_rate }}%</div>
+        <div class="stat-label">Budget Utilization</div>
+    </div>
+</div>
+
+<!-- Budget Utilization -->
+<div class="progress-card">
+    <div class="progress-header">
+        <div class="progress-title">Budget Utilization Overview</div>
+        <div class="progress-value">{{ stats.utilization_rate }}%</div>
+    </div>
+    <div class="progress-bar-container">
+        <div class="progress-bar {% if stats.utilization_rate > 80 %}danger{% elif stats.utilization_rate > 60 %}warning{% endif %}" 
+             style="width: {{ stats.utilization_rate }}%;">
+            {{ stats.utilization_rate }}%
+        </div>
+    </div>
+    <div class="progress-grid">
+        <div class="progress-item">
+            <div class="label">Allocated Budget</div>
+            <div class="value">KES {{ stats.total_allocated|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="progress-item">
+            <div class="label">Committed Amount</div>
+            <div class="value" style="color: var(--warning-color);">KES {{ stats.total_committed|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="progress-item">
+            <div class="label">Actual Spent</div>
+            <div class="value" style="color: var(--danger-color);">KES {{ stats.total_spent|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="progress-item">
+            <div class="label">Available Balance</div>
+            <div class="value" style="color: var(--success-color);">KES {{ stats.total_allocated|add:stats.total_committed|add:stats.total_spent|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="charts-grid">
+    <!-- Monthly Expenditure Trend -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-graph-up"></i>
+                Monthly Expenditure Trend
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Expenditure -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-pie-chart"></i>
+                Expenditure by Category
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="charts-grid">
+    <!-- Department Expenditure -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-building"></i>
+                Department Expenditure
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="departmentChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Methods -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-credit-card"></i>
+                Payment Methods Distribution
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="chart-container-small">
+                <canvas id="paymentMethodChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 3 -->
+<div class="charts-grid">
+    <!-- Top Suppliers -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-people"></i>
+                Top 10 Suppliers by Value
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="supplierChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Status -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-cash-stack"></i>
+                Payment Status Distribution
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="chart-container-small">
+                <canvas id="paymentStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Payments Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clock-history"></i>
+            Recent High-Value Payments
         </h2>
     </div>
-    
-    {% if category_expenditure %}
-    <table>
-        <thead>
-            <tr>
-                <th>Category Code</th>
-                <th>Category Name</th>
-                <th>Allocated</th>
-                <th>Spent</th>
-                <th>Utilization</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for cat in category_expenditure %}
-            <tr>
-                <td style="font-family: monospace; font-weight: 600;">{{ cat.category__code }}</td>
-                <td>{{ cat.category__name }}</td>
-                <td>KES {{ cat.allocated|floatformat:0|intcomma }}</td>
-                <td style="font-weight: 700;">KES {{ cat.spent|floatformat:0|intcomma }}</td>
-                <td>
-                    <div class="progress-cell">
-                        {% widthratio cat.spent cat.allocated 100 as cat_util %}
-                        <div class="progress-bar-mini">
-                            <div class="progress-fill" 
-                                 style="width: {{ cat_util }}%; background: var(--primary-color);">
-                            </div>
-                        </div>
-                        <span style="font-size: 13px; font-weight: 700;">{{ cat_util }}%</span>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p style="text-align: center; color: #94A3B8; padding: 40px;">
-        No category data available
-    </p>
-    {% endif %}
-</div>
-
-<!-- Summary Statistics -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px;">
-    <div class="card">
-        <div style="text-align: center;">
-            <div style="font-size: 28px; font-weight: 800; color: #1E293B; margin-bottom: 8px;">
-                {{ dept_expenditure|length }}
-            </div>
-            <div style="font-size: 13px; font-weight: 600; color: #64748B;">
-                Active Departments
-            </div>
-        </div>
-    </div>
-    
-    <div class="card">
-        <div style="text-align: center;">
-            <div style="font-size: 28px; font-weight: 800; color: #1E293B; margin-bottom: 8px;">
-                {{ category_expenditure|length }}
-            </div>
-            <div style="font-size: 13px; font-weight: 600; color: #64748B;">
-                Budget Categories
-            </div>
-        </div>
-    </div>
-    
-    <div class="card">
-        <div style="text-align: center;">
-            <div style="font-size: 28px; font-weight: 800; color: var(--primary-color); margin-bottom: 8px;">
-                12
-            </div>
-            <div style="font-size: 13px; font-weight: 600; color: #64748B;">
-                Months Analyzed
-            </div>
-        </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Payment Number</th>
+                    <th>Supplier</th>
+                    <th>Invoice</th>
+                    <th>Payment Date</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in recent_payments %}
+                <tr>
+                    <td>{{ payment.payment_number }}</td>
+                    <td>{{ payment.invoice.supplier.name }}</td>
+                    <td>{{ payment.invoice.invoice_number }}</td>
+                    <td>{{ payment.payment_date|date:"M d, Y" }}</td>
+                    <td class="amount-cell">KES {{ payment.payment_amount|floatformat:0|intcomma }}</td>
+                    <td>{{ payment.get_payment_method_display }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2rem; color: #94A3B8;">
+                        No recent payments found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
+<!-- Category Expenditure Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-list-check"></i>
+            Category Expenditure Summary
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Allocated Amount</th>
+                    <th>Actual Spent</th>
+                    <th>Utilization Rate</th>
+                    <th>Available Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in category_expenditure %}
+                <tr>
+                    <td>{{ category.category__name }}</td>
+                    <td class="amount-cell">KES {{ category.allocated|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ category.spent|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% if category.allocated %}
+                        {{ category.spent|div:category.allocated|mul:100|floatformat:1 }}%
+                        {% else %}
+                        0%
+                        {% endif %}
+                    </td>
+                    <td class="amount-cell">
+                        KES {{ category.allocated|add:category.spent|floatformat:0|intcomma }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 2rem; color: #94A3B8;">
+                        No category expenditure data available
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    // Monthly Trend Chart
-    const trendData = {{ monthly_data|safe }};
-    const labels = trendData.map(item => item.month);
-    const amounts = trendData.map(item => item.amount);
+    // Chart colors
+    const colors = {
+        primary: '#2563EB',
+        primaryLight: 'rgba(37, 99, 235, 0.1)',
+        success: '#10B981',
+        successLight: 'rgba(16, 185, 129, 0.1)',
+        warning: '#F59E0B',
+        warningLight: 'rgba(245, 158, 11, 0.1)',
+        danger: '#EF4444',
+        dangerLight: 'rgba(239, 68, 68, 0.1)',
+        purple: '#8B5CF6',
+        purpleLight: 'rgba(139, 92, 246, 0.1)',
+        teal: '#14B8A6',
+        tealLight: 'rgba(20, 184, 166, 0.1)',
+        indigo: '#4F46E5',
+        indigoLight: 'rgba(79, 70, 229, 0.1)'
+    };
 
-    new Chart(document.getElementById('trendChart'), {
+    // Chart defaults
+    Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#64748B';
+
+    // Create gradient
+    function createGradient(ctx, color) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, color + '40');
+        gradient.addColorStop(1, color + '05');
+        return gradient;
+    }
+
+    // Monthly Expenditure Chart
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    const monthlyGradient = createGradient(monthlyCtx, colors.primary);
+    
+    new Chart(monthlyCtx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: {{ monthly_chart.labels|safe }},
             datasets: [{
-                label: 'Monthly Expenditure (KES)',
-                data: amounts,
-                borderColor: '#2563EB',
-                backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                borderWidth: 3,
+                label: 'Expenditure (KES)',
+                data: {{ monthly_chart.values|safe }},
+                borderColor: colors.primary,
+                backgroundColor: monthlyGradient,
+                borderWidth: 2,
                 fill: true,
-                tension: 0.4,
-                pointRadius: 5,
-                pointBackgroundColor: '#2563EB',
-                pointBorderColor: '#ffffff',
+                tension: 0.3,
+                pointRadius: 4,
+                pointBackgroundColor: colors.primary,
+                pointBorderColor: '#FFFFFF',
                 pointBorderWidth: 2,
             }]
         },
@@ -331,25 +793,278 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                },
+                legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (context) => `Spent: KES ${context.parsed.y.toLocaleString()}`
+                        label: (context) => `KES ${context.parsed.y.toLocaleString()}`
                     }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
+                    grid: { color: 'rgba(226, 232, 240, 0.5)' },
                     ticks: {
-                        callback: (value) => `KES ${(value/1000000).toFixed(1)}M`
+                        callback: (value) => value >= 1000000 ? 
+                            `KES ${(value/1000000).toFixed(1)}M` : 
+                            `KES ${value.toLocaleString()}`
+                    }
+                },
+                x: {
+                    grid: { color: 'rgba(226, 232, 240, 0.5)' }
+                }
+            }
+        }
+    });
+
+    // Category Expenditure Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ category_chart.labels|safe }},
+            datasets: [{
+                data: {{ category_chart.values|safe }},
+                backgroundColor: [
+                    colors.primary,
+                    colors.success,
+                    colors.warning,
+                    colors.danger,
+                    colors.purple,
+                    colors.teal,
+                    colors.indigo,
+                    colors.purpleLight
+                ],
+                borderWidth: 1,
+                borderColor: '#FFFFFF'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: { 
+                    position: 'right',
+                    labels: { 
+                        padding: 15,
+                        usePointStyle: true,
+                        font: { size: 11 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `KES ${context.parsed.toLocaleString()}`
                     }
                 }
             }
         }
+    });
+
+    // Department Expenditure Chart
+    const deptCtx = document.getElementById('departmentChart').getContext('2d');
+    new Chart(deptCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ dept_chart.labels|safe }},
+            datasets: [
+                {
+                    label: 'Allocated',
+                    data: {{ dept_chart.allocated|safe }},
+                    backgroundColor: colors.primaryLight,
+                    borderColor: colors.primary,
+                    borderWidth: 1,
+                    borderRadius: 4,
+                },
+                {
+                    label: 'Spent',
+                    data: {{ dept_chart.spent|safe }},
+                    backgroundColor: colors.success,
+                    borderRadius: 4,
+                },
+                {
+                    label: 'Committed',
+                    data: {{ dept_chart.committed|safe }},
+                    backgroundColor: colors.warning,
+                    borderRadius: 4,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `KES ${context.parsed.y.toLocaleString()}`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(226, 232, 240, 0.5)' },
+                    ticks: {
+                        callback: (value) => value >= 1000000 ? 
+                            `KES ${(value/1000000).toFixed(1)}M` : 
+                            `KES ${value.toLocaleString()}`
+                    }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // Payment Method Chart
+    const methodCtx = document.getElementById('paymentMethodChart').getContext('2d');
+    new Chart(methodCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ payment_method_chart.labels|safe }},
+            datasets: [{
+                data: {{ payment_method_chart.values|safe }},
+                backgroundColor: [
+                    colors.primary,
+                    colors.success,
+                    colors.warning,
+                    colors.purple,
+                    colors.teal
+                ],
+                borderWidth: 1,
+                borderColor: '#FFFFFF'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    position: 'right',
+                    labels: { 
+                        padding: 12,
+                        usePointStyle: true,
+                        font: { size: 11 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `KES ${context.parsed.toLocaleString()}`
+                    }
+                }
+            }
+        }
+    });
+
+    // Supplier Chart
+    const supplierCtx = document.getElementById('supplierChart').getContext('2d');
+    new Chart(supplierCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ supplier_chart.labels|safe }},
+            datasets: [{
+                label: 'Amount Paid (KES)',
+                data: {{ supplier_chart.values|safe }},
+                backgroundColor: colors.teal,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `KES ${context.parsed.x.toLocaleString()}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(226, 232, 240, 0.5)' },
+                    ticks: {
+                        callback: (value) => value >= 1000000 ? 
+                            `KES ${(value/1000000).toFixed(1)}M` : 
+                            `KES ${value.toLocaleString()}`
+                    }
+                },
+                y: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // Payment Status Chart
+    const statusCtx = document.getElementById('paymentStatusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ payment_status_chart.labels|safe }},
+            datasets: [{
+                data: {{ payment_status_chart.values|safe }},
+                backgroundColor: [
+                    colors.primary,
+                    colors.success,
+                    colors.warning,
+                    colors.danger,
+                    colors.purple
+                ],
+                borderWidth: 1,
+                borderColor: '#FFFFFF'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: { 
+                    position: 'right',
+                    labels: { 
+                        padding: 12,
+                        usePointStyle: true,
+                        font: { size: 11 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `KES ${context.parsed.toLocaleString()}`
+                    }
+                }
+            }
+        }
+    });
+
+    // Export function
+    function exportReport() {
+        // Create a data URL for each chart
+        const charts = {
+            'Monthly Expenditure Trend': document.getElementById('monthlyChart').toDataURL(),
+            'Category Expenditure': document.getElementById('categoryChart').toDataURL(),
+            'Department Expenditure': document.getElementById('departmentChart').toDataURL()
+        };
+        
+        // For now, show an alert with download options
+        alert('Report export feature coming soon!\n\nYou can:\n1. Print this page (Ctrl+P)\n2. Take screenshots of the charts\n3. Contact IT for full report export');
+    }
+
+    // Auto-resize charts on window resize
+    window.addEventListener('resize', function() {
+        Chart.instances.forEach(chart => {
+            chart.resize();
+        });
     });
 </script>
 {% endblock %}

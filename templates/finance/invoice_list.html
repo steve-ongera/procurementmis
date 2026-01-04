@@ -8,25 +8,417 @@
 <style>
     :root {
         --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
         --border-color: #E2E8F0;
-        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Summary Stats */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .invoice-number {
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .invoice-number:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .date-cell {
+        color: var(--secondary-color);
+    }
+
+    .due-date-cell {
+        font-weight: 500;
+    }
+
+    .due-date-overdue {
+        color: var(--danger-color);
+        font-weight: 600;
     }
 
     .status-badge {
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
         text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
     }
 
-    .status-draft { background: #F1F5F9; color: #64748B; }
-    .status-submitted { background: #FEF3C7; color: #92400E; }
-    .status-verifying { background: #DBEAFE; color: #1E40AF; }
-    .status-matched { background: #E0E7FF; color: #3730A3; }
-    .status-approved { background: #D1FAE5; color: #065F46; }
-    .status-paid { background: #D1FAE5; color: #065F46; }
-    .status-disputed { background: #FEE2E2; color: #991B1B; }
+    .status-badge i {
+        font-size: 0.625rem;
+    }
+
+    .status-draft { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+    .status-submitted { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-verifying { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .status-matched { 
+        background: #E0E7FF; 
+        color: #3730A3; 
+        border-color: #C7D2FE;
+    }
+    .status-approved { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-paid { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-disputed { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .action-btn i {
+        font-size: 1rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -34,21 +426,35 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Invoice Management</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Invoices</span>
+        </div>
     </div>
-    <div style="display: flex; gap: 12px;">
-        <a href="{% url 'finance_dashboard' %}" class="action-btn btn-secondary">
-            <i class="bi bi-graph-up"></i> Dashboard
+    <div class="header-actions">
+        <a href="{% url 'finance_dashboard' %}" class="btn">
+            <i class="bi bi-graph-up"></i>
+            Dashboard
         </a>
     </div>
 </div>
 
 <!-- Filters -->
 <div class="filter-card">
-    <form method="get">
+    <form method="get" action="{% url 'invoice_list' %}">
         <div class="filter-grid">
             <div class="form-group">
-                <label class="form-label">Search</label>
-                <input type="text" name="search" class="form-control" placeholder="Invoice number, supplier..." value="{{ filters.search }}">
+                <label class="form-label">Search Invoices</label>
+                <div style="position: relative;">
+                    <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94A3B8; font-size: 0.875rem;"></i>
+                    <input type="text" name="search" class="form-control" placeholder="Invoice number, supplier..." value="{{ filters.search }}" style="padding-left: 2.25rem;">
+                </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Status</label>
@@ -71,22 +477,27 @@
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label">Date From</label>
-                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Date To</label>
-                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+                <label class="form-label">Date Range</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}" placeholder="From">
+                    <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}" placeholder="To">
+                </div>
             </div>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 12px;">
-            <a href="{% url 'invoice_list' %}" class="action-btn btn-secondary">Clear</a>
-            <button type="submit" class="action-btn">Apply Filters</button>
+        <div class="filter-actions">
+            <a href="{% url 'invoice_list' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Apply Filters
+            </button>
         </div>
     </form>
 </div>
 
-<!-- Summary -->
+<!-- Summary Stats -->
 <div class="summary-grid">
     <div class="summary-card">
         <div class="summary-value">{{ invoices.count|intcomma }}</div>
@@ -104,52 +515,76 @@
 
 <!-- Invoices Table -->
 <div class="table-card">
-    <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color);">
-        <h2 style="font-size: 18px; font-weight: 700;">Invoices ({{ invoices.count }})</h2>
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-receipt"></i>
+            Invoices ({{ invoices.count }})
+        </h2>
     </div>
+
     {% if invoices %}
-    <table>
-        <thead>
-            <tr>
-                <th>Invoice Number</th>
-                <th>Supplier</th>
-                <th>Invoice Date</th>
-                <th>Due Date</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for invoice in invoices %}
-            <tr>
-                <td>
-                    <a href="{% url 'invoice_detail' invoice.id %}" style="font-weight: 700; color: var(--primary-color); text-decoration: none;">
-                        {{ invoice.invoice_number }}
-                    </a>
-                </td>
-                <td>{{ invoice.supplier.name }}</td>
-                <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
-                <td>{{ invoice.due_date|date:"M d, Y" }}</td>
-                <td style="font-weight: 700;">KES {{ invoice.total_amount|floatformat:0|intcomma }}</td>
-                <td>
-                    <span class="status-badge status-{{ invoice.status|lower }}">
-                        {{ invoice.get_status_display }}
-                    </span>
-                </td>
-                <td>
-                    <a href="{% url 'invoice_detail' invoice.id %}" style="color: var(--primary-color);">
-                        <i class="bi bi-eye"></i>
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Invoice Number</th>
+                    <th>Supplier</th>
+                    <th>Invoice Date</th>
+                    <th>Due Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td>
+                        <a href="{% url 'invoice_detail' invoice.id %}" class="invoice-number">
+                            {{ invoice.invoice_number }}
+                            <i class="bi bi-arrow-up-right" style="font-size: 0.75rem; margin-left: 0.25rem;"></i>
+                        </a>
+                    </td>
+                    <td>{{ invoice.supplier.name }}</td>
+                    <td class="date-cell">{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                    <td class="{% if invoice.is_overdue %}due-date-overdue{% else %}due-date-cell{% endif %}">
+                        {{ invoice.due_date|date:"M d, Y" }}
+                        {% if invoice.is_overdue %}
+                        <i class="bi bi-exclamation-circle" style="margin-left: 0.25rem;"></i>
+                        {% endif %}
+                    </td>
+                    <td class="amount-cell">KES {{ invoice.total_amount|floatformat:0|intcomma }}</td>
+                    <td>
+                        <span class="status-badge status-{{ invoice.status|lower }}">
+                            {% if invoice.status == 'DRAFT' %}<i class="bi bi-pencil"></i>{% endif %}
+                            {% if invoice.status == 'SUBMITTED' %}<i class="bi bi-upload"></i>{% endif %}
+                            {% if invoice.status == 'VERIFYING' %}<i class="bi bi-search"></i>{% endif %}
+                            {% if invoice.status == 'MATCHED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                            {% if invoice.status == 'APPROVED' %}<i class="bi bi-check2-circle"></i>{% endif %}
+                            {% if invoice.status == 'PAID' %}<i class="bi bi-cash-stack"></i>{% endif %}
+                            {% if invoice.status == 'DISPUTED' %}<i class="bi bi-exclamation-triangle"></i>{% endif %}
+                            {{ invoice.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'invoice_detail' invoice.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if user.role in 'FINANCE,ADMIN' and invoice.status in 'SUBMITTED,VERIFYING' %}
+                        <a href="{% url 'invoice_verify' invoice.id %}" class="action-btn" title="Verify Invoice">
+                            <i class="bi bi-check-circle"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-    <div style="text-align: center; padding: 60px; color: #94A3B8;">
-        <i class="bi bi-inbox" style="font-size: 48px;"></i>
-        <p>No invoices found</p>
+    <div class="empty-state">
+        <i class="bi bi-receipt"></i>
+        <p>No invoices found matching your criteria</p>
     </div>
     {% endif %}
 </div>

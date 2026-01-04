@@ -4234,62 +4234,200 @@ def financial_reports(request):
     return render(request, 'finance/reports.html', context)
 
 
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Count, Avg, Q, F, ExpressionWrapper, DurationField
+from django.db.models.functions import TruncMonth
+from django.utils import timezone
+from datetime import timedelta
+from decimal import Decimal
+
 @login_required
 def expenditure_report(request):
-    """Detailed expenditure analysis"""
-    
+    """Detailed expenditure analysis with dynamic charts"""
+
     current_year = BudgetYear.objects.filter(is_active=True).first()
-    
-    # Department expenditure
+
+    # Date range filters
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    if start_date:
+        start_date = timezone.datetime.strptime(start_date, '%Y-%m-%d').date()
+    else:
+        start_date = timezone.now().replace(month=1, day=1).date()
+
+    if end_date:
+        end_date = timezone.datetime.strptime(end_date, '%Y-%m-%d').date()
+    else:
+        end_date = timezone.now().date()
+
+    # =========================
+    # Department Expenditure
+    # =========================
     dept_expenditure = Budget.objects.filter(
         budget_year=current_year
-    ).values(
-        'department__name'
-    ).annotate(
+    ).values('department__name').annotate(
         allocated=Sum('allocated_amount'),
         spent=Sum('actual_spent'),
         committed=Sum('committed_amount')
-    ).order_by('-spent')
-    
-    # Category expenditure
+    ).order_by('-spent')[:10]
+
+    # =========================
+    # Category Expenditure
+    # =========================
     category_expenditure = Budget.objects.filter(
         budget_year=current_year
-    ).values(
-        'category__name', 'category__code'
-    ).annotate(
+    ).values('category__name').annotate(
         allocated=Sum('allocated_amount'),
         spent=Sum('actual_spent')
-    ).order_by('-spent')
-    
-    # Monthly trend
-    today = timezone.now().date()
-    monthly_data = []
-    
-    for i in range(11, -1, -1):
-        month_date = today - timedelta(days=30*i)
-        month_start = month_date.replace(day=1)
-        if i > 0:
-            next_month = month_date.replace(day=28) + timedelta(days=4)
-            month_end = next_month.replace(day=1) - timedelta(days=1)
-        else:
-            month_end = today
-        
-        month_spend = Payment.objects.filter(
-            payment_date__gte=month_start,
-            payment_date__lte=month_end,
-            status='COMPLETED'
-        ).aggregate(total=Sum('payment_amount'))['total'] or 0
-        
-        monthly_data.append({
-            'month': month_start.strftime('%b %Y'),
-            'amount': month_spend
-        })
-    
+    ).order_by('-spent')[:8]
+
+    # =========================
+    # Monthly Expenditure Trend
+    # =========================
+    monthly_payments = Payment.objects.filter(
+        payment_date__gte=start_date,
+        payment_date__lte=end_date,
+        status='COMPLETED'
+    ).annotate(
+        month=TruncMonth('payment_date')
+    ).values('month').annotate(
+        total=Sum('payment_amount'),
+        count=Count('id')
+    ).order_by('month')
+
+    # =========================
+    # Payment Methods
+    # =========================
+    payment_methods = Payment.objects.filter(
+        payment_date__gte=start_date,
+        payment_date__lte=end_date,
+        status='COMPLETED'
+    ).values('payment_method').annotate(
+        total=Sum('payment_amount'),
+        count=Count('id')
+    ).order_by('-total')
+
+    # =========================
+    # Top Suppliers
+    # =========================
+    top_suppliers = Payment.objects.filter(
+        payment_date__gte=start_date,
+        payment_date__lte=end_date,
+        status='COMPLETED'
+    ).values('invoice__supplier__name').annotate(
+        total=Sum('payment_amount'),
+        count=Count('id')
+    ).order_by('-total')[:10]
+
+    # =========================
+    # Budget Utilization
+    # =========================
+    budget_utilization = Budget.objects.filter(
+        budget_year=current_year
+    ).aggregate(
+        total_allocated=Sum('allocated_amount'),
+        total_spent=Sum('actual_spent'),
+        total_committed=Sum('committed_amount')
+    )
+
+    utilization_rate = (
+        (budget_utilization['total_spent'] / budget_utilization['total_allocated']) * 100
+        if budget_utilization['total_allocated'] else 0
+    )
+
+    # =========================
+    # Invoice Aging (FIXED)
+    # =========================
+    invoice_aging = Invoice.objects.filter(
+        status__in=['SUBMITTED', 'VERIFYING', 'MATCHED', 'APPROVED']
+    ).annotate(
+        age=ExpressionWrapper(
+            timezone.now().date() - F('created_at'),
+            output_field=DurationField()
+        )
+    ).values('status').annotate(
+        total_amount=Sum('total_amount'),
+        count=Count('id'),
+        avg_age=Avg('age')
+    )
+
+    # =========================
+    # Payment Status Summary
+    # =========================
+    payment_status = Payment.objects.filter(
+        payment_date__gte=start_date,
+        payment_date__lte=end_date
+    ).values('status').annotate(
+        total=Sum('payment_amount'),
+        count=Count('id')
+    )
+
+    # =========================
+    # Recent Payments
+    # =========================
+    recent_payments = Payment.objects.filter(
+        status='COMPLETED'
+    ).select_related(
+        'invoice', 'invoice__supplier'
+    ).order_by('-payment_date')[:10]
+
+    # =========================
+    # Context
+    # =========================
     context = {
         'current_year': current_year,
-        'dept_expenditure': dept_expenditure,
+        'start_date': start_date,
+        'end_date': end_date,
+
+        'monthly_chart': {
+            'labels': [m['month'].strftime('%b %Y') for m in monthly_payments],
+            'values': [float(m['total']) for m in monthly_payments],
+            'counts': [m['count'] for m in monthly_payments],
+        },
+
+        'category_chart': {
+            'labels': [c['category__name'] for c in category_expenditure],
+            'values': [float(c['spent']) for c in category_expenditure],
+            'allocated': [float(c['allocated']) for c in category_expenditure],
+        },
+
+        'dept_chart': {
+            'labels': [d['department__name'] for d in dept_expenditure],
+            'allocated': [float(d['allocated']) for d in dept_expenditure],
+            'spent': [float(d['spent']) for d in dept_expenditure],
+            'committed': [float(d['committed']) for d in dept_expenditure],
+        },
+
+        'payment_method_chart': {
+            'labels': [p['payment_method'] for p in payment_methods],
+            'values': [float(p['total']) for p in payment_methods],
+            'counts': [p['count'] for p in payment_methods],
+        },
+
+        'supplier_chart': {
+            'labels': [s['invoice__supplier__name'] for s in top_suppliers],
+            'values': [float(s['total']) for s in top_suppliers],
+            'counts': [s['count'] for s in top_suppliers],
+        },
+
+        'payment_status_chart': {
+            'labels': [p['status'] for p in payment_status],
+            'values': [float(p['total']) for p in payment_status],
+            'counts': [p['count'] for p in payment_status],
+        },
+
+        'stats': {
+            'total_allocated': budget_utilization['total_allocated'] or 0,
+            'total_spent': budget_utilization['total_spent'] or 0,
+            'total_committed': budget_utilization['total_committed'] or 0,
+            'utilization_rate': round(utilization_rate, 2),
+        },
+
+        'recent_payments': recent_payments,
+        'invoice_aging': invoice_aging,
         'category_expenditure': category_expenditure,
-        'monthly_data': monthly_data,
+        'dept_expenditure': dept_expenditure,
     }
-    
+
     return render(request, 'finance/expenditure_report.html', context)
