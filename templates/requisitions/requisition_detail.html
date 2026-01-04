@@ -1,0 +1,604 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ requisition.requisition_number }} - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --secondary-color: #475569;
+        --success-color: #059669;
+        --warning-color: #D97706;
+        --danger-color: #DC2626;
+        --border-color: #E2E8F0;
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--secondary-color);
+        margin-bottom: 24px;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb i {
+        font-size: 12px;
+        color: #94A3B8;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .page-title-section h1 {
+        font-size: 28px;
+        font-weight: 800;
+        color: #1E293B;
+        margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+        font-size: 14px;
+        color: var(--secondary-color);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-primary { background: var(--primary-color); color: white; }
+    .btn-success { background: var(--success-color); color: white; }
+    .btn-warning { background: var(--warning-color); color: white; }
+    .btn-danger { background: var(--danger-color); color: white; }
+    .btn-secondary { background: #E2E8F0; color: var(--secondary-color); }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .status-banner {
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-weight: 600;
+    }
+
+    .status-draft { background: #F1F5F9; color: #64748B; }
+    .status-submitted { background: #DBEAFE; color: #1E40AF; }
+    .status-approved { background: #D1FAE5; color: #047857; }
+    .status-rejected { background: #FEE2E2; color: #B91C1C; }
+
+    .status-banner i {
+        font-size: 32px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .card-header {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .info-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .info-value {
+        font-size: 15px;
+        color: #1E293B;
+        font-weight: 500;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-urgent { background: #FEE2E2; color: #991B1B; }
+    .badge-high { background: #FED7AA; color: #9A3412; }
+    .badge-medium { background: #FEF3C7; color: #92400E; }
+    .badge-low { background: #F1F5F9; color: #64748B; }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: #F8FAFC;
+    }
+
+    th {
+        padding: 12px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    td {
+        padding: 12px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 14px;
+    }
+
+    .total-row {
+        background: var(--primary-light);
+        font-weight: 700;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--border-color);
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 24px;
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -26px;
+        top: 4px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid var(--primary-color);
+    }
+
+    .timeline-item.approved::before {
+        border-color: var(--success-color);
+        background: var(--success-color);
+    }
+
+    .timeline-item.rejected::before {
+        border-color: var(--danger-color);
+        background: var(--danger-color);
+    }
+
+    .timeline-content {
+        background: #F8FAFC;
+        padding: 16px;
+        border-radius: 8px;
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .timeline-title {
+        font-weight: 700;
+        color: #1E293B;
+    }
+
+    .timeline-date {
+        font-size: 12px;
+        color: var(--secondary-color);
+    }
+
+    .attachment-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+    }
+
+    .attachment-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: #F8FAFC;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        transition: all 0.2s;
+    }
+
+    .attachment-item:hover {
+        background: var(--primary-light);
+        border-color: var(--primary-color);
+    }
+
+    .attachment-icon {
+        font-size: 24px;
+        color: var(--primary-color);
+    }
+
+    .attachment-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .attachment-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1E293B;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .attachment-meta {
+        font-size: 11px;
+        color: var(--secondary-color);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--secondary-color);
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        color: #CBD5E1;
+        margin-bottom: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-section">
+        <h1>{{ requisition.requisition_number }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'requisition_list' %}">Requisitions</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ requisition.requisition_number }}</span>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        {% if can_edit %}
+        <a href="{% url 'requisition_update' requisition.id %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i>
+            Edit
+        </a>
+        {% endif %}
+        
+        {% if can_submit %}
+        <a href="{% url 'requisition_submit' requisition.id %}" class="btn btn-success">
+            <i class="bi bi-send"></i>
+            Submit
+        </a>
+        {% endif %}
+        
+        {% if can_edit %}
+        <a href="{% url 'requisition_delete' requisition.id %}" class="btn btn-danger">
+            <i class="bi bi-trash"></i>
+            Delete
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Status Banner -->
+{% if requisition.status == 'DRAFT' %}
+<div class="status-banner status-draft">
+    <i class="bi bi-pencil-square"></i>
+    <div>
+        <div>Draft Requisition</div>
+        <div style="font-weight: normal; font-size: 13px;">This requisition has not been submitted yet</div>
+    </div>
+</div>
+{% elif requisition.status == 'SUBMITTED' %}
+<div class="status-banner status-submitted">
+    <i class="bi bi-clock-history"></i>
+    <div>
+        <div>Pending Approval</div>
+        <div style="font-weight: normal; font-size: 13px;">Submitted on {{ requisition.submitted_at|date:"M d, Y" }}</div>
+    </div>
+</div>
+{% elif requisition.status == 'APPROVED' %}
+<div class="status-banner status-approved">
+    <i class="bi bi-check-circle"></i>
+    <div>
+        <div>Fully Approved</div>
+        <div style="font-weight: normal; font-size: 13px;">Ready for procurement processing</div>
+    </div>
+</div>
+{% elif requisition.status == 'REJECTED' %}
+<div class="status-banner status-rejected">
+    <i class="bi bi-x-circle"></i>
+    <div>
+        <div>Rejected</div>
+        <div style="font-weight: normal; font-size: 13px;">{{ requisition.rejection_reason }}</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Basic Information -->
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-info-circle"></i>
+        Basic Information
+    </div>
+    
+    <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label">Title</div>
+            <div class="info-value">{{ requisition.title }}</div>
+        </div>
+        
+        <div class="info-item">
+            <div class="info-label">Department</div>
+            <div class="info-value">{{ requisition.department.name }}</div>
+        </div>
+        
+        <div class="info-item">
+            <div class="info-label">Requested By</div>
+            <div class="info-value">{{ requisition.requested_by.get_full_name }}</div>
+        </div>
+        
+        <div class="info-item">
+            <div class="info-label">Required Date</div>
+            <div class="info-value">{{ requisition.required_date|date:"M d, Y" }}</div>
+        </div>
+        
+        <div class="info-item">
+            <div class="info-label">Priority</div>
+            <div class="info-value">
+                {% if requisition.priority == 'URGENT' %}
+                <span class="badge badge-urgent">Urgent</span>
+                {% elif requisition.priority == 'HIGH' %}
+                <span class="badge badge-high">High</span>
+                {% elif requisition.priority == 'MEDIUM' %}
+                <span class="badge badge-medium">Medium</span>
+                {% else %}
+                <span class="badge badge-low">Low</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="info-item">
+            <div class="info-label">Estimated Amount</div>
+            <div class="info-value" style="color: var(--primary-color); font-weight: 700; font-size: 18px;">
+                KES {{ requisition.estimated_amount|floatformat:2|intcomma }}
+            </div>
+        </div>
+        
+        {% if requisition.budget %}
+        <div class="info-item">
+            <div class="info-label">Budget Line</div>
+            <div class="info-value">{{ requisition.budget.category.name }}</div>
+        </div>
+        {% endif %}
+        
+        <div class="info-item">
+            <div class="info-label">Created Date</div>
+            <div class="info-value">{{ requisition.created_at|date:"M d, Y H:i" }}</div>
+        </div>
+        
+        {% if requisition.is_emergency %}
+        <div class="info-item" style="grid-column: 1 / -1;">
+            <div class="info-label">Emergency Status</div>
+            <div class="info-value">
+                <span class="badge badge-urgent"><i class="bi bi-exclamation-triangle"></i> Emergency Requisition</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="info-item" style="grid-column: 1 / -1;">
+            <div class="info-label">Justification</div>
+            <div class="info-value">{{ requisition.justification }}</div>
+        </div>
+        
+        {% if requisition.is_emergency and requisition.emergency_justification %}
+        <div class="info-item" style="grid-column: 1 / -1;">
+            <div class="info-label">Emergency Justification</div>
+            <div class="info-value">{{ requisition.emergency_justification }}</div>
+        </div>
+        {% endif %}
+        
+        {% if requisition.notes %}
+        <div class="info-item" style="grid-column: 1 / -1;">
+            <div class="info-label">Additional Notes</div>
+            <div class="info-value">{{ requisition.notes }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Requisition Items -->
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-list-ul"></i>
+        Requisition Items
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Description</th>
+                    <th>Specifications</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in requisition.items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.item_description }}</td>
+                    <td>{{ item.specifications|truncatewords:10 }}</td>
+                    <td>{{ item.quantity }} {{ item.unit_of_measure }}</td>
+                    <td>KES {{ item.estimated_unit_price|floatformat:2|intcomma }}</td>
+                    <td><strong>KES {{ item.estimated_total|floatformat:2|intcomma }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="5" style="text-align: right;"><strong>Total:</strong></td>
+                    <td><strong>KES {{ items_total|floatformat:2|intcomma }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- Approval Workflow -->
+{% if approvals %}
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-diagram-3"></i>
+        Approval Workflow
+    </div>
+    
+    <div class="timeline">
+        {% for approval in approvals %}
+        <div class="timeline-item {% if approval.status == 'APPROVED' %}approved{% elif approval.status == 'REJECTED' %}rejected{% endif %}">
+            <div class="timeline-content">
+                <div class="timeline-header">
+                    <div class="timeline-title">{{ approval.get_approval_stage_display }}</div>
+                    {% if approval.approval_date %}
+                    <div class="timeline-date">{{ approval.approval_date|date:"M d, Y H:i" }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <strong>Approver:</strong> {{ approval.approver.get_full_name }}<br>
+                    <strong>Status:</strong> 
+                    {% if approval.status == 'APPROVED' %}
+                    <span class="badge" style="background: #D1FAE5; color: #047857;">Approved</span>
+                    {% elif approval.status == 'REJECTED' %}
+                    <span class="badge" style="background: #FEE2E2; color: #B91C1C;">Rejected</span>
+                    {% else %}
+                    <span class="badge" style="background: #FEF3C7; color: #92400E;">Pending</span>
+                    {% endif %}
+                </div>
+                {% if approval.comments %}
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+                    <strong>Comments:</strong> {{ approval.comments }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Attachments -->
+{% if requisition.attachments.all %}
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-paperclip"></i>
+        Attachments
+    </div>
+    
+    <div class="attachment-grid">
+        {% for attachment in requisition.attachments.all %}
+        <a href="{{ attachment.file.url }}" target="_blank" class="attachment-item" style="text-decoration: none;">
+            <div class="attachment-icon">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div class="attachment-info">
+                <div class="attachment-name">{{ attachment.file_name }}</div>
+                <div class="attachment-meta">{{ attachment.get_attachment_type_display }}</div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

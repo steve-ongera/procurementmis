@@ -1,0 +1,572 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Create Requisition - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --secondary-color: #475569;
+        --success-color: #059669;
+        --warning-color: #D97706;
+        --danger-color: #DC2626;
+        --border-color: #E2E8F0;
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--secondary-color);
+        margin-bottom: 24px;
+        padding: 12px 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb i {
+        font-size: 12px;
+        color: #94A3B8;
+    }
+
+    .page-title {
+        font-size: 28px;
+        font-weight: 800;
+        color: #1E293B;
+        margin-bottom: 8px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .card-header {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .form-group label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+
+    .required::after {
+        content: " *";
+        color: var(--danger-color);
+    }
+
+    .form-control, select, textarea {
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 0;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .items-section {
+        background: #F8FAFC;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 24px 0;
+    }
+
+    .items-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .items-header h3 {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1E293B;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #1D4ED8;
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #047857;
+    }
+
+    .btn-secondary {
+        background: #E2E8F0;
+        color: var(--secondary-color);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #B91C1C;
+    }
+
+    .item-row {
+        background: white;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        border: 1px solid var(--border-color);
+    }
+
+    .item-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr 80px;
+        gap: 12px;
+        align-items: end;
+    }
+
+    @media (max-width: 1024px) {
+        .item-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        padding-top: 24px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .alert-info {
+        background: #DBEAFE;
+        color: #1E40AF;
+        border: 1px solid #93C5FD;
+    }
+
+    .file-upload {
+        border: 2px dashed var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .file-upload:hover {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+    }
+
+    .file-upload input {
+        display: none;
+    }
+
+    .file-list {
+        margin-top: 12px;
+    }
+
+    .file-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: white;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .total-section {
+        background: var(--primary-light);
+        padding: 16px;
+        border-radius: 8px;
+        margin-top: 16px;
+        text-align: right;
+    }
+
+    .total-section .total-label {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+
+    .total-section .total-amount {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div>
+    <h1 class="page-title">Create New Requisition</h1>
+    <div class="breadcrumb">
+        <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+        <i class="bi bi-chevron-right"></i>
+        <a href="{% url 'requisition_list' %}">Requisitions</a>
+        <i class="bi bi-chevron-right"></i>
+        <span>Create New</span>
+    </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="requisitionForm">
+    {% csrf_token %}
+    
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-info-circle"></i>
+            Basic Information
+        </div>
+        
+        <div class="form-grid">
+            <div class="form-group full-width">
+                <label class="required">Requisition Title</label>
+                <input type="text" name="title" class="form-control" required placeholder="e.g., Laboratory Equipment Purchase">
+            </div>
+            
+            <div class="form-group">
+                <label class="required">Department</label>
+                <select name="department" class="form-control" required id="departmentSelect">
+                    <option value="">Select Department</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Budget Line</label>
+                <select name="budget" class="form-control" id="budgetSelect">
+                    <option value="">Select Budget (Optional)</option>
+                    {% for budget in budgets %}
+                    <option value="{{ budget.id }}">
+                        {{ budget.category.name }} - KES {{ budget.available_balance|floatformat:0|intcomma }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="required">Required Date</label>
+                <input type="date" name="required_date" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="required">Priority</label>
+                <select name="priority" class="form-control" required>
+                    {% for value, label in priority_choices %}
+                    <option value="{{ value }}" {% if value == 'MEDIUM' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group full-width">
+                <label class="required">Justification</label>
+                <textarea name="justification" class="form-control" required placeholder="Provide detailed justification for this requisition..."></textarea>
+            </div>
+            
+            <div class="form-group full-width">
+                <div class="checkbox-group">
+                    <input type="checkbox" name="is_emergency" id="emergencyCheck">
+                    <label for="emergencyCheck" style="font-weight: normal; cursor: pointer;">
+                        This is an emergency requisition
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group full-width" id="emergencyJustification" style="display: none;">
+                <label class="required">Emergency Justification</label>
+                <textarea name="emergency_justification" class="form-control" placeholder="Explain why this is an emergency..."></textarea>
+            </div>
+            
+            <div class="form-group full-width">
+                <label>Additional Notes</label>
+                <textarea name="notes" class="form-control" placeholder="Any additional information..."></textarea>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Items Section -->
+    <div class="card">
+        <div class="items-section">
+            <div class="items-header">
+                <h3><i class="bi bi-list-ul"></i> Requisition Items</h3>
+                <button type="button" class="btn btn-sm btn-primary" onclick="addItem()">
+                    <i class="bi bi-plus-circle"></i>
+                    Add Item
+                </button>
+            </div>
+            
+            <div id="itemsContainer"></div>
+            
+            <div class="total-section">
+                <div class="total-label">Estimated Total:</div>
+                <div class="total-amount">KES <span id="totalAmount">0.00</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Attachments -->
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-paperclip"></i>
+            Attachments (Optional)
+        </div>
+        
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <span>You can attach quotations, specifications, or other supporting documents</span>
+        </div>
+        
+        <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+            <i class="bi bi-cloud-upload" style="font-size: 32px; color: var(--primary-color);"></i>
+            <p>Click to upload files or drag and drop</p>
+            <input type="file" id="fileInput" multiple>
+        </div>
+        
+        <div class="file-list" id="fileList"></div>
+    </div>
+    
+    <!-- Hidden field for items JSON -->
+    <input type="hidden" name="items_json" id="itemsJson">
+    <input type="hidden" name="estimated_amount" id="estimatedAmount">
+    
+    <!-- Form Actions -->
+    <div class="card">
+        <div class="form-actions">
+            <a href="{% url 'requisition_list' %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i>
+                Cancel
+            </a>
+            <button type="submit" name="action" value="save" class="btn btn-primary">
+                <i class="bi bi-save"></i>
+                Save as Draft
+            </button>
+            <button type="submit" name="action" value="submit" class="btn btn-success">
+                <i class="bi bi-send"></i>
+                Save & Submit
+            </button>
+        </div>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let itemCounter = 0;
+let items = [];
+
+// Emergency checkbox handler
+document.getElementById('emergencyCheck').addEventListener('change', function() {
+    document.getElementById('emergencyJustification').style.display = this.checked ? 'block' : 'none';
+});
+
+// Add item function
+function addItem() {
+    itemCounter++;
+    const itemHtml = `
+        <div class="item-row" id="item-${itemCounter}">
+            <div class="item-grid">
+                <div class="form-group">
+                    <label>Item Description *</label>
+                    <input type="text" class="form-control" data-field="description" required>
+                </div>
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input type="number" step="0.01" class="form-control" data-field="quantity" required onchange="calculateTotal()">
+                </div>
+                <div class="form-group">
+                    <label>Unit *</label>
+                    <input type="text" class="form-control" data-field="unit" placeholder="e.g., pcs" required>
+                </div>
+                <div class="form-group">
+                    <label>Unit Price (KES) *</label>
+                    <input type="number" step="0.01" class="form-control" data-field="unit_price" required onchange="calculateTotal()">
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(${itemCounter})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top: 12px;">
+                <label>Specifications</label>
+                <textarea class="form-control" data-field="specifications" style="min-height: 60px;" placeholder="Technical specifications, quality requirements..."></textarea>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('itemsContainer').insertAdjacentHTML('beforeend', itemHtml);
+}
+
+// Remove item function
+function removeItem(id) {
+    document.getElementById(`item-${id}`).remove();
+    calculateTotal();
+}
+
+// Calculate total
+function calculateTotal() {
+    let total = 0;
+    const itemRows = document.querySelectorAll('.item-row');
+    
+    itemRows.forEach(row => {
+        const quantity = parseFloat(row.querySelector('[data-field="quantity"]').value) || 0;
+        const unitPrice = parseFloat(row.querySelector('[data-field="unit_price"]').value) || 0;
+        total += quantity * unitPrice;
+    });
+    
+    document.getElementById('totalAmount').textContent = total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    document.getElementById('estimatedAmount').value = total.toFixed(2);
+}
+
+// Collect items data before submit
+document.getElementById('requisitionForm').addEventListener('submit', function(e) {
+    const itemRows = document.querySelectorAll('.item-row');
+    items = [];
+    
+    itemRows.forEach(row => {
+        const item = {
+            description: row.querySelector('[data-field="description"]').value,
+            quantity: row.querySelector('[data-field="quantity"]').value,
+            unit: row.querySelector('[data-field="unit"]').value,
+            unit_price: row.querySelector('[data-field="unit_price"]').value,
+            specifications: row.querySelector('[data-field="specifications"]').value
+        };
+        items.push(item);
+    });
+    
+    if (items.length === 0) {
+        e.preventDefault();
+        alert('Please add at least one item to the requisition');
+        return false;
+    }
+    
+    document.getElementById('itemsJson').value = JSON.stringify(items);
+});
+
+// File upload handler
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const fileList = document.getElementById('fileList');
+    fileList.innerHTML = '';
+    
+    Array.from(e.target.files).forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.innerHTML = `
+            <span><i class="bi bi-file-earmark"></i> ${file.name} (${(file.size / 1024).toFixed(2)} KB)</span>
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeFile(${index})">
+                <i class="bi bi-x"></i>
+            </button>
+        `;
+        fileList.appendChild(fileItem);
+    });
+});
+
+// Initialize with one item
+addItem();
+</script>
+{% endblock %}

@@ -27,17 +27,17 @@
     <div class="menu-section">
         <div class="menu-title">REQUISITIONS</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'requisition_list'%}" class="menu-item">
             <i class="fas fa-file-alt"></i>
             <span>All Requisitions</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'requisition_create'%}" class="menu-item">
             <i class="fas fa-plus-circle"></i>
             <span>New Requisition</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'pending_requisitions'%}" class="menu-item">
             <i class="fas fa-clock"></i>
             <span>Pending</span>
             <span class="badge">12</span>
