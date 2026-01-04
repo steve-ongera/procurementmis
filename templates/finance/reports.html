@@ -792,7 +792,7 @@
 
         <!-- Supplier Payments Report -->
         <div class="report-card {% if not reports.supplier_payments.data_available %}unavailable{% endif %}"
-             onclick="{% if reports.supplier_payments.data_available %}window.location.href='{% url 'supplier_payments_report' %}'{% endif %}">
+             onclick="{% if reports.supplier_payments.data_available %}window.location.href='#'{% endif %}">
             <div class="report-icon-wrapper">
                 <i class="bi bi-{{ reports.supplier_payments.icon }} report-icon"></i>
             </div>
@@ -817,7 +817,7 @@
             
             {% if reports.supplier_payments.data_available %}
             <div class="report-actions">
-                <a href="{% url 'supplier_payments_report' %}" class="report-btn primary">
+                <a href="#" class="report-btn primary">
                     <i class="bi bi-eye"></i>
                     View Report
                 </a>
@@ -827,7 +827,7 @@
 
         <!-- Invoice Aging Report -->
         <div class="report-card {% if not reports.invoice_aging.data_available %}unavailable{% endif %}"
-             onclick="{% if reports.invoice_aging.data_available %}window.location.href='{% url 'invoice_aging_report' %}'{% endif %}">
+             onclick="{% if reports.invoice_aging.data_available %}window.location.href='#'{% endif %}">
             <div class="report-icon-wrapper">
                 <i class="bi bi-{{ reports.invoice_aging.icon }} report-icon"></i>
             </div>
@@ -852,7 +852,7 @@
             
             {% if reports.invoice_aging.data_available %}
             <div class="report-actions">
-                <a href="{% url 'invoice_aging_report' %}" class="report-btn primary">
+                <a href="#" class="report-btn primary">
                     <i class="bi bi-eye"></i>
                     View Report
                 </a>
@@ -862,7 +862,7 @@
 
         <!-- Cash Flow Report -->
         <div class="report-card {% if not reports.cashflow.data_available %}unavailable{% endif %}"
-             onclick="{% if reports.cashflow.data_available %}window.location.href='{% url 'cashflow_report' %}'{% endif %}">
+             onclick="{% if reports.cashflow.data_available %}window.location.href='#'{% endif %}">
             <div class="report-icon-wrapper">
                 <i class="bi bi-{{ reports.cashflow.icon }} report-icon"></i>
             </div>
@@ -887,7 +887,7 @@
             
             {% if reports.cashflow.data_available %}
             <div class="report-actions">
-                <a href="{% url 'cashflow_report' %}" class="report-btn primary">
+                <a href="#" class="report-btn primary">
                     <i class="bi bi-eye"></i>
                     View Report
                 </a>
@@ -897,7 +897,7 @@
 
         <!-- Audit Trail Report -->
         <div class="report-card {% if not reports.audit_trail.data_available %}unavailable{% endif %}"
-             onclick="{% if reports.audit_trail.data_available %}window.location.href='{% url 'audit_trail_report' %}'{% endif %}">
+             onclick="{% if reports.audit_trail.data_available %}window.location.href='#'{% endif %}">
             <div class="report-icon-wrapper">
                 <i class="bi bi-{{ reports.audit_trail.icon }} report-icon"></i>
             </div>
@@ -922,7 +922,7 @@
             
             {% if reports.audit_trail.data_available %}
             <div class="report-actions">
-                <a href="{% url 'audit_trail_report' %}" class="report-btn primary">
+                <a href="#" class="report-btn primary">
                     <i class="bi bi-eye"></i>
                     View Report
                 </a>
@@ -932,7 +932,7 @@
 
         <!-- Compliance Report -->
         <div class="report-card {% if not reports.compliance.data_available %}unavailable{% endif %}"
-             onclick="{% if reports.compliance.data_available %}window.location.href='{% url 'compliance_report' %}'{% endif %}">
+             onclick="{% if reports.compliance.data_available %}window.location.href='#'{% endif %}">
             <div class="report-icon-wrapper">
                 <i class="bi bi-{{ reports.compliance.icon }} report-icon"></i>
             </div>
@@ -957,7 +957,7 @@
             
             {% if reports.compliance.data_available %}
             <div class="report-actions">
-                <a href="{% url 'compliance_report' %}" class="report-btn primary">
+                <a href="#" class="report-btn primary">
                     <i class="bi bi-eye"></i>
                     View Report
                 </a>
@@ -967,7 +967,7 @@
 
         <!-- Procurement Performance Report -->
         <div class="report-card {% if not reports.performance.data_available %}unavailable{% endif %}"
-             onclick="{% if reports.performance.data_available %}window.location.href='{% url 'performance_report' %}'{% endif %}">
+             onclick="{% if reports.performance.data_available %}window.location.href='#'{% endif %}">
             <div class="report-icon-wrapper">
                 <i class="bi bi-{{ reports.performance.icon }} report-icon"></i>
             </div>
@@ -992,7 +992,7 @@
             
             {% if reports.performance.data_available %}
             <div class="report-actions">
-                <a href="{% url 'performance_report' %}" class="report-btn primary">
+                <a href="#" class="report-btn primary">
                     <i class="bi bi-eye"></i>
                     View Report
                 </a>

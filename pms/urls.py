@@ -85,5 +85,15 @@ urlpatterns = [
     # Financial Reports
     path('finance/reports/', views.financial_reports, name='financial_reports'),
     path('finance/reports/expenditure/', views.expenditure_report, name='expenditure_report'),
+    path('reports/budget-utilization/', views.budget_utilization_report, name='budget_utilization_report'),
+    
+    # Add other report URLs as needed
+    # path('reports/expenditure/', views.expenditure_report, name='expenditure_report'),
+    # path('reports/supplier-payments/', views.supplier_payments_report, name='supplier_payments_report'),
+    # path('reports/invoice-aging/', views.invoice_aging_report, name='invoice_aging_report'),
+    # path('reports/cashflow/', views.cashflow_report, name='cashflow_report'),
+    # path('reports/audit-trail/', views.audit_trail_report, name='audit_trail_report'),
+    # path('reports/compliance/', views.compliance_report, name='compliance_report'),
+    # path('reports/performance/', views.performance_report, name='performance_report'),
     
 ]

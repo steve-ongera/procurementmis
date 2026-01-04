@@ -4930,3 +4930,353 @@ def expenditure_report(request):
     }
 
     return render(request, 'finance/expenditure_report.html', context)
+
+
+"""
+views.py - Add this view to your finance views
+"""
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Count, Avg, Q, F, ExpressionWrapper, DecimalField
+from django.utils import timezone
+from datetime import datetime, timedelta
+from decimal import Decimal
+
+@login_required
+def budget_utilization_report(request):
+    """Budget Utilization Report with detailed breakdown"""
+    
+    # Get filters from request
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    budget_year_id = request.GET.get('budget_year')
+    department_id = request.GET.get('department')
+    
+    # Default to current year
+    current_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    if budget_year_id:
+        selected_year = BudgetYear.objects.filter(id=budget_year_id).first()
+    else:
+        selected_year = current_year
+    
+    # Set date range
+    if start_date:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+    else:
+        start_date = selected_year.start_date if selected_year else timezone.now().date().replace(month=1, day=1)
+    
+    if end_date:
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    else:
+        end_date = selected_year.end_date if selected_year else timezone.now().date()
+    
+    # Base query
+    budget_query = Budget.objects.filter(budget_year=selected_year)
+    
+    # Apply department filter if selected
+    if department_id:
+        budget_query = budget_query.filter(department_id=department_id)
+    
+    # ============================================================================
+    # 1. OVERALL BUDGET SUMMARY
+    # ============================================================================
+    overall_summary = budget_query.aggregate(
+        total_allocated=Sum('allocated_amount'),
+        total_committed=Sum('committed_amount'),
+        total_spent=Sum('actual_spent'),
+        count=Count('id')
+    )
+    
+    # Calculate available balance and utilization
+    total_allocated = overall_summary['total_allocated'] or 0
+    total_committed = overall_summary['total_committed'] or 0
+    total_spent = overall_summary['total_spent'] or 0
+    total_used = total_committed + total_spent
+    available_balance = total_allocated - total_used
+    
+    if total_allocated > 0:
+        utilization_rate = (total_spent / total_allocated) * 100
+        commitment_rate = (total_committed / total_allocated) * 100
+        total_utilization = ((total_committed + total_spent) / total_allocated) * 100
+    else:
+        utilization_rate = 0
+        commitment_rate = 0
+        total_utilization = 0
+    
+    # ============================================================================
+    # 2. BUDGET BY DEPARTMENT
+    # ============================================================================
+    dept_budgets = budget_query.values(
+        'department__id',
+        'department__name',
+        'department__code'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        committed=Sum('committed_amount'),
+        spent=Sum('actual_spent'),
+        available=ExpressionWrapper(
+            Sum('allocated_amount') - Sum('committed_amount') - Sum('actual_spent'),
+            output_field=DecimalField()
+        )
+    ).order_by('-allocated')
+    
+    # Calculate utilization for each department
+    dept_budgets_list = []
+    for dept in dept_budgets:
+        allocated = dept['allocated'] or 0
+        spent = dept['spent'] or 0
+        committed = dept['committed'] or 0
+        available = dept['available'] or 0
+        
+        if allocated > 0:
+            dept_utilization = (spent / allocated) * 100
+            dept_commitment = (committed / allocated) * 100
+        else:
+            dept_utilization = 0
+            dept_commitment = 0
+        
+        dept_budgets_list.append({
+            'id': dept['department__id'],
+            'name': dept['department__name'],
+            'code': dept['department__code'],
+            'allocated': allocated,
+            'committed': committed,
+            'spent': spent,
+            'available': available,
+            'utilization': dept_utilization,
+            'commitment_rate': dept_commitment
+        })
+    
+    # ============================================================================
+    # 3. BUDGET BY CATEGORY
+    # ============================================================================
+    category_budgets = budget_query.values(
+        'category__id',
+        'category__name',
+        'category__code'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        committed=Sum('committed_amount'),
+        spent=Sum('actual_spent'),
+        available=ExpressionWrapper(
+            Sum('allocated_amount') - Sum('committed_amount') - Sum('actual_spent'),
+            output_field=DecimalField()
+        )
+    ).order_by('-allocated')
+    
+    # Calculate utilization for each category
+    category_budgets_list = []
+    for cat in category_budgets:
+        allocated = cat['allocated'] or 0
+        spent = cat['spent'] or 0
+        committed = cat['committed'] or 0
+        available = cat['available'] or 0
+        
+        if allocated > 0:
+            cat_utilization = (spent / allocated) * 100
+            cat_commitment = (committed / allocated) * 100
+        else:
+            cat_utilization = 0
+            cat_commitment = 0
+        
+        category_budgets_list.append({
+            'id': cat['category__id'],
+            'name': cat['category__name'],
+            'code': cat['category__code'],
+            'allocated': allocated,
+            'committed': committed,
+            'spent': spent,
+            'available': available,
+            'utilization': cat_utilization,
+            'commitment_rate': cat_commitment
+        })
+    
+    # ============================================================================
+    # 4. BUDGET BY TYPE
+    # ============================================================================
+    budget_by_type = budget_query.values('budget_type').annotate(
+        allocated=Sum('allocated_amount'),
+        committed=Sum('committed_amount'),
+        spent=Sum('actual_spent'),
+        count=Count('id')
+    ).order_by('-allocated')
+    
+    budget_types_list = []
+    for bt in budget_by_type:
+        allocated = bt['allocated'] or 0
+        spent = bt['spent'] or 0
+        
+        if allocated > 0:
+            type_utilization = (spent / allocated) * 100
+        else:
+            type_utilization = 0
+        
+        budget_types_list.append({
+            'type': bt['budget_type'],
+            'type_display': dict(Budget.BUDGET_TYPE).get(bt['budget_type'], bt['budget_type']),
+            'allocated': allocated,
+            'committed': bt['committed'] or 0,
+            'spent': spent,
+            'count': bt['count'],
+            'utilization': type_utilization
+        })
+    
+    # ============================================================================
+    # 5. OVER/UNDER UTILIZED BUDGETS
+    # ============================================================================
+    # Get individual budgets with utilization
+    all_budgets = budget_query.select_related(
+        'department', 'category', 'budget_year'
+    ).annotate(
+        available=ExpressionWrapper(
+            F('allocated_amount') - F('committed_amount') - F('actual_spent'),
+            output_field=DecimalField()
+        )
+    )
+    
+    over_utilized = []
+    under_utilized = []
+    critical_budgets = []
+    
+    for budget in all_budgets:
+        if budget.allocated_amount > 0:
+            util_rate = (budget.actual_spent / budget.allocated_amount) * 100
+            
+            budget_data = {
+                'id': budget.id,
+                'department': budget.department.name,
+                'category': budget.category.name,
+                'allocated': budget.allocated_amount,
+                'spent': budget.actual_spent,
+                'committed': budget.committed_amount,
+                'available': budget.available_balance,
+                'utilization': util_rate
+            }
+            
+            # Over-utilized (>100%)
+            if util_rate > 100:
+                over_utilized.append(budget_data)
+            
+            # Critical (>90% but <=100%)
+            elif util_rate > 90:
+                critical_budgets.append(budget_data)
+            
+            # Under-utilized (<50%)
+            elif util_rate < 50:
+                under_utilized.append(budget_data)
+    
+    # Sort lists
+    over_utilized.sort(key=lambda x: x['utilization'], reverse=True)
+    under_utilized.sort(key=lambda x: x['utilization'])
+    critical_budgets.sort(key=lambda x: x['utilization'], reverse=True)
+    
+    # ============================================================================
+    # 6. MONTHLY TREND
+    # ============================================================================
+    # Get monthly spending data
+    monthly_data = Payment.objects.filter(
+        payment_date__gte=start_date,
+        payment_date__lte=end_date,
+        status='COMPLETED'
+    ).extra(
+        select={'month': "EXTRACT(month FROM payment_date)", 'year': "EXTRACT(year FROM payment_date)"}
+    ).values('month', 'year').annotate(
+        total=Sum('payment_amount'),
+        count=Count('id')
+    ).order_by('year', 'month')
+    
+    # ============================================================================
+    # 7. BUDGET REALLOCATIONS
+    # ============================================================================
+    reallocations = BudgetReallocation.objects.filter(
+        status='APPROVED',
+        approved_at__gte=start_date,
+        approved_at__lte=end_date
+    ).select_related(
+        'from_budget__department',
+        'from_budget__category',
+        'to_budget__department',
+        'to_budget__category',
+        'requested_by',
+        'approved_by'
+    ).order_by('-approved_at')[:10]
+    
+    # ============================================================================
+    # 8. PREPARE CHART DATA
+    # ============================================================================
+    chart_data = {
+        # Department Budget Chart
+        'dept_budget': {
+            'labels': [d['name'] for d in dept_budgets_list[:10]],
+            'allocated': [float(d['allocated']) for d in dept_budgets_list[:10]],
+            'spent': [float(d['spent']) for d in dept_budgets_list[:10]],
+            'committed': [float(d['committed']) for d in dept_budgets_list[:10]],
+            'available': [float(d['available']) for d in dept_budgets_list[:10]],
+        },
+        
+        # Category Budget Chart
+        'category_budget': {
+            'labels': [c['name'] for c in category_budgets_list[:8]],
+            'allocated': [float(c['allocated']) for c in category_budgets_list[:8]],
+            'spent': [float(c['spent']) for c in category_budgets_list[:8]],
+        },
+        
+        # Budget Type Chart
+        'budget_type': {
+            'labels': [bt['type_display'] for bt in budget_types_list],
+            'values': [float(bt['allocated']) for bt in budget_types_list],
+        },
+        
+        # Utilization Chart
+        'utilization': {
+            'labels': [d['name'] for d in dept_budgets_list[:10]],
+            'values': [float(d['utilization']) for d in dept_budgets_list[:10]],
+        },
+    }
+    
+    # Get all departments and budget years for filters
+    all_departments = Department.objects.filter(is_active=True).order_by('name')
+    budget_years = BudgetYear.objects.all().order_by('-start_date')
+    
+    context = {
+        'current_year': current_year,
+        'selected_year': selected_year,
+        'budget_years': budget_years,
+        'all_departments': all_departments,
+        'selected_department': department_id,
+        'start_date': start_date,
+        'end_date': end_date,
+        
+        # Summary Stats
+        'stats': {
+            'total_allocated': total_allocated,
+            'total_committed': total_committed,
+            'total_spent': total_spent,
+            'available_balance': available_balance,
+            'utilization_rate': round(utilization_rate, 2),
+            'commitment_rate': round(commitment_rate, 2),
+            'total_utilization': round(total_utilization, 2),
+            'budget_count': overall_summary['count'] or 0,
+        },
+        
+        # Detailed Data
+        'dept_budgets': dept_budgets_list,
+        'category_budgets': category_budgets_list,
+        'budget_types': budget_types_list,
+        
+        # Special Categories
+        'over_utilized': over_utilized[:5],
+        'under_utilized': under_utilized[:5],
+        'critical_budgets': critical_budgets[:5],
+        
+        # Other Data
+        'monthly_data': monthly_data,
+        'reallocations': reallocations,
+        
+        # Chart Data
+        'chart_data': chart_data,
+    }
+    
+    return render(request, 'finance/budget_utilization_report.html', context)
+
