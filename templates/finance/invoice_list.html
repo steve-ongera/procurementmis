@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Invoice Management - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --border-color: #E2E8F0;
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .status-draft { background: #F1F5F9; color: #64748B; }
+    .status-submitted { background: #FEF3C7; color: #92400E; }
+    .status-verifying { background: #DBEAFE; color: #1E40AF; }
+    .status-matched { background: #E0E7FF; color: #3730A3; }
+    .status-approved { background: #D1FAE5; color: #065F46; }
+    .status-paid { background: #D1FAE5; color: #065F46; }
+    .status-disputed { background: #FEE2E2; color: #991B1B; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Invoice Management</h1>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <a href="{% url 'finance_dashboard' %}" class="action-btn btn-secondary">
+            <i class="bi bi-graph-up"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Invoice number, supplier..." value="{{ filters.search }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Supplier</label>
+                <select name="supplier" class="form-control">
+                    <option value="">All Suppliers</option>
+                    {% for supplier in suppliers %}
+                    <option value="{{ supplier.id }}" {% if filters.supplier == supplier.id|stringformat:"s" %}selected{% endif %}>
+                        {{ supplier.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+            </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+            <a href="{% url 'invoice_list' %}" class="action-btn btn-secondary">Clear</a>
+            <button type="submit" class="action-btn">Apply Filters</button>
+        </div>
+    </form>
+</div>
+
+<!-- Summary -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ invoices.count|intcomma }}</div>
+        <div class="summary-label">Total Invoices</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ total_value|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Value</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ pending_value|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Pending Value</div>
+    </div>
+</div>
+
+<!-- Invoices Table -->
+<div class="table-card">
+    <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color);">
+        <h2 style="font-size: 18px; font-weight: 700;">Invoices ({{ invoices.count }})</h2>
+    </div>
+    {% if invoices %}
+    <table>
+        <thead>
+            <tr>
+                <th>Invoice Number</th>
+                <th>Supplier</th>
+                <th>Invoice Date</th>
+                <th>Due Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for invoice in invoices %}
+            <tr>
+                <td>
+                    <a href="{% url 'invoice_detail' invoice.id %}" style="font-weight: 700; color: var(--primary-color); text-decoration: none;">
+                        {{ invoice.invoice_number }}
+                    </a>
+                </td>
+                <td>{{ invoice.supplier.name }}</td>
+                <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                <td>{{ invoice.due_date|date:"M d, Y" }}</td>
+                <td style="font-weight: 700;">KES {{ invoice.total_amount|floatformat:0|intcomma }}</td>
+                <td>
+                    <span class="status-badge status-{{ invoice.status|lower }}">
+                        {{ invoice.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    <a href="{% url 'invoice_detail' invoice.id %}" style="color: var(--primary-color);">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 60px; color: #94A3B8;">
+        <i class="bi bi-inbox" style="font-size: 48px;"></i>
+        <p>No invoices found</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

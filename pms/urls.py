@@ -61,4 +61,29 @@ urlpatterns = [
     path('api/requisition/<uuid:req_id>/details/', views.get_requisition_details, name='get_requisition_details'),
     path('api/requisition/<uuid:req_id>/supplier/<uuid:supplier_id>/bids/', views.get_supplier_bids, name='get_supplier_bids'),
     
+     #Finance Dashboard
+    path('finance/dashboard/', views.finance_dashboard, name='finance_dashboard'),
+    
+    # Budget Management
+    path('finance/budgets/', views.budget_list, name='budget_list'),
+    path('finance/budgets/create/', views.budget_create, name='budget_create'),
+    path('finance/budgets/<uuid:budget_id>/', views.budget_detail, name='budget_detail'),
+    path('finance/budgets/<uuid:budget_id>/reallocation/create/', 
+         views.budget_reallocation_create, name='budget_reallocation_create'),
+    
+    # Invoice Management
+    path('finance/invoices/', views.invoice_list, name='invoice_list'),
+    path('finance/invoices/<uuid:invoice_id>/', views.invoice_detail, name='invoice_detail'),
+    path('finance/invoices/<uuid:invoice_id>/verify/', views.invoice_verify, name='invoice_verify'),
+    path('finance/invoices/<uuid:invoice_id>/approve/', views.invoice_approve, name='invoice_approve'),
+    
+    # Payment Management
+    path('finance/payments/', views.payment_list, name='payment_list'),
+    path('finance/payments/create/<uuid:invoice_id>/', views.payment_create, name='payment_create'),
+    path('finance/payments/<uuid:payment_id>/process/', views.payment_process, name='payment_process'),
+    
+    # Financial Reports
+    path('finance/reports/', views.financial_reports, name='financial_reports'),
+    path('finance/reports/expenditure/', views.expenditure_report, name='expenditure_report'),
+    
 ]

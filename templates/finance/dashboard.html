@@ -1,0 +1,706 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Finance Dashboard - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --secondary-color: #475569;
+        --success-color: #059669;
+        --warning-color: #D97706;
+        --danger-color: #DC2626;
+        --border-color: #E2E8F0;
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        --hover-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--secondary-color);
+        margin-bottom: 24px;
+        padding: 12px 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb i {
+        font-size: 12px;
+        color: #94A3B8;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    @media (max-width: 1200px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-color);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        box-shadow: var(--hover-shadow);
+        transform: translateY(-2px);
+        border-color: var(--primary-color);
+    }
+
+    .stat-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .stat-info h3 {
+        font-size: 32px;
+        font-weight: 800;
+        color: #1E293B;
+        margin-bottom: 4px;
+        line-height: 1;
+    }
+
+    .stat-info p {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--secondary-color);
+        letter-spacing: 0.3px;
+        margin: 0;
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        background: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .progress-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .progress-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1E293B;
+    }
+
+    .progress-value {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--primary-color);
+    }
+
+    .progress-bar-container {
+        background: #F1F5F9;
+        border-radius: 8px;
+        height: 24px;
+        overflow: hidden;
+        margin-bottom: 8px;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--success-color), #10B981);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 12px;
+        transition: width 0.3s;
+    }
+
+    .progress-bar.warning {
+        background: linear-gradient(90deg, var(--warning-color), #F59E0B);
+    }
+
+    .progress-bar.danger {
+        background: linear-gradient(90deg, var(--danger-color), #EF4444);
+    }
+
+    .chart-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    @media (max-width: 1024px) {
+        .chart-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1E293B;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .card-title i {
+        color: var(--primary-color);
+        font-size: 20px;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+
+    .chart-container-small {
+        position: relative;
+        height: 250px;
+    }
+
+    .metric-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .action-btn {
+        padding: 8px 16px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .action-btn:hover {
+        background: #1D4ED8;
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: white;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+    }
+
+    .list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+        transition: background 0.2s;
+    }
+
+    .list-item:hover {
+        background: #F8FAFC;
+    }
+
+    .list-item:last-child {
+        border-bottom: none;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .status-pending { background: #FEF3C7; color: #92400E; }
+    .status-approved { background: #D1FAE5; color: #065F46; }
+    .status-processing { background: #DBEAFE; color: #1E40AF; }
+    .status-completed { background: #D1FAE5; color: #065F46; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Finance Dashboard</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Finance</span>
+        </div>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <a href="{% url 'budget_list' %}" class="action-btn btn-secondary">
+            <i class="bi bi-wallet2"></i> Budgets
+        </a>
+        <a href="{% url 'invoice_list' %}" class="action-btn btn-secondary">
+            <i class="bi bi-receipt"></i> Invoices
+        </a>
+        <a href="{% url 'financial_reports' %}" class="action-btn">
+            <i class="bi bi-file-earmark-bar-graph"></i> Reports
+        </a>
+    </div>
+</div>
+
+<!-- Budget Year Info -->
+{% if current_year %}
+<div class="alert" style="background: var(--primary-light); border: 1px solid #93C5FD; color: #1E40AF; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+    <strong>📅 Current Budget Year:</strong> {{ current_year.name }} 
+    ({{ current_year.start_date|date:"M d, Y" }} - {{ current_year.end_date|date:"M d, Y" }})
+</div>
+{% endif %}
+
+<!-- Main Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>KES {{ total_allocated|floatformat:0|intcomma }}</h3>
+                <p>Total Allocated</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-wallet2"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>KES {{ total_spent|floatformat:0|intcomma }}</h3>
+                <p>Total Spent</p>
+            </div>
+            <div class="stat-icon" style="background: #FEE2E2; color: var(--danger-color);">
+                <i class="bi bi-credit-card"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>KES {{ available_budget|floatformat:0|intcomma }}</h3>
+                <p>Available Budget</p>
+            </div>
+            <div class="stat-icon" style="background: #D1FAE5; color: var(--success-color);">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ utilization_rate }}%</h3>
+                <p>Utilization Rate</p>
+            </div>
+            <div class="stat-icon" style="background: #FEF3C7; color: var(--warning-color);">
+                <i class="bi bi-graph-up"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Progress -->
+<div class="progress-card">
+    <div class="progress-header">
+        <span class="progress-title">Budget Utilization</span>
+        <span class="progress-value">{{ utilization_rate }}%</span>
+    </div>
+    <div class="progress-bar-container">
+        <div class="progress-bar {% if utilization_rate > 80 %}danger{% elif utilization_rate > 60 %}warning{% endif %}" 
+             style="width: {{ utilization_rate }}%;">
+            {{ utilization_rate }}%
+        </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px;">
+        <div>
+            <div style="font-size: 12px; color: #64748B;">Allocated</div>
+            <div style="font-size: 16px; font-weight: 700; color: #1E293B;">
+                KES {{ total_allocated|floatformat:0|intcomma }}
+            </div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: #64748B;">Committed</div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--warning-color);">
+                KES {{ total_committed|floatformat:0|intcomma }}
+            </div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: #64748B;">Spent</div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--danger-color);">
+                KES {{ total_spent|floatformat:0|intcomma }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice & Payment Stats -->
+<div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ pending_invoices|intcomma }}</h3>
+                <p>Pending Invoices</p>
+            </div>
+            <div class="stat-icon" style="background: #FEF3C7; color: var(--warning-color);">
+                <i class="bi bi-receipt"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ pending_payments|intcomma }}</h3>
+                <p>Pending Payments</p>
+            </div>
+            <div class="stat-icon" style="background: #DBEAFE; color: #1E40AF;">
+                <i class="bi bi-credit-card-2-front"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="chart-grid">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-graph-up"></i>
+                Monthly Expenditure Trend
+            </h2>
+            <div class="metric-badge">
+                <i class="bi bi-currency-exchange"></i>
+                This Month: KES {{ payments_this_month|floatformat:0|intcomma }}
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="expenditureChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-pie-chart"></i>
+                Budget by Category
+            </h2>
+        </div>
+        <div class="chart-container">
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="chart-grid">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-building"></i>
+                Department Budget Utilization
+            </h2>
+        </div>
+        <div class="chart-container-small">
+            <canvas id="deptChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-receipt-cutoff"></i>
+                Invoice Status
+            </h2>
+        </div>
+        <div class="chart-container-small">
+            <canvas id="invoiceChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Lists Row -->
+<div class="chart-grid">
+    <!-- Recent Invoices -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-receipt"></i>
+                Recent Invoices
+            </h2>
+            <a href="{% url 'invoice_list' %}" class="action-btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                View All
+            </a>
+        </div>
+        <div>
+            {% for invoice in recent_invoices %}
+            <a href="{% url 'invoice_detail' invoice.id %}" style="text-decoration: none; color: inherit;">
+                <div class="list-item">
+                    <div>
+                        <div style="font-weight: 700; color: var(--primary-color); margin-bottom: 4px;">
+                            {{ invoice.invoice_number }}
+                        </div>
+                        <div style="font-size: 14px; color: #64748B;">
+                            {{ invoice.supplier.name }}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 700; margin-bottom: 4px;">
+                            KES {{ invoice.total_amount|floatformat:0|intcomma }}
+                        </div>
+                        <span class="status-badge status-{{ invoice.status|lower }}">
+                            {{ invoice.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </a>
+            {% empty %}
+            <p style="text-align: center; color: #94A3B8; padding: 24px;">No recent invoices</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Recent Payments -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-credit-card"></i>
+                Recent Payments
+            </h2>
+            <a href="{% url 'payment_list' %}" class="action-btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                View All
+            </a>
+        </div>
+        <div>
+            {% for payment in recent_payments %}
+            <div class="list-item">
+                <div>
+                    <div style="font-weight: 700; color: var(--primary-color); margin-bottom: 4px;">
+                        {{ payment.payment_number }}
+                    </div>
+                    <div style="font-size: 14px; color: #64748B;">
+                        {{ payment.invoice.supplier.name }}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-weight: 700; margin-bottom: 4px;">
+                        KES {{ payment.payment_amount|floatformat:0|intcomma }}
+                    </div>
+                    <span class="status-badge status-{{ payment.status|lower }}">
+                        {{ payment.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            {% empty %}
+            <p style="text-align: center; color: #94A3B8; padding: 24px;">No recent payments</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const colors = {
+        primary: '#2563EB',
+        success: '#059669',
+        warning: '#D97706',
+        danger: '#DC2626',
+        purple: '#7C3AED',
+        teal: '#0D9488',
+        orange: '#EA580C',
+        gray: '#94A3B8',
+    };
+
+    // Expenditure Trend Chart
+    new Chart(document.getElementById('expenditureChart'), {
+        type: 'line',
+        data: {
+            labels: {{ expenditure_chart.labels|safe }},
+            datasets: [{
+                label: 'Monthly Expenditure (KES)',
+                data: {{ expenditure_chart.values|safe }},
+                borderColor: colors.primary,
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointBackgroundColor: colors.primary,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `Spent: KES ${context.parsed.y.toLocaleString()}`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: (value) => `${(value/1000000).toFixed(1)}M`
+                    }
+                }
+            }
+        }
+    });
+
+    // Category Budget Chart
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ category_chart.labels|safe }},
+            datasets: [{
+                data: {{ category_chart.values|safe }},
+                backgroundColor: [
+                    colors.primary, colors.success, colors.warning,
+                    colors.danger, colors.purple, colors.teal,
+                    colors.orange, colors.gray
+                ],
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
+
+    // Department Chart
+    new Chart(document.getElementById('deptChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ dept_chart.labels|safe }},
+            datasets: [
+                {
+                    label: 'Allocated',
+                    data: {{ dept_chart.allocated|safe }},
+                    backgroundColor: colors.primary,
+                },
+                {
+                    label: 'Spent',
+                    data: {{ dept_chart.spent|safe }},
+                    backgroundColor: colors.danger,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: (value) => `${(value/1000000).toFixed(1)}M`
+                    }
+                }
+            }
+        }
+    });
+
+    // Invoice Status Chart
+    new Chart(document.getElementById('invoiceChart'), {
+        type: 'pie',
+        data: {
+            labels: {{ invoice_chart.labels|safe }},
+            datasets: [{
+                data: {{ invoice_chart.values|safe }},
+                backgroundColor: [
+                    colors.primary, colors.warning, colors.success,
+                    colors.danger, colors.purple
+                ],
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
+</script>
+{% endblock %}

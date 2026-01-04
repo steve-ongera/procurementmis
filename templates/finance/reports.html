@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Financial Reports - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --success-color: #059669;
+        --warning-color: #D97706;
+        --border-color: #E2E8F0;
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        --hover-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .report-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 24px;
+        margin-top: 24px;
+    }
+
+    .report-card {
+        background: white;
+        border-radius: 12px;
+        padding: 32px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .report-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--hover-shadow);
+        border-color: var(--primary-color);
+    }
+
+    .report-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        margin-bottom: 20px;
+    }
+
+    .report-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #1E293B;
+        margin-bottom: 12px;
+    }
+
+    .report-description {
+        font-size: 14px;
+        color: #64748B;
+        line-height: 1.6;
+    }
+
+    .report-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .meta-label {
+        font-size: 12px;
+        color: #94A3B8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .meta-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    .quick-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 800;
+        color: #1E293B;
+        margin-bottom: 8px;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #64748B;
+    }
+
+    .period-selector {
+        background: white;
+        border-radius: 12px;
+        padding: 20px 24px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .period-label {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1E293B;
+    }
+
+    .period-value {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Financial Reports</h1>
+        <p style="color: #64748B; margin-top: 8px;">
+            Comprehensive financial analysis and reporting tools
+        </p>
+    </div>
+    <a href="{% url 'finance_dashboard' %}" class="action-btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<!-- Current Period -->
+{% if current_year %}
+<div class="period-selector">
+    <div>
+        <div class="period-label">Reporting Period</div>
+        <div style="font-size: 13px; color: #64748B; margin-top: 4px;">
+            {{ current_year.start_date|date:"M d, Y" }} - {{ current_year.end_date|date:"M d, Y" }}
+        </div>
+    </div>
+    <div class="period-value">{{ current_year.name }}</div>
+</div>
+{% endif %}
+
+<!-- Quick Stats -->
+<div class="quick-stats">
+    <div class="stat-card">
+        <div class="stat-value">5</div>
+        <div class="stat-label">Available Reports</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">Real-time</div>
+        <div class="stat-label">Data Updates</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">Multiple</div>
+        <div class="stat-label">Export Formats</div>
+    </div>
+</div>
+
+<!-- Reports Grid -->
+<div class="report-grid">
+    <!-- Budget Utilization Report -->
+    <a href="{% url 'expenditure_report' %}" class="report-card">
+        <div class="report-icon">
+            <i class="bi bi-pie-chart"></i>
+        </div>
+        <h3 class="report-title">Budget Utilization Report</h3>
+        <p class="report-description">
+            Comprehensive analysis of budget allocation, commitment, and spending across all departments and categories with utilization trends.
+        </p>
+        <div class="report-meta">
+            <span class="meta-label">Type</span>
+            <span class="meta-value">Financial Analysis</span>
+        </div>
+    </a>
+
+    <!-- Expenditure Analysis -->
+    <a href="{% url 'expenditure_report' %}" class="report-card">
+        <div class="report-icon" style="background: #D1FAE5; color: var(--success-color);">
+            <i class="bi bi-graph-up"></i>
+        </div>
+        <h3 class="report-title">Expenditure Analysis</h3>
+        <p class="report-description">
+            Detailed breakdown of expenditure by department, category, and time period. Includes variance analysis and spending trends.
+        </p>
+        <div class="report-meta">
+            <span class="meta-label">Type</span>
+            <span class="meta-value">Spending Analysis</span>
+        </div>
+    </a>
+
+    <!-- Supplier Payment Report -->
+    <div class="report-card" onclick="alert('This report is under development')">
+        <div class="report-icon" style="background: #FEF3C7; color: var(--warning-color);">
+            <i class="bi bi-people"></i>
+        </div>
+        <h3 class="report-title">Supplier Payment Report</h3>
+        <p class="report-description">
+            Summary of all payments made to suppliers including payment methods, timelines, and outstanding amounts by supplier.
+        </p>
+        <div class="report-meta">
+            <span class="meta-label">Type</span>
+            <span class="meta-value">Payment Analysis</span>
+        </div>
+    </div>
+
+    <!-- Invoice Aging Report -->
+    <div class="report-card" onclick="alert('This report is under development')">
+        <div class="report-icon" style="background: #FEE2E2; color: #DC2626;">
+            <i class="bi bi-clock-history"></i>
+        </div>
+        <h3 class="report-title">Invoice Aging Report</h3>
+        <p class="report-description">
+            Track overdue invoices, pending approvals, and payment timelines. Identify bottlenecks in the payment process.
+        </p>
+        <div class="report-meta">
+            <span class="meta-label">Type</span>
+            <span class="meta-value">Compliance</span>
+        </div>
+    </div>
+
+    <!-- Cash Flow Report -->
+    <div class="report-card" onclick="alert('This report is under development')">
+        <div class="report-icon" style="background: #E0E7FF; color: #6366F1;">
+            <i class="bi bi-currency-exchange"></i>
+        </div>
+        <h3 class="report-title">Cash Flow Report</h3>
+        <p class="report-description">
+            Monthly cash flow analysis showing budget allocation, expenditure, and projections for future periods.
+        </p>
+        <div class="report-meta">
+            <span class="meta-label">Type</span>
+            <span class="meta-value">Financial Planning</span>
+        </div>
+    </div>
+
+    <!-- Variance Analysis -->
+    <div class="report-card" onclick="alert('This report is under development')">
+        <div class="report-icon" style="background: #DBEAFE; color: #1E40AF;">
+            <i class="bi bi-bar-chart-line"></i>
+        </div>
+        <h3 class="report-title">Variance Analysis</h3>
+        <p class="report-description">
+            Compare budgeted vs actual spending with detailed variance analysis and explanations for significant differences.
+        </p>
+        <div class="report-meta">
+            <span class="meta-label">Type</span>
+            <span class="meta-value">Budget Control</span>
+        </div>
+    </div>
+</div>
+
+<!-- Info Box -->
+<div style="background: var(--primary-light); border: 1px solid #93C5FD; border-radius: 12px; padding: 24px; margin-top: 32px;">
+    <div style="display: flex; gap: 16px; align-items: start;">
+        <i class="bi bi-info-circle" style="font-size: 24px; color: var(--primary-color);"></i>
+        <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: #1E293B; margin-bottom: 8px;">
+                Report Generation Tips
+            </h3>
+            <ul style="margin: 0; padding-left: 20px; color: #475569;">
+                <li>Reports are generated in real-time from the latest data</li>
+                <li>Use filters to narrow down your analysis</li>
+                <li>Export options available for further analysis</li>
+                <li>Schedule reports can be set up for regular delivery</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

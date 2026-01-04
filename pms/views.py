@@ -3434,3 +3434,862 @@ def get_supplier_bids(request, req_id, supplier_id):
         })
     
     return JsonResponse({'bids': bid_list})
+
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Sum, Count, Q, F, Avg
+from django.db import transaction
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
+from datetime import timedelta, datetime
+from decimal import Decimal
+import json
+
+from .models import (
+    Budget, BudgetYear, BudgetCategory, BudgetReallocation,
+    Invoice, InvoiceItem, Payment, PurchaseOrder, Requisition,
+    Department, Supplier, User, GoodsReceivedNote
+)
+
+
+# ============================================================================
+# FINANCE DASHBOARD
+# ============================================================================
+
+@login_required
+def finance_dashboard(request):
+    """Main finance dashboard with key metrics and charts"""
+    
+    today = timezone.now().date()
+    current_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    # Budget Overview
+    total_allocated = Budget.objects.filter(
+        budget_year=current_year,
+        is_active=True
+    ).aggregate(total=Sum('allocated_amount'))['total'] or 0
+    
+    total_committed = Budget.objects.filter(
+        budget_year=current_year,
+        is_active=True
+    ).aggregate(total=Sum('committed_amount'))['total'] or 0
+    
+    total_spent = Budget.objects.filter(
+        budget_year=current_year,
+        is_active=True
+    ).aggregate(total=Sum('actual_spent'))['total'] or 0
+    
+    available_budget = total_allocated - total_committed - total_spent
+    utilization_rate = (total_spent / total_allocated * 100) if total_allocated > 0 else 0
+    
+    # Invoice Statistics
+    pending_invoices = Invoice.objects.filter(
+        status__in=['SUBMITTED', 'VERIFYING']
+    ).count()
+    
+    approved_invoices_value = Invoice.objects.filter(
+        status='APPROVED'
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    # Payment Statistics
+    pending_payments = Payment.objects.filter(
+        status='PENDING'
+    ).count()
+    
+    payments_this_month = Payment.objects.filter(
+        payment_date__month=today.month,
+        payment_date__year=today.year,
+        status='COMPLETED'
+    ).aggregate(total=Sum('payment_amount'))['total'] or 0
+    
+    # Budget Utilization by Department (Top 10)
+    dept_utilization = Budget.objects.filter(
+        budget_year=current_year
+    ).values(
+        'department__name'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        spent=Sum('actual_spent'),
+        utilization=Sum('actual_spent') / Sum('allocated_amount') * 100
+    ).order_by('-spent')[:10]
+    
+    dept_chart = {
+        'labels': [item['department__name'] for item in dept_utilization],
+        'allocated': [float(item['allocated']) for item in dept_utilization],
+        'spent': [float(item['spent']) for item in dept_utilization]
+    }
+    
+    # Budget by Category
+    category_budget = Budget.objects.filter(
+        budget_year=current_year
+    ).values(
+        'category__name'
+    ).annotate(
+        total=Sum('allocated_amount')
+    ).order_by('-total')[:8]
+    
+    category_chart = {
+        'labels': [item['category__name'] for item in category_budget],
+        'values': [float(item['total']) for item in category_budget]
+    }
+    
+    # Monthly Expenditure Trend (Last 6 months)
+    months = []
+    expenditure = []
+    
+    for i in range(5, -1, -1):
+        month_date = today - timedelta(days=30*i)
+        month_start = month_date.replace(day=1)
+        if i > 0:
+            next_month = month_date.replace(day=28) + timedelta(days=4)
+            month_end = next_month.replace(day=1) - timedelta(days=1)
+        else:
+            month_end = today
+            
+        month_spend = Payment.objects.filter(
+            payment_date__gte=month_start,
+            payment_date__lte=month_end,
+            status='COMPLETED'
+        ).aggregate(total=Sum('payment_amount'))['total'] or 0
+        
+        months.append(month_start.strftime('%b %Y'))
+        expenditure.append(float(month_spend))
+    
+    expenditure_chart = {
+        'labels': months,
+        'values': expenditure
+    }
+    
+    # Invoice Status Distribution
+    invoice_status = Invoice.objects.values('status').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    invoice_chart = {
+        'labels': [dict(Invoice.STATUS_CHOICES).get(item['status'], item['status']) 
+                   for item in invoice_status],
+        'values': [item['count'] for item in invoice_status]
+    }
+    
+    # Recent Activities
+    recent_invoices = Invoice.objects.select_related(
+        'supplier', 'purchase_order'
+    ).order_by('-created_at')[:5]
+    
+    recent_payments = Payment.objects.select_related(
+        'invoice__supplier'
+    ).order_by('-created_at')[:5]
+    
+    # Pending Approvals
+    pending_invoice_approvals = Invoice.objects.filter(
+        status='VERIFYING'
+    ).select_related('supplier')[:5]
+    
+    context = {
+        'current_year': current_year,
+        'total_allocated': total_allocated,
+        'total_committed': total_committed,
+        'total_spent': total_spent,
+        'available_budget': available_budget,
+        'utilization_rate': round(utilization_rate, 1),
+        'pending_invoices': pending_invoices,
+        'approved_invoices_value': approved_invoices_value,
+        'pending_payments': pending_payments,
+        'payments_this_month': payments_this_month,
+        'dept_chart': dept_chart,
+        'category_chart': category_chart,
+        'expenditure_chart': expenditure_chart,
+        'invoice_chart': invoice_chart,
+        'recent_invoices': recent_invoices,
+        'recent_payments': recent_payments,
+        'pending_invoice_approvals': pending_invoice_approvals,
+    }
+    
+    return render(request, 'finance/dashboard.html', context)
+
+
+# ============================================================================
+# BUDGET MANAGEMENT
+# ============================================================================
+
+@login_required
+def budget_list(request):
+    """List all budgets with filtering"""
+    
+    budgets = Budget.objects.select_related(
+        'budget_year', 'department', 'category', 'created_by'
+    ).all()
+    
+    # Filters
+    year_filter = request.GET.get('year')
+    department_filter = request.GET.get('department')
+    category_filter = request.GET.get('category')
+    budget_type_filter = request.GET.get('budget_type')
+    search = request.GET.get('search')
+    
+    if year_filter:
+        budgets = budgets.filter(budget_year_id=year_filter)
+    
+    if department_filter:
+        budgets = budgets.filter(department_id=department_filter)
+    
+    if category_filter:
+        budgets = budgets.filter(category_id=category_filter)
+    
+    if budget_type_filter:
+        budgets = budgets.filter(budget_type=budget_type_filter)
+    
+    if search:
+        budgets = budgets.filter(
+            Q(department__name__icontains=search) |
+            Q(category__name__icontains=search)
+        )
+    
+    budgets = budgets.order_by('-created_at')
+    
+    # Calculate totals
+    total_allocated = budgets.aggregate(total=Sum('allocated_amount'))['total'] or 0
+    total_spent = budgets.aggregate(total=Sum('actual_spent'))['total'] or 0
+    total_available = sum(b.available_balance for b in budgets)
+    
+    # Get filter options
+    budget_years = BudgetYear.objects.all().order_by('-start_date')
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    categories = BudgetCategory.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'budgets': budgets,
+        'budget_years': budget_years,
+        'departments': departments,
+        'categories': categories,
+        'budget_types': Budget.BUDGET_TYPE,
+        'total_allocated': total_allocated,
+        'total_spent': total_spent,
+        'total_available': total_available,
+        'filters': {
+            'year': year_filter,
+            'department': department_filter,
+            'category': category_filter,
+            'budget_type': budget_type_filter,
+            'search': search,
+        }
+    }
+    
+    return render(request, 'finance/budget_list.html', context)
+
+
+@login_required
+def budget_detail(request, budget_id):
+    """Budget detail view with utilization tracking"""
+    
+    budget = get_object_or_404(
+        Budget.objects.select_related(
+            'budget_year', 'department', 'category', 'created_by'
+        ),
+        id=budget_id
+    )
+    
+    # Get requisitions using this budget
+    requisitions = budget.requisitions.select_related(
+        'requested_by', 'department'
+    ).order_by('-created_at')
+    
+    # Get reallocations
+    reallocations_from = budget.reallocations_from.select_related(
+        'to_budget__department', 'requested_by', 'approved_by'
+    ).order_by('-created_at')
+    
+    reallocations_to = budget.reallocations_to.select_related(
+        'from_budget__department', 'requested_by', 'approved_by'
+    ).order_by('-created_at')
+    
+    # Calculate utilization percentage
+    utilization = (budget.actual_spent / budget.allocated_amount * 100) if budget.allocated_amount > 0 else 0
+    commitment = (budget.committed_amount / budget.allocated_amount * 100) if budget.allocated_amount > 0 else 0
+    
+    context = {
+        'budget': budget,
+        'requisitions': requisitions,
+        'reallocations_from': reallocations_from,
+        'reallocations_to': reallocations_to,
+        'utilization': round(utilization, 1),
+        'commitment': round(commitment, 1),
+    }
+    
+    return render(request, 'finance/budget_detail.html', context)
+
+
+@login_required
+def budget_create(request):
+    """Create new budget allocation"""
+    
+    if request.user.role not in ['FINANCE', 'ADMIN']:
+        messages.error(request, 'You do not have permission to create budgets')
+        return redirect('budget_list')
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                budget_year_id = request.POST.get('budget_year')
+                department_id = request.POST.get('department')
+                category_id = request.POST.get('category')
+                budget_type = request.POST.get('budget_type')
+                allocated_amount = Decimal(request.POST.get('allocated_amount'))
+                reference_number = request.POST.get('reference_number', '')
+                description = request.POST.get('description', '')
+                
+                # Check for duplicate
+                if Budget.objects.filter(
+                    budget_year_id=budget_year_id,
+                    department_id=department_id,
+                    category_id=category_id,
+                    reference_number=reference_number
+                ).exists():
+                    messages.error(request, 'Budget already exists for this combination')
+                    return redirect('budget_create')
+                
+                Budget.objects.create(
+                    budget_year_id=budget_year_id,
+                    department_id=department_id,
+                    category_id=category_id,
+                    budget_type=budget_type,
+                    allocated_amount=allocated_amount,
+                    reference_number=reference_number,
+                    description=description,
+                    created_by=request.user
+                )
+                
+                messages.success(request, 'Budget created successfully')
+                return redirect('budget_list')
+                
+        except Exception as e:
+            messages.error(request, f'Error creating budget: {str(e)}')
+    
+    # GET request
+    budget_years = BudgetYear.objects.all().order_by('-start_date')
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    categories = BudgetCategory.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'budget_years': budget_years,
+        'departments': departments,
+        'categories': categories,
+        'budget_types': Budget.BUDGET_TYPE,
+    }
+    
+    return render(request, 'finance/budget_create.html', context)
+
+
+@login_required
+def budget_reallocation_create(request, budget_id):
+    """Create budget reallocation request"""
+    
+    from_budget = get_object_or_404(Budget, id=budget_id)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                to_budget_id = request.POST.get('to_budget')
+                amount = Decimal(request.POST.get('amount'))
+                justification = request.POST.get('justification')
+                
+                to_budget = get_object_or_404(Budget, id=to_budget_id)
+                
+                # Validate amount
+                if amount > from_budget.available_balance:
+                    messages.error(request, 'Insufficient available budget')
+                    return redirect('budget_reallocation_create', budget_id=budget_id)
+                
+                BudgetReallocation.objects.create(
+                    from_budget=from_budget,
+                    to_budget=to_budget,
+                    amount=amount,
+                    justification=justification,
+                    requested_by=request.user
+                )
+                
+                messages.success(request, 'Reallocation request submitted successfully')
+                return redirect('budget_detail', budget_id=budget_id)
+                
+        except Exception as e:
+            messages.error(request, f'Error creating reallocation: {str(e)}')
+    
+    # GET request - get available budgets in same year
+    available_budgets = Budget.objects.filter(
+        budget_year=from_budget.budget_year,
+        is_active=True
+    ).exclude(id=budget_id).select_related('department', 'category')
+    
+    context = {
+        'from_budget': from_budget,
+        'available_budgets': available_budgets,
+    }
+    
+    return render(request, 'finance/budget_reallocation_create.html', context)
+
+
+# ============================================================================
+# INVOICE MANAGEMENT
+# ============================================================================
+
+@login_required
+def invoice_list(request):
+    """List all invoices with filtering"""
+    
+    invoices = Invoice.objects.select_related(
+        'supplier', 'purchase_order', 'verified_by', 'approved_by'
+    ).all()
+    
+    # Filters
+    status_filter = request.GET.get('status')
+    supplier_filter = request.GET.get('supplier')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    search = request.GET.get('search')
+    
+    if status_filter:
+        invoices = invoices.filter(status=status_filter)
+    
+    if supplier_filter:
+        invoices = invoices.filter(supplier_id=supplier_filter)
+    
+    if date_from:
+        invoices = invoices.filter(invoice_date__gte=date_from)
+    
+    if date_to:
+        invoices = invoices.filter(invoice_date__lte=date_to)
+    
+    if search:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=search) |
+            Q(supplier_invoice_number__icontains=search) |
+            Q(supplier__name__icontains=search)
+        )
+    
+    invoices = invoices.order_by('-created_at')
+    
+    # Statistics
+    total_value = invoices.aggregate(total=Sum('total_amount'))['total'] or 0
+    pending_value = invoices.filter(
+        status__in=['SUBMITTED', 'VERIFYING']
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    # Get filter options
+    suppliers = Supplier.objects.filter(status='APPROVED').order_by('name')
+    
+    context = {
+        'invoices': invoices,
+        'suppliers': suppliers,
+        'status_choices': Invoice.STATUS_CHOICES,
+        'total_value': total_value,
+        'pending_value': pending_value,
+        'filters': {
+            'status': status_filter,
+            'supplier': supplier_filter,
+            'date_from': date_from,
+            'date_to': date_to,
+            'search': search,
+        }
+    }
+    
+    return render(request, 'finance/invoice_list.html', context)
+
+
+@login_required
+def invoice_detail(request, invoice_id):
+    """Invoice detail view with 3-way matching"""
+    
+    invoice = get_object_or_404(
+        Invoice.objects.select_related(
+            'supplier', 'purchase_order', 'grn',
+            'verified_by', 'approved_by', 'submitted_by'
+        ),
+        id=invoice_id
+    )
+    
+    # Get invoice items
+    invoice_items = invoice.items.select_related('po_item').all()
+    
+    # Get payments
+    payments = invoice.payments.select_related(
+        'processed_by', 'approved_by'
+    ).order_by('-created_at')
+    
+    # Calculate matching status
+    if invoice.purchase_order and invoice.grn:
+        po_match = abs(invoice.total_amount - invoice.purchase_order.total_amount) < Decimal('0.01')
+        grn_match = invoice.grn.status == 'ACCEPTED'
+        three_way_match = po_match and grn_match
+    else:
+        po_match = False
+        grn_match = False
+        three_way_match = False
+    
+    # Payment status
+    total_paid = payments.filter(
+        status='COMPLETED'
+    ).aggregate(total=Sum('payment_amount'))['total'] or 0
+    
+    payment_progress = (total_paid / invoice.total_amount * 100) if invoice.total_amount > 0 else 0
+    
+    context = {
+        'invoice': invoice,
+        'invoice_items': invoice_items,
+        'payments': payments,
+        'po_match': po_match,
+        'grn_match': grn_match,
+        'three_way_match': three_way_match,
+        'total_paid': total_paid,
+        'payment_progress': round(payment_progress, 1),
+    }
+    
+    return render(request, 'finance/invoice_detail.html', context)
+
+
+@login_required
+def invoice_verify(request, invoice_id):
+    """Verify invoice details"""
+    
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    
+    if request.user.role not in ['FINANCE', 'PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to verify invoices')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    if invoice.status != 'SUBMITTED':
+        messages.error(request, 'This invoice cannot be verified')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        notes = request.POST.get('notes', '')
+        
+        if action == 'approve':
+            invoice.status = 'MATCHED'
+            invoice.verified_by = request.user
+            invoice.verified_at = timezone.now()
+            invoice.matching_notes = notes
+            invoice.save()
+            
+            messages.success(request, f'Invoice {invoice.invoice_number} verified successfully')
+        elif action == 'dispute':
+            invoice.status = 'DISPUTED'
+            invoice.dispute_reason = notes
+            invoice.save()
+            
+            messages.warning(request, f'Invoice {invoice.invoice_number} marked as disputed')
+        
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    context = {'invoice': invoice}
+    return render(request, 'finance/invoice_verify.html', context)
+
+
+@login_required
+def invoice_approve(request, invoice_id):
+    """Approve invoice for payment"""
+    
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    
+    if request.user.role not in ['FINANCE', 'ADMIN']:
+        messages.error(request, 'You do not have permission to approve invoices')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    if invoice.status != 'MATCHED':
+        messages.error(request, 'Invoice must be verified and matched before approval')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    if request.method == 'POST':
+        invoice.status = 'APPROVED'
+        invoice.approved_by = request.user
+        invoice.approved_at = timezone.now()
+        invoice.save()
+        
+        messages.success(request, f'Invoice {invoice.invoice_number} approved for payment')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    context = {'invoice': invoice}
+    return render(request, 'finance/invoice_approve.html', context)
+
+
+# ============================================================================
+# PAYMENT MANAGEMENT
+# ============================================================================
+
+@login_required
+def payment_list(request):
+    """List all payments with filtering"""
+    
+    payments = Payment.objects.select_related(
+        'invoice__supplier', 'processed_by', 'approved_by'
+    ).all()
+    
+    # Filters
+    status_filter = request.GET.get('status')
+    method_filter = request.GET.get('method')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    search = request.GET.get('search')
+    
+    if status_filter:
+        payments = payments.filter(status=status_filter)
+    
+    if method_filter:
+        payments = payments.filter(payment_method=method_filter)
+    
+    if date_from:
+        payments = payments.filter(payment_date__gte=date_from)
+    
+    if date_to:
+        payments = payments.filter(payment_date__lte=date_to)
+    
+    if search:
+        payments = payments.filter(
+            Q(payment_number__icontains=search) |
+            Q(payment_reference__icontains=search) |
+            Q(invoice__supplier__name__icontains=search)
+        )
+    
+    payments = payments.order_by('-created_at')
+    
+    # Statistics
+    total_paid = payments.filter(
+        status='COMPLETED'
+    ).aggregate(total=Sum('payment_amount'))['total'] or 0
+    
+    pending_amount = payments.filter(
+        status='PENDING'
+    ).aggregate(total=Sum('payment_amount'))['total'] or 0
+    
+    context = {
+        'payments': payments,
+        'status_choices': Payment.PAYMENT_STATUS,
+        'method_choices': Payment.PAYMENT_METHODS,
+        'total_paid': total_paid,
+        'pending_amount': pending_amount,
+        'filters': {
+            'status': status_filter,
+            'method': method_filter,
+            'date_from': date_from,
+            'date_to': date_to,
+            'search': search,
+        }
+    }
+    
+    return render(request, 'finance/payment_list.html', context)
+
+
+@login_required
+def payment_create(request, invoice_id):
+    """Create payment for invoice"""
+    
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    
+    if request.user.role not in ['FINANCE', 'ADMIN']:
+        messages.error(request, 'You do not have permission to create payments')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    if invoice.status != 'APPROVED':
+        messages.error(request, 'Invoice must be approved before payment')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                payment_date = request.POST.get('payment_date')
+                payment_amount = Decimal(request.POST.get('payment_amount'))
+                payment_method = request.POST.get('payment_method')
+                payment_reference = request.POST.get('payment_reference')
+                bank_name = request.POST.get('bank_name', '')
+                cheque_number = request.POST.get('cheque_number', '')
+                notes = request.POST.get('notes', '')
+                
+                # Validate amount
+                total_paid = invoice.payments.filter(
+                    status__in=['COMPLETED', 'PROCESSING']
+                ).aggregate(total=Sum('payment_amount'))['total'] or 0
+                
+                if total_paid + payment_amount > invoice.total_amount:
+                    messages.error(request, 'Payment amount exceeds invoice balance')
+                    return redirect('payment_create', invoice_id=invoice_id)
+                
+                payment = Payment.objects.create(
+                    invoice=invoice,
+                    payment_date=payment_date,
+                    payment_amount=payment_amount,
+                    payment_method=payment_method,
+                    payment_reference=payment_reference,
+                    bank_name=bank_name,
+                    cheque_number=cheque_number,
+                    notes=notes,
+                    processed_by=request.user,
+                    status='PENDING'
+                )
+                
+                messages.success(request, f'Payment {payment.payment_number} created successfully')
+                return redirect('invoice_detail', invoice_id=invoice_id)
+                
+        except Exception as e:
+            messages.error(request, f'Error creating payment: {str(e)}')
+    
+    # Calculate remaining balance
+    total_paid = invoice.payments.filter(
+        status='COMPLETED'
+    ).aggregate(total=Sum('payment_amount'))['total'] or 0
+    
+    remaining = invoice.total_amount - total_paid
+    
+    context = {
+        'invoice': invoice,
+        'remaining': remaining,
+        'payment_methods': Payment.PAYMENT_METHODS,
+    }
+    
+    return render(request, 'finance/payment_create.html', context)
+
+
+@login_required
+def payment_process(request, payment_id):
+    """Process/complete payment"""
+    
+    payment = get_object_or_404(Payment, id=payment_id)
+    
+    if request.user.role not in ['FINANCE', 'ADMIN']:
+        messages.error(request, 'You do not have permission to process payments')
+        return redirect('payment_list')
+    
+    if payment.status != 'PENDING':
+        messages.error(request, 'Payment has already been processed')
+        return redirect('payment_list')
+    
+    if request.method == 'POST':
+        payment.status = 'COMPLETED'
+        payment.approved_by = request.user
+        payment.save()
+        
+        # Update invoice status if fully paid
+        total_paid = payment.invoice.payments.filter(
+            status='COMPLETED'
+        ).aggregate(total=Sum('payment_amount'))['total'] or 0
+        
+        if total_paid >= payment.invoice.total_amount:
+            payment.invoice.status = 'PAID'
+            payment.invoice.payment_date = timezone.now().date()
+            payment.invoice.save()
+        
+        messages.success(request, f'Payment {payment.payment_number} processed successfully')
+        return redirect('payment_list')
+    
+    context = {'payment': payment}
+    return render(request, 'finance/payment_process.html', context)
+
+
+# ============================================================================
+# FINANCIAL REPORTS
+# ============================================================================
+
+@login_required
+def financial_reports(request):
+    """Financial reports dashboard"""
+    
+    current_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    # Report types with data
+    reports = {
+        'budget_utilization': {
+            'title': 'Budget Utilization Report',
+            'description': 'Detailed analysis of budget allocation and spending',
+            'icon': 'chart-pie',
+        },
+        'expenditure_analysis': {
+            'title': 'Expenditure Analysis',
+            'description': 'Breakdown of expenditure by department and category',
+            'icon': 'graph-up',
+        },
+        'supplier_payments': {
+            'title': 'Supplier Payment Report',
+            'description': 'Summary of payments made to suppliers',
+            'icon': 'people',
+        },
+        'invoice_aging': {
+            'title': 'Invoice Aging Report',
+            'description': 'Track overdue and pending invoices',
+            'icon': 'clock-history',
+        },
+        'cashflow': {
+            'title': 'Cash Flow Report',
+            'description': 'Monthly cash flow analysis',
+            'icon': 'currency-exchange',
+        },
+    }
+    
+    context = {
+        'current_year': current_year,
+        'reports': reports,
+    }
+    
+    return render(request, 'finance/reports.html', context)
+
+
+@login_required
+def expenditure_report(request):
+    """Detailed expenditure analysis"""
+    
+    current_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    # Department expenditure
+    dept_expenditure = Budget.objects.filter(
+        budget_year=current_year
+    ).values(
+        'department__name'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        spent=Sum('actual_spent'),
+        committed=Sum('committed_amount')
+    ).order_by('-spent')
+    
+    # Category expenditure
+    category_expenditure = Budget.objects.filter(
+        budget_year=current_year
+    ).values(
+        'category__name', 'category__code'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        spent=Sum('actual_spent')
+    ).order_by('-spent')
+    
+    # Monthly trend
+    today = timezone.now().date()
+    monthly_data = []
+    
+    for i in range(11, -1, -1):
+        month_date = today - timedelta(days=30*i)
+        month_start = month_date.replace(day=1)
+        if i > 0:
+            next_month = month_date.replace(day=28) + timedelta(days=4)
+            month_end = next_month.replace(day=1) - timedelta(days=1)
+        else:
+            month_end = today
+        
+        month_spend = Payment.objects.filter(
+            payment_date__gte=month_start,
+            payment_date__lte=month_end,
+            status='COMPLETED'
+        ).aggregate(total=Sum('payment_amount'))['total'] or 0
+        
+        monthly_data.append({
+            'month': month_start.strftime('%b %Y'),
+            'amount': month_spend
+        })
+    
+    context = {
+        'current_year': current_year,
+        'dept_expenditure': dept_expenditure,
+        'category_expenditure': category_expenditure,
+        'monthly_data': monthly_data,
+    }
+    
+    return render(request, 'finance/expenditure_report.html', context)
