@@ -27,4 +27,22 @@ urlpatterns = [
     path('api/budget/<uuid:budget_id>/', views.get_budget_info, name='api_budget_info'),
     path('api/item/<uuid:item_id>/', views.get_item_info, name='api_item_info'),
     path('api/attachment/<uuid:attachment_id>/delete/', views.delete_attachment, name='api_delete_attachment'),
+    
+    # Tender Management
+    path('tenders/', views.tender_list, name='tender_list'),
+    path('tenders/create/', views.tender_create, name='tender_create'),
+    path('tenders/<uuid:pk>/', views.tender_detail, name='tender_detail'),
+    path('tenders/<uuid:pk>/publish/', views.tender_publish, name='tender_publish'),
+    path('tenders/<uuid:pk>/close/', views.tender_close, name='tender_close'),
+    path('tenders/<uuid:pk>/evaluate/', views.tender_evaluate, name='tender_evaluate'),
+    path('tenders/<uuid:pk>/award/', views.tender_award, name='tender_award'),
+    path('tenders/<uuid:pk>/cancel/', views.tender_cancel, name='tender_cancel'),
+    
+    # Bid Management
+    path('tenders/<uuid:tender_id>/bids/', views.bid_list, name='bid_list'),
+    path('bids/<uuid:pk>/', views.bid_detail, name='bid_detail'),
+    
+    # API Endpoints
+    path('api/requisition/<uuid:requisition_id>/items/', views.get_requisition_items, name='api_requisition_items'),
+    path('api/tenders/statistics/', views.get_tender_statistics, name='api_tender_statistics'),
 ]
