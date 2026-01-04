@@ -5280,3 +5280,688 @@ def budget_utilization_report(request):
     
     return render(request, 'finance/budget_utilization_report.html', context)
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q, Sum, Count, F, DecimalField
+from django.db.models.functions import Coalesce
+from django.http import JsonResponse
+from django.utils import timezone
+from decimal import Decimal
+from datetime import datetime, timedelta
+
+from .models import (
+    Store, GoodsReceivedNote, GRNItem, StockItem, StockMovement,
+    StockIssue, StockIssueItem, Asset, PurchaseOrder, PurchaseOrderItem,
+    Department, Item, User
+)
+
+
+# ============================================================================
+# GOODS RECEIVED NOTES
+# ============================================================================
+
+@login_required
+def grn_list(request):
+    """List all Goods Received Notes with filters"""
+    grns = GoodsReceivedNote.objects.select_related(
+        'purchase_order', 'purchase_order__supplier', 'store',
+        'received_by', 'inspected_by'
+    ).all()
+    
+    # Filters
+    filters = {
+        'search': request.GET.get('search', ''),
+        'status': request.GET.get('status', ''),
+        'store': request.GET.get('store', ''),
+        'date_from': request.GET.get('date_from', ''),
+        'date_to': request.GET.get('date_to', ''),
+    }
+    
+    # Apply search
+    if filters['search']:
+        grns = grns.filter(
+            Q(grn_number__icontains=filters['search']) |
+            Q(purchase_order__po_number__icontains=filters['search']) |
+            Q(delivery_note_number__icontains=filters['search']) |
+            Q(purchase_order__supplier__name__icontains=filters['search'])
+        )
+    
+    # Apply status filter
+    if filters['status']:
+        grns = grns.filter(status=filters['status'])
+    
+    # Apply store filter
+    if filters['store']:
+        grns = grns.filter(store_id=filters['store'])
+    
+    # Apply date range filter
+    if filters['date_from']:
+        grns = grns.filter(received_date__gte=filters['date_from'])
+    if filters['date_to']:
+        grns = grns.filter(received_date__lte=filters['date_to'])
+    
+    # Get filter options
+    stores = Store.objects.filter(is_active=True)
+    status_choices = GoodsReceivedNote.STATUS_CHOICES
+    
+    # Calculate statistics
+    total_received = grns.count()
+    pending_inspection = grns.filter(status='INSPECTING').count()
+    accepted = grns.filter(status='ACCEPTED').count()
+    rejected = grns.filter(status='REJECTED').count()
+    
+    context = {
+        'grns': grns.order_by('-created_at'),
+        'filters': filters,
+        'stores': stores,
+        'status_choices': status_choices,
+        'total_received': total_received,
+        'pending_inspection': pending_inspection,
+        'accepted': accepted,
+        'rejected': rejected,
+    }
+    
+    return render(request, 'inventory/grn_list.html', context)
+
+
+@login_required
+def grn_detail(request, grn_id):
+    """View GRN details"""
+    grn = get_object_or_404(
+        GoodsReceivedNote.objects.select_related(
+            'purchase_order', 'purchase_order__supplier', 'store',
+            'received_by', 'inspected_by'
+        ),
+        id=grn_id
+    )
+    
+    items = grn.items.select_related('po_item', 'po_item__requisition_item')
+    
+    context = {
+        'grn': grn,
+        'items': items,
+    }
+    
+    return render(request, 'inventory/grn_detail.html', context)
+
+
+@login_required
+def grn_create(request):
+    """Create new GRN"""
+    if request.method == 'POST':
+        po_id = request.POST.get('purchase_order')
+        store_id = request.POST.get('store')
+        delivery_note = request.POST.get('delivery_note_number')
+        delivery_date = request.POST.get('delivery_date')
+        
+        po = get_object_or_404(PurchaseOrder, id=po_id)
+        store = get_object_or_404(Store, id=store_id)
+        
+        # Create GRN
+        grn = GoodsReceivedNote.objects.create(
+            purchase_order=po,
+            store=store,
+            delivery_note_number=delivery_note,
+            delivery_date=delivery_date,
+            received_by=request.user,
+            status='DRAFT'
+        )
+        
+        # Create GRN items from PO items
+        po_items = po.items.all()
+        for po_item in po_items:
+            qty_delivered = request.POST.get(f'qty_delivered_{po_item.id}', 0)
+            if Decimal(qty_delivered) > 0:
+                GRNItem.objects.create(
+                    grn=grn,
+                    po_item=po_item,
+                    quantity_ordered=po_item.quantity,
+                    quantity_delivered=qty_delivered,
+                    quantity_accepted=0,
+                    item_status='ACCEPTED'
+                )
+        
+        messages.success(request, f'GRN {grn.grn_number} created successfully!')
+        return redirect('grn_detail', grn_id=grn.id)
+    
+    # GET request
+    po_id = request.GET.get('po')
+    po = None
+    if po_id:
+        po = get_object_or_404(
+            PurchaseOrder.objects.select_related('supplier'),
+            id=po_id,
+            status__in=['SENT', 'ACKNOWLEDGED']
+        )
+    
+    stores = Store.objects.filter(is_active=True)
+    pending_pos = PurchaseOrder.objects.filter(
+        status__in=['SENT', 'ACKNOWLEDGED']
+    ).select_related('supplier')
+    
+    context = {
+        'po': po,
+        'stores': stores,
+        'pending_pos': pending_pos,
+    }
+    
+    return render(request, 'inventory/grn_create.html', context)
+
+
+@login_required
+def grn_inspect(request, grn_id):
+    """Inspect and accept/reject GRN items"""
+    grn = get_object_or_404(GoodsReceivedNote, id=grn_id)
+    
+    if request.method == 'POST':
+        grn.status = 'INSPECTING'
+        grn.inspected_by = request.user
+        grn.inspection_date = timezone.now().date()
+        
+        all_accepted = True
+        any_accepted = False
+        
+        for item in grn.items.all():
+            qty_accepted = Decimal(request.POST.get(f'qty_accepted_{item.id}', 0))
+            qty_rejected = Decimal(request.POST.get(f'qty_rejected_{item.id}', 0))
+            item_status = request.POST.get(f'status_{item.id}', 'ACCEPTED')
+            remarks = request.POST.get(f'remarks_{item.id}', '')
+            
+            item.quantity_accepted = qty_accepted
+            item.quantity_rejected = qty_rejected
+            item.item_status = item_status
+            item.remarks = remarks
+            item.save()
+            
+            if qty_rejected > 0 or item_status != 'ACCEPTED':
+                all_accepted = False
+            if qty_accepted > 0:
+                any_accepted = True
+            
+            # Update stock if accepted
+            if qty_accepted > 0:
+                stock_item, created = StockItem.objects.get_or_create(
+                    store=grn.store,
+                    item=item.po_item.requisition_item.item,
+                    defaults={'quantity_on_hand': 0, 'average_unit_cost': 0}
+                )
+                
+                # Update stock quantity
+                balance_before = stock_item.quantity_on_hand
+                stock_item.quantity_on_hand += qty_accepted
+                stock_item.last_restock_date = timezone.now().date()
+                
+                # Update average cost
+                total_cost = (stock_item.quantity_on_hand * stock_item.average_unit_cost) + \
+                             (qty_accepted * item.po_item.unit_price)
+                stock_item.average_unit_cost = total_cost / stock_item.quantity_on_hand
+                stock_item.total_value = stock_item.quantity_on_hand * stock_item.average_unit_cost
+                stock_item.save()
+                
+                # Record stock movement
+                StockMovement.objects.create(
+                    stock_item=stock_item,
+                    movement_type='RECEIPT',
+                    reference_number=grn.grn_number,
+                    reference_type='GRN',
+                    quantity=qty_accepted,
+                    unit_cost=item.po_item.unit_price,
+                    balance_before=balance_before,
+                    balance_after=stock_item.quantity_on_hand,
+                    to_store=grn.store,
+                    performed_by=request.user
+                )
+        
+        # Set final GRN status
+        if all_accepted:
+            grn.status = 'ACCEPTED'
+        elif any_accepted:
+            grn.status = 'PARTIAL'
+        else:
+            grn.status = 'REJECTED'
+            grn.rejection_reason = request.POST.get('rejection_reason', '')
+        
+        grn.general_condition = request.POST.get('general_condition', '')
+        grn.save()
+        
+        messages.success(request, f'GRN {grn.grn_number} inspection completed!')
+        return redirect('grn_detail', grn_id=grn.id)
+    
+    context = {
+        'grn': grn,
+        'items': grn.items.all(),
+    }
+    
+    return render(request, 'inventory/grn_inspect.html', context)
+
+
+# ============================================================================
+# STOCK ITEMS
+# ============================================================================
+
+@login_required
+def stock_list(request):
+    """List all stock items with filters"""
+    stocks = StockItem.objects.select_related('store', 'item', 'item__category').all()
+    
+    # Filters
+    filters = {
+        'search': request.GET.get('search', ''),
+        'store': request.GET.get('store', ''),
+        'category': request.GET.get('category', ''),
+        'low_stock': request.GET.get('low_stock', ''),
+    }
+    
+    # Apply search
+    if filters['search']:
+        stocks = stocks.filter(
+            Q(item__name__icontains=filters['search']) |
+            Q(item__code__icontains=filters['search'])
+        )
+    
+    # Apply store filter
+    if filters['store']:
+        stocks = stocks.filter(store_id=filters['store'])
+    
+    # Apply category filter
+    if filters['category']:
+        stocks = stocks.filter(item__category_id=filters['category'])
+    
+    # Apply low stock filter
+    if filters['low_stock']:
+        stocks = stocks.filter(quantity_on_hand__lte=F('reorder_level'))
+    
+    # Get filter options
+    stores = Store.objects.filter(is_active=True)
+    from .models import ItemCategory
+    categories = ItemCategory.objects.filter(is_active=True, category_type='GOODS')
+    
+    # Calculate statistics
+    total_items = stocks.count()
+    low_stock_count = stocks.filter(quantity_on_hand__lte=F('reorder_level')).count()
+    total_value = stocks.aggregate(
+        total=Coalesce(Sum('total_value'), Decimal('0'))
+    )['total']
+    
+    context = {
+        'stocks': stocks.order_by('item__name'),
+        'filters': filters,
+        'stores': stores,
+        'categories': categories,
+        'total_items': total_items,
+        'low_stock_count': low_stock_count,
+        'total_value': total_value,
+    }
+    
+    return render(request, 'inventory/stock_list.html', context)
+
+
+@login_required
+def stock_detail(request, stock_id):
+    """View stock item details and movements"""
+    stock = get_object_or_404(
+        StockItem.objects.select_related('store', 'item', 'item__category'),
+        id=stock_id
+    )
+    
+    movements = stock.movements.select_related(
+        'from_store', 'to_store', 'performed_by'
+    ).order_by('-movement_date')[:50]
+    
+    # Recent issues
+    recent_issues = StockIssueItem.objects.filter(
+        stock_item=stock
+    ).select_related('stock_issue', 'stock_issue__department')[:10]
+    
+    context = {
+        'stock': stock,
+        'movements': movements,
+        'recent_issues': recent_issues,
+    }
+    
+    return render(request, 'inventory/stock_detail.html', context)
+
+
+@login_required
+def stock_adjustment(request, stock_id):
+    """Adjust stock quantity"""
+    stock = get_object_or_404(StockItem, id=stock_id)
+    
+    if request.method == 'POST':
+        adjustment_type = request.POST.get('adjustment_type')
+        quantity = Decimal(request.POST.get('quantity', 0))
+        reason = request.POST.get('reason')
+        
+        if quantity <= 0:
+            messages.error(request, 'Quantity must be greater than zero!')
+            return redirect('stock_detail', stock_id=stock_id)
+        
+        balance_before = stock.quantity_on_hand
+        
+        if adjustment_type == 'ADD':
+            stock.quantity_on_hand += quantity
+        else:  # SUBTRACT
+            if quantity > stock.quantity_on_hand:
+                messages.error(request, 'Cannot subtract more than available stock!')
+                return redirect('stock_detail', stock_id=stock_id)
+            stock.quantity_on_hand -= quantity
+        
+        stock.total_value = stock.quantity_on_hand * stock.average_unit_cost
+        stock.save()
+        
+        # Record movement
+        StockMovement.objects.create(
+            stock_item=stock,
+            movement_type='ADJUSTMENT',
+            reference_number=f'ADJ-{timezone.now().strftime("%Y%m%d%H%M%S")}',
+            reference_type='ADJUSTMENT',
+            quantity=quantity if adjustment_type == 'ADD' else -quantity,
+            unit_cost=stock.average_unit_cost,
+            balance_before=balance_before,
+            balance_after=stock.quantity_on_hand,
+            remarks=reason,
+            performed_by=request.user
+        )
+        
+        messages.success(request, 'Stock adjusted successfully!')
+        return redirect('stock_detail', stock_id=stock_id)
+    
+    context = {
+        'stock': stock,
+    }
+    
+    return render(request, 'inventory/stock_adjustment.html', context)
+
+
+# ============================================================================
+# STOCK ISSUES
+# ============================================================================
+
+@login_required
+def issue_list(request):
+    """List all stock issues"""
+    issues = StockIssue.objects.select_related(
+        'store', 'department', 'requested_by', 'issued_by'
+    ).all()
+    
+    # Filters
+    filters = {
+        'search': request.GET.get('search', ''),
+        'status': request.GET.get('status', ''),
+        'department': request.GET.get('department', ''),
+        'store': request.GET.get('store', ''),
+    }
+    
+    # Apply filters
+    if filters['search']:
+        issues = issues.filter(
+            Q(issue_number__icontains=filters['search']) |
+            Q(purpose__icontains=filters['search'])
+        )
+    
+    if filters['status']:
+        issues = issues.filter(status=filters['status'])
+    
+    if filters['department']:
+        issues = issues.filter(department_id=filters['department'])
+    
+    if filters['store']:
+        issues = issues.filter(store_id=filters['store'])
+    
+    # Get filter options
+    departments = Department.objects.filter(is_active=True)
+    stores = Store.objects.filter(is_active=True)
+    status_choices = StockIssue.STATUS_CHOICES
+    
+    # Statistics
+    total_issues = issues.count()
+    pending = issues.filter(status='PENDING').count()
+    issued = issues.filter(status='ISSUED').count()
+    
+    context = {
+        'issues': issues.order_by('-created_at'),
+        'filters': filters,
+        'departments': departments,
+        'stores': stores,
+        'status_choices': status_choices,
+        'total_issues': total_issues,
+        'pending': pending,
+        'issued': issued,
+    }
+    
+    return render(request, 'inventory/issue_list.html', context)
+
+
+@login_required
+def issue_create(request):
+    """Create new stock issue request"""
+    if request.method == 'POST':
+        store_id = request.POST.get('store')
+        department_id = request.POST.get('department')
+        purpose = request.POST.get('purpose')
+        
+        store = get_object_or_404(Store, id=store_id)
+        department = get_object_or_404(Department, id=department_id)
+        
+        # Create issue
+        issue = StockIssue.objects.create(
+            store=store,
+            department=department,
+            requested_by=request.user,
+            purpose=purpose,
+            status='PENDING'
+        )
+        
+        # Add items
+        item_ids = request.POST.getlist('item_id[]')
+        quantities = request.POST.getlist('quantity[]')
+        
+        for item_id, qty in zip(item_ids, quantities):
+            if item_id and Decimal(qty) > 0:
+                stock_item = get_object_or_404(StockItem, id=item_id)
+                StockIssueItem.objects.create(
+                    stock_issue=issue,
+                    stock_item=stock_item,
+                    quantity_requested=qty,
+                    quantity_issued=0
+                )
+        
+        messages.success(request, f'Stock issue {issue.issue_number} created successfully!')
+        return redirect('issue_detail', issue_id=issue.id)
+    
+    # GET request
+    stores = Store.objects.filter(is_active=True)
+    departments = Department.objects.filter(is_active=True)
+    
+    context = {
+        'stores': stores,
+        'departments': departments,
+    }
+    
+    return render(request, 'inventory/issue_create.html', context)
+
+
+@login_required
+def issue_detail(request, issue_id):
+    """View stock issue details"""
+    issue = get_object_or_404(
+        StockIssue.objects.select_related(
+            'store', 'department', 'requested_by', 'issued_by'
+        ),
+        id=issue_id
+    )
+    
+    items = issue.items.select_related('stock_item', 'stock_item__item')
+    
+    context = {
+        'issue': issue,
+        'items': items,
+    }
+    
+    return render(request, 'inventory/issue_detail.html', context)
+
+
+@login_required
+def issue_process(request, issue_id):
+    """Process and issue stock"""
+    issue = get_object_or_404(StockIssue, id=issue_id, status='PENDING')
+    
+    if request.method == 'POST':
+        issue.status = 'ISSUED'
+        issue.issued_by = request.user
+        issue.issue_date = timezone.now().date()
+        
+        for item in issue.items.all():
+            qty_issued = Decimal(request.POST.get(f'qty_issued_{item.id}', 0))
+            
+            if qty_issued > 0:
+                # Check available stock
+                if qty_issued > item.stock_item.quantity_on_hand:
+                    messages.error(
+                        request,
+                        f'Insufficient stock for {item.stock_item.item.name}!'
+                    )
+                    return redirect('issue_process', issue_id=issue_id)
+                
+                # Update issue item
+                item.quantity_issued = qty_issued
+                item.save()
+                
+                # Update stock
+                balance_before = item.stock_item.quantity_on_hand
+                item.stock_item.quantity_on_hand -= qty_issued
+                item.stock_item.last_issue_date = timezone.now().date()
+                item.stock_item.total_value = \
+                    item.stock_item.quantity_on_hand * item.stock_item.average_unit_cost
+                item.stock_item.save()
+                
+                # Record movement
+                StockMovement.objects.create(
+                    stock_item=item.stock_item,
+                    movement_type='ISSUE',
+                    reference_number=issue.issue_number,
+                    reference_type='ISSUE',
+                    quantity=qty_issued,
+                    unit_cost=item.stock_item.average_unit_cost,
+                    balance_before=balance_before,
+                    balance_after=item.stock_item.quantity_on_hand,
+                    from_store=issue.store,
+                    performed_by=request.user
+                )
+        
+        issue.save()
+        messages.success(request, f'Stock issue {issue.issue_number} processed successfully!')
+        return redirect('issue_detail', issue_id=issue.id)
+    
+    context = {
+        'issue': issue,
+        'items': issue.items.all(),
+    }
+    
+    return render(request, 'inventory/issue_process.html', context)
+
+
+# ============================================================================
+# ASSETS
+# ============================================================================
+
+@login_required
+def asset_list(request):
+    """List all assets"""
+    assets = Asset.objects.select_related(
+        'item', 'department', 'custodian', 'grn'
+    ).all()
+    
+    # Filters
+    filters = {
+        'search': request.GET.get('search', ''),
+        'status': request.GET.get('status', ''),
+        'department': request.GET.get('department', ''),
+    }
+    
+    # Apply filters
+    if filters['search']:
+        assets = assets.filter(
+            Q(asset_number__icontains=filters['search']) |
+            Q(asset_tag__icontains=filters['search']) |
+            Q(description__icontains=filters['search']) |
+            Q(serial_number__icontains=filters['search'])
+        )
+    
+    if filters['status']:
+        assets = assets.filter(status=filters['status'])
+    
+    if filters['department']:
+        assets = assets.filter(department_id=filters['department'])
+    
+    # Get filter options
+    departments = Department.objects.filter(is_active=True)
+    status_choices = Asset.ASSET_STATUS
+    
+    # Statistics
+    total_assets = assets.count()
+    total_value = assets.aggregate(
+        total=Coalesce(Sum('current_value'), Decimal('0'))
+    )['total']
+    active_assets = assets.filter(status='ACTIVE').count()
+    
+    context = {
+        'assets': assets.order_by('-created_at'),
+        'filters': filters,
+        'departments': departments,
+        'status_choices': status_choices,
+        'total_assets': total_assets,
+        'total_value': total_value,
+        'active_assets': active_assets,
+    }
+    
+    return render(request, 'inventory/asset_list.html', context)
+
+
+@login_required
+def asset_detail(request, asset_id):
+    """View asset details"""
+    asset = get_object_or_404(
+        Asset.objects.select_related(
+            'item', 'department', 'custodian', 'grn'
+        ),
+        id=asset_id
+    )
+    
+    context = {
+        'asset': asset,
+    }
+    
+    return render(request, 'inventory/asset_detail.html', context)
+
+
+# ============================================================================
+# API ENDPOINTS
+# ============================================================================
+
+@login_required
+def get_stock_items_by_store(request, store_id):
+    """API: Get stock items for a specific store"""
+    stock_items = StockItem.objects.filter(
+        store_id=store_id,
+        quantity_on_hand__gt=0
+    ).select_related('item').values(
+        'id', 'item__name', 'item__code', 'quantity_on_hand',
+        'unit_of_measure', 'average_unit_cost'
+    )
+    
+    return JsonResponse(list(stock_items), safe=False)
+
+
+@login_required
+def get_po_items(request, po_id):
+    """API: Get PO items for GRN creation"""
+    po_items = PurchaseOrderItem.objects.filter(
+        purchase_order_id=po_id
+    ).select_related('requisition_item').values(
+        'id', 'item_description', 'quantity', 'unit_of_measure',
+        'unit_price', 'quantity_delivered', 'quantity_pending'
+    )
+    
+    return JsonResponse(list(po_items), safe=False)

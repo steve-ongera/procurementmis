@@ -96,4 +96,29 @@ urlpatterns = [
     # path('reports/compliance/', views.compliance_report, name='compliance_report'),
     # path('reports/performance/', views.performance_report, name='performance_report'),
     
+    # Goods Received Notes
+    path('grn/', views.grn_list, name='grn_list'),
+    path('grn/<uuid:grn_id>/', views.grn_detail, name='grn_detail'),
+    path('grn/create/', views.grn_create, name='grn_create'),
+    path('grn/<uuid:grn_id>/inspect/', views.grn_inspect, name='grn_inspect'),
+    
+    # Stock Items
+    path('stock/', views.stock_list, name='stock_list'),
+    path('stock/<uuid:stock_id>/', views.stock_detail, name='stock_detail'),
+    path('stock/<uuid:stock_id>/adjustment/', views.stock_adjustment, name='stock_adjustment'),
+    
+    # Stock Issues
+    path('issues/', views.issue_list, name='issue_list'),
+    path('issues/create/', views.issue_create, name='issue_create'),
+    path('issues/<uuid:issue_id>/', views.issue_detail, name='issue_detail'),
+    path('issues/<uuid:issue_id>/process/', views.issue_process, name='issue_process'),
+    
+    # Assets
+    path('assets/', views.asset_list, name='asset_list'),
+    path('assets/<uuid:asset_id>/', views.asset_detail, name='asset_detail'),
+    
+    # API Endpoints
+    path('api/stock-items/<uuid:store_id>/', views.get_stock_items_by_store, name='api_stock_items'),
+    path('api/po-items/<uuid:po_id>/', views.get_po_items, name='api_po_items'),
+    
 ]
