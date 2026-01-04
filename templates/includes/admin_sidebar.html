@@ -104,12 +104,13 @@
             <i class="fas fa-chevron-right arrow"></i>
         </div>
         <div class="submenu" id="submenu-finance">
-            <a href="#" class="submenu-item">Budgets</a>
+             <a href="{% url 'finance_dashboard'%}" class="submenu-item">Finance Dashboard</a>
+            <a href="{% url 'budget_list'%}" class="submenu-item">Budgets</a>
             <a href="#" class="submenu-item">Budget Allocation</a>
-            <a href="#" class="submenu-item">Invoices</a>
-            <a href="#" class="submenu-item">Payments</a>
-            <a href="#" class="submenu-item">Financial Reports</a>
-            <a href="#" class="submenu-item">Expenditure</a>
+            <a href="{% url 'invoice_list'%}" class="submenu-item">Invoices</a>
+            <a href="{% url 'payment_list'%}" class="submenu-item">Payments</a>
+            <a href="{% url 'financial_reports'%}" class="submenu-item">Financial Reports</a>
+            <a href="{% url 'expenditure_report'%}" class="submenu-item">Expenditure</a>
         </div>
     </div>
 

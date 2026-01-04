@@ -10,69 +10,132 @@
     :root {
         --primary-color: #2563EB;
         --primary-light: #EFF6FF;
-        --secondary-color: #475569;
-        --success-color: #059669;
-        --warning-color: #D97706;
-        --danger-color: #DC2626;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
         --border-color: #E2E8F0;
-        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-        --hover-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
     }
 
     .breadcrumb {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 14px;
+        gap: 0.5rem;
+        font-size: 0.875rem;
         color: var(--secondary-color);
-        margin-bottom: 24px;
-        padding: 12px 0;
+        margin: 0;
     }
 
     .breadcrumb a {
         color: var(--primary-color);
         text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
     }
 
     .breadcrumb i {
-        font-size: 12px;
+        font-size: 0.75rem;
         color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn i {
+        font-size: 1rem;
+    }
+
+    .alert {
+        background: var(--primary-light);
+        border: 1px solid #93C5FD;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        color: #1E40AF;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+    }
+
+    .alert strong {
+        font-weight: 600;
     }
 
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 24px;
-        margin-bottom: 32px;
-    }
-
-    @media (max-width: 1200px) {
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    @media (max-width: 640px) {
-        .stats-grid {
-            grid-template-columns: 1fr;
-        }
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
     .stat-card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: var(--card-shadow);
-        transition: all 0.3s ease;
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
-        position: relative;
-        overflow: hidden;
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
     }
 
     .stat-card:hover {
-        box-shadow: var(--hover-shadow);
-        transform: translateY(-2px);
-        border-color: var(--primary-color);
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
     .stat-content {
@@ -82,132 +145,154 @@
     }
 
     .stat-info h3 {
-        font-size: 32px;
-        font-weight: 800;
+        font-size: 1.75rem;
+        font-weight: 600;
         color: #1E293B;
-        margin-bottom: 4px;
-        line-height: 1;
+        margin: 0 0 0.25rem 0;
+        line-height: 1.2;
     }
 
     .stat-info p {
-        font-size: 14px;
-        font-weight: 600;
+        font-size: 0.875rem;
         color: var(--secondary-color);
-        letter-spacing: 0.3px;
         margin: 0;
+        font-weight: 500;
     }
 
     .stat-icon {
-        width: 56px;
-        height: 56px;
-        border-radius: 12px;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.5rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 1.25rem;
         background: var(--primary-light);
         color: var(--primary-color);
     }
 
     .progress-card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: var(--card-shadow);
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
-        margin-bottom: 24px;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
     }
 
     .progress-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 16px;
+        margin-bottom: 1rem;
     }
 
     .progress-title {
-        font-size: 16px;
-        font-weight: 700;
+        font-size: 1rem;
+        font-weight: 600;
         color: #1E293B;
     }
 
     .progress-value {
-        font-size: 18px;
-        font-weight: 800;
+        font-size: 1.125rem;
+        font-weight: 600;
         color: var(--primary-color);
     }
 
     .progress-bar-container {
         background: #F1F5F9;
-        border-radius: 8px;
-        height: 24px;
+        border-radius: 0.5rem;
+        height: 1.25rem;
         overflow: hidden;
-        margin-bottom: 8px;
+        margin-bottom: 0.75rem;
     }
 
     .progress-bar {
         height: 100%;
-        background: linear-gradient(90deg, var(--success-color), #10B981);
+        background: var(--success-color);
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-weight: 700;
-        font-size: 12px;
-        transition: width 0.3s;
+        font-weight: 600;
+        font-size: 0.75rem;
+        transition: width 0.3s ease;
+        border-radius: 0.5rem;
     }
 
     .progress-bar.warning {
-        background: linear-gradient(90deg, var(--warning-color), #F59E0B);
+        background: var(--warning-color);
     }
 
     .progress-bar.danger {
-        background: linear-gradient(90deg, var(--danger-color), #EF4444);
+        background: var(--danger-color);
+    }
+
+    .progress-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .progress-item {
+        text-align: center;
+    }
+
+    .progress-item .label {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-bottom: 0.25rem;
+    }
+
+    .progress-item .value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
     }
 
     .chart-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        margin-bottom: 24px;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
     }
 
-    @media (max-width: 1024px) {
+    @media (max-width: 768px) {
         .chart-grid {
             grid-template-columns: 1fr;
         }
     }
 
     .card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: var(--card-shadow);
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
-        margin-bottom: 24px;
+        border-radius: 0.5rem;
+        overflow: hidden;
     }
 
     .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        padding-bottom: 16px;
+        padding: 1.25rem 1.5rem;
         border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
     }
 
     .card-title {
-        font-size: 18px;
-        font-weight: 700;
+        font-size: 1rem;
+        font-weight: 600;
         color: #1E293B;
+        margin: 0;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 0.75rem;
     }
 
     .card-title i {
         color: var(--primary-color);
-        font-size: 20px;
+        font-size: 1.25rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
     }
 
     .chart-container {
@@ -223,71 +308,130 @@
     .metric-badge {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
         background: var(--primary-light);
         color: var(--primary-color);
-        border-radius: 6px;
-        font-size: 14px;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
         font-weight: 600;
     }
 
-    .action-btn {
-        padding: 8px 16px;
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .action-btn:hover {
-        background: #1D4ED8;
-        transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-        background: white;
-        color: var(--primary-color);
-        border: 1px solid var(--primary-color);
+    .list-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
     }
 
     .list-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 16px;
+        padding: 1rem;
         border-bottom: 1px solid var(--border-color);
         transition: background 0.2s;
+        text-decoration: none;
+        color: inherit;
     }
 
     .list-item:hover {
-        background: #F8FAFC;
+        background: var(--hover-bg);
     }
 
     .list-item:last-child {
         border-bottom: none;
     }
 
-    .status-badge {
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
+    .list-item-content {
+        flex: 1;
     }
 
-    .status-pending { background: #FEF3C7; color: #92400E; }
-    .status-approved { background: #D1FAE5; color: #065F46; }
-    .status-processing { background: #DBEAFE; color: #1E40AF; }
-    .status-completed { background: #D1FAE5; color: #065F46; }
+    .list-item-title {
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    .list-item-subtitle {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .list-item-amount {
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
+        text-align: right;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .status-pending { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border: 1px solid #FDE68A;
+    }
+    .status-approved { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border: 1px solid #A7F3D0;
+    }
+    .status-processing { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border: 1px solid #BFDBFE;
+    }
+    .status-completed { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border: 1px solid #A7F3D0;
+    }
+    .status-failed { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border: 1px solid #FECACA;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .card-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .card-footer .btn {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.75rem;
+    }
 </style>
 {% endblock %}
 
@@ -296,28 +440,34 @@
     <div>
         <h1 class="page-title">Finance Dashboard</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
-            <span>Finance</span>
+            <span>Finance Dashboard</span>
         </div>
     </div>
-    <div style="display: flex; gap: 12px;">
-        <a href="{% url 'budget_list' %}" class="action-btn btn-secondary">
-            <i class="bi bi-wallet2"></i> Budgets
+    <div class="header-actions">
+        <a href="{% url 'budget_list' %}" class="btn">
+            <i class="bi bi-wallet2"></i>
+            Budgets
         </a>
-        <a href="{% url 'invoice_list' %}" class="action-btn btn-secondary">
-            <i class="bi bi-receipt"></i> Invoices
+        <a href="{% url 'invoice_list' %}" class="btn">
+            <i class="bi bi-receipt"></i>
+            Invoices
         </a>
-        <a href="{% url 'financial_reports' %}" class="action-btn">
-            <i class="bi bi-file-earmark-bar-graph"></i> Reports
+        <a href="{% url 'financial_reports' %}" class="btn btn-primary">
+            <i class="bi bi-file-earmark-bar-graph"></i>
+            Reports
         </a>
     </div>
 </div>
 
 <!-- Budget Year Info -->
 {% if current_year %}
-<div class="alert" style="background: var(--primary-light); border: 1px solid #93C5FD; color: #1E40AF; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-    <strong>📅 Current Budget Year:</strong> {{ current_year.name }} 
+<div class="alert">
+    <strong>Current Budget Year:</strong> {{ current_year.name }} 
     ({{ current_year.start_date|date:"M d, Y" }} - {{ current_year.end_date|date:"M d, Y" }})
 </div>
 {% endif %}
@@ -376,8 +526,8 @@
 <!-- Budget Progress -->
 <div class="progress-card">
     <div class="progress-header">
-        <span class="progress-title">Budget Utilization</span>
-        <span class="progress-value">{{ utilization_rate }}%</span>
+        <div class="progress-title">Budget Utilization</div>
+        <div class="progress-value">{{ utilization_rate }}%</div>
     </div>
     <div class="progress-bar-container">
         <div class="progress-bar {% if utilization_rate > 80 %}danger{% elif utilization_rate > 60 %}warning{% endif %}" 
@@ -385,30 +535,24 @@
             {{ utilization_rate }}%
         </div>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px;">
-        <div>
-            <div style="font-size: 12px; color: #64748B;">Allocated</div>
-            <div style="font-size: 16px; font-weight: 700; color: #1E293B;">
-                KES {{ total_allocated|floatformat:0|intcomma }}
-            </div>
+    <div class="progress-grid">
+        <div class="progress-item">
+            <div class="label">Allocated</div>
+            <div class="value">KES {{ total_allocated|floatformat:0|intcomma }}</div>
         </div>
-        <div>
-            <div style="font-size: 12px; color: #64748B;">Committed</div>
-            <div style="font-size: 16px; font-weight: 700; color: var(--warning-color);">
-                KES {{ total_committed|floatformat:0|intcomma }}
-            </div>
+        <div class="progress-item">
+            <div class="label">Committed</div>
+            <div class="value" style="color: var(--warning-color);">KES {{ total_committed|floatformat:0|intcomma }}</div>
         </div>
-        <div>
-            <div style="font-size: 12px; color: #64748B;">Spent</div>
-            <div style="font-size: 16px; font-weight: 700; color: var(--danger-color);">
-                KES {{ total_spent|floatformat:0|intcomma }}
-            </div>
+        <div class="progress-item">
+            <div class="label">Spent</div>
+            <div class="value" style="color: var(--danger-color);">KES {{ total_spent|floatformat:0|intcomma }}</div>
         </div>
     </div>
 </div>
 
 <!-- Invoice & Payment Stats -->
-<div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
     <div class="stat-card">
         <div class="stat-content">
             <div class="stat-info">
@@ -436,6 +580,7 @@
 
 <!-- Charts Row 1 -->
 <div class="chart-grid">
+    <!-- Monthly Expenditure -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">
@@ -447,11 +592,14 @@
                 This Month: KES {{ payments_this_month|floatformat:0|intcomma }}
             </div>
         </div>
-        <div class="chart-container">
-            <canvas id="expenditureChart"></canvas>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="expenditureChart"></canvas>
+            </div>
         </div>
     </div>
 
+    <!-- Budget by Category -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">
@@ -459,14 +607,17 @@
                 Budget by Category
             </h2>
         </div>
-        <div class="chart-container">
-            <canvas id="categoryChart"></canvas>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="categoryChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Charts Row 2 -->
 <div class="chart-grid">
+    <!-- Department Budget -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">
@@ -474,11 +625,14 @@
                 Department Budget Utilization
             </h2>
         </div>
-        <div class="chart-container-small">
-            <canvas id="deptChart"></canvas>
+        <div class="card-body">
+            <div class="chart-container-small">
+                <canvas id="deptChart"></canvas>
+            </div>
         </div>
     </div>
 
+    <!-- Invoice Status -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">
@@ -486,14 +640,16 @@
                 Invoice Status
             </h2>
         </div>
-        <div class="chart-container-small">
-            <canvas id="invoiceChart"></canvas>
+        <div class="card-body">
+            <div class="chart-container-small">
+                <canvas id="invoiceChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Lists Row -->
-<div class="chart-grid">
+<!-- Recent Activity Lists -->
+<div class="list-section">
     <!-- Recent Invoices -->
     <div class="card">
         <div class="card-header">
@@ -501,35 +657,33 @@
                 <i class="bi bi-receipt"></i>
                 Recent Invoices
             </h2>
-            <a href="{% url 'invoice_list' %}" class="action-btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
-                View All
-            </a>
         </div>
         <div>
             {% for invoice in recent_invoices %}
-            <a href="{% url 'invoice_detail' invoice.id %}" style="text-decoration: none; color: inherit;">
-                <div class="list-item">
-                    <div>
-                        <div style="font-weight: 700; color: var(--primary-color); margin-bottom: 4px;">
-                            {{ invoice.invoice_number }}
-                        </div>
-                        <div style="font-size: 14px; color: #64748B;">
-                            {{ invoice.supplier.name }}
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-weight: 700; margin-bottom: 4px;">
-                            KES {{ invoice.total_amount|floatformat:0|intcomma }}
-                        </div>
-                        <span class="status-badge status-{{ invoice.status|lower }}">
-                            {{ invoice.get_status_display }}
-                        </span>
-                    </div>
+            <a href="{% url 'invoice_detail' invoice.id %}" class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-title">{{ invoice.invoice_number }}</div>
+                    <div class="list-item-subtitle">{{ invoice.supplier.name }}</div>
+                </div>
+                <div>
+                    <div class="list-item-amount">KES {{ invoice.total_amount|floatformat:0|intcomma }}</div>
+                    <span class="status-badge status-{{ invoice.status|lower }}">
+                        {{ invoice.get_status_display }}
+                    </span>
                 </div>
             </a>
             {% empty %}
-            <p style="text-align: center; color: #94A3B8; padding: 24px;">No recent invoices</p>
+            <div class="empty-state">
+                <i class="bi bi-receipt"></i>
+                <p>No recent invoices</p>
+            </div>
             {% endfor %}
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'invoice_list' %}" class="btn">
+                View All Invoices
+                <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     </div>
 
@@ -540,33 +694,33 @@
                 <i class="bi bi-credit-card"></i>
                 Recent Payments
             </h2>
-            <a href="{% url 'payment_list' %}" class="action-btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
-                View All
-            </a>
         </div>
         <div>
             {% for payment in recent_payments %}
             <div class="list-item">
-                <div>
-                    <div style="font-weight: 700; color: var(--primary-color); margin-bottom: 4px;">
-                        {{ payment.payment_number }}
-                    </div>
-                    <div style="font-size: 14px; color: #64748B;">
-                        {{ payment.invoice.supplier.name }}
-                    </div>
+                <div class="list-item-content">
+                    <div class="list-item-title">{{ payment.payment_number }}</div>
+                    <div class="list-item-subtitle">{{ payment.invoice.supplier.name }}</div>
                 </div>
-                <div style="text-align: right;">
-                    <div style="font-weight: 700; margin-bottom: 4px;">
-                        KES {{ payment.payment_amount|floatformat:0|intcomma }}
-                    </div>
+                <div>
+                    <div class="list-item-amount">KES {{ payment.payment_amount|floatformat:0|intcomma }}</div>
                     <span class="status-badge status-{{ payment.status|lower }}">
                         {{ payment.get_status_display }}
                     </span>
                 </div>
             </div>
             {% empty %}
-            <p style="text-align: center; color: #94A3B8; padding: 24px;">No recent payments</p>
+            <div class="empty-state">
+                <i class="bi bi-credit-card"></i>
+                <p>No recent payments</p>
+            </div>
             {% endfor %}
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'payment_list' %}" class="btn">
+                View All Payments
+                <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     </div>
 </div>
@@ -577,17 +731,25 @@
 <script>
     const colors = {
         primary: '#2563EB',
-        success: '#059669',
-        warning: '#D97706',
-        danger: '#DC2626',
+        success: '#10B981',
+        warning: '#F59E0B',
+        danger: '#EF4444',
         purple: '#7C3AED',
         teal: '#0D9488',
         orange: '#EA580C',
         gray: '#94A3B8',
+        indigo: '#4F46E5',
+        pink: '#DB2777'
     };
 
+    // Chart defaults
+    Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#64748B';
+
     // Expenditure Trend Chart
-    new Chart(document.getElementById('expenditureChart'), {
+    const expenditureCtx = document.getElementById('expenditureChart').getContext('2d');
+    new Chart(expenditureCtx, {
         type: 'line',
         data: {
             labels: {{ expenditure_chart.labels|safe }},
@@ -595,12 +757,14 @@
                 label: 'Monthly Expenditure (KES)',
                 data: {{ expenditure_chart.values|safe }},
                 borderColor: colors.primary,
-                backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                borderWidth: 3,
+                backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                borderWidth: 2,
                 fill: true,
-                tension: 0.4,
-                pointRadius: 5,
+                tension: 0.3,
+                pointRadius: 4,
                 pointBackgroundColor: colors.primary,
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 2,
             }]
         },
         options: {
@@ -617,16 +781,21 @@
             scales: {
                 y: {
                     beginAtZero: true,
+                    grid: { color: 'rgba(226, 232, 240, 0.5)' },
                     ticks: {
-                        callback: (value) => `${(value/1000000).toFixed(1)}M`
+                        callback: (value) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value.toLocaleString()
                     }
+                },
+                x: {
+                    grid: { color: 'rgba(226, 232, 240, 0.5)' }
                 }
             }
         }
     });
 
     // Category Budget Chart
-    new Chart(document.getElementById('categoryChart'), {
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(categoryCtx, {
         type: 'doughnut',
         data: {
             labels: {{ category_chart.labels|safe }},
@@ -635,8 +804,10 @@
                 backgroundColor: [
                     colors.primary, colors.success, colors.warning,
                     colors.danger, colors.purple, colors.teal,
-                    colors.orange, colors.gray
+                    colors.orange, colors.indigo, colors.pink
                 ],
+                borderWidth: 1,
+                borderColor: '#FFFFFF'
             }]
         },
         options: {
@@ -644,13 +815,17 @@
             maintainAspectRatio: false,
             cutout: '65%',
             plugins: {
-                legend: { position: 'right' }
+                legend: { 
+                    position: 'right',
+                    labels: { padding: 15 }
+                }
             }
         }
     });
 
     // Department Chart
-    new Chart(document.getElementById('deptChart'), {
+    const deptCtx = document.getElementById('deptChart').getContext('2d');
+    new Chart(deptCtx, {
         type: 'bar',
         data: {
             labels: {{ dept_chart.labels|safe }},
@@ -659,11 +834,13 @@
                     label: 'Allocated',
                     data: {{ dept_chart.allocated|safe }},
                     backgroundColor: colors.primary,
+                    borderRadius: 4,
                 },
                 {
                     label: 'Spent',
                     data: {{ dept_chart.spent|safe }},
                     backgroundColor: colors.danger,
+                    borderRadius: 4,
                 }
             ]
         },
@@ -673,16 +850,21 @@
             scales: {
                 y: {
                     beginAtZero: true,
+                    grid: { color: 'rgba(226, 232, 240, 0.5)' },
                     ticks: {
-                        callback: (value) => `${(value/1000000).toFixed(1)}M`
+                        callback: (value) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value.toLocaleString()
                     }
+                },
+                x: {
+                    grid: { display: false }
                 }
             }
         }
     });
 
     // Invoice Status Chart
-    new Chart(document.getElementById('invoiceChart'), {
+    const invoiceCtx = document.getElementById('invoiceChart').getContext('2d');
+    new Chart(invoiceCtx, {
         type: 'pie',
         data: {
             labels: {{ invoice_chart.labels|safe }},
@@ -692,13 +874,18 @@
                     colors.primary, colors.warning, colors.success,
                     colors.danger, colors.purple
                 ],
+                borderWidth: 1,
+                borderColor: '#FFFFFF'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'right' }
+                legend: { 
+                    position: 'right',
+                    labels: { padding: 15 }
+                }
             }
         }
     });

@@ -4,29 +4,45 @@
 {% block title %}Purchase Orders Dashboard - University Procurement System{% endblock %}
 
 {% block extra_css %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 <style>
     :root {
         --primary-color: #2563EB;
         --primary-light: #EFF6FF;
-        --secondary-color: #475569;
-        --success-color: #059669;
-        --warning-color: #D97706;
-        --danger-color: #DC2626;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
         --border-color: #E2E8F0;
-        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-        --hover-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
     }
 
     .breadcrumb {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 14px;
+        gap: 0.5rem;
+        font-size: 0.875rem;
         color: var(--secondary-color);
-        margin-bottom: 24px;
-        padding: 12px 0;
+        margin: 0;
     }
 
     .breadcrumb a {
@@ -36,49 +52,72 @@
     }
 
     .breadcrumb a:hover {
-        color: var(--primary-color);
+        color: var(--primary-dark);
         text-decoration: underline;
     }
 
     .breadcrumb i {
-        font-size: 12px;
+        font-size: 0.75rem;
         color: #94A3B8;
     }
 
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Stats Grid */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 24px;
-        margin-bottom: 32px;
-    }
-
-    @media (max-width: 1200px) {
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    @media (max-width: 640px) {
-        .stats-grid {
-            grid-template-columns: 1fr;
-        }
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
     .stat-card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: var(--card-shadow);
-        transition: all 0.3s ease;
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
-        position: relative;
-        overflow: hidden;
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
     }
 
     .stat-card:hover {
-        box-shadow: var(--hover-shadow);
-        transform: translateY(-2px);
-        border-color: var(--primary-color);
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
     .stat-content {
@@ -88,76 +127,76 @@
     }
 
     .stat-info h3 {
-        font-size: 32px;
-        font-weight: 800;
+        font-size: 1.75rem;
+        font-weight: 600;
         color: #1E293B;
-        margin-bottom: 4px;
-        line-height: 1;
+        margin: 0 0 0.25rem 0;
+        line-height: 1.2;
     }
 
     .stat-info p {
-        font-size: 14px;
-        font-weight: 600;
+        font-size: 0.875rem;
         color: var(--secondary-color);
-        letter-spacing: 0.3px;
         margin: 0;
+        font-weight: 500;
     }
 
     .stat-icon {
-        width: 56px;
-        height: 56px;
-        border-radius: 12px;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.5rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 1.25rem;
         background: var(--primary-light);
         color: var(--primary-color);
     }
 
-    .chart-grid {
+    /* Charts Grid */
+    .charts-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        margin-bottom: 24px;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
     }
 
-    @media (max-width: 1024px) {
-        .chart-grid {
+    @media (max-width: 768px) {
+        .charts-grid {
             grid-template-columns: 1fr;
         }
     }
 
     .card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: var(--card-shadow);
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
-        margin-bottom: 24px;
+        border-radius: 0.5rem;
+        overflow: hidden;
     }
 
     .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        padding-bottom: 16px;
+        padding: 1.25rem 1.5rem;
         border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
     }
 
     .card-title {
-        font-size: 18px;
-        font-weight: 700;
+        font-size: 1rem;
+        font-weight: 600;
         color: #1E293B;
+        margin: 0;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 0.75rem;
     }
 
     .card-title i {
         color: var(--primary-color);
-        font-size: 20px;
+        font-size: 1.25rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
     }
 
     .chart-container {
@@ -173,105 +212,171 @@
     .metric-badge {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
         background: var(--primary-light);
         color: var(--primary-color);
-        border-radius: 6px;
-        font-size: 14px;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
         font-weight: 600;
     }
 
-    .po-list-item {
+    .metric-badge i {
+        font-size: 0.875rem;
+    }
+
+    /* PO Lists */
+    .list-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .list-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 16px;
+        padding: 1rem;
         border-bottom: 1px solid var(--border-color);
         transition: background 0.2s;
+        text-decoration: none;
+        color: inherit;
     }
 
-    .po-list-item:hover {
-        background: #F8FAFC;
+    .list-item:hover {
+        background: var(--hover-bg);
     }
 
-    .po-list-item:last-child {
+    .list-item:last-child {
         border-bottom: none;
     }
 
-    .po-info {
+    .list-item-content {
         flex: 1;
     }
 
-    .po-number {
-        font-weight: 700;
+    .list-item-title {
+        font-weight: 600;
         color: var(--primary-color);
-        margin-bottom: 4px;
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
     }
 
-    .po-supplier {
-        font-size: 14px;
+    .list-item-subtitle {
+        font-size: 0.75rem;
         color: var(--secondary-color);
-        margin-bottom: 2px;
+        margin-bottom: 0.25rem;
     }
 
-    .po-date {
-        font-size: 12px;
+    .list-item-date {
+        font-size: 0.75rem;
         color: #94A3B8;
     }
 
-    .po-amount {
-        font-weight: 700;
-        font-size: 16px;
+    .list-item-amount {
+        font-weight: 600;
         color: #1E293B;
-        margin-right: 16px;
+        margin-right: 1rem;
+        font-size: 0.875rem;
+        text-align: right;
     }
 
     .status-badge {
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-
-    .status-draft { background: #F1F5F9; color: #64748B; }
-    .status-pending { background: #FEF3C7; color: #92400E; }
-    .status-approved { background: #D1FAE5; color: #065F46; }
-    .status-sent { background: #DBEAFE; color: #1E40AF; }
-    .status-delivered { background: #D1FAE5; color: #065F46; }
-    .status-cancelled { background: #FEE2E2; color: #991B1B; }
-
-    .action-btn {
-        padding: 8px 16px;
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
     }
 
-    .action-btn:hover {
-        background: #1D4ED8;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+    .status-badge i {
+        font-size: 0.625rem;
     }
 
-    .btn-secondary {
-        background: white;
-        color: var(--primary-color);
-        border: 1px solid var(--primary-color);
+    .status-draft { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+    .status-pending { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-approved { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-sent { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .status-delivered { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-cancelled { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
     }
 
-    .btn-secondary:hover {
-        background: var(--primary-light);
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .card-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .card-footer .btn {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .list-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .chart-container,
+        .chart-container-small {
+            height: 250px;
+        }
     }
 </style>
 {% endblock %}
@@ -281,17 +386,22 @@
     <div>
         <h1 class="page-title">Purchase Orders Dashboard</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <span>Purchase Orders</span>
         </div>
     </div>
-    <div style="display: flex; gap: 12px;">
-        <a href="{% url 'po_list' %}" class="action-btn btn-secondary">
-            <i class="bi bi-list-ul"></i> View All POs
+    <div class="header-actions">
+        <a href="{% url 'po_list' %}" class="btn">
+            <i class="bi bi-list-ul"></i>
+            View All POs
         </a>
-        <a href="{% url 'po_create' %}" class="action-btn">
-            <i class="bi bi-plus-circle"></i> Create PO
+        <a href="{% url 'po_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create PO
         </a>
     </div>
 </div>
@@ -348,7 +458,8 @@
 </div>
 
 <!-- Charts Row 1 -->
-<div class="chart-grid">
+<div class="charts-grid">
+    <!-- PO Monthly Trend -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">
@@ -360,11 +471,14 @@
                 This Month: KES {{ monthly_value|floatformat:0|intcomma }}
             </div>
         </div>
-        <div class="chart-container">
-            <canvas id="poTrendChart"></canvas>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="poTrendChart"></canvas>
+            </div>
         </div>
     </div>
 
+    <!-- PO Status Distribution -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">
@@ -372,14 +486,17 @@
                 PO Status Distribution
             </h2>
         </div>
-        <div class="chart-container">
-            <canvas id="statusChart"></canvas>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="statusChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Charts Row 2 -->
-<div class="chart-grid">
+<div class="charts-grid">
+    <!-- Top Suppliers -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">
@@ -387,11 +504,14 @@
                 Top Suppliers by PO Value
             </h2>
         </div>
-        <div class="chart-container-small">
-            <canvas id="supplierChart"></canvas>
+        <div class="card-body">
+            <div class="chart-container-small">
+                <canvas id="supplierChart"></canvas>
+            </div>
         </div>
     </div>
 
+    <!-- Department Spend -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">
@@ -399,14 +519,16 @@
                 Department Spend
             </h2>
         </div>
-        <div class="chart-container-small">
-            <canvas id="deptChart"></canvas>
+        <div class="card-body">
+            <div class="chart-container-small">
+                <canvas id="deptChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Lists Row -->
-<div class="chart-grid">
+<!-- Recent Activity Lists -->
+<div class="list-grid">
     <!-- Recent POs -->
     <div class="card">
         <div class="card-header">
@@ -414,26 +536,40 @@
                 <i class="bi bi-clock-history"></i>
                 Recent Purchase Orders
             </h2>
-            <a href="{% url 'po_list' %}" class="action-btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
-                View All
-            </a>
         </div>
         <div>
             {% for po in recent_pos %}
-            <a href="{% url 'po_detail' po.id %}" style="text-decoration: none; color: inherit;">
-                <div class="po-list-item">
-                    <div class="po-info">
-                        <div class="po-number">{{ po.po_number }}</div>
-                        <div class="po-supplier">{{ po.supplier.name }}</div>
-                        <div class="po-date">{{ po.po_date|date:"M d, Y" }}</div>
-                    </div>
-                    <div class="po-amount">KES {{ po.total_amount|floatformat:0|intcomma }}</div>
-                    <span class="status-badge status-{{ po.status|lower }}">{{ po.get_status_display }}</span>
+            <a href="{% url 'po_detail' po.id %}" class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-title">{{ po.po_number }}</div>
+                    <div class="list-item-subtitle">{{ po.supplier.name }}</div>
+                    <div class="list-item-date">{{ po.po_date|date:"M d, Y" }}</div>
+                </div>
+                <div>
+                    <div class="list-item-amount">KES {{ po.total_amount|floatformat:0|intcomma }}</div>
+                    <span class="status-badge status-{{ po.status|lower }}">
+                        {% if po.status == 'DRAFT' %}<i class="bi bi-pencil"></i>{% endif %}
+                        {% if po.status == 'PENDING' %}<i class="bi bi-clock"></i>{% endif %}
+                        {% if po.status == 'APPROVED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                        {% if po.status == 'SENT' %}<i class="bi bi-send"></i>{% endif %}
+                        {% if po.status == 'DELIVERED' %}<i class="bi bi-truck"></i>{% endif %}
+                        {% if po.status == 'CANCELLED' %}<i class="bi bi-x-circle"></i>{% endif %}
+                        {{ po.get_status_display }}
+                    </span>
                 </div>
             </a>
             {% empty %}
-            <p style="text-align: center; color: #94A3B8; padding: 24px;">No recent purchase orders</p>
+            <div class="empty-state">
+                <i class="bi bi-file-earmark-text"></i>
+                <p>No recent purchase orders</p>
+            </div>
             {% endfor %}
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'po_list' %}" class="btn">
+                View All Purchase Orders
+                <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     </div>
 
@@ -447,60 +583,75 @@
         </div>
         <div>
             {% for po in pending_delivery %}
-            <a href="{% url 'po_detail' po.id %}" style="text-decoration: none; color: inherit;">
-                <div class="po-list-item">
-                    <div class="po-info">
-                        <div class="po-number">{{ po.po_number }}</div>
-                        <div class="po-supplier">{{ po.supplier.name }}</div>
-                        <div class="po-date">Due: {{ po.delivery_date|date:"M d, Y" }}</div>
+            <a href="{% url 'po_detail' po.id %}" class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-title">{{ po.po_number }}</div>
+                    <div class="list-item-subtitle">{{ po.supplier.name }}</div>
+                    <div class="list-item-date">
+                        Due: {{ po.delivery_date|date:"M d, Y" }}
+                        {% if po.is_overdue %}
+                        <span style="color: var(--danger-color); font-weight: 600; margin-left: 0.5rem;">
+                            <i class="bi bi-exclamation-circle"></i> Overdue
+                        </span>
+                        {% endif %}
                     </div>
-                    <div class="po-amount">KES {{ po.total_amount|floatformat:0|intcomma }}</div>
-                    <span class="status-badge status-{{ po.status|lower }}">{{ po.get_status_display }}</span>
+                </div>
+                <div>
+                    <div class="list-item-amount">KES {{ po.total_amount|floatformat:0|intcomma }}</div>
+                    <span class="status-badge status-{{ po.status|lower }}">
+                        <i class="bi bi-clock"></i>
+                        {{ po.get_status_display }}
+                    </span>
                 </div>
             </a>
             {% empty %}
-            <p style="text-align: center; color: #94A3B8; padding: 24px;">No pending deliveries</p>
+            <div class="empty-state">
+                <i class="bi bi-check-circle"></i>
+                <p>No pending deliveries</p>
+            </div>
             {% endfor %}
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'po_list' %}?status=SENT" class="btn">
+                View All Active POs
+                <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
     const colors = {
         primary: '#2563EB',
         primaryLight: 'rgba(37, 99, 235, 0.1)',
-        secondary: '#475569',
-        success: '#059669',
-        successLight: 'rgba(5, 150, 105, 0.1)',
-        warning: '#D97706',
-        warningLight: 'rgba(217, 119, 6, 0.1)',
-        danger: '#DC2626',
-        purple: '#7C3AED',
-        teal: '#0D9488',
+        success: '#10B981',
+        successLight: 'rgba(16, 185, 129, 0.1)',
+        warning: '#F59E0B',
+        warningLight: 'rgba(245, 158, 11, 0.1)',
+        danger: '#EF4444',
+        purple: '#8B5CF6',
+        teal: '#14B8A6',
         orange: '#EA580C',
-        gray: '#94A3B8',
-        grayLight: 'rgba(148, 163, 184, 0.1)'
+        indigo: '#4F46E5'
     };
 
-    function createGradient(ctx, color, opacity = 0.2) {
+    // Chart defaults
+    Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#64748B';
+
+    // Create gradient
+    function createGradient(ctx, color) {
         const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        const rgb = hexToRgb(color);
-        gradient.addColorStop(0, `rgba(${rgb}, ${opacity})`);
-        gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+        gradient.addColorStop(0, color + '20');
+        gradient.addColorStop(1, color + '00');
         return gradient;
     }
 
-    function hexToRgb(hex) {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? 
-            `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
-            '37, 99, 235';
-    }
-
-    // PO Trend Chart (Dual Axis)
+    // PO Trend Chart
     const poTrendCtx = document.getElementById('poTrendChart').getContext('2d');
     const poGradient = createGradient(poTrendCtx, colors.primary);
     
@@ -512,10 +663,10 @@
                 {
                     label: 'PO Count',
                     data: {{ po_trend_chart.counts|safe }},
-                    backgroundColor: colors.primaryLight,
+                    backgroundColor: poGradient,
                     borderColor: colors.primary,
-                    borderWidth: 2,
-                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderRadius: 4,
                     yAxisID: 'y',
                 },
                 {
@@ -524,11 +675,11 @@
                     type: 'line',
                     borderColor: colors.success,
                     backgroundColor: 'transparent',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    pointRadius: 5,
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 4,
                     pointBackgroundColor: colors.success,
-                    pointBorderColor: '#ffffff',
+                    pointBorderColor: '#FFFFFF',
                     pointBorderWidth: 2,
                     yAxisID: 'y1',
                 }
@@ -537,64 +688,64 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
             plugins: {
                 legend: { 
                     display: true,
                     position: 'top',
                     labels: {
                         usePointStyle: true,
-                        padding: 20,
-                        color: colors.secondary
+                        padding: 15,
+                        color: '#475569'
                     }
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    titleColor: '#1E293B',
-                    bodyColor: colors.secondary,
-                    borderColor: colors.primary,
-                    borderWidth: 1,
-                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            if (context.datasetIndex === 0) {
+                                return `POs: ${context.parsed.y}`;
+                            } else {
+                                return `Value: KES ${context.parsed.y.toLocaleString()}`;
+                            }
+                        }
+                    }
                 }
             },
             scales: {
                 x: {
-                    grid: { display: false },
-                    ticks: { color: colors.secondary }
+                    grid: { 
+                        display: false 
+                    }
                 },
                 y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
                     beginAtZero: true,
-                    grid: { color: colors.grayLight },
-                    ticks: { 
-                        color: colors.secondary,
-                        callback: (value) => value.toFixed(0)
+                    grid: { 
+                        color: 'rgba(226, 232, 240, 0.5)' 
                     },
                     title: {
                         display: true,
                         text: 'PO Count',
-                        color: colors.secondary
+                        color: '#64748B',
+                        font: { size: 12 }
                     }
                 },
                 y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
                     beginAtZero: true,
-                    grid: { display: false },
-                    ticks: { 
-                        color: colors.secondary,
-                        callback: (value) => `${(value/1000000).toFixed(1)}M`
+                    position: 'right',
+                    grid: { 
+                        display: false 
                     },
                     title: {
                         display: true,
                         text: 'Value (KES)',
-                        color: colors.secondary
+                        color: '#64748B',
+                        font: { size: 12 }
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value >= 1000000 ? 
+                                `KES ${(value/1000000).toFixed(1)}M` : 
+                                `KES ${value.toLocaleString()}`;
+                        }
                     }
                 }
             }
@@ -602,7 +753,8 @@
     });
 
     // Status Distribution Chart
-    new Chart(document.getElementById('statusChart'), {
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
         type: 'doughnut',
         data: {
             labels: {{ status_chart.labels|safe }},
@@ -616,9 +768,10 @@
                     colors.purple,
                     colors.orange,
                     colors.danger,
-                    colors.gray
+                    '#94A3B8'
                 ],
-                borderWidth: 0,
+                borderWidth: 1,
+                borderColor: '#FFFFFF'
             }]
         },
         options: {
@@ -628,11 +781,17 @@
             plugins: {
                 legend: { 
                     position: 'right',
-                    labels: {
-                        padding: 15,
+                    labels: { 
+                        padding: 12,
                         usePointStyle: true,
-                        color: colors.secondary,
                         font: { size: 11 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.label}: ${context.parsed}`;
+                        }
                     }
                 }
             }
@@ -640,7 +799,8 @@
     });
 
     // Top Suppliers Chart
-    new Chart(document.getElementById('supplierChart'), {
+    const supplierCtx = document.getElementById('supplierChart').getContext('2d');
+    new Chart(supplierCtx, {
         type: 'bar',
         data: {
             labels: {{ supplier_chart.labels|safe }},
@@ -648,7 +808,7 @@
                 label: 'Total Value (KES)',
                 data: {{ supplier_chart.values|safe }},
                 backgroundColor: colors.primary,
-                borderRadius: 8,
+                borderRadius: 4,
             }]
         },
         options: {
@@ -659,12 +819,11 @@
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (context) => {
+                        label: function(context) {
                             const index = context.dataIndex;
-                            const value = context.parsed.x;
                             const count = {{ supplier_chart.counts|safe }}[index];
                             return [
-                                `Value: KES ${value.toLocaleString()}`,
+                                `Value: KES ${context.parsed.x.toLocaleString()}`,
                                 `POs: ${count}`
                             ];
                         }
@@ -673,22 +832,29 @@
             },
             scales: {
                 x: {
-                    grid: { color: colors.grayLight },
-                    ticks: { 
-                        color: colors.secondary,
-                        callback: (value) => `${(value/1000000).toFixed(1)}M`
+                    grid: { 
+                        color: 'rgba(226, 232, 240, 0.5)' 
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value >= 1000000 ? 
+                                `KES ${(value/1000000).toFixed(1)}M` : 
+                                `KES ${value.toLocaleString()}`;
+                        }
                     }
                 },
                 y: {
-                    grid: { display: false },
-                    ticks: { color: colors.secondary }
+                    grid: { 
+                        display: false 
+                    }
                 }
             }
         }
     });
 
     // Department Spend Chart
-    new Chart(document.getElementById('deptChart'), {
+    const deptCtx = document.getElementById('deptChart').getContext('2d');
+    new Chart(deptCtx, {
         type: 'bar',
         data: {
             labels: {{ dept_chart.labels|safe }},
@@ -696,7 +862,7 @@
                 label: 'Department Spend (KES)',
                 data: {{ dept_chart.values|safe }},
                 backgroundColor: colors.warning,
-                borderRadius: 8,
+                borderRadius: 4,
             }]
         },
         options: {
@@ -706,25 +872,33 @@
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (context) => `KES ${context.parsed.y.toLocaleString()}`
+                        label: function(context) {
+                            return `KES ${context.parsed.y.toLocaleString()}`;
+                        }
                     }
                 }
             },
             scales: {
                 x: {
-                    grid: { display: false },
-                    ticks: { 
-                        color: colors.secondary,
+                    grid: { 
+                        display: false 
+                    },
+                    ticks: {
                         maxRotation: 45,
                         minRotation: 45
                     }
                 },
                 y: {
                     beginAtZero: true,
-                    grid: { color: colors.grayLight },
-                    ticks: { 
-                        color: colors.secondary,
-                        callback: (value) => `${(value/1000000).toFixed(1)}M`
+                    grid: { 
+                        color: 'rgba(226, 232, 240, 0.5)' 
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value >= 1000000 ? 
+                                `KES ${(value/1000000).toFixed(1)}M` : 
+                                `KES ${value.toLocaleString()}`;
+                        }
                     }
                 }
             }

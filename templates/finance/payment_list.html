@@ -8,23 +8,346 @@
 <style>
     :root {
         --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
         --border-color: #E2E8F0;
-        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding: 0 0.5rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn-icon:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+    }
+
+    .btn-icon i {
+        font-size: 1rem;
+    }
+
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn {
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.875rem;
+    }
+
+    .btn-secondary {
+        background: var(--card-bg);
+        color: var(--secondary-color);
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--hover-bg);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #1D4ED8;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: #64748B;
+    }
+
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
     }
 
     .status-badge {
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
         text-transform: uppercase;
+        letter-spacing: 0.025em;
     }
 
-    .status-pending { background: #FEF3C7; color: #92400E; }
-    .status-processing { background: #DBEAFE; color: #1E40AF; }
-    .status-completed { background: #D1FAE5; color: #065F46; }
-    .status-failed { background: #FEE2E2; color: #991B1B; }
-    .status-cancelled { background: #F1F5F9; color: #64748B; }
+    .status-badge i {
+        font-size: 0.625rem;
+    }
+
+    .status-pending { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border: 1px solid #FDE68A;
+    }
+    .status-processing { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border: 1px solid #BFDBFE;
+    }
+    .status-completed { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border: 1px solid #A7F3D0;
+    }
+    .status-failed { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border: 1px solid #FECACA;
+    }
+    .status-cancelled { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border: 1px solid #E2E8F0;
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .link-primary {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s;
+    }
+
+    .link-primary:hover {
+        color: #1D4ED8;
+        text-decoration: underline;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    @media (max-width: 1024px) {
+        .filter-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-header {
+            padding: 1rem;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -34,8 +357,9 @@
         <h1 class="page-title">Payment Management</h1>
     </div>
     <div>
-        <a href="{% url 'finance_dashboard' %}" class="action-btn btn-secondary">
-            <i class="bi bi-graph-up"></i> Dashboard
+        <a href="{% url 'finance_dashboard' %}" class="btn-icon">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
         </a>
     </div>
 </div>
@@ -45,8 +369,11 @@
     <form method="get">
         <div class="filter-grid">
             <div class="form-group">
-                <label class="form-label">Search</label>
-                <input type="text" name="search" class="form-control" placeholder="Payment number..." value="{{ filters.search }}">
+                <label class="form-label">Search Payments</label>
+                <div style="position: relative;">
+                    <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94A3B8; font-size: 0.875rem;"></i>
+                    <input type="text" name="search" class="form-control" placeholder="Payment number, supplier..." value="{{ filters.search }}" style="padding-left: 2.25rem;">
+                </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Status</label>
@@ -67,22 +394,27 @@
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label">Date From</label>
-                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Date To</label>
-                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+                <label class="form-label">Date Range</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}" placeholder="From">
+                    <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}" placeholder="To">
+                </div>
             </div>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 12px;">
-            <a href="{% url 'payment_list' %}" class="action-btn btn-secondary">Clear</a>
-            <button type="submit" class="action-btn">Apply Filters</button>
+        <div class="filter-actions">
+            <a href="{% url 'payment_list' %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-funnel"></i>
+                Apply Filters
+            </button>
         </div>
     </form>
 </div>
 
-<!-- Summary -->
+<!-- Summary Cards -->
 <div class="summary-grid">
     <div class="summary-card">
         <div class="summary-value">{{ payments.count|intcomma }}</div>
@@ -90,7 +422,7 @@
     </div>
     <div class="summary-card">
         <div class="summary-value">KES {{ total_paid|floatformat:0|intcomma }}</div>
-        <div class="summary-label">Completed Payments</div>
+        <div class="summary-label">Completed Amount</div>
     </div>
     <div class="summary-card">
         <div class="summary-value">KES {{ pending_amount|floatformat:0|intcomma }}</div>
@@ -100,9 +432,13 @@
 
 <!-- Payments Table -->
 <div class="table-card">
-    <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color);">
-        <h2 style="font-size: 18px; font-weight: 700;">Payments ({{ payments.count }})</h2>
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-credit-card"></i>
+            Payments ({{ payments.count }})
+        </h2>
     </div>
+    
     {% if payments %}
     <table>
         <thead>
@@ -120,36 +456,62 @@
         <tbody>
             {% for payment in payments %}
             <tr>
-                <td style="font-weight: 700;">{{ payment.payment_number }}</td>
+                <td style="font-weight: 600; color: #1E293B;">{{ payment.payment_number }}</td>
                 <td>{{ payment.invoice.supplier.name }}</td>
                 <td>
-                    <a href="{% url 'invoice_detail' payment.invoice.id %}" style="color: var(--primary-color); text-decoration: none;">
+                    <a href="{% url 'invoice_detail' payment.invoice.id %}" class="link-primary">
                         {{ payment.invoice.invoice_number }}
+                        <i class="bi bi-arrow-up-right" style="font-size: 0.75rem; margin-left: 0.25rem;"></i>
                     </a>
                 </td>
                 <td>{{ payment.payment_date|date:"M d, Y" }}</td>
-                <td style="font-weight: 700;">KES {{ payment.payment_amount|floatformat:0|intcomma }}</td>
-                <td>{{ payment.get_payment_method_display }}</td>
+                <td class="amount-cell">KES {{ payment.payment_amount|floatformat:0|intcomma }}</td>
+                <td>
+                    <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                        {% if payment.payment_method == 'BANK_TRANSFER' %}
+                            <i class="bi bi-bank"></i>
+                        {% elif payment.payment_method == 'CHEQUE' %}
+                            <i class="bi bi-card-checklist"></i>
+                        {% elif payment.payment_method == 'CASH' %}
+                            <i class="bi bi-cash"></i>
+                        {% endif %}
+                        {{ payment.get_payment_method_display }}
+                    </span>
+                </td>
                 <td>
                     <span class="status-badge status-{{ payment.status|lower }}">
+                        {% if payment.status == 'PENDING' %}
+                            <i class="bi bi-clock"></i>
+                        {% elif payment.status == 'PROCESSING' %}
+                            <i class="bi bi-arrow-repeat"></i>
+                        {% elif payment.status == 'COMPLETED' %}
+                            <i class="bi bi-check-circle"></i>
+                        {% elif payment.status == 'FAILED' %}
+                            <i class="bi bi-x-circle"></i>
+                        {% elif payment.status == 'CANCELLED' %}
+                            <i class="bi bi-slash-circle"></i>
+                        {% endif %}
                         {{ payment.get_status_display }}
                     </span>
                 </td>
                 <td>
                     {% if payment.status == 'PENDING' and user.role in 'FINANCE,ADMIN' %}
-                    <a href="{% url 'payment_process' payment.id %}" style="color: var(--primary-color);">
+                    <a href="{% url 'payment_process' payment.id %}" class="action-btn" title="Process Payment">
                         <i class="bi bi-check-circle"></i>
                     </a>
                     {% endif %}
+                    <a href="#" class="action-btn" title="View Details">
+                        <i class="bi bi-eye"></i>
+                    </a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% else %}
-    <div style="text-align: center; padding: 60px; color: #94A3B8;">
-        <i class="bi bi-inbox" style="font-size: 48px;"></i>
-        <p>No payments found</p>
+    <div class="empty-state">
+        <i class="bi bi-credit-card-2-front"></i>
+        <p>No payments found matching your criteria</p>
     </div>
     {% endif %}
 </div>
