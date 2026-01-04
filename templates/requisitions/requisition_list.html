@@ -9,23 +9,40 @@
     :root {
         --primary-color: #2563EB;
         --primary-light: #EFF6FF;
-        --secondary-color: #475569;
-        --success-color: #059669;
-        --warning-color: #D97706;
-        --danger-color: #DC2626;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
         --border-color: #E2E8F0;
-        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-        --hover-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
     }
 
     .breadcrumb {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 14px;
+        gap: 0.5rem;
+        font-size: 0.875rem;
         color: var(--secondary-color);
-        margin-bottom: 24px;
-        padding: 12px 0;
+        margin: 0;
     }
 
     .breadcrumb a {
@@ -35,158 +52,164 @@
     }
 
     .breadcrumb a:hover {
-        color: var(--primary-color);
+        color: var(--primary-dark);
         text-decoration: underline;
     }
 
     .breadcrumb i {
-        font-size: 12px;
+        font-size: 0.75rem;
         color: #94A3B8;
     }
 
-    .page-header {
+    .header-actions {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-    }
-
-    .page-title {
-        font-size: 28px;
-        font-weight: 800;
-        color: #1E293B;
-        margin: 0;
+        gap: 0.75rem;
     }
 
     .btn {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
         text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
     }
 
     .btn-primary {
         background: var(--primary-color);
         color: white;
+        border-color: var(--primary-color);
     }
 
     .btn-primary:hover {
-        background: #1D4ED8;
-        transform: translateY(-1px);
-        box-shadow: var(--hover-shadow);
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
     }
 
+    /* Stats Grid */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 20px;
-        margin-bottom: 24px;
-    }
-
-    @media (max-width: 1024px) {
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    @media (max-width: 640px) {
-        .stats-grid {
-            grid-template-columns: 1fr;
-        }
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
     .stat-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: var(--card-shadow);
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
     .stat-value {
-        font-size: 28px;
-        font-weight: 800;
+        font-size: 1.5rem;
+        font-weight: 600;
         color: #1E293B;
-        margin-bottom: 4px;
+        margin-bottom: 0.25rem;
     }
 
     .stat-label {
-        font-size: 13px;
-        font-weight: 600;
+        font-size: 0.875rem;
         color: var(--secondary-color);
-        letter-spacing: 0.3px;
+        font-weight: 500;
     }
 
-    .card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: var(--card-shadow);
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
-        margin-bottom: 24px;
-    }
-
-    .filter-section {
-        background: #F8FAFC;
-        padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 24px;
-        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
     }
 
     .filter-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-        margin-bottom: 16px;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
     }
 
     .form-group {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 0.375rem;
     }
 
-    .form-group label {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--secondary-color);
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
     }
 
     .form-control {
-        padding: 10px 12px;
+        padding: 0.5rem 0.75rem;
         border: 1px solid var(--border-color);
-        border-radius: 8px;
-        font-size: 14px;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
         transition: all 0.2s;
     }
 
     .form-control:focus {
         outline: none;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px var(--primary-light);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
     .filter-actions {
         display: flex;
-        gap: 12px;
         justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
     }
 
-    .btn-secondary {
-        background: #E2E8F0;
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
         color: var(--secondary-color);
-    }
-
-    .btn-secondary:hover {
-        background: #CBD5E1;
+        font-size: 1.125rem;
     }
 
     .table-responsive {
@@ -199,124 +222,259 @@
     }
 
     thead {
-        background: #F8FAFC;
-        border-bottom: 2px solid var(--border-color);
+        background: var(--table-header);
     }
 
     th {
-        padding: 12px 16px;
+        padding: 1rem 1.5rem;
         text-align: left;
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--secondary-color);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    td {
-        padding: 16px;
-        border-bottom: 1px solid var(--border-color);
-        font-size: 14px;
-        color: #334155;
-    }
-
-    tr:hover {
-        background: var(--primary-light);
-    }
-
-    .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-size: 12px;
+        font-size: 0.75rem;
         font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
         white-space: nowrap;
     }
 
-    .badge-draft { background: #F1F5F9; color: #64748B; }
-    .badge-submitted { background: #DBEAFE; color: #1E40AF; }
-    .badge-approved { background: #D1FAE5; color: #047857; }
-    .badge-rejected { background: #FEE2E2; color: #B91C1C; }
-    .badge-cancelled { background: #F1F5F9; color: #475569; }
-
-    .badge-low { background: #F1F5F9; color: #64748B; }
-    .badge-medium { background: #FEF3C7; color: #92400E; }
-    .badge-high { background: #FED7AA; color: #9A3412; }
-    .badge-urgent { background: #FEE2E2; color: #991B1B; }
-
-    .action-buttons {
-        display: flex;
-        gap: 8px;
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
     }
 
-    .btn-sm {
-        padding: 6px 12px;
-        font-size: 13px;
+    tbody tr {
+        transition: background-color 0.2s;
     }
 
-    .btn-info {
-        background: #0EA5E9;
-        color: white;
+    tbody tr:hover {
+        background: var(--hover-bg);
     }
 
-    .btn-info:hover {
-        background: #0284C7;
+    .req-number {
+        font-weight: 600;
+        color: var(--primary-color);
     }
 
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .date-cell {
+        color: var(--secondary-color);
+    }
+
+    /* Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .badge i {
+        font-size: 0.625rem;
+    }
+
+    /* Status Badges */
+    .badge-draft { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+    .badge-submitted { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .badge-approved { 
+        background: #D1FAE5; 
+        color: #047857; 
+        border-color: #A7F3D0;
+    }
+    .badge-rejected { 
+        background: #FEE2E2; 
+        color: #B91C1C; 
+        border-color: #FECACA;
+    }
+    .badge-cancelled { 
+        background: #F1F5F9; 
+        color: #475569; 
+        border-color: #E2E8F0;
+    }
+
+    /* Priority Badges */
+    .badge-low { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+    .badge-medium { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .badge-high { 
+        background: #FED7AA; 
+        color: #9A3412; 
+        border-color: #FDBA74;
+    }
+    .badge-urgent { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--primary-color);
+        background: var(--primary-light);
+        border: 1px solid var(--primary-light);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+        background: #DBEAFE;
+        border-color: var(--primary-color);
+    }
+
+    .action-btn i {
+        font-size: 0.875rem;
+    }
+
+    /* Pagination */
     .pagination {
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 8px;
-        margin-top: 24px;
+        gap: 0.5rem;
+        padding: 1.5rem;
+        border-top: 1px solid var(--border-color);
     }
 
-    .pagination a, .pagination span {
-        padding: 8px 14px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
+    .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
         color: var(--secondary-color);
         text-decoration: none;
-        font-size: 14px;
-        font-weight: 600;
+        border: 1px solid var(--border-color);
         transition: all 0.2s;
     }
 
-    .pagination a:hover {
+    .page-link:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .page-link.current {
         background: var(--primary-color);
         color: white;
         border-color: var(--primary-color);
     }
 
-    .pagination .current {
-        background: var(--primary-color);
-        color: white;
-        border-color: var(--primary-color);
+    .page-link i {
+        font-size: 0.875rem;
     }
 
+    .page-info {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0 1rem;
+    }
+
+    /* Empty State */
     .empty-state {
         text-align: center;
-        padding: 60px 20px;
+        padding: 4rem 2rem;
+        color: #94A3B8;
     }
 
     .empty-state i {
-        font-size: 64px;
-        color: #CBD5E1;
-        margin-bottom: 16px;
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
     }
 
     .empty-state h3 {
-        font-size: 18px;
-        font-weight: 700;
+        font-size: 1rem;
+        font-weight: 600;
         color: var(--secondary-color);
-        margin-bottom: 8px;
+        margin: 0 0 0.5rem 0;
     }
 
     .empty-state p {
-        color: #94A3B8;
-        font-size: 14px;
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
     }
 </style>
 {% endblock %}
@@ -326,15 +484,20 @@
     <div>
         <h1 class="page-title">Requisitions</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <span>Requisitions</span>
         </div>
     </div>
-    <a href="{% url 'requisition_create' %}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i>
-        New Requisition
-    </a>
+    <div class="header-actions">
+        <a href="{% url 'requisition_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            New Requisition
+        </a>
+    </div>
 </div>
 
 <!-- Statistics -->
@@ -358,64 +521,73 @@
 </div>
 
 <!-- Filters -->
-<div class="card">
+<div class="filter-card">
     <form method="get" action="{% url 'requisition_list' %}">
-        <div class="filter-section">
-            <div class="filter-grid">
-                <div class="form-group">
-                    <label>Search</label>
-                    <input type="text" name="search" class="form-control" placeholder="REQ number, title..." value="{{ search_query }}">
-                </div>
-                <div class="form-group">
-                    <label>Status</label>
-                    <select name="status" class="form-control">
-                        <option value="">All Statuses</option>
-                        {% for value, label in status_choices %}
-                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Priority</label>
-                    <select name="priority" class="form-control">
-                        <option value="">All Priorities</option>
-                        {% for value, label in priority_choices %}
-                        <option value="{{ value }}" {% if priority_filter == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Department</label>
-                    <select name="department" class="form-control">
-                        <option value="">All Departments</option>
-                        {% for dept in departments %}
-                        <option value="{{ dept.id }}" {% if department_filter == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Date From</label>
-                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
-                </div>
-                <div class="form-group">
-                    <label>Date To</label>
-                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Search Requisitions</label>
+                <div style="position: relative;">
+                    <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94A3B8; font-size: 0.875rem;"></i>
+                    <input type="text" name="search" class="form-control" placeholder="REQ number, title..." value="{{ search_query }}" style="padding-left: 2.25rem;">
                 </div>
             </div>
-            <div class="filter-actions">
-                <a href="{% url 'requisition_list' %}" class="btn btn-secondary btn-sm">
-                    <i class="bi bi-x-circle"></i>
-                    Clear Filters
-                </a>
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-funnel"></i>
-                    Apply Filters
-                </button>
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Priority</label>
+                <select name="priority" class="form-control">
+                    <option value="">All Priorities</option>
+                    {% for value, label in priority_choices %}
+                    <option value="{{ value }}" {% if priority_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <select name="department" class="form-control">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if department_filter == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date Range</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}" placeholder="From">
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}" placeholder="To">
+                </div>
             </div>
         </div>
+        <div class="filter-actions">
+            <a href="{% url 'requisition_list' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Apply Filters
+            </button>
+        </div>
     </form>
+</div>
 
-    <!-- Table -->
+<!-- Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-file-earmark-text"></i>
+            Requisitions ({{ total_count }})
+        </h2>
+    </div>
+
     {% if requisitions %}
     <div class="table-responsive">
         <table>
@@ -435,20 +607,34 @@
             <tbody>
                 {% for req in requisitions %}
                 <tr>
-                    <td><strong>{{ req.requisition_number }}</strong></td>
-                    <td>{{ req.title|truncatewords:8 }}</td>
+                    <td>
+                        <span class="req-number">{{ req.requisition_number }}</span>
+                    </td>
+                    <td>{{ req.title|truncatewords:5 }}</td>
                     <td>{{ req.department.name }}</td>
                     <td>{{ req.requested_by.get_full_name }}</td>
-                    <td><strong>KES {{ req.estimated_amount|floatformat:0|intcomma }}</strong></td>
+                    <td class="amount-cell">KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
                     <td>
                         {% if req.status == 'DRAFT' %}
-                        <span class="badge badge-draft"><i class="bi bi-pencil"></i> Draft</span>
+                        <span class="badge badge-draft">
+                            <i class="bi bi-pencil"></i>
+                            Draft
+                        </span>
                         {% elif req.status == 'SUBMITTED' %}
-                        <span class="badge badge-submitted"><i class="bi bi-clock"></i> Submitted</span>
+                        <span class="badge badge-submitted">
+                            <i class="bi bi-clock"></i>
+                            Submitted
+                        </span>
                         {% elif req.status == 'APPROVED' %}
-                        <span class="badge badge-approved"><i class="bi bi-check-circle"></i> Approved</span>
+                        <span class="badge badge-approved">
+                            <i class="bi bi-check-circle"></i>
+                            Approved
+                        </span>
                         {% elif req.status == 'REJECTED' %}
-                        <span class="badge badge-rejected"><i class="bi bi-x-circle"></i> Rejected</span>
+                        <span class="badge badge-rejected">
+                            <i class="bi bi-x-circle"></i>
+                            Rejected
+                        </span>
                         {% else %}
                         <span class="badge badge-submitted">{{ req.get_status_display }}</span>
                         {% endif %}
@@ -464,14 +650,12 @@
                         <span class="badge badge-low">Low</span>
                         {% endif %}
                     </td>
-                    <td>{{ req.created_at|date:"M d, Y" }}</td>
+                    <td class="date-cell">{{ req.created_at|date:"M d, Y" }}</td>
                     <td>
-                        <div class="action-buttons">
-                            <a href="{% url 'requisition_detail' req.id %}" class="btn btn-info btn-sm">
-                                <i class="bi bi-eye"></i>
-                                View
-                            </a>
-                        </div>
+                        <a href="{% url 'requisition_detail' req.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                            View
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -483,21 +667,21 @@
     {% if page_obj.has_other_pages %}
     <div class="pagination">
         {% if page_obj.has_previous %}
-        <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+        <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link" title="First Page">
             <i class="bi bi-chevron-double-left"></i>
         </a>
-        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link" title="Previous Page">
             <i class="bi bi-chevron-left"></i>
         </a>
         {% endif %}
 
-        <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
 
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link" title="Next Page">
             <i class="bi bi-chevron-right"></i>
         </a>
-        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link" title="Last Page">
             <i class="bi bi-chevron-double-right"></i>
         </a>
         {% endif %}
@@ -508,6 +692,10 @@
         <i class="bi bi-inbox"></i>
         <h3>No Requisitions Found</h3>
         <p>Try adjusting your filters or create a new requisition</p>
+        <a href="{% url 'requisition_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create Requisition
+        </a>
     </div>
     {% endif %}
 </div>
