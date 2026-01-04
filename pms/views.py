@@ -2812,3 +2812,625 @@ def get_tender_statistics(request):
         return JsonResponse({'success': True, 'data': stats})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Sum, Count, Q, Avg, F
+from django.db import transaction
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
+from datetime import timedelta, datetime
+from decimal import Decimal
+import json
+
+from .models import (
+    PurchaseOrder, PurchaseOrderItem, Requisition, Supplier, 
+    Bid, POAmendment, User, Department, Budget, GoodsReceivedNote,
+    Invoice, StockMovement
+)
+
+
+@login_required
+def po_dashboard(request):
+    """Purchase Order Dashboard with statistics and charts"""
+    
+    # Date filters
+    today = timezone.now().date()
+    thirty_days_ago = today - timedelta(days=30)
+    current_year = today.year
+    
+    # Basic statistics
+    total_pos = PurchaseOrder.objects.count()
+    pending_pos = PurchaseOrder.objects.filter(
+        status__in=['DRAFT', 'PENDING_APPROVAL']
+    ).count()
+    active_pos = PurchaseOrder.objects.filter(
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'PARTIAL_DELIVERY']
+    ).count()
+    
+    # Financial statistics
+    total_po_value = PurchaseOrder.objects.filter(
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'PARTIAL_DELIVERY', 'DELIVERED', 'CLOSED']
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    monthly_value = PurchaseOrder.objects.filter(
+        po_date__gte=thirty_days_ago
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    # Status distribution
+    status_data = PurchaseOrder.objects.values('status').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    status_chart = {
+        'labels': [dict(PurchaseOrder.STATUS_CHOICES).get(item['status'], item['status']) 
+                   for item in status_data],
+        'values': [item['count'] for item in status_data]
+    }
+    
+    # Monthly PO trend (last 6 months)
+    months = []
+    po_counts = []
+    po_values = []
+    
+    for i in range(5, -1, -1):
+        month_date = today - timedelta(days=30*i)
+        month_start = month_date.replace(day=1)
+        if i > 0:
+            next_month = month_date.replace(day=28) + timedelta(days=4)
+            month_end = next_month.replace(day=1) - timedelta(days=1)
+        else:
+            month_end = today
+            
+        month_pos = PurchaseOrder.objects.filter(
+            po_date__gte=month_start,
+            po_date__lte=month_end
+        )
+        
+        months.append(month_start.strftime('%b %Y'))
+        po_counts.append(month_pos.count())
+        po_values.append(float(month_pos.aggregate(
+            total=Sum('total_amount'))['total'] or 0))
+    
+    po_trend_chart = {
+        'labels': months,
+        'counts': po_counts,
+        'values': po_values
+    }
+    
+    # Top suppliers by PO value
+    top_suppliers = PurchaseOrder.objects.values(
+        'supplier__name'
+    ).annotate(
+        total_value=Sum('total_amount'),
+        po_count=Count('id')
+    ).order_by('-total_value')[:5]
+    
+    supplier_chart = {
+        'labels': [item['supplier__name'] for item in top_suppliers],
+        'values': [float(item['total_value']) for item in top_suppliers],
+        'counts': [item['po_count'] for item in top_suppliers]
+    }
+    
+    # Department spend
+    dept_spend = PurchaseOrder.objects.filter(
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'DELIVERED', 'CLOSED']
+    ).values(
+        'requisition__department__name'
+    ).annotate(
+        total_spend=Sum('total_amount')
+    ).order_by('-total_spend')[:8]
+    
+    dept_chart = {
+        'labels': [item['requisition__department__name'] or 'N/A' 
+                   for item in dept_spend],
+        'values': [float(item['total_spend']) for item in dept_spend]
+    }
+    
+    # Recent POs
+    recent_pos = PurchaseOrder.objects.select_related(
+        'supplier', 'requisition', 'created_by'
+    ).order_by('-created_at')[:10]
+    
+    # Pending approvals
+    pending_approvals = PurchaseOrder.objects.filter(
+        status='PENDING_APPROVAL'
+    ).select_related('supplier', 'requisition').order_by('-created_at')[:5]
+    
+    # Delivery tracking
+    pending_delivery = PurchaseOrder.objects.filter(
+        status__in=['SENT', 'ACKNOWLEDGED', 'PARTIAL_DELIVERY'],
+        delivery_date__lte=today + timedelta(days=7)
+    ).select_related('supplier').order_by('delivery_date')[:10]
+    
+    # Performance metrics
+    avg_po_value = PurchaseOrder.objects.filter(
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'DELIVERED', 'CLOSED']
+    ).aggregate(avg=Avg('total_amount'))['avg'] or 0
+    
+    # Delivery performance
+    delivered_pos = PurchaseOrder.objects.filter(status='DELIVERED')
+    on_time_delivery = delivered_pos.filter(
+        delivery_date__gte=F('po_date')
+    ).count()
+    total_delivered = delivered_pos.count()
+    delivery_rate = (on_time_delivery / total_delivered * 100) if total_delivered > 0 else 0
+    
+    context = {
+        'total_pos': total_pos,
+        'pending_pos': pending_pos,
+        'active_pos': active_pos,
+        'total_po_value': total_po_value,
+        'monthly_value': monthly_value,
+        'avg_po_value': avg_po_value,
+        'delivery_rate': round(delivery_rate, 1),
+        'status_chart': status_chart,
+        'po_trend_chart': po_trend_chart,
+        'supplier_chart': supplier_chart,
+        'dept_chart': dept_chart,
+        'recent_pos': recent_pos,
+        'pending_approvals': pending_approvals,
+        'pending_delivery': pending_delivery,
+    }
+    
+    return render(request, 'procurement/po_dashboard.html', context)
+
+
+@login_required
+def po_list(request):
+    """List all purchase orders with filtering and search"""
+    
+    pos = PurchaseOrder.objects.select_related(
+        'supplier', 'requisition', 'created_by', 'approved_by'
+    ).all()
+    
+    # Filters
+    status_filter = request.GET.get('status')
+    supplier_filter = request.GET.get('supplier')
+    department_filter = request.GET.get('department')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    search = request.GET.get('search')
+    
+    if status_filter:
+        pos = pos.filter(status=status_filter)
+    
+    if supplier_filter:
+        pos = pos.filter(supplier_id=supplier_filter)
+    
+    if department_filter:
+        pos = pos.filter(requisition__department_id=department_filter)
+    
+    if date_from:
+        pos = pos.filter(po_date__gte=date_from)
+    
+    if date_to:
+        pos = pos.filter(po_date__lte=date_to)
+    
+    if search:
+        pos = pos.filter(
+            Q(po_number__icontains=search) |
+            Q(supplier__name__icontains=search) |
+            Q(requisition__requisition_number__icontains=search)
+        )
+    
+    pos = pos.order_by('-created_at')
+    
+    # Get filter options
+    suppliers = Supplier.objects.filter(status='APPROVED').order_by('name')
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    
+    # Statistics for current filter
+    total_value = pos.aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    context = {
+        'pos': pos,
+        'suppliers': suppliers,
+        'departments': departments,
+        'status_choices': PurchaseOrder.STATUS_CHOICES,
+        'total_value': total_value,
+        'filters': {
+            'status': status_filter,
+            'supplier': supplier_filter,
+            'department': department_filter,
+            'date_from': date_from,
+            'date_to': date_to,
+            'search': search,
+        }
+    }
+    
+    return render(request, 'procurement/po_list.html', context)
+
+
+@login_required
+def po_detail(request, po_id):
+    """Purchase Order detail view"""
+    
+    po = get_object_or_404(
+        PurchaseOrder.objects.select_related(
+            'supplier', 'requisition', 'bid', 'created_by', 'approved_by'
+        ),
+        id=po_id
+    )
+    
+    # Get PO items
+    po_items = po.items.select_related('requisition_item').all()
+    
+    # Get amendments
+    amendments = po.amendments.select_related(
+        'requested_by', 'approved_by'
+    ).order_by('-created_at')
+    
+    # Get GRNs
+    grns = po.grns.select_related('store', 'received_by').order_by('-created_at')
+    
+    # Get invoices
+    invoices = po.invoices.select_related('supplier').order_by('-created_at')
+    
+    # Calculate delivery progress
+    total_items = po_items.count()
+    items_delivered = po_items.filter(
+        quantity_delivered__gte=F('quantity')
+    ).count()
+    delivery_progress = (items_delivered / total_items * 100) if total_items > 0 else 0
+    
+    # Calculate invoice status
+    total_invoiced = invoices.aggregate(
+        total=Sum('total_amount')
+    )['total'] or 0
+    invoice_progress = (total_invoiced / po.total_amount * 100) if po.total_amount > 0 else 0
+    
+    context = {
+        'po': po,
+        'po_items': po_items,
+        'amendments': amendments,
+        'grns': grns,
+        'invoices': invoices,
+        'delivery_progress': round(delivery_progress, 1),
+        'invoice_progress': round(invoice_progress, 1),
+    }
+    
+    return render(request, 'procurement/po_detail.html', context)
+
+
+@login_required
+def po_create(request):
+    """Create new purchase order from approved requisition"""
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Get form data
+                requisition_id = request.POST.get('requisition')
+                supplier_id = request.POST.get('supplier')
+                bid_id = request.POST.get('bid')
+                delivery_date = request.POST.get('delivery_date')
+                delivery_address = request.POST.get('delivery_address')
+                payment_terms = request.POST.get('payment_terms')
+                warranty_terms = request.POST.get('warranty_terms', '')
+                special_instructions = request.POST.get('special_instructions', '')
+                
+                # Validate
+                requisition = get_object_or_404(Requisition, id=requisition_id)
+                supplier = get_object_or_404(Supplier, id=supplier_id)
+                
+                # Check if requisition is approved
+                if requisition.status != 'APPROVED':
+                    messages.error(request, 'Requisition must be fully approved')
+                    return redirect('po_create')
+                
+                # Check if PO already exists for this requisition
+                if PurchaseOrder.objects.filter(requisition=requisition).exists():
+                    messages.warning(request, 'Purchase order already exists for this requisition')
+                    return redirect('po_list')
+                
+                # Get bid if provided
+                bid = None
+                if bid_id:
+                    bid = get_object_or_404(Bid, id=bid_id)
+                
+                # Create PO
+                po = PurchaseOrder.objects.create(
+                    requisition=requisition,
+                    supplier=supplier,
+                    bid=bid,
+                    delivery_date=delivery_date,
+                    delivery_address=delivery_address,
+                    payment_terms=payment_terms,
+                    warranty_terms=warranty_terms,
+                    special_instructions=special_instructions,
+                    subtotal=0,
+                    tax_amount=0,
+                    total_amount=0,
+                    status='DRAFT',
+                    created_by=request.user
+                )
+                
+                # Create PO items from requisition items
+                req_items = requisition.items.all()
+                subtotal = Decimal('0.00')
+                
+                for req_item in req_items:
+                    # Get price from bid if available
+                    unit_price = req_item.estimated_unit_price
+                    
+                    if bid:
+                        bid_item = bid.items.filter(
+                            requisition_item=req_item
+                        ).first()
+                        if bid_item:
+                            unit_price = bid_item.quoted_unit_price
+                    
+                    PurchaseOrderItem.objects.create(
+                        purchase_order=po,
+                        requisition_item=req_item,
+                        item_description=req_item.item_description,
+                        specifications=req_item.specifications,
+                        quantity=req_item.quantity,
+                        unit_of_measure=req_item.unit_of_measure,
+                        unit_price=unit_price,
+                        total_price=req_item.quantity * unit_price
+                    )
+                    
+                    subtotal += req_item.quantity * unit_price
+                
+                # Calculate tax (assuming 16% VAT)
+                tax_rate = Decimal('0.16')
+                tax_amount = subtotal * tax_rate
+                total_amount = subtotal + tax_amount
+                
+                # Update PO totals
+                po.subtotal = subtotal
+                po.tax_amount = tax_amount
+                po.total_amount = total_amount
+                po.save()
+                
+                # Update budget commitment
+                if requisition.budget:
+                    budget = requisition.budget
+                    budget.committed_amount += total_amount
+                    budget.save()
+                
+                messages.success(request, f'Purchase Order {po.po_number} created successfully')
+                return redirect('po_detail', po_id=po.id)
+                
+        except Exception as e:
+            messages.error(request, f'Error creating purchase order: {str(e)}')
+            return redirect('po_create')
+    
+    # GET request
+    # Get approved requisitions without PO
+    approved_requisitions = Requisition.objects.filter(
+        status='APPROVED'
+    ).exclude(
+        id__in=PurchaseOrder.objects.values_list('requisition_id', flat=True)
+    ).select_related('department', 'requested_by')
+    
+    suppliers = Supplier.objects.filter(status='APPROVED').order_by('name')
+    
+    context = {
+        'approved_requisitions': approved_requisitions,
+        'suppliers': suppliers,
+    }
+    
+    return render(request, 'procurement/po_create.html', context)
+
+
+@login_required
+def po_update(request, po_id):
+    """Update purchase order (only in DRAFT status)"""
+    
+    po = get_object_or_404(PurchaseOrder, id=po_id)
+    
+    # Check if PO can be edited
+    if po.status not in ['DRAFT', 'PENDING_APPROVAL']:
+        messages.error(request, 'This purchase order cannot be edited')
+        return redirect('po_detail', po_id=po.id)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Update PO fields
+                po.delivery_date = request.POST.get('delivery_date')
+                po.delivery_address = request.POST.get('delivery_address')
+                po.payment_terms = request.POST.get('payment_terms')
+                po.warranty_terms = request.POST.get('warranty_terms', '')
+                po.special_instructions = request.POST.get('special_instructions', '')
+                po.save()
+                
+                messages.success(request, 'Purchase order updated successfully')
+                return redirect('po_detail', po_id=po.id)
+                
+        except Exception as e:
+            messages.error(request, f'Error updating purchase order: {str(e)}')
+    
+    context = {
+        'po': po,
+        'po_items': po.items.all()
+    }
+    
+    return render(request, 'procurement/po_update.html', context)
+
+
+@login_required
+def po_approve(request, po_id):
+    """Approve purchase order"""
+    
+    po = get_object_or_404(PurchaseOrder, id=po_id)
+    
+    # Check permission (should be procurement/finance officer)
+    if request.user.role not in ['PROCUREMENT', 'FINANCE', 'ADMIN']:
+        messages.error(request, 'You do not have permission to approve purchase orders')
+        return redirect('po_detail', po_id=po.id)
+    
+    if po.status != 'PENDING_APPROVAL':
+        messages.error(request, 'This purchase order is not pending approval')
+        return redirect('po_detail', po_id=po.id)
+    
+    if request.method == 'POST':
+        po.status = 'APPROVED'
+        po.approved_by = request.user
+        po.approved_at = timezone.now()
+        po.save()
+        
+        messages.success(request, f'Purchase Order {po.po_number} approved successfully')
+        return redirect('po_detail', po_id=po.id)
+    
+    return render(request, 'procurement/po_approve.html', {'po': po})
+
+
+@login_required
+def po_send(request, po_id):
+    """Send PO to supplier"""
+    
+    po = get_object_or_404(PurchaseOrder, id=po_id)
+    
+    if po.status != 'APPROVED':
+        messages.error(request, 'Only approved POs can be sent to suppliers')
+        return redirect('po_detail', po_id=po.id)
+    
+    if request.method == 'POST':
+        po.status = 'SENT'
+        po.sent_at = timezone.now()
+        po.save()
+        
+        # TODO: Send email to supplier
+        
+        messages.success(request, f'Purchase Order {po.po_number} sent to supplier')
+        return redirect('po_detail', po_id=po.id)
+    
+    return render(request, 'procurement/po_send.html', {'po': po})
+
+
+@login_required
+def po_cancel(request, po_id):
+    """Cancel purchase order"""
+    
+    po = get_object_or_404(PurchaseOrder, id=po_id)
+    
+    # Check if PO can be cancelled
+    if po.status in ['DELIVERED', 'CLOSED']:
+        messages.error(request, 'This purchase order cannot be cancelled')
+        return redirect('po_detail', po_id=po.id)
+    
+    if request.method == 'POST':
+        cancellation_reason = request.POST.get('cancellation_reason')
+        
+        with transaction.atomic():
+            po.status = 'CANCELLED'
+            po.save()
+            
+            # Release budget commitment
+            if po.requisition.budget:
+                budget = po.requisition.budget
+                budget.committed_amount -= po.total_amount
+                budget.save()
+            
+            messages.success(request, f'Purchase Order {po.po_number} cancelled')
+            return redirect('po_detail', po_id=po.id)
+    
+    context = {'po': po}
+    return render(request, 'procurement/po_cancel.html', context)
+
+
+@login_required
+def po_amendment_create(request, po_id):
+    """Create PO amendment"""
+    
+    po = get_object_or_404(PurchaseOrder, id=po_id)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                amendment_type = request.POST.get('amendment_type')
+                description = request.POST.get('description')
+                justification = request.POST.get('justification')
+                old_value = request.POST.get('old_value')
+                new_value = request.POST.get('new_value')
+                amount_change = Decimal(request.POST.get('amount_change', '0'))
+                
+                # Generate amendment number
+                last_amendment = po.amendments.order_by('-created_at').first()
+                if last_amendment:
+                    last_num = int(last_amendment.amendment_number.split('-')[-1])
+                    amendment_number = f"{po.po_number}-AMD-{last_num + 1:03d}"
+                else:
+                    amendment_number = f"{po.po_number}-AMD-001"
+                
+                POAmendment.objects.create(
+                    purchase_order=po,
+                    amendment_number=amendment_number,
+                    amendment_type=amendment_type,
+                    description=description,
+                    justification=justification,
+                    old_value=old_value,
+                    new_value=new_value,
+                    amount_change=amount_change,
+                    requested_by=request.user
+                )
+                
+                messages.success(request, 'Amendment request created successfully')
+                return redirect('po_detail', po_id=po.id)
+                
+        except Exception as e:
+            messages.error(request, f'Error creating amendment: {str(e)}')
+    
+    context = {
+        'po': po,
+        'amendment_types': POAmendment.AMENDMENT_TYPES
+    }
+    
+    return render(request, 'procurement/po_amendment_create.html', context)
+
+
+# AJAX endpoints
+
+@login_required
+def get_requisition_details(request, req_id):
+    """Get requisition details for PO creation"""
+    
+    requisition = get_object_or_404(Requisition, id=req_id)
+    
+    items = []
+    for item in requisition.items.all():
+        items.append({
+            'id': str(item.id),
+            'description': item.item_description,
+            'quantity': float(item.quantity),
+            'unit': item.unit_of_measure,
+            'price': float(item.estimated_unit_price),
+            'total': float(item.estimated_total)
+        })
+    
+    data = {
+        'number': requisition.requisition_number,
+        'department': requisition.department.name,
+        'estimated_amount': float(requisition.estimated_amount),
+        'items': items
+    }
+    
+    return JsonResponse(data)
+
+
+@login_required
+def get_supplier_bids(request, req_id, supplier_id):
+    """Get supplier bids for a requisition"""
+    
+    bids = Bid.objects.filter(
+        tender__requisition_id=req_id,
+        supplier_id=supplier_id,
+        status='AWARDED'
+    ).select_related('tender')
+    
+    bid_list = []
+    for bid in bids:
+        bid_list.append({
+            'id': str(bid.id),
+            'bid_number': bid.bid_number,
+            'amount': float(bid.bid_amount),
+            'tender': bid.tender.tender_number
+        })
+    
+    return JsonResponse({'bids': bid_list})
