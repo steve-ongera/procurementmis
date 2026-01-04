@@ -45,4 +45,20 @@ urlpatterns = [
     # API Endpoints
     path('api/requisition/<uuid:requisition_id>/items/', views.get_requisition_items, name='api_requisition_items'),
     path('api/tenders/statistics/', views.get_tender_statistics, name='api_tender_statistics'),
+    
+    # Purchase Order URLs
+    path('purchase-orders/dashboard/', views.po_dashboard, name='po_dashboard'),
+    path('purchase-orders/', views.po_list, name='po_list'),
+    path('purchase-orders/create/', views.po_create, name='po_create'),
+    path('purchase-orders/<uuid:po_id>/', views.po_detail, name='po_detail'),
+    path('purchase-orders/<uuid:po_id>/update/', views.po_update, name='po_update'),
+    path('purchase-orders/<uuid:po_id>/approve/', views.po_approve, name='po_approve'),
+    path('purchase-orders/<uuid:po_id>/send/', views.po_send, name='po_send'),
+    path('purchase-orders/<uuid:po_id>/cancel/', views.po_cancel, name='po_cancel'),
+    path('purchase-orders/<uuid:po_id>/amendment/create/', views.po_amendment_create, name='po_amendment_create'),
+    
+    # AJAX API Endpoints
+    path('api/requisition/<uuid:req_id>/details/', views.get_requisition_details, name='get_requisition_details'),
+    path('api/requisition/<uuid:req_id>/supplier/<uuid:supplier_id>/bids/', views.get_supplier_bids, name='get_supplier_bids'),
+    
 ]

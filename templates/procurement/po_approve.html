@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Approve {{ po.po_number }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --success-color: #059669;
+        --border-color: #E2E8F0;
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .approval-card {
+        background: white;
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        max-width: 700px;
+        margin: 40px auto;
+        text-align: center;
+    }
+
+    .icon-circle {
+        width: 80px;
+        height: 80px;
+        background: #D1FAE5;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        font-size: 36px;
+        color: var(--success-color);
+    }
+
+    .po-summary {
+        background: #F8FAFC;
+        border-radius: 8px;
+        padding: 24px;
+        margin: 24px 0;
+        text-align: left;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .summary-row:last-child {
+        border-bottom: none;
+    }
+
+    .action-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        margin-top: 32px;
+    }
+
+    .action-btn {
+        padding: 14px 40px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-approve {
+        background: var(--success-color);
+        color: white;
+    }
+
+    .btn-cancel {
+        background: white;
+        color: #64748B;
+        border: 1px solid var(--border-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="approval-card">
+    <div class="icon-circle">
+        <i class="bi bi-check-circle"></i>
+    </div>
+
+    <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 12px;">
+        Approve Purchase Order
+    </h1>
+    <p style="color: #64748B; font-size: 16px;">
+        Review and approve {{ po.po_number }}
+    </p>
+
+    <div class="po-summary">
+        <div class="summary-row">
+            <span style="font-weight: 600;">PO Number:</span>
+            <span>{{ po.po_number }}</span>
+        </div>
+        <div class="summary-row">
+            <span style="font-weight: 600;">Supplier:</span>
+            <span>{{ po.supplier.name }}</span>
+        </div>
+        <div class="summary-row">
+            <span style="font-weight: 600;">Total Amount:</span>
+            <span style="font-weight: 700; color: var(--primary-color);">
+                KES {{ po.total_amount|floatformat:0|intcomma }}
+            </span>
+        </div>
+        <div class="summary-row">
+            <span style="font-weight: 600;">Delivery Date:</span>
+            <span>{{ po.delivery_date|date:"F d, Y" }}</span>
+        </div>
+        <div class="summary-row">
+            <span style="font-weight: 600;">Items:</span>
+            <span>{{ po.items.count }} items</span>
+        </div>
+    </div>
+
+    <p style="color: #64748B; font-size: 14px; margin: 24px 0;">
+        By approving this purchase order, you confirm that it complies with procurement policies and budget availability.
+    </p>
+
+    <form method="post" class="action-buttons">
+        {% csrf_token %}
+        <a href="{% url 'po_detail' po.id %}" class="action-btn btn-cancel">
+            <i class="bi bi-x"></i> Cancel
+        </a>
+        <button type="submit" class="action-btn btn-approve">
+            <i class="bi bi-check-circle"></i> Approve Purchase Order
+        </button>
+    </form>
+</div>
+{% endblock %}

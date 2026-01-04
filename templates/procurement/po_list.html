@@ -1,0 +1,411 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Purchase Orders List - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --secondary-color: #475569;
+        --success-color: #059669;
+        --warning-color: #D97706;
+        --danger-color: #DC2626;
+        --border-color: #E2E8F0;
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        --hover-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--secondary-color);
+        margin-bottom: 24px;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb i {
+        font-size: 12px;
+        color: #94A3B8;
+    }
+
+    .filter-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+
+    .form-control {
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .action-btn {
+        padding: 10px 20px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .action-btn:hover {
+        background: #1D4ED8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-secondary {
+        background: white;
+        color: var(--secondary-color);
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: #F8FAFC;
+        border-color: var(--secondary-color);
+    }
+
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .summary-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+    }
+
+    .summary-value {
+        font-size: 24px;
+        font-weight: 800;
+        color: #1E293B;
+        margin-bottom: 4px;
+    }
+
+    .summary-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+
+    .table-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .table-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1E293B;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: #F8FAFC;
+    }
+
+    th {
+        padding: 16px 24px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    td {
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 14px;
+        color: #1E293B;
+    }
+
+    tr:hover {
+        background: #F8FAFC;
+    }
+
+    .po-number {
+        font-weight: 700;
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .po-number:hover {
+        text-decoration: underline;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        display: inline-block;
+    }
+
+    .status-draft { background: #F1F5F9; color: #64748B; }
+    .status-pending_approval { background: #FEF3C7; color: #92400E; }
+    .status-approved { background: #D1FAE5; color: #065F46; }
+    .status-sent { background: #DBEAFE; color: #1E40AF; }
+    .status-acknowledged { background: #E0E7FF; color: #3730A3; }
+    .status-partial_delivery { background: #FED7AA; color: #92400E; }
+    .status-delivered { background: #D1FAE5; color: #065F46; }
+    .status-closed { background: #E2E8F0; color: #475569; }
+    .status-cancelled { background: #FEE2E2; color: #991B1B; }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 24px;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 16px;
+        margin-bottom: 24px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Purchase Orders</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'po_dashboard' %}">Purchase Orders</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>All POs</span>
+        </div>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <a href="{% url 'po_dashboard' %}" class="action-btn btn-secondary">
+            <i class="bi bi-graph-up"></i> Dashboard
+        </a>
+        <a href="{% url 'po_create' %}" class="action-btn">
+            <i class="bi bi-plus-circle"></i> Create PO
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get" action="{% url 'po_list' %}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="PO number, supplier..." value="{{ filters.search }}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Supplier</label>
+                <select name="supplier" class="form-control">
+                    <option value="">All Suppliers</option>
+                    {% for supplier in suppliers %}
+                    <option value="{{ supplier.id }}" {% if filters.supplier == supplier.id|stringformat:"s" %}selected{% endif %}>
+                        {{ supplier.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <select name="department" class="form-control">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if filters.department == dept.id|stringformat:"s" %}selected{% endif %}>
+                        {{ dept.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+            </div>
+        </div>
+
+        <div class="filter-actions">
+            <a href="{% url 'po_list' %}" class="action-btn btn-secondary">
+                <i class="bi bi-x-circle"></i> Clear
+            </a>
+            <button type="submit" class="action-btn">
+                <i class="bi bi-search"></i> Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-summary">
+    <div class="summary-card">
+        <div class="summary-value">{{ pos.count|intcomma }}</div>
+        <div class="summary-label">Total POs</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ total_value|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Value</div>
+    </div>
+</div>
+
+<!-- POs Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">Purchase Orders ({{ pos.count }})</h2>
+    </div>
+
+    {% if pos %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>PO Number</th>
+                    <th>Supplier</th>
+                    <th>Department</th>
+                    <th>PO Date</th>
+                    <th>Delivery Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in pos %}
+                <tr>
+                    <td>
+                        <a href="{% url 'po_detail' po.id %}" class="po-number">{{ po.po_number }}</a>
+                    </td>
+                    <td>{{ po.supplier.name }}</td>
+                    <td>{{ po.requisition.department.name }}</td>
+                    <td>{{ po.po_date|date:"M d, Y" }}</td>
+                    <td>{{ po.delivery_date|date:"M d, Y" }}</td>
+                    <td style="font-weight: 700;">KES {{ po.total_amount|floatformat:0|intcomma }}</td>
+                    <td>
+                        <span class="status-badge status-{{ po.status|lower }}">
+                            {{ po.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'po_detail' po.id %}" style="color: var(--primary-color); text-decoration: none;">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p>No purchase orders found</p>
+        <a href="{% url 'po_create' %}" class="action-btn">
+            <i class="bi bi-plus-circle"></i> Create First PO
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

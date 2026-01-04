@@ -1,0 +1,734 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Purchase Orders Dashboard - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --secondary-color: #475569;
+        --success-color: #059669;
+        --warning-color: #D97706;
+        --danger-color: #DC2626;
+        --border-color: #E2E8F0;
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        --hover-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--secondary-color);
+        margin-bottom: 24px;
+        padding: 12px 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-color);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 12px;
+        color: #94A3B8;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    @media (max-width: 1200px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-color);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        box-shadow: var(--hover-shadow);
+        transform: translateY(-2px);
+        border-color: var(--primary-color);
+    }
+
+    .stat-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .stat-info h3 {
+        font-size: 32px;
+        font-weight: 800;
+        color: #1E293B;
+        margin-bottom: 4px;
+        line-height: 1;
+    }
+
+    .stat-info p {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--secondary-color);
+        letter-spacing: 0.3px;
+        margin: 0;
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        background: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .chart-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    @media (max-width: 1024px) {
+        .chart-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1E293B;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .card-title i {
+        color: var(--primary-color);
+        font-size: 20px;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+
+    .chart-container-small {
+        position: relative;
+        height: 250px;
+    }
+
+    .metric-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .po-list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+        transition: background 0.2s;
+    }
+
+    .po-list-item:hover {
+        background: #F8FAFC;
+    }
+
+    .po-list-item:last-child {
+        border-bottom: none;
+    }
+
+    .po-info {
+        flex: 1;
+    }
+
+    .po-number {
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 4px;
+    }
+
+    .po-supplier {
+        font-size: 14px;
+        color: var(--secondary-color);
+        margin-bottom: 2px;
+    }
+
+    .po-date {
+        font-size: 12px;
+        color: #94A3B8;
+    }
+
+    .po-amount {
+        font-weight: 700;
+        font-size: 16px;
+        color: #1E293B;
+        margin-right: 16px;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-draft { background: #F1F5F9; color: #64748B; }
+    .status-pending { background: #FEF3C7; color: #92400E; }
+    .status-approved { background: #D1FAE5; color: #065F46; }
+    .status-sent { background: #DBEAFE; color: #1E40AF; }
+    .status-delivered { background: #D1FAE5; color: #065F46; }
+    .status-cancelled { background: #FEE2E2; color: #991B1B; }
+
+    .action-btn {
+        padding: 8px 16px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .action-btn:hover {
+        background: #1D4ED8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-secondary {
+        background: white;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--primary-light);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Purchase Orders Dashboard</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Purchase Orders</span>
+        </div>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <a href="{% url 'po_list' %}" class="action-btn btn-secondary">
+            <i class="bi bi-list-ul"></i> View All POs
+        </a>
+        <a href="{% url 'po_create' %}" class="action-btn">
+            <i class="bi bi-plus-circle"></i> Create PO
+        </a>
+    </div>
+</div>
+
+<!-- Main Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ total_pos|intcomma }}</h3>
+                <p>Total Purchase Orders</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ pending_pos|intcomma }}</h3>
+                <p>Pending Approval</p>
+            </div>
+            <div class="stat-icon" style="background: #FEF3C7; color: var(--warning-color);">
+                <i class="bi bi-clock-history"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ active_pos|intcomma }}</h3>
+                <p>Active Orders</p>
+            </div>
+            <div class="stat-icon" style="background: #D1FAE5; color: var(--success-color);">
+                <i class="bi bi-check-circle"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>KES {{ total_po_value|floatformat:0|intcomma }}</h3>
+                <p>Total PO Value</p>
+            </div>
+            <div class="stat-icon" style="background: #DBEAFE; color: #1E40AF;">
+                <i class="bi bi-currency-exchange"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="chart-grid">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-bar-chart"></i>
+                PO Monthly Trend
+            </h2>
+            <div class="metric-badge">
+                <i class="bi bi-currency-exchange"></i>
+                This Month: KES {{ monthly_value|floatformat:0|intcomma }}
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="poTrendChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-pie-chart"></i>
+                PO Status Distribution
+            </h2>
+        </div>
+        <div class="chart-container">
+            <canvas id="statusChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="chart-grid">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-building"></i>
+                Top Suppliers by PO Value
+            </h2>
+        </div>
+        <div class="chart-container-small">
+            <canvas id="supplierChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-diagram-3"></i>
+                Department Spend
+            </h2>
+        </div>
+        <div class="chart-container-small">
+            <canvas id="deptChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Lists Row -->
+<div class="chart-grid">
+    <!-- Recent POs -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-clock-history"></i>
+                Recent Purchase Orders
+            </h2>
+            <a href="{% url 'po_list' %}" class="action-btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                View All
+            </a>
+        </div>
+        <div>
+            {% for po in recent_pos %}
+            <a href="{% url 'po_detail' po.id %}" style="text-decoration: none; color: inherit;">
+                <div class="po-list-item">
+                    <div class="po-info">
+                        <div class="po-number">{{ po.po_number }}</div>
+                        <div class="po-supplier">{{ po.supplier.name }}</div>
+                        <div class="po-date">{{ po.po_date|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="po-amount">KES {{ po.total_amount|floatformat:0|intcomma }}</div>
+                    <span class="status-badge status-{{ po.status|lower }}">{{ po.get_status_display }}</span>
+                </div>
+            </a>
+            {% empty %}
+            <p style="text-align: center; color: #94A3B8; padding: 24px;">No recent purchase orders</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Pending Delivery -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-truck"></i>
+                Pending Deliveries
+            </h2>
+        </div>
+        <div>
+            {% for po in pending_delivery %}
+            <a href="{% url 'po_detail' po.id %}" style="text-decoration: none; color: inherit;">
+                <div class="po-list-item">
+                    <div class="po-info">
+                        <div class="po-number">{{ po.po_number }}</div>
+                        <div class="po-supplier">{{ po.supplier.name }}</div>
+                        <div class="po-date">Due: {{ po.delivery_date|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="po-amount">KES {{ po.total_amount|floatformat:0|intcomma }}</div>
+                    <span class="status-badge status-{{ po.status|lower }}">{{ po.get_status_display }}</span>
+                </div>
+            </a>
+            {% empty %}
+            <p style="text-align: center; color: #94A3B8; padding: 24px;">No pending deliveries</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const colors = {
+        primary: '#2563EB',
+        primaryLight: 'rgba(37, 99, 235, 0.1)',
+        secondary: '#475569',
+        success: '#059669',
+        successLight: 'rgba(5, 150, 105, 0.1)',
+        warning: '#D97706',
+        warningLight: 'rgba(217, 119, 6, 0.1)',
+        danger: '#DC2626',
+        purple: '#7C3AED',
+        teal: '#0D9488',
+        orange: '#EA580C',
+        gray: '#94A3B8',
+        grayLight: 'rgba(148, 163, 184, 0.1)'
+    };
+
+    function createGradient(ctx, color, opacity = 0.2) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        const rgb = hexToRgb(color);
+        gradient.addColorStop(0, `rgba(${rgb}, ${opacity})`);
+        gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+        return gradient;
+    }
+
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? 
+            `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
+            '37, 99, 235';
+    }
+
+    // PO Trend Chart (Dual Axis)
+    const poTrendCtx = document.getElementById('poTrendChart').getContext('2d');
+    const poGradient = createGradient(poTrendCtx, colors.primary);
+    
+    new Chart(poTrendCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ po_trend_chart.labels|safe }},
+            datasets: [
+                {
+                    label: 'PO Count',
+                    data: {{ po_trend_chart.counts|safe }},
+                    backgroundColor: colors.primaryLight,
+                    borderColor: colors.primary,
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'Total Value (KES)',
+                    data: {{ po_trend_chart.values|safe }},
+                    type: 'line',
+                    borderColor: colors.success,
+                    backgroundColor: 'transparent',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointBackgroundColor: colors.success,
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    yAxisID: 'y1',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: { 
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        color: colors.secondary
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#1E293B',
+                    bodyColor: colors.secondary,
+                    borderColor: colors.primary,
+                    borderWidth: 1,
+                    padding: 12,
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: colors.secondary }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    grid: { color: colors.grayLight },
+                    ticks: { 
+                        color: colors.secondary,
+                        callback: (value) => value.toFixed(0)
+                    },
+                    title: {
+                        display: true,
+                        text: 'PO Count',
+                        color: colors.secondary
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    grid: { display: false },
+                    ticks: { 
+                        color: colors.secondary,
+                        callback: (value) => `${(value/1000000).toFixed(1)}M`
+                    },
+                    title: {
+                        display: true,
+                        text: 'Value (KES)',
+                        color: colors.secondary
+                    }
+                }
+            }
+        }
+    });
+
+    // Status Distribution Chart
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ status_chart.labels|safe }},
+            datasets: [{
+                data: {{ status_chart.values|safe }},
+                backgroundColor: [
+                    colors.primary,
+                    colors.warning,
+                    colors.success,
+                    colors.teal,
+                    colors.purple,
+                    colors.orange,
+                    colors.danger,
+                    colors.gray
+                ],
+                borderWidth: 0,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: { 
+                    position: 'right',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true,
+                        color: colors.secondary,
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
+
+    // Top Suppliers Chart
+    new Chart(document.getElementById('supplierChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ supplier_chart.labels|safe }},
+            datasets: [{
+                label: 'Total Value (KES)',
+                data: {{ supplier_chart.values|safe }},
+                backgroundColor: colors.primary,
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const index = context.dataIndex;
+                            const value = context.parsed.x;
+                            const count = {{ supplier_chart.counts|safe }}[index];
+                            return [
+                                `Value: KES ${value.toLocaleString()}`,
+                                `POs: ${count}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: colors.grayLight },
+                    ticks: { 
+                        color: colors.secondary,
+                        callback: (value) => `${(value/1000000).toFixed(1)}M`
+                    }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: colors.secondary }
+                }
+            }
+        }
+    });
+
+    // Department Spend Chart
+    new Chart(document.getElementById('deptChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ dept_chart.labels|safe }},
+            datasets: [{
+                label: 'Department Spend (KES)',
+                data: {{ dept_chart.values|safe }},
+                backgroundColor: colors.warning,
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `KES ${context.parsed.y.toLocaleString()}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { 
+                        color: colors.secondary,
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: colors.grayLight },
+                    ticks: { 
+                        color: colors.secondary,
+                        callback: (value) => `${(value/1000000).toFixed(1)}M`
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

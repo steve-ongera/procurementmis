@@ -1,0 +1,541 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Create Purchase Order - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --secondary-color: #475569;
+        --success-color: #059669;
+        --border-color: #E2E8F0;
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--secondary-color);
+        margin-bottom: 24px;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .form-card {
+        background: white;
+        border-radius: 12px;
+        padding: 32px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .section-title i {
+        color: var(--primary-color);
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+
+    .required {
+        color: #DC2626;
+    }
+
+    .form-control {
+        padding: 12px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .help-text {
+        font-size: 12px;
+        color: #64748B;
+        margin-top: 4px;
+    }
+
+    .req-card {
+        background: #F8FAFC;
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .req-card:hover {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+    }
+
+    .req-card.selected {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .req-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 12px;
+    }
+
+    .req-number {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    .req-amount {
+        font-size: 18px;
+        font-weight: 800;
+        color: #1E293B;
+    }
+
+    .req-details {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        font-size: 13px;
+        color: var(--secondary-color);
+    }
+
+    .req-detail-item {
+        display: flex;
+        gap: 8px;
+    }
+
+    .req-detail-label {
+        font-weight: 600;
+    }
+
+    .items-preview {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 16px;
+        display: none;
+    }
+
+    .items-preview.show {
+        display: block;
+    }
+
+    .items-preview table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+    }
+
+    .items-preview th {
+        padding: 12px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        background: #F8FAFC;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .items-preview td {
+        padding: 12px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 14px;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 16px;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 2px solid var(--border-color);
+    }
+
+    .action-btn {
+        padding: 12px 32px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .action-btn:hover {
+        background: #1D4ED8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-secondary {
+        background: white;
+        color: var(--secondary-color);
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: #F8FAFC;
+        border-color: var(--secondary-color);
+    }
+
+    .alert {
+        padding: 16px 20px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: start;
+        gap: 12px;
+    }
+
+    .alert-info {
+        background: #EFF6FF;
+        border: 1px solid #BFDBFE;
+        color: #1E40AF;
+    }
+
+    .alert-warning {
+        background: #FFFBEB;
+        border: 1px solid #FDE68A;
+        color: #92400E;
+    }
+
+    .alert i {
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+    <i class="bi bi-chevron-right"></i>
+    <a href="{% url 'po_dashboard' %}">Purchase Orders</a>
+    <i class="bi bi-chevron-right"></i>
+    <span>Create PO</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">Create Purchase Order</h1>
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    <div>
+        <strong>How to create a Purchase Order:</strong><br>
+        Select an approved requisition, choose a supplier, and provide delivery details. The PO will be created with items from the selected requisition.
+    </div>
+</div>
+
+<form method="post" action="{% url 'po_create' %}" id="poForm">
+    {% csrf_token %}
+
+    <!-- Step 1: Select Requisition -->
+    <div class="form-card">
+        <h2 class="section-title">
+            <i class="bi bi-1-circle"></i>
+            Select Requisition
+        </h2>
+
+        {% if approved_requisitions %}
+            {% for req in approved_requisitions %}
+            <div class="req-card" data-requisition-id="{{ req.id }}" onclick="selectRequisition(this)">
+                <div class="req-header">
+                    <div>
+                        <div class="req-number">{{ req.requisition_number }}</div>
+                        <div style="font-size: 14px; color: var(--secondary-color); margin-top: 4px;">
+                            {{ req.title }}
+                        </div>
+                    </div>
+                    <div class="req-amount">
+                        KES {{ req.estimated_amount|floatformat:0|intcomma }}
+                    </div>
+                </div>
+                <div class="req-details">
+                    <div class="req-detail-item">
+                        <span class="req-detail-label">Department:</span>
+                        <span>{{ req.department.name }}</span>
+                    </div>
+                    <div class="req-detail-item">
+                        <span class="req-detail-label">Requested by:</span>
+                        <span>{{ req.requested_by.get_full_name }}</span>
+                    </div>
+                    <div class="req-detail-item">
+                        <span class="req-detail-label">Items:</span>
+                        <span>{{ req.items.count }} items</span>
+                    </div>
+                    <div class="req-detail-item">
+                        <span class="req-detail-label">Required date:</span>
+                        <span>{{ req.required_date|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <input type="hidden" name="requisition" id="selectedRequisition" required>
+
+            <!-- Items Preview -->
+            <div class="items-preview" id="itemsPreview">
+                <h3 style="font-size: 16px; font-weight: 700; color: #1E293B; margin-bottom: 8px;">
+                    Requisition Items
+                </h3>
+                <div id="itemsTable"></div>
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <div>
+                    <strong>No approved requisitions available</strong><br>
+                    There are no approved requisitions without purchase orders at this time. Please check back later or contact your procurement officer.
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if approved_requisitions %}
+    <!-- Step 2: Supplier Selection -->
+    <div class="form-card">
+        <h2 class="section-title">
+            <i class="bi bi-2-circle"></i>
+            Supplier Information
+        </h2>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Supplier <span class="required">*</span></label>
+                <select name="supplier" class="form-control" id="supplierSelect" required onchange="checkForBids()">
+                    <option value="">Select Supplier</option>
+                    {% for supplier in suppliers %}
+                    <option value="{{ supplier.id }}">
+                        {{ supplier.name }} ({{ supplier.supplier_number }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <span class="help-text">Choose an approved supplier from the list</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Award Based on Bid (Optional)</label>
+                <select name="bid" class="form-control" id="bidSelect">
+                    <option value="">No bid selected</option>
+                </select>
+                <span class="help-text">If this PO is based on a tender bid, select it here</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Delivery Details -->
+    <div class="form-card">
+        <h2 class="section-title">
+            <i class="bi bi-3-circle"></i>
+            Delivery & Terms
+        </h2>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Delivery Date <span class="required">*</span></label>
+                <input type="date" name="delivery_date" class="form-control" required min="{{ today|date:'Y-m-d' }}">
+                <span class="help-text">Expected delivery date</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Delivery Address <span class="required">*</span></label>
+                <textarea name="delivery_address" class="form-control" required placeholder="Enter complete delivery address"></textarea>
+                <span class="help-text">Where should the items be delivered?</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Payment Terms <span class="required">*</span></label>
+            <textarea name="payment_terms" class="form-control" required placeholder="e.g., Net 30 days from delivery"></textarea>
+            <span class="help-text">Specify the payment terms and conditions</span>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Warranty Terms</label>
+                <textarea name="warranty_terms" class="form-control" placeholder="e.g., 12 months manufacturer warranty"></textarea>
+                <span class="help-text">Optional warranty information</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Special Instructions</label>
+                <textarea name="special_instructions" class="form-control" placeholder="Any special instructions for the supplier"></textarea>
+                <span class="help-text">Optional additional instructions</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+        <a href="{% url 'po_list' %}" class="action-btn btn-secondary">
+            <i class="bi bi-x-circle"></i> Cancel
+        </a>
+        <button type="submit" class="action-btn">
+            <i class="bi bi-check-circle"></i> Create Purchase Order
+        </button>
+    </div>
+    {% endif %}
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedReqId = null;
+
+    function selectRequisition(element) {
+        // Remove selection from all cards
+        document.querySelectorAll('.req-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+
+        // Add selection to clicked card
+        element.classList.add('selected');
+
+        // Get requisition ID
+        const reqId = element.getAttribute('data-requisition-id');
+        selectedReqId = reqId;
+        document.getElementById('selectedRequisition').value = reqId;
+
+        // Load requisition details
+        loadRequisitionDetails(reqId);
+    }
+
+    function loadRequisitionDetails(reqId) {
+        fetch(`/procurement/api/requisition/${reqId}/details/`)
+            .then(response => response.json())
+            .then(data => {
+                // Show items preview
+                const preview = document.getElementById('itemsPreview');
+                preview.classList.add('show');
+
+                // Build items table
+                let tableHTML = '<table><thead><tr>';
+                tableHTML += '<th>Item Description</th>';
+                tableHTML += '<th>Quantity</th>';
+                tableHTML += '<th>Unit Price</th>';
+                tableHTML += '<th>Total</th>';
+                tableHTML += '</tr></thead><tbody>';
+
+                data.items.forEach(item => {
+                    tableHTML += '<tr>';
+                    tableHTML += `<td>${item.description}</td>`;
+                    tableHTML += `<td>${item.quantity} ${item.unit}</td>`;
+                    tableHTML += `<td>KES ${Number(item.price).toLocaleString()}</td>`;
+                    tableHTML += `<td>KES ${Number(item.total).toLocaleString()}</td>`;
+                    tableHTML += '</tr>';
+                });
+
+                tableHTML += '</tbody></table>';
+                document.getElementById('itemsTable').innerHTML = tableHTML;
+            })
+            .catch(error => {
+                console.error('Error loading requisition details:', error);
+            });
+    }
+
+    function checkForBids() {
+        const supplierId = document.getElementById('supplierSelect').value;
+        const bidSelect = document.getElementById('bidSelect');
+
+        if (!selectedReqId || !supplierId) {
+            bidSelect.innerHTML = '<option value="">No bid selected</option>';
+            return;
+        }
+
+        // Fetch bids for this requisition and supplier
+        fetch(`/procurement/api/requisition/${selectedReqId}/supplier/${supplierId}/bids/`)
+            .then(response => response.json())
+            .then(data => {
+                bidSelect.innerHTML = '<option value="">No bid selected</option>';
+                
+                if (data.bids && data.bids.length > 0) {
+                    data.bids.forEach(bid => {
+                        const option = document.createElement('option');
+                        option.value = bid.id;
+                        option.textContent = `${bid.bid_number} - KES ${Number(bid.amount).toLocaleString()}`;
+                        bidSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading bids:', error);
+            });
+    }
+
+    // Form validation
+    document.getElementById('poForm')?.addEventListener('submit', function(e) {
+        if (!selectedReqId) {
+            e.preventDefault();
+            alert('Please select a requisition');
+            return false;
+        }
+    });
+</script>
+{% endblock %}
