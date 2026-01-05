@@ -1,0 +1,607 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Vendor Management Dashboard - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transform: translateY(-2px);
+    }
+
+    .stat-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .stat-icon i {
+        font-size: 1.5rem;
+    }
+
+    .stat-icon.blue {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .stat-icon.green {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .stat-icon.yellow {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .stat-icon.red {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    .stat-change {
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .stat-change.positive {
+        color: var(--success-color);
+    }
+
+    .stat-change.negative {
+        color: var(--danger-color);
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: #F8FAFC;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-title i {
+        color: var(--secondary-color);
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .vendor-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        transition: background 0.2s;
+    }
+
+    .vendor-item:hover {
+        background: var(--hover-bg);
+    }
+
+    .vendor-item:last-child {
+        border-bottom: none;
+    }
+
+    .vendor-info {
+        flex: 1;
+    }
+
+    .vendor-name {
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    .vendor-meta {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .rating-stars {
+        display: flex;
+        gap: 0.125rem;
+        color: #F59E0B;
+    }
+
+    .rating-stars i {
+        font-size: 0.875rem;
+    }
+
+    .alert-card {
+        background: #FEF3C7;
+        border: 1px solid #FDE68A;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .alert-card.danger {
+        background: #FEE2E2;
+        border-color: #FECACA;
+    }
+
+    .alert-icon {
+        flex-shrink: 0;
+        font-size: 1.25rem;
+    }
+
+    .alert-card.warning .alert-icon {
+        color: #F59E0B;
+    }
+
+    .alert-card.danger .alert-icon {
+        color: #EF4444;
+    }
+
+    .alert-content {
+        flex: 1;
+    }
+
+    .alert-title {
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .alert-text {
+        font-size: 0.75rem;
+        color: #64748B;
+    }
+
+    .chart-container {
+        height: 250px;
+        margin-top: 1rem;
+    }
+
+    .progress-bar {
+        height: 8px;
+        background: #E2E8F0;
+        border-radius: 1rem;
+        overflow: hidden;
+        margin-top: 0.5rem;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--primary-color);
+        transition: width 0.3s;
+    }
+
+    .progress-fill.green {
+        background: var(--success-color);
+    }
+
+    .progress-fill.yellow {
+        background: var(--warning-color);
+    }
+
+    .progress-fill.red {
+        background: var(--danger-color);
+    }
+
+    @media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Vendor Management Dashboard</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Vendor Management</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'supplier_list' %}" class="btn">
+            <i class="bi bi-truck"></i>
+            All Suppliers
+        </a>
+        <a href="{% url 'vendor_performance_list' %}" class="btn">
+            <i class="bi bi-graph-up"></i>
+            Performance Reviews
+        </a>
+        <a href="{% url 'vendor_compliance' %}" class="btn">
+            <i class="bi bi-shield-check"></i>
+            Compliance
+        </a>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="dashboard-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <i class="bi bi-truck"></i>
+        </div>
+        <div class="stat-value">{{ total_vendors|intcomma }}</div>
+        <div class="stat-label">Total Vendors</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="stat-value">{{ approved_vendors|intcomma }}</div>
+        <div class="stat-label">Approved Vendors</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon yellow">
+            <i class="bi bi-clock"></i>
+        </div>
+        <div class="stat-value">{{ pending_vendors|intcomma }}</div>
+        <div class="stat-label">Pending Approval</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon red">
+            <i class="bi bi-exclamation-triangle"></i>
+        </div>
+        <div class="stat-value">{{ suspended_vendors|add:blacklisted_vendors|intcomma }}</div>
+        <div class="stat-label">Suspended/Blacklisted</div>
+    </div>
+</div>
+
+<!-- Alerts -->
+{% if vendors_expired_docs or vendors_expiring_docs %}
+<div style="margin-bottom: 2rem;">
+    {% if vendors_expired_docs %}
+    <div class="alert-card danger">
+        <div class="alert-icon">
+            <i class="bi bi-exclamation-circle-fill"></i>
+        </div>
+        <div class="alert-content">
+            <div class="alert-title">{{ vendors_expired_docs.count }} vendor(s) have expired documents</div>
+            <div class="alert-text">These vendors require immediate attention to update their compliance documents.</div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if vendors_expiring_docs %}
+    <div class="alert-card warning">
+        <div class="alert-icon">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div class="alert-content">
+            <div class="alert-title">{{ vendors_expiring_docs.count }} vendor(s) have documents expiring soon</div>
+            <div class="alert-text">Documents will expire within the next 30 days.</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Main Content Grid -->
+<div class="content-grid">
+    <!-- Left Column -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Top Performing Vendors -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="bi bi-star"></i>
+                    Top Performing Vendors
+                </h2>
+                <a href="{% url 'supplier_list' %}" class="btn" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
+                    View All
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                {% for vendor in top_vendors %}
+                <div class="vendor-item">
+                    <div class="vendor-info">
+                        <div class="vendor-name">{{ vendor.name }}</div>
+                        <div class="vendor-meta">{{ vendor.supplier_number }}</div>
+                    </div>
+                    <div class="rating-stars">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= vendor.rating %}
+                                <i class="bi bi-star-fill"></i>
+                            {% elif forloop.counter|add:"-0.5" <= vendor.rating %}
+                                <i class="bi bi-star-half"></i>
+                            {% else %}
+                                <i class="bi bi-star"></i>
+                            {% endif %}
+                        {% endfor %}
+                        <span style="margin-left: 0.375rem; font-size: 0.875rem; color: var(--secondary-color); font-weight: 500;">
+                            {{ vendor.rating|floatformat:1 }}
+                        </span>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align: center; padding: 2rem; color: #94A3B8;">
+                    <i class="bi bi-star" style="font-size: 2rem; opacity: 0.5; margin-bottom: 0.5rem;"></i>
+                    <p style="font-size: 0.875rem; margin: 0;">No performance data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Performance Distribution -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="bi bi-bar-chart"></i>
+                    Performance Distribution
+                </h2>
+            </div>
+            <div class="card-body">
+                <div style="margin-bottom: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.875rem; font-weight: 500;">Excellent (4.5-5.0)</span>
+                        <span style="font-size: 0.875rem; font-weight: 600; color: var(--success-color);">{{ excellent_vendors }}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill green" style="width: {% if total_vendors %}{{ excellent_vendors|floatformat:0|multiply:100|divide:total_vendors }}%{% else %}0%{% endif %}"></div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.875rem; font-weight: 500;">Good (3.5-4.5)</span>
+                        <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color);">{{ good_vendors }}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {% if total_vendors %}{{ good_vendors|floatformat:0|multiply:100|divide:total_vendors }}%{% else %}0%{% endif %}"></div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.875rem; font-weight: 500;">Average (2.5-3.5)</span>
+                        <span style="font-size: 0.875rem; font-weight: 600; color: var(--warning-color);">{{ average_vendors }}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill yellow" style="width: {% if total_vendors %}{{ average_vendors|floatformat:0|multiply:100|divide:total_vendors }}%{% else %}0%{% endif %}"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.875rem; font-weight: 500;">Poor (<2.5)</span>
+                        <span style="font-size: 0.875rem; font-weight: 600; color: var(--danger-color);">{{ poor_vendors }}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill red" style="width: {% if total_vendors %}{{ poor_vendors|floatformat:0|multiply:100|divide:total_vendors }}%{% else %}0%{% endif %}"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Recent Vendor Registrations -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="bi bi-clock-history"></i>
+                    Recent Registrations
+                </h2>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                {% for vendor in recent_vendors %}
+                <div class="vendor-item">
+                    <div class="vendor-info">
+                        <div class="vendor-name">{{ vendor.name }}</div>
+                        <div class="vendor-meta">{{ vendor.created_at|date:"M d, Y" }}</div>
+                    </div>
+                    <span class="status-badge status-{{ vendor.status|lower }}" style="font-size: 0.625rem; padding: 0.25rem 0.5rem;">
+                        {{ vendor.get_status_display }}
+                    </span>
+                </div>
+                {% empty %}
+                <div style="text-align: center; padding: 2rem; color: #94A3B8;">
+                    <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.5; margin-bottom: 0.5rem;"></i>
+                    <p style="font-size: 0.875rem; margin: 0;">No recent registrations</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Category Distribution -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="bi bi-tags"></i>
+                    Top Categories
+                </h2>
+            </div>
+            <div class="card-body">
+                {% for category in category_stats %}
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.875rem; font-weight: 500;">{{ category.name }}</span>
+                        <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color);">{{ category.vendor_count }}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {% if total_vendors %}{{ category.vendor_count|floatformat:0|multiply:100|divide:total_vendors }}%{% else %}0%{% endif %}"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align: center; padding: 2rem; color: #94A3B8;">
+                    <p style="font-size: 0.875rem; margin: 0;">No category data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
