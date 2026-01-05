@@ -156,25 +156,45 @@
             <span>Administration</span>
             <i class="fas fa-chevron-right arrow"></i>
         </div>
+
         <div class="submenu" id="submenu-admin">
-            <a href="#" class="submenu-item">Users Management</a>
-            <a href="#" class="submenu-item">Roles & Permissions</a>
-            <a href="#" class="submenu-item">Departments</a>
-            <a href="#" class="submenu-item">System Settings</a>
-            <a href="#" class="submenu-item">Audit Trail</a>
-            <a href="#" class="submenu-item">Activity Logs</a>
+            <a href="{% url 'user_list' %}" class="submenu-item">
+                Users Management
+            </a>
+
+            <a href="{% url 'role_permissions_list' %}" class="submenu-item">
+                Roles &amp; Permissions
+            </a>
+
+            <a href="{% url 'department_list' %}" class="submenu-item">
+                Departments
+            </a>
+
+            <a href="{% url 'system_settings' %}" class="submenu-item">
+                System Settings
+            </a>
+
+            <a href="{% url 'audit_trail' %}" class="submenu-item">
+                Audit Trail
+            </a>
+
+            <!-- If Activity Logs is same as audit trail, reuse -->
+            <a href="{% url 'audit_trail' %}" class="submenu-item">
+                Activity Logs
+            </a>
         </div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'notifications_list' %}" class="menu-item">
             <i class="fas fa-bell"></i>
             <span>Notifications</span>
         </a>
         
-        <a href="#" class="menu-item">
-            <i class="fas fa-database"></i>
-            <span>Backup & Restore</span>
+        <a href="{% url 'policy_list' %}" class="menu-item">
+            <i class="fas fa-file-contract"></i>
+            <span>Procurement Policies</span>
         </a>
     </div>
+
 
     <!-- Help & Support -->
     <div class="menu-section">

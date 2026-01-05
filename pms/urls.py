@@ -136,7 +136,8 @@ urlpatterns = [
     path('departments/', views.department_list, name='department_list'),
     path('departments/create/', views.department_create, name='department_create'),
     path('departments/<uuid:dept_id>/', views.department_detail, name='department_detail'),
-    path('departments/<uuid:dept_id>/edit/', views.department_edit, name='department_edit'),
+    
+    #path('departments/<uuid:dept_id>/edit/', views.department_edit, name='department_edit'),
     path('settings/', views.system_settings, name='system_settings'),
     path('audit-trail/', views.audit_trail, name='audit_trail'),
     path('notifications/', views.notifications_list, name='notifications_list'),
