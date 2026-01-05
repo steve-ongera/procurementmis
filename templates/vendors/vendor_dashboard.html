@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load math_filters %}
 {% load humanize %}
 
 {% block title %}Vendor Management Dashboard - University Procurement System{% endblock %}
@@ -509,7 +510,7 @@
                         <span style="font-size: 0.875rem; font-weight: 600; color: var(--success-color);">{{ excellent_vendors }}</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill green" style="width: {% if total_vendors %}{{ excellent_vendors|floatformat:0|multiply:100|divide:total_vendors }}%{% else %}0%{% endif %}"></div>
+                        <div class="progress-fill green" style="width: {% if total_vendors %}{{ excellent_vendors|floatformat:0|mul:100|div:total_vendors }}%{% else %}0%{% endif %}"></div>
                     </div>
                 </div>
 
@@ -519,7 +520,7 @@
                         <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color);">{{ good_vendors }}</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: {% if total_vendors %}{{ good_vendors|floatformat:0|multiply:100|divide:total_vendors }}%{% else %}0%{% endif %}"></div>
+                        <div class="progress-fill" style="width: {% if total_vendors %}{{ good_vendors|floatformat:0|mul:100|div:total_vendors }}%{% else %}0%{% endif %}"></div>
                     </div>
                 </div>
 
@@ -529,7 +530,7 @@
                         <span style="font-size: 0.875rem; font-weight: 600; color: var(--warning-color);">{{ average_vendors }}</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill yellow" style="width: {% if total_vendors %}{{ average_vendors|floatformat:0|multiply:100|divide:total_vendors }}%{% else %}0%{% endif %}"></div>
+                        <div class="progress-fill yellow" style="width: {% if total_vendors %}{{ average_vendors|floatformat:0|mul:100|div:total_vendors }}%{% else %}0%{% endif %}"></div>
                     </div>
                 </div>
 
@@ -539,7 +540,7 @@
                         <span style="font-size: 0.875rem; font-weight: 600; color: var(--danger-color);">{{ poor_vendors }}</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill red" style="width: {% if total_vendors %}{{ poor_vendors|floatformat:0|multiply:100|divide:total_vendors }}%{% else %}0%{% endif %}"></div>
+                        <div class="progress-fill red" style="width: {% if total_vendors %}{{ poor_vendors|floatformat:0|mul:100|div:total_vendors }}%{% else %}0%{% endif %}"></div>
                     </div>
                 </div>
             </div>
@@ -592,7 +593,7 @@
                         <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color);">{{ category.vendor_count }}</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: {% if total_vendors %}{{ category.vendor_count|floatformat:0|multiply:100|divide:total_vendors }}%{% else %}0%{% endif %}"></div>
+                        <div class="progress-fill" style="width: {% if total_vendors %}{{ category.vendor_count|floatformat:0|mul:100|div:total_vendors }}%{% else %}0%{% endif %}"></div>
                     </div>
                 </div>
                 {% empty %}
