@@ -1,0 +1,962 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ supplier.name }} - Supplier Details{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+:root {
+    --primary-color: #2563EB;
+    --primary-light: #EFF6FF;
+    --primary-dark: #1D4ED8;
+    --secondary-color: #64748B;
+    --success-color: #10B981;
+    --warning-color: #F59E0B;
+    --danger-color: #EF4444;
+    --border-color: #E2E8F0;
+    --card-bg: #FFFFFF;
+    --hover-bg: #F8FAFC;
+    --table-header: #F1F5F9;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #1E293B;
+    margin: 0 0 0.5rem 0;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--secondary-color);
+    margin: 0;
+}
+
+.breadcrumb a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.breadcrumb a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.breadcrumb i {
+    font-size: 0.75rem;
+    color: #94A3B8;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    background: var(--card-bg);
+    color: var(--secondary-color);
+}
+
+.btn:hover {
+    background: var(--hover-bg);
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-secondary {
+    background: #64748B;
+    color: white;
+    border-color: #64748B;
+}
+
+.btn-secondary:hover {
+    background: #475569;
+    border-color: #475569;
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+    border-color: var(--success-color);
+}
+
+.btn-success:hover {
+    background: #059669;
+    border-color: #059669;
+}
+
+.btn-warning {
+    background: var(--warning-color);
+    color: white;
+    border-color: var(--warning-color);
+}
+
+.btn-warning:hover {
+    background: #D97706;
+    border-color: #D97706;
+}
+
+.btn-danger {
+    background: var(--danger-color);
+    color: white;
+    border-color: var(--danger-color);
+}
+
+.btn-danger:hover {
+    background: #DC2626;
+    border-color: #DC2626;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    transition: all 0.2s;
+}
+
+.stat-card:hover {
+    border-color: #CBD5E1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.stat-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.stat-icon.primary { background: var(--primary-light); color: var(--primary-color); }
+.stat-icon.success { background: #D1FAE5; color: var(--success-color); }
+.stat-icon.warning { background: #FEF3C7; color: var(--warning-color); }
+.stat-icon.danger { background: #FEE2E2; color: var(--danger-color); }
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1E293B;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--secondary-color);
+    font-weight: 500;
+}
+
+/* Detail Layout */
+.detail-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Info Card */
+.info-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1E293B;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.info-item label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--secondary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.info-item value {
+    font-size: 0.875rem;
+    color: #334155;
+    font-weight: 500;
+}
+
+.info-item a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.info-item a:hover {
+    text-decoration: underline;
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.pending { background: #FEF3C7; color: #92400E; }
+.status-badge.approved { background: #D1FAE5; color: #065F46; }
+.status-badge.suspended { background: #FEE2E2; color: #991B1B; }
+.status-badge.blacklisted { background: #FEE2E2; color: #7F1D1D; }
+
+.rating-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+/* Category Tags */
+.category-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.category-tag {
+    padding: 0.25rem 0.5rem;
+    background: var(--primary-light);
+    color: var(--primary-color);
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Table Styling */
+.table-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.table-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--table-header);
+}
+
+.table-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1E293B;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background: var(--table-header);
+}
+
+th {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.875rem;
+    color: #334155;
+}
+
+tbody tr {
+    transition: background-color 0.2s;
+}
+
+tbody tr:hover {
+    background: var(--hover-bg);
+}
+
+/* Rating Stars */
+.rating-stars {
+    display: flex;
+    gap: 0.125rem;
+}
+
+.star {
+    color: #FBBF24;
+    font-size: 0.875rem;
+}
+
+.star.empty {
+    color: #E5E7EB;
+}
+
+/* Document Status */
+.doc-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.doc-status.valid { background: #D1FAE5; color: #065F46; }
+.doc-status.expiring { background: #FEF3C7; color: #92400E; }
+.doc-status.expired { background: #FEE2E2; color: #991B1B; }
+.doc-status.unverified { background: #F1F5F9; color: #64748B; }
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
+    color: var(--secondary-color);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.action-btn:hover {
+    background: var(--hover-bg);
+    color: var(--primary-color);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #94A3B8;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state-small {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #94A3B8;
+}
+
+.empty-state-small i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
+.empty-state-small p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* Rating Progress */
+.rating-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.rating-label {
+    font-size: 0.75rem;
+    color: var(--secondary-color);
+    width: 5rem;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 0.5rem;
+    background: #E2E8F0;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--warning-color);
+    border-radius: 0.25rem;
+}
+
+.rating-value {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #334155;
+    width: 2rem;
+    text-align: right;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ supplier.name }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i>Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'supplier_list' %}">Suppliers</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ supplier.supplier_number }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'supplier_edit' supplier.id %}" class="btn btn-secondary">
+            <i class="bi bi-pencil"></i>Edit Supplier
+        </a>
+        <a href="{% url 'supplier_documents' supplier.id %}" class="btn btn-primary">
+            <i class="bi bi-file-earmark-arrow-up"></i>Upload Documents
+        </a>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon primary">
+            <i class="bi bi-receipt"></i>
+        </div>
+        <div class="stat-value">{{ total_pos|intcomma }}</div>
+        <div class="stat-label">Total Purchase Orders</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon success">
+            <i class="bi bi-currency-dollar"></i>
+        </div>
+        <div class="stat-value">Ksh {{ total_value|intcomma }}</div>
+        <div class="stat-label">Total Procurement Value</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon warning">
+            <i class="bi bi-star-fill"></i>
+        </div>
+        <div class="stat-value">{{ avg_ratings.avg_overall|floatformat:1|default:"0.0" }}/5</div>
+        <div class="stat-label">Average Rating</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon danger">
+            <i class="bi bi-exclamation-triangle"></i>
+        </div>
+        <div class="stat-value">{{ expired_docs.count }}</div>
+        <div class="stat-label">Expired Documents</div>
+    </div>
+</div>
+
+<div class="detail-grid">
+    <!-- Left Column - Main Information -->
+    <div class="detail-column">
+        <!-- Supplier Information -->
+        <div class="info-card">
+            <h3 class="section-title"><i class="bi bi-info-circle"></i>Supplier Information</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Supplier Number</label>
+                    <value>{{ supplier.supplier_number }}</value>
+                </div>
+                <div class="info-item">
+                    <label>Registration Number</label>
+                    <value>{{ supplier.registration_number }}</value>
+                </div>
+                <div class="info-item">
+                    <label>Tax ID</label>
+                    <value>{{ supplier.tax_id|default:"-" }}</value>
+                </div>
+                <div class="info-item">
+                    <label>Status</label>
+                    <value>
+                        <span class="status-badge {{ supplier.status|lower }}">
+                            {{ supplier.get_status_display }}
+                        </span>
+                    </value>
+                </div>
+                <div class="info-item">
+                    <label>Rating</label>
+                    <value>
+                        <span class="rating-badge">
+                            <i class="bi bi-star-fill"></i>{{ supplier.rating|floatformat:1 }}
+                        </span>
+                    </value>
+                </div>
+                <div class="info-item">
+                    <label>Email</label>
+                    <value><a href="mailto:{{ supplier.email }}">{{ supplier.email }}</a></value>
+                </div>
+                <div class="info-item">
+                    <label>Phone</label>
+                    <value>{{ supplier.phone_number }}</value>
+                </div>
+                <div class="info-item">
+                    <label>Website</label>
+                    <value>
+                        {% if supplier.website %}
+                        <a href="{{ supplier.website }}" target="_blank">{{ supplier.website }}</a>
+                        {% else %}-{% endif %}
+                    </value>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="info-card">
+            <h3 class="section-title"><i class="bi bi-person-lines-fill"></i>Contact Person</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Contact Person</label>
+                    <value>{{ supplier.contact_person }}</value>
+                </div>
+                <div class="info-item">
+                    <label>Contact Phone</label>
+                    <value>{{ supplier.contact_person_phone }}</value>
+                </div>
+                <div class="info-item">
+                    <label>Contact Email</label>
+                    <value><a href="mailto:{{ supplier.contact_person_email }}">{{ supplier.contact_person_email }}</a></value>
+                </div>
+            </div>
+        </div>
+
+        <!-- Address Information -->
+        <div class="info-card">
+            <h3 class="section-title"><i class="bi bi-geo-alt"></i>Address</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Physical Address</label>
+                    <value>{{ supplier.physical_address|linebreaksbr }}</value>
+                </div>
+                <div class="info-item">
+                    <label>Postal Address</label>
+                    <value>{{ supplier.postal_address|default:"-" }}</value>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bank Information -->
+        <div class="info-card">
+            <h3 class="section-title"><i class="bi bi-bank"></i>Bank Details</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Bank Name</label>
+                    <value>{{ supplier.bank_name }}</value>
+                </div>
+                <div class="info-item">
+                    <label>Bank Branch</label>
+                    <value>{{ supplier.bank_branch }}</value>
+                </div>
+                <div class="info-item">
+                    <label>Account Number</label>
+                    <value>{{ supplier.account_number }}</value>
+                </div>
+                <div class="info-item">
+                    <label>Account Name</label>
+                    <value>{{ supplier.account_name }}</value>
+                </div>
+                <div class="info-item">
+                    <label>SWIFT Code</label>
+                    <value>{{ supplier.swift_code|default:"-" }}</value>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Ratings -->
+        {% if performances %}
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title"><i class="bi bi-graph-up"></i>Performance Ratings</h3>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Purchase Order</th>
+                            <th>Quality</th>
+                            <th>Delivery</th>
+                            <th>Service</th>
+                            <th>Overall</th>
+                            <th>Reviewed By</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for perf in performances %}
+                        <tr>
+                            <td>{{ perf.purchase_order.po_number }}</td>
+                            <td>
+                                <div class="rating-stars">
+                                    {% for i in "12345" %}
+                                    <i class="bi bi-star{% if i|add:0 <= perf.quality_rating %}-fill{% endif %} star{% if i|add:0 > perf.quality_rating %} empty{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="rating-stars">
+                                    {% for i in "12345" %}
+                                    <i class="bi bi-star{% if i|add:0 <= perf.delivery_rating %}-fill{% endif %} star{% if i|add:0 > perf.delivery_rating %} empty{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="rating-stars">
+                                    {% for i in "12345" %}
+                                    <i class="bi bi-star{% if i|add:0 <= perf.service_rating %}-fill{% endif %} star{% if i|add:0 > perf.service_rating %} empty{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="rating-stars">
+                                    {% for i in "12345" %}
+                                    <i class="bi bi-star{% if i|add:0 <= perf.overall_rating|floatformat:0 %}-fill{% endif %} star{% if i|add:0 > perf.overall_rating|floatformat:0 %} empty{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td>{{ perf.reviewed_by.get_full_name }}</td>
+                            <td>{{ perf.reviewed_at|date:"M d, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column - Additional Information -->
+    <div class="detail-column">
+        <!-- Categories -->
+        <div class="info-card">
+            <h3 class="section-title"><i class="bi bi-tags"></i>Supplier Categories</h3>
+            {% if supplier.categories.all %}
+            <div class="category-tags">
+                {% for category in supplier.categories.all %}
+                <span class="category-tag">{{ category.name }}</span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state-small">
+                <i class="bi bi-tags"></i>
+                <p>No categories assigned</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Average Ratings -->
+        <div class="info-card">
+            <h3 class="section-title"><i class="bi bi-star-fill"></i>Average Ratings</h3>
+            <div class="rating-progress">
+                <div class="rating-label">Quality</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {% widthratio avg_ratings.avg_quality|default:0 5 100 %}%"></div>
+                </div>
+                <div class="rating-value">{{ avg_ratings.avg_quality|floatformat:1|default:"0.0" }}</div>
+            </div>
+            <div class="rating-progress">
+                <div class="rating-label">Delivery</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {% widthratio avg_ratings.avg_delivery|default:0 5 100 %}%"></div>
+                </div>
+                <div class="rating-value">{{ avg_ratings.avg_delivery|floatformat:1|default:"0.0" }}</div>
+            </div>
+            <div class="rating-progress">
+                <div class="rating-label">Service</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {% widthratio avg_ratings.avg_service|default:0 5 100 %}%"></div>
+                </div>
+                <div class="rating-value">{{ avg_ratings.avg_service|floatformat:1|default:"0.0" }}</div>
+            </div>
+        </div>
+
+        <!-- Documents -->
+        <div class="info-card">
+            <h3 class="section-title"><i class="bi bi-files"></i>Documents</h3>
+            {% if documents %}
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Document</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Expiry</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documents %}
+                        <tr>
+                            <td>{{ doc.document_name }}</td>
+                            <td>{{ doc.get_document_type_display }}</td>
+                            <td>
+                                {% if doc.is_verified %}
+                                    {% if doc.expiry_date %}
+                                        {% if doc.expiry_date < now.date %}
+                                        <span class="doc-status expired">Expired</span>
+                                        {% elif doc.expiry_date <= thirty_days_from_now %}
+                                        <span class="doc-status expiring">Expiring Soon</span>
+                                        {% else %}
+                                        <span class="doc-status valid">Valid</span>
+                                        {% endif %}
+                                    {% else %}
+                                    <span class="doc-status valid">Valid</span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="doc-status unverified">Unverified</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ doc.expiry_date|date:"M d, Y"|default:"-" }}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{{ doc.file.url }}" class="action-btn" title="View" target="_blank">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if not doc.is_verified and request.user.role == 'ADMIN' %}
+                                    <form method="post" action="{% url 'supplier_verify_document' doc.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="action-btn" title="Verify" onclick="return confirm('Verify this document?')">
+                                            <i class="bi bi-check-circle"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-small">
+                <i class="bi bi-files"></i>
+                <p>No documents uploaded</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Purchase Orders -->
+        {% if recent_pos %}
+        <div class="info-card">
+            <h3 class="section-title"><i class="bi bi-receipt"></i>Recent Purchase Orders</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>PO Number</th>
+                            <th>Department</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for po in recent_pos %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'po_detail' po.id %}">{{ po.po_number }}</a>
+                            </td>
+                            <td>{{ po.requisition.department.name }}</td>
+                            <td>Ksh {{ po.total_amount|intcomma }}</td>
+                            <td>
+                                <span class="status-badge {{ po.status|lower }}">
+                                    {{ po.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ po.created_at|date:"M d, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Active Contracts -->
+        {% if active_contracts %}
+        <div class="info-card">
+            <h3 class="section-title"><i class="bi bi-file-earmark-text"></i>Active Contracts</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Contract No.</th>
+                            <th>Title</th>
+                            <th>Value</th>
+                            <th>End Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for contract in active_contracts %}
+                        <tr>
+                            <td>
+                                <a href="#">{{ contract.contract_number }}</a>
+                            </td>
+                            <td>{{ contract.title|truncatewords:5 }}</td>
+                            <td>Ksh {{ contract.contract_value|intcomma }}</td>
+                            <td>{{ contract.end_date|date:"M d, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Status Update -->
+        <div class="info-card">
+            <h3 class="section-title"><i class="bi bi-gear"></i>Update Status</h3>
+            <form method="post" action="{% url 'supplier_update_status' supplier.id %}">
+                {% csrf_token %}
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label for="status">New Status</label>
+                        <select id="status" name="status" class="form-control" required>
+                            {% for value, label in supplier.STATUS_CHOICES %}
+                            <option value="{{ value }}" {% if supplier.status == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="info-item" style="margin-top: 1rem;">
+                    <label for="reason">Reason (Optional)</label>
+                    <textarea id="reason" name="reason" class="form-control" rows="3" placeholder="Provide reason for status change..."></textarea>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('Update supplier status?')">
+                        <i class="bi bi-arrow-repeat"></i>Update Status
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add today's date and 30 days from now to the context
+    const now = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(now.getDate() + 30);
+    
+    // Store in window for use in templates if needed
+    window.now = now;
+    window.thirtyDaysFromNow = thirtyDaysFromNow;
+});
+</script>
+{% endblock %}
