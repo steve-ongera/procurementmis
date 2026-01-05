@@ -1,0 +1,674 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ user_obj.get_full_name }} - User Details{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+:root {
+    --primary-color: #2563EB;
+    --primary-light: #EFF6FF;
+    --primary-dark: #1D4ED8;
+    --secondary-color: #64748B;
+    --success-color: #10B981;
+    --warning-color: #F59E0B;
+    --danger-color: #EF4444;
+    --border-color: #E2E8F0;
+    --card-bg: #FFFFFF;
+    --hover-bg: #F8FAFC;
+    --table-header: #F1F5F9;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #1E293B;
+    margin: 0 0 0.5rem 0;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--secondary-color);
+    margin: 0;
+}
+
+.breadcrumb a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.breadcrumb a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.breadcrumb i {
+    font-size: 0.75rem;
+    color: #94A3B8;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    background: var(--card-bg);
+    color: var(--secondary-color);
+}
+
+.btn:hover {
+    background: var(--hover-bg);
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-secondary {
+    background: #64748B;
+    color: white;
+    border-color: #64748B;
+}
+
+.btn-secondary:hover {
+    background: #475569;
+    border-color: #475569;
+}
+
+.btn-warning {
+    background: var(--warning-color);
+    color: white;
+    border-color: var(--warning-color);
+}
+
+.btn-warning:hover {
+    background: #D97706;
+    border-color: #D97706;
+}
+
+/* Detail Layout */
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Info Card */
+.info-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.user-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.user-profile-avatar {
+    position: relative;
+}
+
+.user-profile-avatar img {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 0.5rem;
+    object-fit: cover;
+    border: 3px solid var(--primary-light);
+}
+
+.avatar-placeholder {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 0.5rem;
+    background: var(--primary-light);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    border: 3px solid var(--primary-light);
+}
+
+.user-profile-info h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1E293B;
+    margin: 0 0 0.25rem 0;
+}
+
+.username {
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+    margin: 0 0 0.75rem 0;
+}
+
+.badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.role-badge.admin { background: #FEE2E2; color: #991B1B; }
+.role-badge.staff { background: #DBEAFE; color: #1E40AF; }
+.role-badge.hod { background: #FED7AA; color: #92400E; }
+.role-badge.procurement { background: #D1FAE5; color: #065F46; }
+.role-badge.finance { background: #E0E7FF; color: #3730A3; }
+.role-badge.stores { background: #FCE7F3; color: #831843; }
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-inactive {
+    background: #F1F5F9;
+    color: #475569;
+}
+
+/* Info Sections */
+.info-section {
+    margin-bottom: 1.5rem;
+}
+
+.info-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1E293B;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.info-item label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--secondary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.info-item value {
+    font-size: 0.875rem;
+    color: #334155;
+    font-weight: 500;
+}
+
+.info-item a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.info-item a:hover {
+    text-decoration: underline;
+}
+
+/* Stats Card */
+.stats-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+
+.stats-grid-small {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1rem;
+    background: var(--hover-bg);
+    border-radius: 0.375rem;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1E293B;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--secondary-color);
+    font-weight: 500;
+}
+
+/* Activity Card */
+.activity-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    transition: background-color 0.2s;
+}
+
+.activity-item:hover {
+    background: var(--hover-bg);
+}
+
+.activity-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
+    background: var(--primary-light);
+    color: var(--primary-color);
+    font-size: 0.875rem;
+}
+
+.activity-icon.create { background: #D1FAE5; color: #065F46; }
+.activity-icon.update { background: #DBEAFE; color: #1E40AF; }
+.activity-icon.delete { background: #FEE2E2; color: #991B1B; }
+.activity-icon.approve { background: #D1FAE5; color: #065F46; }
+.activity-icon.reject { background: #FEE2E2; color: #991B1B; }
+.activity-icon.submit { background: #E0E7FF; color: #3730A3; }
+.activity-icon.login { background: #FEF3C7; color: #92400E; }
+
+.activity-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1E293B;
+    margin-bottom: 0.25rem;
+}
+
+.activity-description {
+    font-size: 0.75rem;
+    color: var(--secondary-color);
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: #94A3B8;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.empty-state-small {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #94A3B8;
+}
+
+.empty-state-small i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
+.empty-state-small p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* Related Info Card */
+.related-info-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+
+.related-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--hover-bg);
+    border-radius: 0.375rem;
+    transition: all 0.2s;
+}
+
+.related-item:hover {
+    background: #E2E8F0;
+}
+
+.related-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    background: var(--primary-light);
+    color: var(--primary-color);
+    font-size: 1rem;
+}
+
+.related-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.related-content h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1E293B;
+    margin: 0 0 0.125rem 0;
+}
+
+.related-content p {
+    font-size: 0.75rem;
+    color: var(--secondary-color);
+    margin: 0 0 0.25rem 0;
+}
+
+.related-content .text-muted {
+    color: #94A3B8;
+}
+
+.related-content .text-sm {
+    font-size: 0.75rem;
+    color: var(--secondary-color);
+    margin: 0;
+}
+
+.btn-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">User Details</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i>Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'user_list' %}">Users</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ user_obj.username }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        {% if request.user.role == 'ADMIN' %}
+        <a href="{% url 'user_edit' user_obj.id %}" class="btn btn-secondary">
+            <i class="bi bi-pencil"></i>Edit User
+        </a>
+        <a href="{% url 'user_toggle_status' user_obj.id %}" class="btn btn-warning" onclick="return confirm('Are you sure you want to {% if user_obj.is_active_user %}deactivate{% else %}activate{% endif %} this user?')">
+            <i class="bi bi-{% if user_obj.is_active_user %}x-circle{% else %}check-circle{% endif %}"></i>
+            {% if user_obj.is_active_user %}Deactivate{% else %}Activate{% endif %}
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-grid">
+    <div class="detail-column">
+        <div class="info-card">
+            <div class="user-profile-header">
+                <div class="user-profile-avatar">
+                    {% if user_obj.profile_picture %}
+                    <img src="{{ user_obj.profile_picture.url }}" alt="{{ user_obj.get_full_name }}">
+                    {% else %}
+                    <div class="avatar-placeholder">{{ user_obj.first_name|first|upper }}{{ user_obj.last_name|first|upper }}</div>
+                    {% endif %}
+                </div>
+                <div class="user-profile-info">
+                    <h2>{{ user_obj.get_full_name }}</h2>
+                    <p class="username">@{{ user_obj.username }}</p>
+                    <div class="badges">
+                        <span class="role-badge {{ user_obj.role|lower }}">{{ user_obj.get_role_display }}</span>
+                        {% if user_obj.is_active_user %}
+                        <span class="status-badge status-active"><i class="bi bi-check-circle"></i>Active</span>
+                        {% else %}
+                        <span class="status-badge status-inactive"><i class="bi bi-x-circle"></i>Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3 class="section-title"><i class="bi bi-person-badge"></i>Basic Information</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Employee ID</label>
+                        <value>{{ user_obj.employee_id|default:"-" }}</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Email</label>
+                        <value><a href="mailto:{{ user_obj.email }}">{{ user_obj.email }}</a></value>
+                    </div>
+                    <div class="info-item">
+                        <label>Phone Number</label>
+                        <value>{{ user_obj.phone_number|default:"-" }}</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Department</label>
+                        <value>
+                            {% if user_obj.department %}
+                            <a href="{% url 'department_detail' user_obj.department.id %}">{{ user_obj.department.name }}</a>
+                            {% else %}-{% endif %}
+                        </value>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3 class="section-title"><i class="bi bi-clock-history"></i>Account Information</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Date Joined</label>
+                        <value>{{ user_obj.date_joined|date:"F d, Y" }}</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Last Login</label>
+                        <value>{% if user_obj.last_login %}{{ user_obj.last_login|naturaltime }}{% else %}Never{% endif %}</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Account Created</label>
+                        <value>{{ user_obj.created_at|date:"F d, Y" }}</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Last Updated</label>
+                        <value>{{ user_obj.updated_at|naturaltime }}</value>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <h3 class="section-title"><i class="bi bi-graph-up"></i>Activity Statistics</h3>
+            <div class="stats-grid-small">
+                <div class="stat-item">
+                    <div class="stat-value">{{ total_requisitions|intcomma }}</div>
+                    <div class="stat-label">Requisitions Created</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ total_approvals|intcomma }}</div>
+                    <div class="stat-label">Approvals Made</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-column">
+        <div class="activity-card">
+            <h3 class="section-title"><i class="bi bi-activity"></i>Recent Activity</h3>
+            {% if recent_activity %}
+            <div class="activity-list">
+                {% for log in recent_activity %}
+                <div class="activity-item">
+                    <div class="activity-icon {{ log.action|lower }}">
+                        {% if log.action == 'CREATE' %}<i class="bi bi-plus-circle"></i>
+                        {% elif log.action == 'UPDATE' %}<i class="bi bi-pencil"></i>
+                        {% elif log.action == 'DELETE' %}<i class="bi bi-trash"></i>
+                        {% elif log.action == 'APPROVE' %}<i class="bi bi-check-circle"></i>
+                        {% elif log.action == 'REJECT' %}<i class="bi bi-x-circle"></i>
+                        {% elif log.action == 'SUBMIT' %}<i class="bi bi-send"></i>
+                        {% elif log.action == 'LOGIN' %}<i class="bi bi-box-arrow-in-right"></i>
+                        {% else %}<i class="bi bi-circle"></i>{% endif %}
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title"><strong>{{ log.get_action_display }}</strong> {{ log.model_name }}</div>
+                        <div class="activity-description">{{ log.object_repr }}</div>
+                        <div class="activity-time"><i class="bi bi-clock"></i>{{ log.timestamp|naturaltime }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state-small">
+                <i class="bi bi-activity"></i>
+                <p>No recent activity</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if user_obj.department %}
+        <div class="related-info-card">
+            <h3 class="section-title"><i class="bi bi-building"></i>Department Information</h3>
+            <div class="related-item">
+                <div class="related-icon"><i class="bi bi-building"></i></div>
+                <div class="related-content">
+                    <h4>{{ user_obj.department.name }}</h4>
+                    <p>{{ user_obj.department.code }}</p>
+                    <p class="text-muted">{{ user_obj.department.get_department_type_display }}</p>
+                    {% if user_obj.department.hod %}
+                    <p class="text-sm">HOD: {{ user_obj.department.hod.get_full_name }}</p>
+                    {% endif %}
+                </div>
+                <a href="{% url 'department_detail' user_obj.department.id %}" class="btn-link">View Details <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
