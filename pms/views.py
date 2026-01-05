@@ -6579,3 +6579,624 @@ def policy_detail(request, policy_id):
         'policy': policy,
     }
     return render(request, 'administration/policy_detail.html', context)
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q, Count, Sum, Avg
+from django.http import JsonResponse
+from django.utils import timezone
+from decimal import Decimal
+from datetime import datetime, timedelta
+
+from .models import (
+    Supplier, SupplierDocument, SupplierPerformance,
+    ItemCategory, PurchaseOrder, Bid, Contract
+)
+
+
+# ============================================================================
+# SUPPLIER VIEWS
+# ============================================================================
+
+@login_required
+def supplier_list(request):
+    """List all suppliers with filtering"""
+    
+    # Get filter parameters
+    search = request.GET.get('search', '')
+    status = request.GET.get('status', '')
+    category = request.GET.get('category', '')
+    rating_min = request.GET.get('rating_min', '')
+    
+    # Base queryset
+    suppliers = Supplier.objects.all().select_related().prefetch_related('categories')
+    
+    # Apply filters
+    if search:
+        suppliers = suppliers.filter(
+            Q(name__icontains=search) |
+            Q(supplier_number__icontains=search) |
+            Q(registration_number__icontains=search) |
+            Q(email__icontains=search)
+        )
+    
+    if status:
+        suppliers = suppliers.filter(status=status)
+    
+    if category:
+        suppliers = suppliers.filter(categories__id=category)
+    
+    if rating_min:
+        suppliers = suppliers.filter(rating__gte=rating_min)
+    
+    # Get statistics
+    total_suppliers = suppliers.count()
+    approved_suppliers = suppliers.filter(status='APPROVED').count()
+    pending_suppliers = suppliers.filter(status='PENDING').count()
+    
+    # Get categories for filter
+    categories = ItemCategory.objects.filter(is_active=True)
+    
+    context = {
+        'suppliers': suppliers.order_by('-created_at'),
+        'total_suppliers': total_suppliers,
+        'approved_suppliers': approved_suppliers,
+        'pending_suppliers': pending_suppliers,
+        'categories': categories,
+        'status_choices': Supplier.STATUS_CHOICES,
+        'filters': {
+            'search': search,
+            'status': status,
+            'category': category,
+            'rating_min': rating_min,
+        }
+    }
+    
+    return render(request, 'suppliers/supplier_list.html', context)
+
+
+@login_required
+def supplier_detail(request, supplier_id):
+    """View supplier details"""
+    
+    supplier = get_object_or_404(
+        Supplier.objects.prefetch_related('categories', 'documents', 'performances'),
+        id=supplier_id
+    )
+    
+    # Get supplier statistics
+    total_pos = PurchaseOrder.objects.filter(supplier=supplier).count()
+    total_value = PurchaseOrder.objects.filter(
+        supplier=supplier,
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'DELIVERED', 'CLOSED']
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    # Get recent purchase orders
+    recent_pos = PurchaseOrder.objects.filter(
+        supplier=supplier
+    ).select_related('requisition__department').order_by('-created_at')[:5]
+    
+    # Get performance reviews
+    performances = supplier.performances.select_related(
+        'purchase_order', 'reviewed_by'
+    ).order_by('-reviewed_at')[:10]
+    
+    # Calculate average ratings
+    avg_ratings = supplier.performances.aggregate(
+        avg_quality=Avg('quality_rating'),
+        avg_delivery=Avg('delivery_rating'),
+        avg_service=Avg('service_rating'),
+        avg_overall=Avg('overall_rating')
+    )
+    
+    # Get active contracts
+    active_contracts = Contract.objects.filter(
+        supplier=supplier,
+        status='ACTIVE'
+    ).order_by('-start_date')[:5]
+    
+    # Check document expiry
+    documents = supplier.documents.filter(is_verified=True)
+    expiring_docs = documents.filter(
+        expiry_date__lte=timezone.now().date() + timedelta(days=30),
+        expiry_date__gte=timezone.now().date()
+    )
+    expired_docs = documents.filter(expiry_date__lt=timezone.now().date())
+    
+    context = {
+        'supplier': supplier,
+        'total_pos': total_pos,
+        'total_value': total_value,
+        'recent_pos': recent_pos,
+        'performances': performances,
+        'avg_ratings': avg_ratings,
+        'active_contracts': active_contracts,
+        'documents': documents,
+        'expiring_docs': expiring_docs,
+        'expired_docs': expired_docs,
+    }
+    
+    return render(request, 'suppliers/supplier_detail.html', context)
+
+
+@login_required
+def supplier_create(request):
+    """Create new supplier"""
+    
+    if request.method == 'POST':
+        try:
+            # Generate supplier number
+            year = timezone.now().year
+            last_supplier = Supplier.objects.filter(
+                supplier_number__startswith=f'SUP-{year}'
+            ).order_by('-supplier_number').first()
+            
+            if last_supplier:
+                last_number = int(last_supplier.supplier_number.split('-')[-1])
+                new_number = last_number + 1
+            else:
+                new_number = 1
+            
+            supplier_number = f'SUP-{year}-{new_number:06d}'
+            
+            # Create supplier
+            supplier = Supplier.objects.create(
+                supplier_number=supplier_number,
+                name=request.POST.get('name'),
+                registration_number=request.POST.get('registration_number'),
+                tax_id=request.POST.get('tax_id', ''),
+                email=request.POST.get('email'),
+                phone_number=request.POST.get('phone_number'),
+                physical_address=request.POST.get('physical_address'),
+                postal_address=request.POST.get('postal_address', ''),
+                website=request.POST.get('website', ''),
+                contact_person=request.POST.get('contact_person'),
+                contact_person_phone=request.POST.get('contact_person_phone'),
+                contact_person_email=request.POST.get('contact_person_email'),
+                bank_name=request.POST.get('bank_name'),
+                bank_branch=request.POST.get('bank_branch'),
+                account_number=request.POST.get('account_number'),
+                account_name=request.POST.get('account_name'),
+                swift_code=request.POST.get('swift_code', ''),
+                notes=request.POST.get('notes', ''),
+                created_by=request.user
+            )
+            
+            # Add categories
+            category_ids = request.POST.getlist('categories')
+            if category_ids:
+                supplier.categories.set(category_ids)
+            
+            messages.success(request, f'Supplier {supplier.name} created successfully!')
+            return redirect('supplier_detail', supplier_id=supplier.id)
+            
+        except Exception as e:
+            messages.error(request, f'Error creating supplier: {str(e)}')
+    
+    categories = ItemCategory.objects.filter(is_active=True)
+    
+    context = {
+        'categories': categories,
+    }
+    
+    return render(request, 'suppliers/supplier_create.html', context)
+
+
+@login_required
+def supplier_edit(request, supplier_id):
+    """Edit supplier information"""
+    
+    supplier = get_object_or_404(Supplier, id=supplier_id)
+    
+    if request.method == 'POST':
+        try:
+            supplier.name = request.POST.get('name')
+            supplier.registration_number = request.POST.get('registration_number')
+            supplier.tax_id = request.POST.get('tax_id', '')
+            supplier.email = request.POST.get('email')
+            supplier.phone_number = request.POST.get('phone_number')
+            supplier.physical_address = request.POST.get('physical_address')
+            supplier.postal_address = request.POST.get('postal_address', '')
+            supplier.website = request.POST.get('website', '')
+            supplier.contact_person = request.POST.get('contact_person')
+            supplier.contact_person_phone = request.POST.get('contact_person_phone')
+            supplier.contact_person_email = request.POST.get('contact_person_email')
+            supplier.bank_name = request.POST.get('bank_name')
+            supplier.bank_branch = request.POST.get('bank_branch')
+            supplier.account_number = request.POST.get('account_number')
+            supplier.account_name = request.POST.get('account_name')
+            supplier.swift_code = request.POST.get('swift_code', '')
+            supplier.notes = request.POST.get('notes', '')
+            supplier.save()
+            
+            # Update categories
+            category_ids = request.POST.getlist('categories')
+            supplier.categories.set(category_ids)
+            
+            messages.success(request, 'Supplier updated successfully!')
+            return redirect('supplier_detail', supplier_id=supplier.id)
+            
+        except Exception as e:
+            messages.error(request, f'Error updating supplier: {str(e)}')
+    
+    categories = ItemCategory.objects.filter(is_active=True)
+    
+    context = {
+        'supplier': supplier,
+        'categories': categories,
+    }
+    
+    return render(request, 'suppliers/supplier_edit.html', context)
+
+
+@login_required
+def supplier_update_status(request, supplier_id):
+    """Update supplier status (approve/suspend/blacklist)"""
+    
+    if request.method == 'POST':
+        supplier = get_object_or_404(Supplier, id=supplier_id)
+        new_status = request.POST.get('status')
+        reason = request.POST.get('reason', '')
+        
+        if new_status in dict(Supplier.STATUS_CHOICES).keys():
+            old_status = supplier.status
+            supplier.status = new_status
+            
+            if reason:
+                supplier.notes = f"{supplier.notes}\n\n[{timezone.now()}] Status changed from {old_status} to {new_status}: {reason}"
+            
+            supplier.save()
+            
+            messages.success(request, f'Supplier status updated to {supplier.get_status_display()}')
+        else:
+            messages.error(request, 'Invalid status')
+    
+    return redirect('supplier_detail', supplier_id=supplier_id)
+
+
+@login_required
+def supplier_documents(request, supplier_id):
+    """Manage supplier documents"""
+    
+    supplier = get_object_or_404(Supplier, id=supplier_id)
+    
+    if request.method == 'POST':
+        try:
+            document = SupplierDocument.objects.create(
+                supplier=supplier,
+                document_type=request.POST.get('document_type'),
+                document_name=request.POST.get('document_name'),
+                file=request.FILES.get('file'),
+                issue_date=request.POST.get('issue_date') or None,
+                expiry_date=request.POST.get('expiry_date') or None,
+            )
+            
+            messages.success(request, 'Document uploaded successfully!')
+            return redirect('supplier_detail', supplier_id=supplier.id)
+            
+        except Exception as e:
+            messages.error(request, f'Error uploading document: {str(e)}')
+    
+    documents = supplier.documents.all().order_by('-uploaded_at')
+    
+    context = {
+        'supplier': supplier,
+        'documents': documents,
+        'document_types': SupplierDocument.DOCUMENT_TYPES,
+    }
+    
+    return render(request, 'suppliers/supplier_documents.html', context)
+
+
+@login_required
+def supplier_verify_document(request, document_id):
+    """Verify supplier document"""
+    
+    if request.method == 'POST':
+        document = get_object_or_404(SupplierDocument, id=document_id)
+        
+        document.is_verified = True
+        document.verified_by = request.user
+        document.verified_at = timezone.now()
+        document.save()
+        
+        messages.success(request, f'Document {document.document_name} verified successfully!')
+    
+    return redirect('supplier_detail', supplier_id=document.supplier.id)
+
+
+# ============================================================================
+# VENDOR MANAGEMENT VIEWS
+# ============================================================================
+
+@login_required
+def vendor_dashboard(request):
+    """Vendor management dashboard"""
+    
+    # Get statistics
+    total_vendors = Supplier.objects.count()
+    approved_vendors = Supplier.objects.filter(status='APPROVED').count()
+    pending_vendors = Supplier.objects.filter(status='PENDING').count()
+    suspended_vendors = Supplier.objects.filter(status='SUSPENDED').count()
+    blacklisted_vendors = Supplier.objects.filter(status='BLACKLISTED').count()
+    
+    # Top performing vendors
+    top_vendors = Supplier.objects.filter(
+        status='APPROVED'
+    ).order_by('-rating')[:10]
+    
+    # Recent vendor registrations
+    recent_vendors = Supplier.objects.order_by('-created_at')[:10]
+    
+    # Vendors with expiring documents
+    expiring_date = timezone.now().date() + timedelta(days=30)
+    vendors_expiring_docs = Supplier.objects.filter(
+        documents__expiry_date__lte=expiring_date,
+        documents__expiry_date__gte=timezone.now().date(),
+        documents__is_verified=True
+    ).distinct()
+    
+    # Vendors with expired documents
+    vendors_expired_docs = Supplier.objects.filter(
+        documents__expiry_date__lt=timezone.now().date(),
+        documents__is_verified=True
+    ).distinct()
+    
+    # Performance distribution
+    excellent_vendors = Supplier.objects.filter(rating__gte=4.5).count()
+    good_vendors = Supplier.objects.filter(rating__gte=3.5, rating__lt=4.5).count()
+    average_vendors = Supplier.objects.filter(rating__gte=2.5, rating__lt=3.5).count()
+    poor_vendors = Supplier.objects.filter(rating__lt=2.5).count()
+    
+    # Category distribution
+    category_stats = ItemCategory.objects.annotate(
+        vendor_count=Count('suppliers')
+    ).order_by('-vendor_count')[:10]
+    
+    context = {
+        'total_vendors': total_vendors,
+        'approved_vendors': approved_vendors,
+        'pending_vendors': pending_vendors,
+        'suspended_vendors': suspended_vendors,
+        'blacklisted_vendors': blacklisted_vendors,
+        'top_vendors': top_vendors,
+        'recent_vendors': recent_vendors,
+        'vendors_expiring_docs': vendors_expiring_docs,
+        'vendors_expired_docs': vendors_expired_docs,
+        'excellent_vendors': excellent_vendors,
+        'good_vendors': good_vendors,
+        'average_vendors': average_vendors,
+        'poor_vendors': poor_vendors,
+        'category_stats': category_stats,
+    }
+    
+    return render(request, 'vendors/vendor_dashboard.html', context)
+
+
+@login_required
+def vendor_performance_list(request):
+    """List all vendor performance reviews"""
+    
+    # Get filter parameters
+    supplier_id = request.GET.get('supplier', '')
+    rating_min = request.GET.get('rating_min', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    # Base queryset
+    performances = SupplierPerformance.objects.select_related(
+        'supplier', 'purchase_order', 'reviewed_by'
+    )
+    
+    # Apply filters
+    if supplier_id:
+        performances = performances.filter(supplier_id=supplier_id)
+    
+    if rating_min:
+        performances = performances.filter(overall_rating__gte=rating_min)
+    
+    if date_from:
+        performances = performances.filter(reviewed_at__gte=date_from)
+    
+    if date_to:
+        performances = performances.filter(reviewed_at__lte=date_to)
+    
+    # Get statistics
+    total_reviews = performances.count()
+    avg_quality = performances.aggregate(avg=Avg('quality_rating'))['avg'] or 0
+    avg_delivery = performances.aggregate(avg=Avg('delivery_rating'))['avg'] or 0
+    avg_service = performances.aggregate(avg=Avg('service_rating'))['avg'] or 0
+    avg_overall = performances.aggregate(avg=Avg('overall_rating'))['avg'] or 0
+    
+    # Get suppliers for filter
+    suppliers = Supplier.objects.filter(status='APPROVED').order_by('name')
+    
+    context = {
+        'performances': performances.order_by('-reviewed_at'),
+        'total_reviews': total_reviews,
+        'avg_quality': avg_quality,
+        'avg_delivery': avg_delivery,
+        'avg_service': avg_service,
+        'avg_overall': avg_overall,
+        'suppliers': suppliers,
+        'filters': {
+            'supplier': supplier_id,
+            'rating_min': rating_min,
+            'date_from': date_from,
+            'date_to': date_to,
+        }
+    }
+    
+    return render(request, 'vendors/vendor_performance_list.html', context)
+
+
+@login_required
+def vendor_performance_create(request, po_id):
+    """Create vendor performance review"""
+    
+    po = get_object_or_404(
+        PurchaseOrder.objects.select_related('supplier'),
+        id=po_id
+    )
+    
+    # Check if already reviewed
+    existing_review = SupplierPerformance.objects.filter(purchase_order=po).first()
+    if existing_review:
+        messages.warning(request, 'This purchase order has already been reviewed.')
+        return redirect('po_detail', po_id=po.id)
+    
+    if request.method == 'POST':
+        try:
+            quality_rating = int(request.POST.get('quality_rating'))
+            delivery_rating = int(request.POST.get('delivery_rating'))
+            service_rating = int(request.POST.get('service_rating'))
+            
+            performance = SupplierPerformance.objects.create(
+                supplier=po.supplier,
+                purchase_order=po,
+                quality_rating=quality_rating,
+                delivery_rating=delivery_rating,
+                service_rating=service_rating,
+                comments=request.POST.get('comments', ''),
+                reviewed_by=request.user
+            )
+            
+            # Update supplier overall rating
+            avg_rating = SupplierPerformance.objects.filter(
+                supplier=po.supplier
+            ).aggregate(avg=Avg('overall_rating'))['avg']
+            
+            po.supplier.rating = avg_rating
+            po.supplier.save()
+            
+            messages.success(request, 'Performance review submitted successfully!')
+            return redirect('po_detail', po_id=po.id)
+            
+        except Exception as e:
+            messages.error(request, f'Error creating review: {str(e)}')
+    
+    context = {
+        'po': po,
+    }
+    
+    return render(request, 'vendors/vendor_performance_create.html', context)
+
+
+@login_required
+def vendor_comparison(request):
+    """Compare vendors for selection"""
+    
+    supplier_ids = request.GET.getlist('suppliers')
+    
+    if not supplier_ids:
+        messages.warning(request, 'Please select suppliers to compare.')
+        return redirect('supplier_list')
+    
+    suppliers = Supplier.objects.filter(
+        id__in=supplier_ids
+    ).prefetch_related('performances', 'categories')
+    
+    # Get comparison data
+    comparison_data = []
+    for supplier in suppliers:
+        performances = supplier.performances.aggregate(
+            avg_quality=Avg('quality_rating'),
+            avg_delivery=Avg('delivery_rating'),
+            avg_service=Avg('service_rating'),
+            avg_overall=Avg('overall_rating'),
+            total_reviews=Count('id')
+        )
+        
+        total_pos = PurchaseOrder.objects.filter(supplier=supplier).count()
+        total_value = PurchaseOrder.objects.filter(
+            supplier=supplier,
+            status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'DELIVERED', 'CLOSED']
+        ).aggregate(total=Sum('total_amount'))['total'] or 0
+        
+        comparison_data.append({
+            'supplier': supplier,
+            'performances': performances,
+            'total_pos': total_pos,
+            'total_value': total_value,
+        })
+    
+    context = {
+        'comparison_data': comparison_data,
+    }
+    
+    return render(request, 'vendors/vendor_comparison.html', context)
+
+
+@login_required
+def vendor_compliance(request):
+    """Vendor compliance tracking"""
+    
+    # Get compliance statistics
+    total_vendors = Supplier.objects.filter(status='APPROVED').count()
+    
+    # Tax compliance
+    tax_compliant = Supplier.objects.filter(
+        status='APPROVED',
+        tax_compliance_expiry__gte=timezone.now().date()
+    ).count()
+    
+    tax_expiring = Supplier.objects.filter(
+        status='APPROVED',
+        tax_compliance_expiry__lte=timezone.now().date() + timedelta(days=30),
+        tax_compliance_expiry__gte=timezone.now().date()
+    ).count()
+    
+    tax_expired = Supplier.objects.filter(
+        status='APPROVED',
+        tax_compliance_expiry__lt=timezone.now().date()
+    ).count()
+    
+    # Registration compliance
+    reg_compliant = Supplier.objects.filter(
+        status='APPROVED',
+        registration_expiry__gte=timezone.now().date()
+    ).count()
+    
+    reg_expiring = Supplier.objects.filter(
+        status='APPROVED',
+        registration_expiry__lte=timezone.now().date() + timedelta(days=30),
+        registration_expiry__gte=timezone.now().date()
+    ).count()
+    
+    reg_expired = Supplier.objects.filter(
+        status='APPROVED',
+        registration_expiry__lt=timezone.now().date()
+    ).count()
+    
+    # Get non-compliant vendors
+    non_compliant_vendors = Supplier.objects.filter(
+        status='APPROVED'
+    ).filter(
+        Q(tax_compliance_expiry__lt=timezone.now().date()) |
+        Q(registration_expiry__lt=timezone.now().date())
+    ).distinct()
+    
+    # Expiring soon
+    expiring_soon = Supplier.objects.filter(
+        status='APPROVED'
+    ).filter(
+        Q(tax_compliance_expiry__lte=timezone.now().date() + timedelta(days=30),
+          tax_compliance_expiry__gte=timezone.now().date()) |
+        Q(registration_expiry__lte=timezone.now().date() + timedelta(days=30),
+          registration_expiry__gte=timezone.now().date())
+    ).distinct()
+    
+    context = {
+        'total_vendors': total_vendors,
+        'tax_compliant': tax_compliant,
+        'tax_expiring': tax_expiring,
+        'tax_expired': tax_expired,
+        'reg_compliant': reg_compliant,
+        'reg_expiring': reg_expiring,
+        'reg_expired': reg_expired,
+        'non_compliant_vendors': non_compliant_vendors,
+        'expiring_soon': expiring_soon,
+    }
+    
+    return render(request, 'vendors/vendor_compliance.html', context)

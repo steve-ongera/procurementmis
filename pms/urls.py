@@ -144,4 +144,20 @@ urlpatterns = [
     path('policies/', views.policy_list, name='policy_list'),
     path('policies/<uuid:policy_id>/', views.policy_detail, name='policy_detail'),
     
+    # Supplier URLs
+    path('suppliers/', views.supplier_list, name='supplier_list'),
+    path('suppliers/create/', views.supplier_create, name='supplier_create'),
+    path('suppliers/<uuid:supplier_id>/', views.supplier_detail, name='supplier_detail'),
+    path('suppliers/<uuid:supplier_id>/edit/', views.supplier_edit, name='supplier_edit'),
+    path('suppliers/<uuid:supplier_id>/update-status/', views.supplier_update_status, name='supplier_update_status'),
+    path('suppliers/<uuid:supplier_id>/documents/', views.supplier_documents, name='supplier_documents'),
+    path('suppliers/documents/<uuid:document_id>/verify/', views.supplier_verify_document, name='supplier_verify_document'),
+    
+    # Vendor Management URLs
+    path('vendors/', views.vendor_dashboard, name='vendor_dashboard'),
+    path('vendors/performance/', views.vendor_performance_list, name='vendor_performance_list'),
+    path('vendors/performance/create/<uuid:po_id>/', views.vendor_performance_create, name='vendor_performance_create'),
+    path('vendors/comparison/', views.vendor_comparison, name='vendor_comparison'),
+    path('vendors/compliance/', views.vendor_compliance, name='vendor_compliance'),
+    
 ]
