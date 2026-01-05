@@ -121,4 +121,26 @@ urlpatterns = [
     path('inventory/api/stock-items/<uuid:store_id>/', views.get_stock_items_by_store, name='api_stock_items'),
     path('inventory/api/po-items/<uuid:po_id>/', views.get_po_items, name='api_po_items'),
     
+    # ============================================================================
+    # USER MANAGEMENT URLS
+    # ============================================================================
+    path('users/', views.user_list, name='user_list'),
+    path('users/create/', views.user_create, name='user_create'),
+    path('users/<uuid:user_id>/', views.user_detail, name='user_detail'),
+    path('users/<uuid:user_id>/edit/', views.user_edit, name='user_edit'),
+    path('users/<uuid:user_id>/toggle-status/', views.user_toggle_status, name='user_toggle_status'),
+
+    path('roles-permissions/', views.role_permissions_list, name='role_permissions_list'),
+    path('roles-permissions/<str:role_code>/edit/', views.role_permissions_edit, name='role_permissions_edit'),
+    
+    path('departments/', views.department_list, name='department_list'),
+    path('departments/create/', views.department_create, name='department_create'),
+    path('departments/<uuid:dept_id>/', views.department_detail, name='department_detail'),
+    path('departments/<uuid:dept_id>/edit/', views.department_edit, name='department_edit'),
+    path('settings/', views.system_settings, name='system_settings'),
+    path('audit-trail/', views.audit_trail, name='audit_trail'),
+    path('notifications/', views.notifications_list, name='notifications_list'),
+    path('policies/', views.policy_list, name='policy_list'),
+    path('policies/<uuid:policy_id>/', views.policy_detail, name='policy_detail'),
+    
 ]

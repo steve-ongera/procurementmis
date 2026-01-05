@@ -5965,3 +5965,617 @@ def get_po_items(request, po_id):
     )
     
     return JsonResponse(list(po_items), safe=False)
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q, Count
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.utils import timezone
+from .models import (
+    User, Permission, RolePermission, AuditLog, Faculty, Department,
+    SystemConfiguration, ProcurementPolicy, Notification
+)
+from .forms import (
+    UserForm, DepartmentForm, FacultyForm, SystemConfigForm,
+    ProcurementPolicyForm
+)
+
+
+# ============================================================================
+# USER MANAGEMENT VIEWS
+# ============================================================================
+
+@login_required
+def user_list(request):
+    """List all users with filtering"""
+    if request.user.role not in ['ADMIN', 'PROCUREMENT']:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('dashboard')
+    
+    users = User.objects.all().select_related('department', 'department__faculty')
+    
+    # Filters
+    search = request.GET.get('search', '')
+    role = request.GET.get('role', '')
+    department = request.GET.get('department', '')
+    status = request.GET.get('status', '')
+    
+    if search:
+        users = users.filter(
+            Q(username__icontains=search) |
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search) |
+            Q(email__icontains=search) |
+            Q(employee_id__icontains=search)
+        )
+    
+    if role:
+        users = users.filter(role=role)
+    
+    if department:
+        users = users.filter(department_id=department)
+    
+    if status:
+        is_active = status == 'active'
+        users = users.filter(is_active_user=is_active)
+    
+    # Statistics
+    total_users = users.count()
+    active_users = users.filter(is_active_user=True).count()
+    inactive_users = users.filter(is_active_user=False).count()
+    
+    # Role distribution
+    role_counts = users.values('role').annotate(count=Count('id'))
+    
+    # Pagination
+    paginator = Paginator(users, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'users': page_obj,
+        'total_users': total_users,
+        'active_users': active_users,
+        'inactive_users': inactive_users,
+        'role_counts': role_counts,
+        'role_choices': User.ROLE_CHOICES,
+        'departments': Department.objects.filter(is_active=True),
+        'filters': {
+            'search': search,
+            'role': role,
+            'department': department,
+            'status': status,
+        }
+    }
+    return render(request, 'administration/user_list.html', context)
+
+
+@login_required
+def user_create(request):
+    """Create new user"""
+    if request.user.role not in ['ADMIN']:
+        messages.error(request, 'You do not have permission to create users.')
+        return redirect('user_list')
+    
+    if request.method == 'POST':
+        form = UserForm(request.POST, request.FILES)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])
+            user.save()
+            
+            # Log audit
+            AuditLog.objects.create(
+                user=request.user,
+                action='CREATE',
+                model_name='User',
+                object_id=str(user.id),
+                object_repr=str(user),
+                changes={'created': 'New user created'}
+            )
+            
+            messages.success(request, f'User {user.username} created successfully.')
+            return redirect('user_detail', user.id)
+    else:
+        form = UserForm()
+    
+    context = {
+        'form': form,
+        'departments': Department.objects.filter(is_active=True),
+        'role_choices': User.ROLE_CHOICES,
+    }
+    return render(request, 'administration/user_form.html', context)
+
+
+@login_required
+def user_detail(request, user_id):
+    """View user details"""
+    if request.user.role not in ['ADMIN', 'PROCUREMENT']:
+        messages.error(request, 'You do not have permission to view user details.')
+        return redirect('dashboard')
+    
+    user_obj = get_object_or_404(User, id=user_id)
+    
+    # Get user activity
+    recent_activity = AuditLog.objects.filter(user=user_obj).order_by('-timestamp')[:20]
+    
+    # Get statistics
+    total_requisitions = user_obj.requisitions_created.count()
+    total_approvals = user_obj.approvals_made.count()
+    
+    context = {
+        'user_obj': user_obj,
+        'recent_activity': recent_activity,
+        'total_requisitions': total_requisitions,
+        'total_approvals': total_approvals,
+    }
+    return render(request, 'administration/user_detail.html', context)
+
+
+@login_required
+def user_edit(request, user_id):
+    """Edit user"""
+    if request.user.role not in ['ADMIN']:
+        messages.error(request, 'You do not have permission to edit users.')
+        return redirect('user_list')
+    
+    user_obj = get_object_or_404(User, id=user_id)
+    
+    if request.method == 'POST':
+        form = UserForm(request.POST, request.FILES, instance=user_obj)
+        if form.is_valid():
+            user = form.save()
+            
+            # Log audit
+            AuditLog.objects.create(
+                user=request.user,
+                action='UPDATE',
+                model_name='User',
+                object_id=str(user.id),
+                object_repr=str(user),
+                changes={'updated': 'User information updated'}
+            )
+            
+            messages.success(request, f'User {user.username} updated successfully.')
+            return redirect('user_detail', user.id)
+    else:
+        form = UserForm(instance=user_obj)
+    
+    context = {
+        'form': form,
+        'user_obj': user_obj,
+        'departments': Department.objects.filter(is_active=True),
+        'role_choices': User.ROLE_CHOICES,
+    }
+    return render(request, 'administration/user_form.html', context)
+
+
+@login_required
+def user_toggle_status(request, user_id):
+    """Toggle user active status"""
+    if request.user.role not in ['ADMIN']:
+        messages.error(request, 'You do not have permission to modify user status.')
+        return redirect('user_list')
+    
+    user_obj = get_object_or_404(User, id=user_id)
+    
+    # Prevent self-deactivation
+    if user_obj == request.user:
+        messages.error(request, 'You cannot deactivate your own account.')
+        return redirect('user_detail', user_id)
+    
+    user_obj.is_active_user = not user_obj.is_active_user
+    user_obj.save()
+    
+    status = 'activated' if user_obj.is_active_user else 'deactivated'
+    
+    # Log audit
+    AuditLog.objects.create(
+        user=request.user,
+        action='UPDATE',
+        model_name='User',
+        object_id=str(user_obj.id),
+        object_repr=str(user_obj),
+        changes={'status_changed': status}
+    )
+    
+    messages.success(request, f'User {user_obj.username} has been {status}.')
+    return redirect('user_detail', user_id)
+
+
+# ============================================================================
+# ROLES & PERMISSIONS VIEWS
+# ============================================================================
+
+@login_required
+def role_permissions_list(request):
+    """List roles and their permissions"""
+    if request.user.role not in ['ADMIN']:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('dashboard')
+    
+    # Get all roles with their permissions
+    roles_data = []
+    for role_code, role_name in User.ROLE_CHOICES:
+        permissions = RolePermission.objects.filter(role=role_code).select_related('permission')
+        roles_data.append({
+            'code': role_code,
+            'name': role_name,
+            'permissions': permissions,
+            'permission_count': permissions.count(),
+        })
+    
+    # Get all available permissions grouped by module
+    all_permissions = Permission.objects.all().order_by('module', 'name')
+    modules = {}
+    for perm in all_permissions:
+        if perm.module not in modules:
+            modules[perm.module] = []
+        modules[perm.module].append(perm)
+    
+    context = {
+        'roles_data': roles_data,
+        'modules': modules,
+        'all_permissions': all_permissions,
+    }
+    return render(request, 'administration/role_permissions_list.html', context)
+
+
+@login_required
+def role_permissions_edit(request, role_code):
+    """Edit permissions for a specific role"""
+    if request.user.role not in ['ADMIN']:
+        messages.error(request, 'You do not have permission to edit role permissions.')
+        return redirect('role_permissions_list')
+    
+    role_name = dict(User.ROLE_CHOICES).get(role_code, role_code)
+    
+    if request.method == 'POST':
+        permission_ids = request.POST.getlist('permissions')
+        
+        # Remove existing permissions for this role
+        RolePermission.objects.filter(role=role_code).delete()
+        
+        # Add new permissions
+        for perm_id in permission_ids:
+            permission = Permission.objects.get(id=perm_id)
+            RolePermission.objects.create(role=role_code, permission=permission)
+        
+        # Log audit
+        AuditLog.objects.create(
+            user=request.user,
+            action='UPDATE',
+            model_name='RolePermission',
+            object_id=role_code,
+            object_repr=f'{role_name} permissions',
+            changes={'permissions_updated': f'{len(permission_ids)} permissions assigned'}
+        )
+        
+        messages.success(request, f'Permissions for {role_name} updated successfully.')
+        return redirect('role_permissions_list')
+    
+    # Get current permissions for this role
+    current_permissions = RolePermission.objects.filter(role=role_code).values_list('permission_id', flat=True)
+    
+    # Get all permissions grouped by module
+    all_permissions = Permission.objects.all().order_by('module', 'name')
+    modules = {}
+    for perm in all_permissions:
+        if perm.module not in modules:
+            modules[perm.module] = []
+        modules[perm.module].append(perm)
+    
+    context = {
+        'role_code': role_code,
+        'role_name': role_name,
+        'modules': modules,
+        'current_permissions': list(current_permissions),
+    }
+    return render(request, 'administration/role_permissions_edit.html', context)
+
+
+# ============================================================================
+# DEPARTMENT MANAGEMENT VIEWS
+# ============================================================================
+
+@login_required
+def department_list(request):
+    """List all departments"""
+    if request.user.role not in ['ADMIN', 'PROCUREMENT']:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('dashboard')
+    
+    departments = Department.objects.all().select_related('faculty', 'hod')
+    
+    # Filters
+    search = request.GET.get('search', '')
+    faculty = request.GET.get('faculty', '')
+    dept_type = request.GET.get('type', '')
+    status = request.GET.get('status', '')
+    
+    if search:
+        departments = departments.filter(
+            Q(name__icontains=search) |
+            Q(code__icontains=search)
+        )
+    
+    if faculty:
+        departments = departments.filter(faculty_id=faculty)
+    
+    if dept_type:
+        departments = departments.filter(department_type=dept_type)
+    
+    if status:
+        is_active = status == 'active'
+        departments = departments.filter(is_active=is_active)
+    
+    # Statistics
+    total_depts = departments.count()
+    active_depts = departments.filter(is_active=True).count()
+    
+    # Type distribution
+    type_counts = departments.values('department_type').annotate(count=Count('id'))
+    
+    context = {
+        'departments': departments,
+        'total_depts': total_depts,
+        'active_depts': active_depts,
+        'type_counts': type_counts,
+        'faculties': Faculty.objects.filter(is_active=True),
+        'type_choices': Department.DEPARTMENT_TYPE,
+        'filters': {
+            'search': search,
+            'faculty': faculty,
+            'type': dept_type,
+            'status': status,
+        }
+    }
+    return render(request, 'administration/department_list.html', context)
+
+
+@login_required
+def department_create(request):
+    """Create new department"""
+    if request.user.role not in ['ADMIN']:
+        messages.error(request, 'You do not have permission to create departments.')
+        return redirect('department_list')
+    
+    if request.method == 'POST':
+        form = DepartmentForm(request.POST)
+        if form.is_valid():
+            department = form.save()
+            
+            # Log audit
+            AuditLog.objects.create(
+                user=request.user,
+                action='CREATE',
+                model_name='Department',
+                object_id=str(department.id),
+                object_repr=str(department),
+                changes={'created': 'New department created'}
+            )
+            
+            messages.success(request, f'Department {department.name} created successfully.')
+            return redirect('department_detail', department.id)
+    else:
+        form = DepartmentForm()
+    
+    context = {
+        'form': form,
+        'faculties': Faculty.objects.filter(is_active=True),
+        'type_choices': Department.DEPARTMENT_TYPE,
+        'hods': User.objects.filter(role='HOD', is_active_user=True),
+    }
+    return render(request, 'administration/department_form.html', context)
+
+
+@login_required
+def department_detail(request, dept_id):
+    """View department details"""
+    if request.user.role not in ['ADMIN', 'PROCUREMENT', 'HOD']:
+        messages.error(request, 'You do not have permission to view department details.')
+        return redirect('dashboard')
+    
+    department = get_object_or_404(Department, id=dept_id)
+    
+    # Statistics
+    total_staff = User.objects.filter(department=department, is_active_user=True).count()
+    total_requisitions = department.requisitions.count()
+    total_budgets = department.budgets.count()
+    
+    # Recent activity
+    recent_requisitions = department.requisitions.order_by('-created_at')[:5]
+    
+    context = {
+        'department': department,
+        'total_staff': total_staff,
+        'total_requisitions': total_requisitions,
+        'total_budgets': total_budgets,
+        'recent_requisitions': recent_requisitions,
+    }
+    return render(request, 'administration/department_detail.html', context)
+
+
+# ============================================================================
+# SYSTEM SETTINGS VIEWS
+# ============================================================================
+
+@login_required
+def system_settings(request):
+    """System configuration settings"""
+    if request.user.role not in ['ADMIN']:
+        messages.error(request, 'You do not have permission to access system settings.')
+        return redirect('dashboard')
+    
+    configs = SystemConfiguration.objects.all().order_by('key')
+    
+    if request.method == 'POST':
+        for config in configs:
+            if config.is_editable:
+                new_value = request.POST.get(f'config_{config.id}')
+                if new_value is not None:
+                    config.value = new_value
+                    config.updated_by = request.user
+                    config.save()
+        
+        # Log audit
+        AuditLog.objects.create(
+            user=request.user,
+            action='UPDATE',
+            model_name='SystemConfiguration',
+            object_id='bulk',
+            object_repr='System Settings',
+            changes={'updated': 'System configuration updated'}
+        )
+        
+        messages.success(request, 'System settings updated successfully.')
+        return redirect('system_settings')
+    
+    context = {
+        'configs': configs,
+    }
+    return render(request, 'administration/system_settings.html', context)
+
+
+# ============================================================================
+# AUDIT TRAIL VIEWS
+# ============================================================================
+
+@login_required
+def audit_trail(request):
+    """View audit trail"""
+    if request.user.role not in ['ADMIN', 'AUDITOR']:
+        messages.error(request, 'You do not have permission to access audit trail.')
+        return redirect('dashboard')
+    
+    logs = AuditLog.objects.all().select_related('user')
+    
+    # Filters
+    search = request.GET.get('search', '')
+    user = request.GET.get('user', '')
+    action = request.GET.get('action', '')
+    model = request.GET.get('model', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    if search:
+        logs = logs.filter(
+            Q(object_repr__icontains=search) |
+            Q(object_id__icontains=search)
+        )
+    
+    if user:
+        logs = logs.filter(user_id=user)
+    
+    if action:
+        logs = logs.filter(action=action)
+    
+    if model:
+        logs = logs.filter(model_name=model)
+    
+    if date_from:
+        logs = logs.filter(timestamp__gte=date_from)
+    
+    if date_to:
+        logs = logs.filter(timestamp__lte=date_to)
+    
+    # Statistics
+    total_logs = logs.count()
+    action_counts = logs.values('action').annotate(count=Count('id'))
+    
+    # Pagination
+    paginator = Paginator(logs, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'logs': page_obj,
+        'total_logs': total_logs,
+        'action_counts': action_counts,
+        'users': User.objects.filter(is_active_user=True),
+        'action_choices': AuditLog.ACTION_TYPES,
+        'filters': {
+            'search': search,
+            'user': user,
+            'action': action,
+            'model': model,
+            'date_from': date_from,
+            'date_to': date_to,
+        }
+    }
+    return render(request, 'administration/audit_trail.html', context)
+
+
+# ============================================================================
+# NOTIFICATIONS MANAGEMENT
+# ============================================================================
+
+@login_required
+def notifications_list(request):
+    """List all notifications"""
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Mark as read if requested
+    if request.GET.get('mark_read'):
+        notification_id = request.GET.get('mark_read')
+        notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+        notification.is_read = True
+        notification.read_at = timezone.now()
+        notification.save()
+        return redirect('notifications_list')
+    
+    # Mark all as read
+    if request.GET.get('mark_all_read'):
+        notifications.filter(is_read=False).update(is_read=True, read_at=timezone.now())
+        messages.success(request, 'All notifications marked as read.')
+        return redirect('notifications_list')
+    
+    # Statistics
+    unread_count = notifications.filter(is_read=False).count()
+    
+    # Pagination
+    paginator = Paginator(notifications, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'notifications': page_obj,
+        'unread_count': unread_count,
+    }
+    return render(request, 'administration/notifications_list.html', context)
+
+
+# ============================================================================
+# PROCUREMENT POLICIES
+# ============================================================================
+
+@login_required
+def policy_list(request):
+    """List procurement policies"""
+    policies = ProcurementPolicy.objects.all().order_by('-effective_date')
+    
+    # Filter by active status
+    status = request.GET.get('status', '')
+    if status == 'active':
+        policies = policies.filter(is_active=True)
+    elif status == 'inactive':
+        policies = policies.filter(is_active=False)
+    
+    context = {
+        'policies': policies,
+        'filters': {'status': status},
+    }
+    return render(request, 'administration/policy_list.html', context)
+
+
+@login_required
+def policy_detail(request, policy_id):
+    """View policy details"""
+    policy = get_object_or_404(ProcurementPolicy, id=policy_id)
+    
+    context = {
+        'policy': policy,
+    }
+    return render(request, 'administration/policy_detail.html', context)
