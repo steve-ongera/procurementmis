@@ -3,151 +3,558 @@
 
 {% block title %}{{ stock.item.name }} - Stock Details{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+    }
+
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .info-value {
+        font-size: 0.95rem;
+        color: #334155;
+        font-weight: 500;
+    }
+
+    .info-value.text-danger {
+        color: var(--danger-color);
+        font-weight: 600;
+    }
+
+    .info-value a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .info-value a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .quantity-warning {
+        background: #FEF2F2;
+        border: 1px solid #FECACA;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-top: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .quantity-warning i {
+        color: var(--danger-color);
+    }
+
+    .quantity-warning span {
+        color: #991B1B;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 0.875rem 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: top;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .badge-receipt {
+        background: #D1FAE5;
+        color: #065F46;
+        border-color: #A7F3D0;
+    }
+
+    .badge-issue {
+        background: #FEE2E2;
+        color: #991B1B;
+        border-color: #FECACA;
+    }
+
+    .badge-adjustment {
+        background: #FEF3C7;
+        color: #92400E;
+        border-color: #FDE68A;
+    }
+
+    .badge-transfer {
+        background: #DBEAFE;
+        color: #1E40AF;
+        border-color: #BFDBFE;
+    }
+
+    .badge-pending {
+        background: #F1F5F9;
+        color: #64748B;
+        border-color: #E2E8F0;
+    }
+
+    .badge-approved {
+        background: #D1FAE5;
+        color: #065F46;
+        border-color: #A7F3D0;
+    }
+
+    .badge-partial {
+        background: #FED7AA;
+        color: #92400E;
+        border-color: #FDBA74;
+    }
+
+    .badge-rejected {
+        background: #FEE2E2;
+        color: #991B1B;
+        border-color: #FECACA;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        margin: 0 0 1.5rem 0;
+        font-size: 0.95rem;
+    }
+
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            font-size: 0.8125rem;
+        }
+        
+        .card-body {
+            padding: 1.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
-        <h1>{{ stock.item.name }}</h1>
+        <h1 class="page-title">{{ stock.item.name }}</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}">Home</a>
-            <span>/</span>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
             <a href="{% url 'stock_list' %}">Stock Items</a>
-            <span>/</span>
+            <i class="bi bi-chevron-right"></i>
             <span>{{ stock.item.code }}</span>
         </div>
     </div>
-    <div class="actions">
+    <div class="header-actions">
+        <a href="{% url 'stock_list' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to List
+        </a>
         {% if user.role in 'STORES,ADMIN' %}
-        <a href="{% url 'stock_adjustment' stock.id %}" class="btn btn-primary">Adjust Stock</a>
+        <a href="{% url 'stock_adjustment' stock.id %}" class="btn btn-primary">
+            <i class="bi bi-pencil-square"></i>
+            Adjust Stock
+        </a>
         {% endif %}
-        <a href="{% url 'stock_list' %}" class="btn">Back to List</a>
     </div>
 </div>
 
+<!-- Stock Information Card -->
 <div class="card">
     <div class="card-header">
-        <h2>Stock Information</h2>
+        <h2 class="card-title">
+            <i class="bi bi-box-seam"></i>
+            Stock Information
+        </h2>
     </div>
     <div class="card-body">
         <div class="info-grid">
             <div class="info-item">
-                <label>Item Code</label>
-                <p>{{ stock.item.code }}</p>
+                <span class="info-label">Item Code</span>
+                <span class="info-value">{{ stock.item.code }}</span>
             </div>
             <div class="info-item">
-                <label>Item Name</label>
-                <p>{{ stock.item.name }}</p>
+                <span class="info-label">Item Name</span>
+                <span class="info-value">{{ stock.item.name }}</span>
             </div>
             <div class="info-item">
-                <label>Category</label>
-                <p>{{ stock.item.category.name }}</p>
+                <span class="info-label">Category</span>
+                <span class="info-value">{{ stock.item.category.name }}</span>
             </div>
             <div class="info-item">
-                <label>Store</label>
-                <p>{{ stock.store.name }}</p>
+                <span class="info-label">Store</span>
+                <span class="info-value">{{ stock.store.name }}</span>
             </div>
             <div class="info-item">
-                <label>Quantity on Hand</label>
-                <p class="{% if stock.quantity_on_hand <= stock.reorder_level %}text-danger{% endif %}">
+                <span class="info-label">Quantity on Hand</span>
+                <span class="info-value {% if stock.quantity_on_hand <= stock.reorder_level %}text-danger{% endif %}">
                     {{ stock.quantity_on_hand|floatformat:2 }} {{ stock.item.unit_of_measure }}
-                </p>
+                    {% if stock.quantity_on_hand <= stock.reorder_level %}
+                    <i class="bi bi-exclamation-triangle-fill" style="margin-left: 0.25rem;"></i>
+                    {% endif %}
+                </span>
             </div>
             <div class="info-item">
-                <label>Reorder Level</label>
-                <p>{{ stock.reorder_level|floatformat:2 }}</p>
+                <span class="info-label">Reorder Level</span>
+                <span class="info-value">{{ stock.reorder_level|floatformat:2 }} {{ stock.item.unit_of_measure }}</span>
             </div>
             <div class="info-item">
-                <label>Average Unit Cost</label>
-                <p>KES {{ stock.average_unit_cost|floatformat:2|intcomma }}</p>
+                <span class="info-label">Average Unit Cost</span>
+                <span class="info-value">KES {{ stock.average_unit_cost|floatformat:2|intcomma }}</span>
             </div>
             <div class="info-item">
-                <label>Total Value</label>
-                <p>KES {{ stock.total_value|floatformat:0|intcomma }}</p>
+                <span class="info-label">Total Value</span>
+                <span class="info-value">KES {{ stock.total_value|floatformat:0|intcomma }}</span>
             </div>
             <div class="info-item">
-                <label>Last Restock Date</label>
-                <p>{{ stock.last_restock_date|date:"M d, Y"|default:"-" }}</p>
+                <span class="info-label">Last Restock Date</span>
+                <span class="info-value">{{ stock.last_restock_date|date:"M d, Y"|default:"-" }}</span>
             </div>
             <div class="info-item">
-                <label>Last Issue Date</label>
-                <p>{{ stock.last_issue_date|date:"M d, Y"|default:"-" }}</p>
+                <span class="info-label">Last Issue Date</span>
+                <span class="info-value">{{ stock.last_issue_date|date:"M d, Y"|default:"-" }}</span>
             </div>
         </div>
+        
+        {% if stock.quantity_on_hand <= stock.reorder_level %}
+        <div class="quantity-warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>Stock level is at or below reorder level. Please consider restocking.</span>
+        </div>
+        {% endif %}
     </div>
 </div>
 
+<!-- Stock Movements Card -->
 <div class="card">
     <div class="card-header">
-        <h2>Stock Movements (Last 50)</h2>
+        <h2 class="card-title">
+            <i class="bi bi-arrow-left-right"></i>
+            Stock Movements (Last 50)
+        </h2>
     </div>
     <div class="card-body">
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Reference</th>
-                    <th>Quantity</th>
-                    <th>Balance Before</th>
-                    <th>Balance After</th>
-                    <th>Performed By</th>
-                    <th>Remarks</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for movement in movements %}
-                <tr>
-                    <td>{{ movement.movement_date|date:"M d, Y H:i" }}</td>
-                    <td><span class="badge badge-{{ movement.movement_type|lower }}">{{ movement.get_movement_type_display }}</span></td>
-                    <td>{{ movement.reference_number }}</td>
-                    <td>{{ movement.quantity|floatformat:2 }}</td>
-                    <td>{{ movement.balance_before|floatformat:2 }}</td>
-                    <td>{{ movement.balance_after|floatformat:2 }}</td>
-                    <td>{{ movement.performed_by.get_full_name }}</td>
-                    <td>{{ movement.remarks|default:"-" }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" class="text-center">No movements recorded</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        {% if movements %}
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Reference</th>
+                        <th>Quantity</th>
+                        <th>Balance Before</th>
+                        <th>Balance After</th>
+                        <th>Performed By</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for movement in movements %}
+                    <tr>
+                        <td>{{ movement.movement_date|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <span class="badge badge-{{ movement.movement_type|lower }}">
+                                {% if movement.movement_type == 'RECEIPT' %}<i class="bi bi-box-arrow-in-down"></i>{% endif %}
+                                {% if movement.movement_type == 'ISSUE' %}<i class="bi bi-box-arrow-up"></i>{% endif %}
+                                {% if movement.movement_type == 'ADJUSTMENT' %}<i class="bi bi-sliders"></i>{% endif %}
+                                {% if movement.movement_type == 'TRANSFER' %}<i class="bi bi-arrow-left-right"></i>{% endif %}
+                                {{ movement.get_movement_type_display }}
+                            </span>
+                        </td>
+                        <td>{{ movement.reference_number }}</td>
+                        <td>{{ movement.quantity|floatformat:2 }}</td>
+                        <td>{{ movement.balance_before|floatformat:2 }}</td>
+                        <td>{{ movement.balance_after|floatformat:2 }}</td>
+                        <td>{{ movement.performed_by.get_full_name }}</td>
+                        <td>{{ movement.remarks|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-arrow-left-right"></i>
+            <p>No movements recorded for this item</p>
+        </div>
+        {% endif %}
     </div>
 </div>
 
+<!-- Recent Issues Card -->
 <div class="card">
     <div class="card-header">
-        <h2>Recent Issues</h2>
+        <h2 class="card-title">
+            <i class="bi bi-cart-check"></i>
+            Recent Issues
+        </h2>
     </div>
     <div class="card-body">
-        <table>
-            <thead>
-                <tr>
-                    <th>Issue Number</th>
-                    <th>Department</th>
-                    <th>Quantity Requested</th>
-                    <th>Quantity Issued</th>
-                    <th>Issue Date</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for issue_item in recent_issues %}
-                <tr>
-                    <td><a href="{% url 'issue_detail' issue_item.stock_issue.id %}">{{ issue_item.stock_issue.issue_number }}</a></td>
-                    <td>{{ issue_item.stock_issue.department.name }}</td>
-                    <td>{{ issue_item.quantity_requested|floatformat:2 }}</td>
-                    <td>{{ issue_item.quantity_issued|floatformat:2 }}</td>
-                    <td>{{ issue_item.stock_issue.issue_date|date:"M d, Y"|default:"-" }}</td>
-                    <td><span class="badge badge-{{ issue_item.stock_issue.status|lower }}">{{ issue_item.stock_issue.get_status_display }}</span></td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="text-center">No recent issues</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        {% if recent_issues %}
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Issue Number</th>
+                        <th>Department</th>
+                        <th>Quantity Requested</th>
+                        <th>Quantity Issued</th>
+                        <th>Issue Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for issue_item in recent_issues %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'issue_detail' issue_item.stock_issue.id %}" class="info-value">
+                                {{ issue_item.stock_issue.issue_number }}
+                                <i class="bi bi-arrow-up-right" style="font-size: 0.75rem;"></i>
+                            </a>
+                        </td>
+                        <td>{{ issue_item.stock_issue.department.name }}</td>
+                        <td>{{ issue_item.quantity_requested|floatformat:2 }}</td>
+                        <td>{{ issue_item.quantity_issued|floatformat:2 }}</td>
+                        <td>{{ issue_item.stock_issue.issue_date|date:"M d, Y"|default:"-" }}</td>
+                        <td>
+                            <span class="badge badge-{{ issue_item.stock_issue.status|lower }}">
+                                {% if issue_item.stock_issue.status == 'PENDING' %}<i class="bi bi-clock"></i>{% endif %}
+                                {% if issue_item.stock_issue.status == 'APPROVED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                                {% if issue_item.stock_issue.status == 'PARTIAL' %}<i class="bi bi-exclamation-circle"></i>{% endif %}
+                                {% if issue_item.stock_issue.status == 'REJECTED' %}<i class="bi bi-x-circle"></i>{% endif %}
+                                {{ issue_item.stock_issue.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-cart-check"></i>
+            <p>No recent issues for this item</p>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

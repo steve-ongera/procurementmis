@@ -118,7 +118,7 @@ urlpatterns = [
     path('assets/<uuid:asset_id>/', views.asset_detail, name='asset_detail'),
     
     # API Endpoints
-    path('api/stock-items/<uuid:store_id>/', views.get_stock_items_by_store, name='api_stock_items'),
-    path('api/po-items/<uuid:po_id>/', views.get_po_items, name='api_po_items'),
+    path('inventory/api/stock-items/<uuid:store_id>/', views.get_stock_items_by_store, name='api_stock_items'),
+    path('inventory/api/po-items/<uuid:po_id>/', views.get_po_items, name='api_po_items'),
     
 ]

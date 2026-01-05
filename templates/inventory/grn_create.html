@@ -3,106 +3,576 @@
 
 {% block title %}Create Goods Received Note{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-label .required {
+        color: var(--danger-color);
+        margin-left: 0.25rem;
+    }
+
+    .form-control {
+        padding: 0.625rem 0.875rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1.25em 1.25em;
+        padding-right: 2.5rem;
+    }
+
+    .form-help {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-top: 0.25rem;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+        margin-top: 2rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.95rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 0.875rem 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: top;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .quantity-input {
+        width: 100px;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .quantity-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    }
+
+    .po-info {
+        background: #EFF6FF;
+        border: 1px solid #BFDBFE;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .po-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .po-info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .po-info-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #1E40AF;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .po-info-value {
+        font-size: 0.95rem;
+        color: #334155;
+        font-weight: 500;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        margin: 0 0 1.5rem 0;
+        font-size: 0.95rem;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .alert-info {
+        background: #EFF6FF;
+        border-color: #BFDBFE;
+        color: #1E40AF;
+    }
+
+    .alert-info i {
+        color: #3B82F6;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .card-body {
+            padding: 1.25rem;
+        }
+        
+        .po-info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            font-size: 0.8125rem;
+        }
+        
+        .quantity-input {
+            width: 80px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
-        <h1>Create Goods Received Note</h1>
+        <h1 class="page-title">Create Goods Received Note</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}">Home</a>
-            <span>/</span>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
             <a href="{% url 'grn_list' %}">Goods Receipt</a>
-            <span>/</span>
+            <i class="bi bi-chevron-right"></i>
             <span>Create</span>
         </div>
     </div>
 </div>
 
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        <i class="bi bi-{% if message.tags == 'info' %}info-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}check-circle{% endif %}"></i>
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
 <form method="post">
     {% csrf_token %}
     
+    <!-- GRN Details Card -->
     <div class="card">
         <div class="card-header">
-            <h2>GRN Details</h2>
+            <h2 class="card-title">
+                <i class="bi bi-file-earmark-plus"></i>
+                GRN Details
+            </h2>
         </div>
         <div class="card-body">
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Purchase Order *</label>
-                    <select name="purchase_order" id="po-select" required onchange="loadPOItems(this.value)">
+                    <label class="form-label">
+                        Purchase Order
+                        <span class="required">*</span>
+                    </label>
+                    <select name="purchase_order" 
+                            id="po-select" 
+                            class="form-control" 
+                            required 
+                            onchange="loadPOItems(this.value)">
                         <option value="">Select Purchase Order</option>
                         {% for po in pending_pos %}
-                        <option value="{{ po.id }}" {% if po.id == po.id %}selected{% endif %}>
+                        <option value="{{ po.id }}" {% if po.id == selected_po_id %}selected{% endif %}>
                             {{ po.po_number }} - {{ po.supplier.name }}
                         </option>
                         {% endfor %}
                     </select>
+                    <div class="form-help">Select a purchase order with pending deliveries</div>
                 </div>
                 
                 <div class="form-group">
-                    <label>Store *</label>
-                    <select name="store" required>
+                    <label class="form-label">
+                        Store
+                        <span class="required">*</span>
+                    </label>
+                    <select name="store" class="form-control" required>
                         <option value="">Select Store</option>
                         {% for store in stores %}
-                        <option value="{{ store.id }}">{{ store.name }}</option>
+                        <option value="{{ store.id }}" {% if store.id == selected_store_id %}selected{% endif %}>
+                            {{ store.name }}
+                        </option>
                         {% endfor %}
                     </select>
+                    <div class="form-help">Select the store where goods will be received</div>
                 </div>
                 
                 <div class="form-group">
-                    <label>Delivery Note Number *</label>
-                    <input type="text" name="delivery_note_number" required>
+                    <label class="form-label">
+                        Delivery Note Number
+                        <span class="required">*</span>
+                    </label>
+                    <input type="text" 
+                           name="delivery_note_number" 
+                           class="form-control" 
+                           required 
+                           placeholder="Enter delivery note number">
+                    <div class="form-help">Enter the delivery note number from supplier</div>
                 </div>
                 
                 <div class="form-group">
-                    <label>Delivery Date *</label>
-                    <input type="date" name="delivery_date" required>
+                    <label class="form-label">
+                        Delivery Date
+                        <span class="required">*</span>
+                    </label>
+                    <input type="date" 
+                           name="delivery_date" 
+                           class="form-control" 
+                           required 
+                           value="{{ today|date:'Y-m-d' }}">
+                    <div class="form-help">Date when goods were delivered</div>
                 </div>
             </div>
         </div>
     </div>
     
     {% if po %}
+    <!-- PO Information Card -->
     <div class="card">
         <div class="card-header">
-            <h2>Items to Receive</h2>
+            <h2 class="card-title">
+                <i class="bi bi-clipboard-data"></i>
+                Purchase Order Information
+            </h2>
         </div>
         <div class="card-body">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Item Description</th>
-                        <th>PO Quantity</th>
-                        <th>Already Received</th>
-                        <th>Pending</th>
-                        <th>Quantity Delivered *</th>
-                    </tr>
-                </thead>
-                <tbody id="items-tbody">
-                    {% for item in po.items.all %}
-                    <tr>
-                        <td>{{ item.item_description }}</td>
-                        <td>{{ item.quantity|floatformat:2 }} {{ item.unit_of_measure }}</td>
-                        <td>{{ item.quantity_delivered|floatformat:2 }}</td>
-                        <td>{{ item.quantity_pending|floatformat:2 }}</td>
-                        <td>
-                            <input type="number" 
-                                   name="qty_delivered_{{ item.id }}" 
-                                   step="0.01" 
-                                   min="0" 
-                                   max="{{ item.quantity_pending }}"
-                                   placeholder="0.00">
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="po-info">
+                <div class="po-info-grid">
+                    <div class="po-info-item">
+                        <span class="po-info-label">PO Number</span>
+                        <span class="po-info-value">{{ po.po_number }}</span>
+                    </div>
+                    <div class="po-info-item">
+                        <span class="po-info-label">Supplier</span>
+                        <span class="po-info-value">{{ po.supplier.name }}</span>
+                    </div>
+                    <div class="po-info-item">
+                        <span class="po-info-label">PO Date</span>
+                        <span class="po-info-value">{{ po.po_date|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="po-info-item">
+                        <span class="po-info-label">Delivery Date</span>
+                        <span class="po-info-value">{{ po.delivery_date|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Items to Receive Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-inbox"></i>
+                Items to Receive
+            </h2>
+        </div>
+        <div class="card-body">
+            {% if po.items.all %}
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Description</th>
+                            <th>PO Quantity</th>
+                            <th>Already Received</th>
+                            <th>Pending</th>
+                            <th>Quantity Delivered</th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-tbody">
+                        {% for item in po.items.all %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.item_description }}</strong>
+                                {% if item.specification %}
+                                <div class="form-help">{{ item.specification|truncatechars:50 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.quantity|floatformat:2 }} {{ item.unit_of_measure }}</td>
+                            <td>{{ item.quantity_delivered|floatformat:2 }}</td>
+                            <td>
+                                <span class="{% if item.quantity_pending <= 0 %}text-danger{% endif %}">
+                                    {{ item.quantity_pending|floatformat:2 }}
+                                </span>
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       class="quantity-input"
+                                       name="qty_delivered_{{ item.id }}" 
+                                       step="0.01" 
+                                       min="0" 
+                                       max="{{ item.quantity_pending }}"
+                                       placeholder="0.00"
+                                       required>
+                                <div class="form-help">Max: {{ item.quantity_pending|floatformat:2 }}</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p>No items found in this purchase order</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <!-- No PO Selected State -->
+    <div class="card">
+        <div class="card-body">
+            <div class="empty-state">
+                <i class="bi bi-cart-plus"></i>
+                <p>Select a purchase order to view items for receiving</p>
+                <div class="form-help">Choose a purchase order from the dropdown above to continue</div>
+            </div>
         </div>
     </div>
     {% endif %}
     
+    <!-- Form Actions -->
     <div class="form-actions">
-        <a href="{% url 'grn_list' %}" class="btn">Cancel</a>
-        <button type="submit" class="btn btn-primary">Create GRN</button>
+        <a href="{% url 'grn_list' %}" class="btn">
+            <i class="bi bi-x-circle"></i>
+            Cancel
+        </a>
+        {% if po %}
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i>
+            Create GRN
+        </button>
+        {% else %}
+        <button type="button" class="btn btn-primary" disabled>
+            <i class="bi bi-check-circle"></i>
+            Select PO to Continue
+        </button>
+        {% endif %}
     </div>
 </form>
 
@@ -112,5 +582,14 @@ function loadPOItems(poId) {
         window.location.href = "{% url 'grn_create' %}?po=" + poId;
     }
 }
+
+// Set today's date as default for delivery date if not already set
+document.addEventListener('DOMContentLoaded', function() {
+    const deliveryDateInput = document.querySelector('input[name="delivery_date"]');
+    if (deliveryDateInput && !deliveryDateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        deliveryDateInput.value = today;
+    }
+});
 </script>
 {% endblock %}
