@@ -7200,3 +7200,324 @@ def vendor_compliance(request):
     }
     
     return render(request, 'vendors/vendor_compliance.html', context)
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.core.mail import send_mail
+from django.conf import settings
+from django.db.models import Q
+
+from .models import User, AuditLog
+
+
+@login_required
+def help_center(request):
+    """Help Center page with FAQs and support options"""
+    
+    # Common FAQs organized by category
+    faqs = {
+        'Requisitions': [
+            {
+                'question': 'How do I create a purchase requisition?',
+                'answer': 'Navigate to Requisitions > Create New. Fill in all required fields including item details, justification, and budget information. Submit for approval once complete.'
+            },
+            {
+                'question': 'What is the approval process for requisitions?',
+                'answer': 'Requisitions follow a multi-level approval workflow: HOD approval, Faculty approval (if required), Budget verification, and Procurement approval. The specific workflow depends on the requisition amount.'
+            },
+            {
+                'question': 'How long does requisition approval take?',
+                'answer': 'Standard requisitions are typically approved within 5-7 business days. Urgent requisitions may be expedited with proper justification.'
+            },
+        ],
+        'Purchase Orders': [
+            {
+                'question': 'Who can create purchase orders?',
+                'answer': 'Only Procurement Officers and System Administrators can create purchase orders. POs are generated after requisitions are fully approved.'
+            },
+            {
+                'question': 'How do I track my purchase order?',
+                'answer': 'Go to Purchase Orders > My Orders. Click on any PO number to view detailed status, delivery tracking, and related documents.'
+            },
+            {
+                'question': 'Can a purchase order be amended?',
+                'answer': 'Yes, PO amendments can be requested through the system. The amendment must be justified and approved before implementation.'
+            },
+        ],
+        'Suppliers': [
+            {
+                'question': 'How do suppliers register in the system?',
+                'answer': 'Suppliers can submit registration through the Supplier Portal. They must provide all required documents including business registration, tax compliance, and bank details.'
+            },
+            {
+                'question': 'How are suppliers evaluated?',
+                'answer': 'Suppliers are evaluated based on quality, delivery performance, and service. Performance ratings are recorded after each transaction.'
+            },
+        ],
+        'Budget': [
+            {
+                'question': 'How do I check my department budget?',
+                'answer': 'Navigate to Budget > Department Budget. You can view allocated amounts, committed amounts, actual spent, and available balance.'
+            },
+            {
+                'question': 'Can budget be reallocated between line items?',
+                'answer': 'Yes, budget reallocations require justification and approval from authorized officers.'
+            },
+        ],
+        'Inventory': [
+            {
+                'question': 'How do I request items from store?',
+                'answer': 'Create a stock issue request specifying items and quantities needed. The store keeper will process approved requests.'
+            },
+            {
+                'question': 'How do I check stock availability?',
+                'answer': 'Go to Stores > Inventory. Search for items to view current stock levels across all stores.'
+            },
+        ],
+    }
+    
+    # System guides
+    guides = [
+        {
+            'title': 'Getting Started Guide',
+            'description': 'Learn the basics of using the procurement system',
+            'icon': 'fa-rocket',
+            'url': 'documentation#getting-started'
+        },
+        {
+            'title': 'Requisition Process',
+            'description': 'Step-by-step guide to creating requisitions',
+            'icon': 'fa-file-alt',
+            'url': 'documentation#requisitions'
+        },
+        {
+            'title': 'Budget Management',
+            'description': 'Understanding budget tracking and reporting',
+            'icon': 'fa-chart-line',
+            'url': 'documentation#budget'
+        },
+        {
+            'title': 'User Roles & Permissions',
+            'description': 'Learn about different user roles in the system',
+            'icon': 'fa-users-cog',
+            'url': 'documentation#roles'
+        },
+    ]
+    
+    # Contact information
+    support_contacts = {
+        'Technical Support': {
+            'email': 'ict.support@university.ac.ke',
+            'phone': '+254 700 000 001',
+            'hours': 'Mon-Fri: 8:00 AM - 5:00 PM'
+        },
+        'Procurement Office': {
+            'email': 'procurement@university.ac.ke',
+            'phone': '+254 700 000 002',
+            'hours': 'Mon-Fri: 8:00 AM - 5:00 PM'
+        },
+        'Finance Office': {
+            'email': 'finance@university.ac.ke',
+            'phone': '+254 700 000 003',
+            'hours': 'Mon-Fri: 8:00 AM - 4:00 PM'
+        },
+    }
+    
+    context = {
+        'faqs': faqs,
+        'guides': guides,
+        'support_contacts': support_contacts,
+    }
+    
+    return render(request, 'support/help_center.html', context)
+
+
+@login_required
+def documentation(request):
+    """System documentation and user guides"""
+    
+    # Documentation sections
+    documentation_sections = [
+        {
+            'id': 'getting-started',
+            'title': 'Getting Started',
+            'icon': 'fa-rocket',
+            'content': [
+                {
+                    'subtitle': 'System Overview',
+                    'text': 'The University Procurement System is a comprehensive platform for managing all procurement activities from requisition to payment. It ensures transparency, compliance, and efficiency in the procurement process.'
+                },
+                {
+                    'subtitle': 'Login and Dashboard',
+                    'text': 'Access the system using your university credentials. The dashboard provides an overview of your pending tasks, recent activities, and quick access to frequently used features.'
+                },
+                {
+                    'subtitle': 'Navigation',
+                    'text': 'Use the sidebar menu to navigate between different modules. The top bar provides quick search, notifications, and access to your profile settings.'
+                },
+            ]
+        },
+        {
+            'id': 'requisitions',
+            'title': 'Purchase Requisitions',
+            'icon': 'fa-file-alt',
+            'content': [
+                {
+                    'subtitle': 'Creating a Requisition',
+                    'text': '1. Navigate to Requisitions > Create New\n2. Select your department and budget category\n3. Add items with detailed specifications\n4. Provide justification for the purchase\n5. Attach supporting documents (quotations, specifications)\n6. Submit for approval'
+                },
+                {
+                    'subtitle': 'Approval Workflow',
+                    'text': 'Requisitions go through multiple approval stages:\n- Head of Department (HOD) approval\n- Faculty/School Dean approval (for amounts above threshold)\n- Budget verification by Finance\n- Procurement Officer review\n- Final approval based on amount'
+                },
+                {
+                    'subtitle': 'Tracking Status',
+                    'text': 'Monitor your requisition status in real-time. You will receive email notifications at each approval stage. Access the requisition detail page to view approval history and comments.'
+                },
+            ]
+        },
+        {
+            'id': 'purchase-orders',
+            'title': 'Purchase Orders',
+            'icon': 'fa-shopping-cart',
+            'content': [
+                {
+                    'subtitle': 'PO Generation',
+                    'text': 'Purchase Orders are automatically generated by Procurement Officers after requisitions are fully approved and suppliers are selected through the tendering process.'
+                },
+                {
+                    'subtitle': 'PO Tracking',
+                    'text': 'Track PO status including:\n- Approval status\n- Supplier acknowledgment\n- Delivery progress\n- Goods receipt\n- Invoice matching\n- Payment status'
+                },
+                {
+                    'subtitle': 'PO Amendments',
+                    'text': 'If changes are needed, submit a PO amendment request with justification. Amendments require approval before implementation.'
+                },
+            ]
+        },
+        {
+            'id': 'suppliers',
+            'title': 'Supplier Management',
+            'icon': 'fa-building',
+            'content': [
+                {
+                    'subtitle': 'Supplier Registration',
+                    'text': 'Suppliers must register and provide:\n- Business registration certificate\n- Tax compliance certificate\n- Bank details\n- Product/service categories\n- Contact information'
+                },
+                {
+                    'subtitle': 'Supplier Evaluation',
+                    'text': 'Suppliers are evaluated on:\n- Quality of goods/services\n- Delivery timeliness\n- Service and communication\nRatings affect future tender opportunities.'
+                },
+            ]
+        },
+        {
+            'id': 'budget',
+            'title': 'Budget Management',
+            'icon': 'fa-chart-line',
+            'content': [
+                {
+                    'subtitle': 'Budget Tracking',
+                    'text': 'Monitor your department budget:\n- Allocated amount\n- Committed (pending requisitions)\n- Actual spent\n- Available balance'
+                },
+                {
+                    'subtitle': 'Budget Reports',
+                    'text': 'Generate budget utilization reports by:\n- Department\n- Category\n- Time period\n- Budget year'
+                },
+            ]
+        },
+        {
+            'id': 'inventory',
+            'title': 'Inventory & Stores',
+            'icon': 'fa-warehouse',
+            'content': [
+                {
+                    'subtitle': 'Goods Receipt',
+                    'text': 'When goods are delivered:\n- Store keeper receives and inspects\n- GRN (Goods Received Note) is generated\n- Items are added to inventory\n- Supplier invoice is matched'
+                },
+                {
+                    'subtitle': 'Stock Issues',
+                    'text': 'Request items from store:\n- Create stock issue request\n- Specify items and quantities\n- Provide purpose/justification\n- Store keeper approves and issues items'
+                },
+            ]
+        },
+        {
+            'id': 'roles',
+            'title': 'User Roles & Permissions',
+            'icon': 'fa-users-cog',
+            'content': [
+                {
+                    'subtitle': 'System Roles',
+                    'text': '- Requesting Staff: Create requisitions\n- Head of Department: Approve department requisitions\n- Procurement Officer: Manage tenders and POs\n- Finance Officer: Budget verification and payments\n- Stores Officer: Manage inventory\n- Supplier: Submit bids and track orders\n- Auditor: View audit trails\n- Administrator: System configuration'
+                },
+            ]
+        },
+    ]
+    
+    context = {
+        'documentation_sections': documentation_sections,
+    }
+    
+    return render(request, 'support/documentation.html', context)
+
+
+@login_required
+def submit_support_ticket(request):
+    """Submit a support ticket"""
+    
+    if request.method == 'POST':
+        try:
+            subject = request.POST.get('subject')
+            category = request.POST.get('category')
+            priority = request.POST.get('priority')
+            description = request.POST.get('description')
+            
+            # Send email to support team
+            email_subject = f'[Support Ticket] {category} - {subject}'
+            email_body = f"""
+Support Ticket Details:
+
+From: {request.user.get_full_name()} ({request.user.email})
+Employee ID: {request.user.employee_id}
+Department: {request.user.department.name if request.user.department else 'N/A'}
+Role: {request.user.get_role_display()}
+
+Category: {category}
+Priority: {priority}
+Subject: {subject}
+
+Description:
+{description}
+
+---
+Submitted via University Procurement System
+            """
+            
+            send_mail(
+                email_subject,
+                email_body,
+                settings.DEFAULT_FROM_EMAIL,
+                ['ict.support@university.ac.ke'],
+                fail_silently=False,
+            )
+            
+            # Log the action
+            AuditLog.objects.create(
+                user=request.user,
+                action='CREATE',
+                model_name='SupportTicket',
+                object_id='TICKET',
+                object_repr=subject,
+                changes={'category': category, 'priority': priority}
+            )
+            
+            messages.success(
+                request, 
+                'Your support ticket has been submitted. Our team will respond within 24 hours.'
+            )
+            return redirect('help_center')
+            
+        except Exception as e:
+            messages.error(request, f'Error submitting support ticket: {str(e)}')
+    
+    return redirect('help_center')

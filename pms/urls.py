@@ -160,4 +160,8 @@ urlpatterns = [
     path('vendors/comparison/', views.vendor_comparison, name='vendor_comparison'),
     path('vendors/compliance/', views.vendor_compliance, name='vendor_compliance'),
     
+    path('help-center/', views.help_center, name='help_center'),
+    path('documentation/', views.documentation, name='documentation'),
+    path('submit-ticket/', views.submit_support_ticket, name='submit_support_ticket'),
+    
 ]

@@ -1,0 +1,548 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Help Center - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --border-color: #E2E8F0;
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .page-subtitle {
+        color: #64748B;
+        font-size: 0.875rem;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .action-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .action-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .action-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 1.5rem;
+    }
+
+    .action-icon.blue {
+        background: #EFF6FF;
+        color: var(--primary-color);
+    }
+
+    .action-icon.green {
+        background: #ECFDF5;
+        color: var(--success-color);
+    }
+
+    .action-icon.orange {
+        background: #FEF3C7;
+        color: var(--warning-color);
+    }
+
+    .action-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #1E293B;
+    }
+
+    .action-description {
+        font-size: 0.875rem;
+        color: #64748B;
+    }
+
+    /* Content Layout */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    @media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* FAQs */
+    .faq-section {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .faq-category {
+        margin-bottom: 2rem;
+    }
+
+    .faq-category:last-child {
+        margin-bottom: 0;
+    }
+
+    .category-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .category-title i {
+        color: var(--primary-color);
+    }
+
+    .faq-item {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .faq-item:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .faq-question {
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .faq-question i {
+        color: var(--primary-color);
+        margin-top: 0.25rem;
+    }
+
+    .faq-answer {
+        color: #475569;
+        font-size: 0.875rem;
+        line-height: 1.6;
+        margin-left: 1.5rem;
+    }
+
+    /* Sidebar */
+    .sidebar-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .sidebar-title {
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #1E293B;
+    }
+
+    .contact-item {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .contact-item:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .contact-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.5rem;
+    }
+
+    .contact-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #64748B;
+        margin-bottom: 0.25rem;
+    }
+
+    .contact-info i {
+        color: var(--primary-color);
+        width: 1rem;
+    }
+
+    .contact-info a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .contact-info a:hover {
+        text-decoration: underline;
+    }
+
+    /* Guides */
+    .guide-list {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .guide-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s;
+    }
+
+    .guide-item:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .guide-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .guide-content {
+        flex: 1;
+    }
+
+    .guide-title {
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .guide-description {
+        font-size: 0.875rem;
+        color: #64748B;
+    }
+
+    /* Support Ticket Form */
+    .ticket-form {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea.form-control {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #1D4ED8;
+    }
+
+    .search-box {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 2.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94A3B8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Help Center</h1>
+    <p class="page-subtitle">Find answers, guides, and support resources</p>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <a href="#faqs" class="action-card">
+        <div class="action-icon blue">
+            <i class="fas fa-question-circle"></i>
+        </div>
+        <div class="action-title">FAQs</div>
+        <div class="action-description">Browse frequently asked questions</div>
+    </a>
+
+    <a href="{% url 'documentation' %}" class="action-card">
+        <div class="action-icon green">
+            <i class="fas fa-book"></i>
+        </div>
+        <div class="action-title">Documentation</div>
+        <div class="action-description">Read detailed system guides</div>
+    </a>
+
+    <a href="#support-ticket" class="action-card">
+        <div class="action-icon orange">
+            <i class="fas fa-ticket-alt"></i>
+        </div>
+        <div class="action-title">Submit Ticket</div>
+        <div class="action-description">Get help from support team</div>
+    </a>
+</div>
+
+<!-- Content Grid -->
+<div class="content-grid">
+    <!-- Main Content -->
+    <div>
+        <!-- Search -->
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="faqSearch" placeholder="Search for help..." onkeyup="searchFAQs()">
+        </div>
+
+        <!-- FAQs Section -->
+        <div class="faq-section" id="faqs">
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">
+                Frequently Asked Questions
+            </h2>
+
+            {% for category, questions in faqs.items %}
+            <div class="faq-category">
+                <div class="category-title">
+                    <i class="fas fa-folder"></i>
+                    {{ category }}
+                </div>
+
+                {% for faq in questions %}
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <i class="fas fa-question-circle"></i>
+                        <span>{{ faq.question }}</span>
+                    </div>
+                    <div class="faq-answer">{{ faq.answer }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Support Ticket Form -->
+        <div class="ticket-form" id="support-ticket">
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">
+                Submit a Support Ticket
+            </h2>
+
+            <form method="post" action="{% url 'submit_support_ticket' %}">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label class="form-label">Subject *</label>
+                    <input type="text" name="subject" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Category *</label>
+                    <select name="category" class="form-control" required>
+                        <option value="">Select category</option>
+                        <option value="Technical Issue">Technical Issue</option>
+                        <option value="Account Access">Account Access</option>
+                        <option value="Requisition Help">Requisition Help</option>
+                        <option value="Purchase Order">Purchase Order</option>
+                        <option value="Budget Query">Budget Query</option>
+                        <option value="Inventory">Inventory</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Priority *</label>
+                    <select name="priority" class="form-control" required>
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM" selected>Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="URGENT">Urgent</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description *</label>
+                    <textarea name="description" class="form-control" required placeholder="Describe your issue in detail..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i>
+                    Submit Ticket
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+        <!-- Quick Guides -->
+        <div class="sidebar-card">
+            <h3 class="sidebar-title">Quick Guides</h3>
+            <div class="guide-list">
+                {% for guide in guides %}
+                <a href="{% url 'documentation' %}#{{ guide.url|cut:'documentation#' }}" class="guide-item">
+                    <div class="guide-icon">
+                        <i class="fas {{ guide.icon }}"></i>
+                    </div>
+                    <div class="guide-content">
+                        <div class="guide-title">{{ guide.title }}</div>
+                        <div class="guide-description">{{ guide.description }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="sidebar-card">
+            <h3 class="sidebar-title">Contact Support</h3>
+            
+            {% for office, contact in support_contacts.items %}
+            <div class="contact-item">
+                <div class="contact-label">{{ office }}</div>
+                <div class="contact-info">
+                    <i class="fas fa-envelope"></i>
+                    <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                </div>
+                <div class="contact-info">
+                    <i class="fas fa-phone"></i>
+                    <span>{{ contact.phone }}</span>
+                </div>
+                <div class="contact-info">
+                    <i class="fas fa-clock"></i>
+                    <span>{{ contact.hours }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function searchFAQs() {
+    const input = document.getElementById('faqSearch');
+    const filter = input.value.toLowerCase();
+    const faqItems = document.querySelectorAll('.faq-item');
+
+    faqItems.forEach(item => {
+        const question = item.querySelector('.faq-question').textContent.toLowerCase();
+        const answer = item.querySelector('.faq-answer').textContent.toLowerCase();
+        
+        if (question.includes(filter) || answer.includes(filter)) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}
