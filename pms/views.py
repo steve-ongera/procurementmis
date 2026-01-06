@@ -5544,9 +5544,21 @@ def grn_inspect(request, grn_id):
             
             # Update stock if accepted
             if qty_accepted > 0:
+                # Get the item from the catalog - handle case where it might be None
+                catalog_item = item.po_item.requisition_item.item
+                
+                if catalog_item is None:
+                    # If no catalog item exists, skip stock update or create a warning
+                    messages.warning(
+                        request, 
+                        f'Item "{item.po_item.item_description}" is not linked to the master catalog. '
+                        f'Stock was not updated. Please link this item to the catalog first.'
+                    )
+                    continue  # Skip to next item
+                
                 stock_item, created = StockItem.objects.get_or_create(
                     store=grn.store,
-                    item=item.po_item.requisition_item.item,
+                    item=catalog_item,
                     defaults={'quantity_on_hand': 0, 'average_unit_cost': 0}
                 )
                 
@@ -5555,11 +5567,17 @@ def grn_inspect(request, grn_id):
                 stock_item.quantity_on_hand += qty_accepted
                 stock_item.last_restock_date = timezone.now().date()
                 
-                # Update average cost
-                total_cost = (stock_item.quantity_on_hand * stock_item.average_unit_cost) + \
-                             (qty_accepted * item.po_item.unit_price)
-                stock_item.average_unit_cost = total_cost / stock_item.quantity_on_hand
-                stock_item.total_value = stock_item.quantity_on_hand * stock_item.average_unit_cost
+                # Update average cost (weighted average)
+                if stock_item.quantity_on_hand > 0:
+                    total_cost = (balance_before * stock_item.average_unit_cost) + \
+                                 (qty_accepted * item.po_item.unit_price)
+                    stock_item.average_unit_cost = total_cost / stock_item.quantity_on_hand
+                    stock_item.total_value = stock_item.quantity_on_hand * stock_item.average_unit_cost
+                else:
+                    # First receipt
+                    stock_item.average_unit_cost = item.po_item.unit_price
+                    stock_item.total_value = qty_accepted * item.po_item.unit_price
+                
                 stock_item.save()
                 
                 # Record stock movement
