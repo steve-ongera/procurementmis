@@ -1584,10 +1584,39 @@ class Invoice(models.Model):
     submitted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='invoices_submitted')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'invoices'
-        ordering = ['-created_at']
+    
+    
+    # ADD THESE NEW FIELDS (at the end of existing fields)
+    amount_paid = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        default=0,
+        help_text="Total amount paid so far"
+    )
+    balance_due = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        default=0,
+        help_text="Remaining balance to be paid"
+    )
+    
+    def update_payment_status(self):
+        """Update invoice payment status based on payments"""
+        from django.db.models import Sum
+        
+        total_paid = self.payments.filter(
+            status='COMPLETED'
+        ).aggregate(total=Sum('payment_amount'))['total'] or Decimal('0')
+        
+        self.amount_paid = total_paid
+        self.balance_due = self.total_amount - total_paid
+        
+        # Update status
+        if self.balance_due <= 0 and self.status == 'APPROVED':
+            self.status = 'PAID'
+            self.payment_date = timezone.now().date()
+        
+        self.save()
 
     def __str__(self):
         return f"{self.invoice_number} - {self.supplier.name}"
