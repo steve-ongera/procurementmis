@@ -585,6 +585,9 @@
                         <a href="{% url 'po_update' po.id %}" class="action-btn" title="Edit PO">
                             <i class="bi bi-pencil"></i>
                         </a>
+                        <a href="{% url 'po_approve' po.id %}" class="action-btn" title="Edit PO">
+                            <i class="bi bi-check-circle"></i>
+                        </a>
                         {% endif %}
                     </td>
                 </tr>

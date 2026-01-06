@@ -1,144 +1,609 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}Approve {{ po.po_number }}{% endblock %}
+{% block title %}Approve {{ po.po_number }} - Purchase Order{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 <style>
     :root {
         --primary-color: #2563EB;
-        --success-color: #059669;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --success-light: #D1FAE5;
+        --success-dark: #059669;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
         --border-color: #E2E8F0;
-        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
     }
 
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Approval Card */
     .approval-card {
-        background: white;
-        border-radius: 12px;
-        padding: 40px;
-        box-shadow: var(--card-shadow);
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
-        max-width: 700px;
-        margin: 40px auto;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        max-width: 600px;
+        margin: 0 auto;
         text-align: center;
     }
 
+    .card-header {
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #F0FDF4, #D1FAE5);
+        border-bottom: 1px solid #A7F3D0;
+    }
+
+    .card-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #065F46;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .card-body {
+        padding: 2rem 1.5rem;
+    }
+
+    /* Icon Circle */
     .icon-circle {
-        width: 80px;
-        height: 80px;
-        background: #D1FAE5;
+        width: 4rem;
+        height: 4rem;
+        background: var(--success-light);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 24px;
-        font-size: 36px;
-        color: var(--success-color);
+        margin: 0 auto 1.5rem;
+        border: 3px solid var(--success-color);
     }
 
+    .icon-circle i {
+        font-size: 1.75rem;
+        color: var(--success-dark);
+    }
+
+    /* PO Summary */
     .po-summary {
-        background: #F8FAFC;
-        border-radius: 8px;
-        padding: 24px;
-        margin: 24px 0;
+        background: var(--hover-bg);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        border: 1px solid var(--border-color);
         text-align: left;
     }
 
     .summary-row {
         display: flex;
         justify-content: space-between;
-        padding: 12px 0;
+        padding: 0.75rem 0;
         border-bottom: 1px solid var(--border-color);
     }
 
     .summary-row:last-child {
         border-bottom: none;
+        padding-bottom: 0;
     }
 
-    .action-buttons {
+    .summary-row:first-child {
+        padding-top: 0;
+    }
+
+    .summary-row span:first-child {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    .summary-row span:last-child {
+        font-size: 0.875rem;
+        color: #334155;
+        font-weight: 600;
+        text-align: right;
+    }
+
+    .amount-cell {
+        font-weight: 700;
+        color: var(--success-dark);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Alert Styles */
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin: 1.5rem 0;
+        text-align: left;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .alert-warning {
+        background: #FFFBEB;
+        border: 1px solid #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-info {
+        background: #F0F9FF;
+        border: 1px solid #BAE6FD;
+        color: #0C4A6E;
+    }
+
+    .alert i {
+        margin-right: 0.5rem;
+    }
+
+    /* Items Table */
+    .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.75rem;
+    }
+
+    .items-table th {
+        padding: 0.75rem 0.5rem;
+        text-align: left;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .items-table td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+        color: #334155;
+    }
+
+    .items-table tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .items-table td:last-child {
+        font-weight: 600;
+        text-align: right;
+    }
+
+    /* Button Styles */
+    .form-actions {
         display: flex;
         justify-content: center;
-        gap: 16px;
-        margin-top: 32px;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
     }
 
-    .action-btn {
-        padding: 14px 40px;
-        border: none;
-        border-radius: 8px;
-        font-weight: 700;
-        font-size: 15px;
-        cursor: pointer;
-        text-decoration: none;
+    .btn {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 0.5rem;
+        padding: 0.75rem 2rem;
+        border-radius: 0.375rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
     }
 
-    .btn-approve {
+    .btn-secondary {
+        background: white;
+        color: #475569;
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+        transform: translateY(-1px);
+    }
+
+    .btn-success {
         background: var(--success-color);
         color: white;
+        border-color: var(--success-color);
     }
 
-    .btn-cancel {
-        background: white;
-        color: #64748B;
+    .btn-success:hover {
+        background: var(--success-dark);
+        border-color: var(--success-dark);
+        transform: translateY(-1px);
+    }
+
+    /* Loading State */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* Approval Notes */
+    .form-group {
+        margin: 1.5rem 0;
+        text-align: left;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
         border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        color: #334155;
+        background: white;
+        transition: all 0.2s;
+        line-height: 1.5;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--success-color);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    textarea.form-control {
+        min-height: 80px;
+        resize: vertical;
+    }
+
+    .form-text {
+        display: block;
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .approval-card {
+            max-width: 100%;
+        }
+        
+        .items-table {
+            display: block;
+            overflow-x: auto;
+        }
+        
+        .items-table th,
+        .items-table td {
+            padding: 0.5rem;
+            font-size: 0.7rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .card-body {
+            padding: 1.5rem 1rem;
+        }
+        
+        .summary-row {
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 0.5rem 0;
+        }
+        
+        .summary-row span:last-child {
+            text-align: left;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="approval-card">
-    <div class="icon-circle">
-        <i class="bi bi-check-circle"></i>
-    </div>
-
-    <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 12px;">
-        Approve Purchase Order
-    </h1>
-    <p style="color: #64748B; font-size: 16px;">
-        Review and approve {{ po.po_number }}
-    </p>
-
-    <div class="po-summary">
-        <div class="summary-row">
-            <span style="font-weight: 600;">PO Number:</span>
-            <span>{{ po.po_number }}</span>
-        </div>
-        <div class="summary-row">
-            <span style="font-weight: 600;">Supplier:</span>
-            <span>{{ po.supplier.name }}</span>
-        </div>
-        <div class="summary-row">
-            <span style="font-weight: 600;">Total Amount:</span>
-            <span style="font-weight: 700; color: var(--primary-color);">
-                KES {{ po.total_amount|floatformat:0|intcomma }}
-            </span>
-        </div>
-        <div class="summary-row">
-            <span style="font-weight: 600;">Delivery Date:</span>
-            <span>{{ po.delivery_date|date:"F d, Y" }}</span>
-        </div>
-        <div class="summary-row">
-            <span style="font-weight: 600;">Items:</span>
-            <span>{{ po.items.count }} items</span>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Approve Purchase Order</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'po_list' %}">Purchase Orders</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'po_detail' po.id %}">{{ po.po_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Approve</span>
         </div>
     </div>
-
-    <p style="color: #64748B; font-size: 14px; margin: 24px 0;">
-        By approving this purchase order, you confirm that it complies with procurement policies and budget availability.
-    </p>
-
-    <form method="post" class="action-buttons">
-        {% csrf_token %}
-        <a href="{% url 'po_detail' po.id %}" class="action-btn btn-cancel">
-            <i class="bi bi-x"></i> Cancel
-        </a>
-        <button type="submit" class="action-btn btn-approve">
-            <i class="bi bi-check-circle"></i> Approve Purchase Order
-        </button>
-    </form>
 </div>
+
+<!-- Approval Card -->
+<div class="approval-card">
+    <div class="card-header">
+        <h2><i class="bi bi-check-circle"></i> Purchase Order Approval</h2>
+    </div>
+    
+    <div class="card-body">
+        <!-- Icon -->
+        <div class="icon-circle">
+            <i class="bi bi-check-lg"></i>
+        </div>
+
+        <!-- Title -->
+        <h3 style="font-size: 1.125rem; font-weight: 600; color: #1E293B; margin-bottom: 0.5rem;">
+            Approve Purchase Order
+        </h3>
+        <p style="color: var(--secondary-color); font-size: 0.875rem; margin-bottom: 1.5rem;">
+            Review and approve {{ po.po_number }}
+        </p>
+
+        <!-- PO Summary -->
+        <div class="po-summary">
+            <div class="summary-row">
+                <span>PO Number:</span>
+                <span>{{ po.po_number }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Supplier:</span>
+                <span>{{ po.supplier.name }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Total Amount:</span>
+                <span class="amount-cell">KES {{ po.total_amount|floatformat:0|intcomma }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Delivery Date:</span>
+                <span>{{ po.delivery_date|date:"F d, Y" }}</span>
+            </div>
+            {% if po.tender and po.tender.requisition and po.tender.requisition.department %}
+            <div class="summary-row">
+                <span>Department:</span>
+                <span>{{ po.tender.requisition.department.name }}</span>
+            </div>
+            {% endif %}
+            <div class="summary-row">
+                <span>Issued By:</span>
+                <span>{{ po.created_by.get_full_name }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Issued Date:</span>
+                <span>{{ po.issue_date|date:"F d, Y" }}</span>
+            </div>
+        </div>
+
+        <!-- Items Summary -->
+        {% if po.items.exists %}
+        <div style="margin: 1.5rem 0; text-align: left;">
+            <h4 style="font-size: 0.875rem; font-weight: 600; color: #1E293B; margin-bottom: 0.75rem;">
+                Items Summary ({{ po.items.count }} items)
+            </h4>
+            <div class="table-responsive">
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in po.items.all %}
+                        <tr>
+                            <td>{{ item.description }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>KES {{ item.unit_price|floatformat:0|intcomma }}</td>
+                            <td>KES {{ item.total_price|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Approval Warning -->
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Important:</strong> By approving this purchase order, you confirm that:
+            <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem;">
+                <li>All items and prices are correct</li>
+                <li>The supplier is approved and qualified</li>
+                <li>The purchase complies with procurement policies</li>
+                <li>Budget is available for this expenditure</li>
+                <li>All required approvals have been obtained</li>
+            </ul>
+        </div>
+
+        <!-- Approval Information -->
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <strong>Note:</strong> 
+            {% if po.tender %}
+                This purchase order was generated from tender {{ po.tender.tender_number }}
+            {% endif %}
+            awarded to {{ po.supplier.name }}. The approval will authorize payment processing.
+        </div>
+
+        <!-- Approval Form -->
+        <form method="post" id="approvalForm">
+            {% csrf_token %}
+            
+            <!-- Approval Notes -->
+            <div class="form-group">
+                <label class="form-label">Approval Notes (Optional)</label>
+                <textarea 
+                    name="approval_notes" 
+                    id="approval_notes" 
+                    class="form-control" 
+                    rows="3" 
+                    placeholder="Add any notes or conditions for this approval..."></textarea>
+                <span class="form-text">These notes will be recorded in the approval history</span>
+            </div>
+
+            <!-- Confirmation Checkbox -->
+            <div class="form-group" style="text-align: left;">
+                <label style="display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer;">
+                    <input type="checkbox" id="confirmApproval" required style="margin-top: 0.125rem; flex-shrink: 0;">
+                    <span style="font-size: 0.875rem; color: #334155; line-height: 1.4;">
+                        I confirm that I have reviewed this purchase order and authorize its approval. 
+                        I understand that this approval will initiate the payment process.
+                    </span>
+                </label>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <a href="{% url 'po_detail' po.id %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-success" id="submitBtn">
+                    <i class="bi bi-check-circle"></i>
+                    Approve Purchase Order
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('approvalForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const confirmCheckbox = document.getElementById('confirmApproval');
+    
+    // Safely get PO amount - FIXED THE ERROR HERE
+    const poAmount = parseFloat('{{ po.total_amount|default:0 }}') || 0;
+    const poNumber = '{{ po.po_number|default:"Unknown PO"|escapejs }}';
+    
+    if (form && submitBtn && confirmCheckbox) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!confirmCheckbox.checked) {
+                alert('Please confirm your approval by checking the confirmation box');
+                confirmCheckbox.focus();
+                return;
+            }
+            
+            // Check if PO amount exceeds threshold (e.g., 1,000,000)
+            const threshold = 1000000;
+            
+            if (poAmount > threshold) {
+                if (!confirm(`This purchase order (KES ${poAmount.toLocaleString()}) exceeds KES 1,000,000. Are you sure you want to approve?`)) {
+                    return;
+                }
+            }
+            
+            // Final confirmation
+            const confirmationMessage = `Approve purchase order ${poNumber} for KES ${poAmount.toLocaleString()}? This action cannot be undone.`;
+            
+            if (confirm(confirmationMessage)) {
+                submitBtn.classList.add('btn-loading');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass"></i> Approving...';
+                form.submit();
+            }
+        });
+    }
+    
+    // Add keyboard shortcut for confirmation (Ctrl/Cmd + Enter)
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && confirmCheckbox) {
+            e.preventDefault();
+            confirmCheckbox.checked = !confirmCheckbox.checked;
+        }
+    });
+});
+</script>
 {% endblock %}

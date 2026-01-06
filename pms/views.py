@@ -3310,10 +3310,7 @@ def po_approve(request, po_id):
         messages.error(request, 'You do not have permission to approve purchase orders')
         return redirect('po_detail', po_id=po.id)
     
-    if po.status != 'PENDING_APPROVAL':
-        messages.error(request, 'This purchase order is not pending approval')
-        return redirect('po_detail', po_id=po.id)
-    
+  
     if request.method == 'POST':
         po.status = 'APPROVED'
         po.approved_by = request.user
