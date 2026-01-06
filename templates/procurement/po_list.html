@@ -582,7 +582,7 @@
                             <i class="bi bi-eye"></i>
                         </a>
                         {% if user.role in 'PROCUREMENT,ADMIN' and po.status in 'DRAFT,PENDING_APPROVAL' %}
-                        <a href="{% url 'po_edit' po.id %}" class="action-btn" title="Edit PO">
+                        <a href="{% url 'po_update' po.id %}" class="action-btn" title="Edit PO">
                             <i class="bi bi-pencil"></i>
                         </a>
                         {% endif %}
