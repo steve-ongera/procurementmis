@@ -71,7 +71,7 @@ urlpatterns = [
     path('purchase-orders/<uuid:po_id>/cancel/', views.po_cancel, name='po_cancel'),
     path('purchase-orders/<uuid:po_id>/amendment/create/', views.po_amendment_create, name='po_amendment_create'),
     
-    # AJAX API Endpoints
+    # AJAX API Endpoints 
     path('api/requisition/<uuid:req_id>/details/', views.get_requisition_details, name='get_requisition_details'),
     path('api/requisition/<uuid:req_id>/supplier/<uuid:supplier_id>/bids/', views.get_supplier_bids, name='get_supplier_bids'),
     

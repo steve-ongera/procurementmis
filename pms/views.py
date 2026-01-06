@@ -5467,25 +5467,46 @@ def grn_create(request):
         messages.success(request, f'GRN {grn.grn_number} created successfully!')
         return redirect('grn_detail', grn_id=grn.id)
     
-    # GET request
+    # GET request - Preserve form state
     po_id = request.GET.get('po')
+    selected_store_id = request.GET.get('store', '')
+    delivery_note_number = request.GET.get('delivery_note', '')
+    delivery_date = request.GET.get('delivery_date', '')
+    
     po = None
     if po_id:
         po = get_object_or_404(
-            PurchaseOrder.objects.select_related('supplier'),
+            PurchaseOrder.objects.select_related('supplier').prefetch_related('items'),
             id=po_id,
             status__in=['SENT', 'ACKNOWLEDGED']
         )
+    
+    # Collect quantities from query params
+    quantities_delivered = {}
+    for key, value in request.GET.items():
+        if key.startswith('qty_delivered_'):
+            item_id = key.replace('qty_delivered_', '')
+            quantities_delivered[int(item_id)] = value
     
     stores = Store.objects.filter(is_active=True)
     pending_pos = PurchaseOrder.objects.filter(
         status__in=['SENT', 'ACKNOWLEDGED']
     ).select_related('supplier')
     
+    # Get today's date for default
+    from datetime import date
+    today = date.today()
+    
     context = {
         'po': po,
         'stores': stores,
         'pending_pos': pending_pos,
+        'selected_po_id': po_id or '',
+        'selected_store_id': selected_store_id,
+        'delivery_note_number': delivery_note_number,
+        'delivery_date': delivery_date,
+        'quantities_delivered': quantities_delivered,
+        'today': today,
     }
     
     return render(request, 'inventory/grn_create.html', context)
