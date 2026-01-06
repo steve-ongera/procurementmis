@@ -48,18 +48,18 @@
     <div class="menu-section">
         <div class="menu-title">APPROVALS</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'pending_approvals'%}" class="menu-item">
             <i class="fas fa-check-circle"></i>
             <span>Pending Approvals</span>
             <span class="badge">5</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'approved_requisitions'%}" class="menu-item">
             <i class="fas fa-check-double"></i>
             <span>Approved</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{%  url 'rejected_requisitions'%}" class="menu-item">
             <i class="fas fa-times-circle"></i>
             <span>Rejected</span>
         </a>
