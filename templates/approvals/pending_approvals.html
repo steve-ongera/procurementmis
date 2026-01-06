@@ -1,0 +1,593 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Pending Approvals - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --secondary-color: #475569;
+        --success-color: #059669;
+        --warning-color: #D97706;
+        --danger-color: #DC2626;
+        --border-color: #E2E8F0;
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .page-title h1 {
+        font-size: 28px;
+        font-weight: 800;
+        color: #1E293B;
+        margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+        font-size: 14px;
+        color: var(--secondary-color);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--card-shadow);
+    }
+
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+
+    .stat-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 800;
+        color: #1E293B;
+        margin-bottom: 4px;
+    }
+
+    .stat-description {
+        font-size: 12px;
+        color: var(--secondary-color);
+    }
+
+    .filters-card {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .filters-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .filters-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1E293B;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--secondary-color);
+    }
+
+    .form-control {
+        padding: 10px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-primary { background: var(--primary-color); color: white; }
+    .btn-success { background: var(--success-color); color: white; }
+    .btn-secondary { background: #E2E8F0; color: var(--secondary-color); }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .approvals-card {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .approval-item {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border-color);
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+
+    .approval-item:hover {
+        background: var(--primary-light);
+    }
+
+    .approval-item:last-child {
+        border-bottom: none;
+    }
+
+    .approval-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+
+    .approval-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 4px;
+    }
+
+    .approval-number {
+        font-size: 14px;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    .approval-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-urgent { background: #FEE2E2; color: #991B1B; }
+    .badge-high { background: #FED7AA; color: #9A3412; }
+    .badge-medium { background: #FEF3C7; color: #92400E; }
+    .badge-low { background: #F1F5F9; color: #64748B; }
+    .badge-stage { background: #DBEAFE; color: #1E40AF; }
+
+    .approval-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 12px;
+    }
+
+    .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .detail-label {
+        font-size: 12px;
+        color: var(--secondary-color);
+        font-weight: 600;
+    }
+
+    .detail-value {
+        font-size: 14px;
+        color: #1E293B;
+    }
+
+    .approval-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+    }
+
+    .btn-sm {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--secondary-color);
+    }
+
+    .empty-state i {
+        font-size: 64px;
+        color: #CBD5E1;
+        margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 8px;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-top: 24px;
+        padding: 24px;
+    }
+
+    .page-link {
+        padding: 8px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--secondary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .page-link:hover {
+        background: var(--primary-light);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .page-link.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    {% if user_role == 'ADMIN' %}
+    .bulk-actions {
+        background: white;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .checkbox-cell {
+        padding-right: 16px;
+    }
+    {% endif %}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <h1>Pending Approvals</h1>
+        <p class="page-subtitle">Review and process requisitions awaiting your approval</p>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-label">Total Pending</div>
+            <div class="stat-icon" style="background: #EFF6FF; color: #2563EB;">
+                <i class="bi bi-clock-history"></i>
+            </div>
+        </div>
+        <div class="stat-value">{{ total_pending }}</div>
+        <div class="stat-description">Requisitions awaiting action</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-label">Urgent</div>
+            <div class="stat-icon" style="background: #FEE2E2; color: #DC2626;">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+        </div>
+        <div class="stat-value">{{ urgent_count }}</div>
+        <div class="stat-description">Require immediate attention</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-label">High Priority</div>
+            <div class="stat-icon" style="background: #FED7AA; color: #D97706;">
+                <i class="bi bi-arrow-up-circle"></i>
+            </div>
+        </div>
+        <div class="stat-value">{{ high_count }}</div>
+        <div class="stat-description">High priority items</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-label">Total Value</div>
+            <div class="stat-icon" style="background: #D1FAE5; color: #059669;">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+        </div>
+        <div class="stat-value" style="font-size: 20px;">KES {{ total_amount|floatformat:0|intcomma }}</div>
+        <div class="stat-description">Combined amount pending</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filters-card">
+    <div class="filters-header">
+        <div class="filters-title">
+            <i class="bi bi-funnel"></i> Filters
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="clearFilters()">
+            <i class="bi bi-x-circle"></i> Clear Filters
+        </button>
+    </div>
+
+    <form method="get" id="filterForm">
+        <div class="filters-grid">
+            <div class="form-group">
+                <label class="form-label">Priority</label>
+                <select name="priority" class="form-control" onchange="this.form.submit()">
+                    <option value="">All Priorities</option>
+                    <option value="URGENT" {% if selected_priority == 'URGENT' %}selected{% endif %}>Urgent</option>
+                    <option value="HIGH" {% if selected_priority == 'HIGH' %}selected{% endif %}>High</option>
+                    <option value="MEDIUM" {% if selected_priority == 'MEDIUM' %}selected{% endif %}>Medium</option>
+                    <option value="LOW" {% if selected_priority == 'LOW' %}selected{% endif %}>Low</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <select name="department" class="form-control" onchange="this.form.submit()">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>
+                        {{ dept.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% if user_role == 'ADMIN' %}
+            <div class="form-group">
+                <label class="form-label">Approval Stage</label>
+                <select name="stage" class="form-control" onchange="this.form.submit()">
+                    <option value="">All Stages</option>
+                    <option value="HOD" {% if selected_stage == 'HOD' %}selected{% endif %}>HOD Approval</option>
+                    <option value="BUDGET" {% if selected_stage == 'BUDGET' %}selected{% endif %}>Budget Check</option>
+                    <option value="PROCUREMENT" {% if selected_stage == 'PROCUREMENT' %}selected{% endif %}>Procurement</option>
+                </select>
+            </div>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Approvals List -->
+<div class="approvals-card">
+    {% if user_role == 'ADMIN' %}
+    <div class="bulk-actions">
+        <div>
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)">
+            <label for="selectAll" style="margin-left: 8px; font-weight: 600;">Select All</label>
+        </div>
+        <button class="btn btn-success btn-sm" onclick="bulkApprove()" id="bulkApproveBtn" style="display: none;">
+            <i class="bi bi-check-circle"></i> Bulk Approve Selected
+        </button>
+    </div>
+    {% endif %}
+
+    {% if approvals %}
+        {% for approval in approvals %}
+        <div class="approval-item" onclick="window.location.href='{% url 'approval_detail' approval.id %}'">
+            <div class="approval-header">
+                <div>
+                    {% if user_role == 'ADMIN' %}
+                    <input type="checkbox" class="approval-checkbox" value="{{ approval.id }}" 
+                           onclick="event.stopPropagation(); updateBulkButton()">
+                    {% endif %}
+                    <div class="approval-number">{{ approval.requisition.requisition_number }}</div>
+                    <div class="approval-title">{{ approval.requisition.title }}</div>
+                </div>
+                <div class="approval-badges">
+                    {% if approval.requisition.priority == 'URGENT' %}
+                    <span class="badge badge-urgent"><i class="bi bi-exclamation-circle"></i> Urgent</span>
+                    {% elif approval.requisition.priority == 'HIGH' %}
+                    <span class="badge badge-high"><i class="bi bi-arrow-up-circle"></i> High</span>
+                    {% elif approval.requisition.priority == 'MEDIUM' %}
+                    <span class="badge badge-medium"><i class="bi bi-dash-circle"></i> Medium</span>
+                    {% else %}
+                    <span class="badge badge-low"><i class="bi bi-arrow-down-circle"></i> Low</span>
+                    {% endif %}
+                    <span class="badge badge-stage">{{ approval.get_approval_stage_display }}</span>
+                </div>
+            </div>
+
+            <div class="approval-details">
+                <div class="detail-item">
+                    <div class="detail-label">Department</div>
+                    <div class="detail-value">{{ approval.requisition.department.name }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Requested By</div>
+                    <div class="detail-value">{{ approval.requisition.requested_by.get_full_name }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Required Date</div>
+                    <div class="detail-value">{{ approval.requisition.required_date|date:"M d, Y" }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Amount</div>
+                    <div class="detail-value" style="color: var(--primary-color); font-weight: 700;">
+                        KES {{ approval.requisition.estimated_amount|floatformat:2|intcomma }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Submitted</div>
+                    <div class="detail-value">{{ approval.created_at|naturaltime }}</div>
+                </div>
+            </div>
+
+            <div class="approval-actions" onclick="event.stopPropagation()">
+                <a href="{% url 'approval_detail' approval.id %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-eye"></i> Review & Approve
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if approvals.has_other_pages %}
+        <div class="pagination">
+            {% if approvals.has_previous %}
+            <a href="?page=1" class="page-link">First</a>
+            <a href="?page={{ approvals.previous_page_number }}" class="page-link">Previous</a>
+            {% endif %}
+
+            <span class="page-link active">Page {{ approvals.number }} of {{ approvals.paginator.num_pages }}</span>
+
+            {% if approvals.has_next %}
+            <a href="?page={{ approvals.next_page_number }}" class="page-link">Next</a>
+            <a href="?page={{ approvals.paginator.num_pages }}" class="page-link">Last</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <h3>No Pending Approvals</h3>
+            <p>You're all caught up! There are no requisitions awaiting your approval at this time.</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function clearFilters() {
+    window.location.href = '{% url "pending_approvals" %}';
+}
+
+{% if user_role == 'ADMIN' %}
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.approval-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateBulkButton();
+}
+
+function updateBulkButton() {
+    const checkboxes = document.querySelectorAll('.approval-checkbox:checked');
+    const bulkBtn = document.getElementById('bulkApproveBtn');
+    bulkBtn.style.display = checkboxes.length > 0 ? 'flex' : 'none';
+    bulkBtn.textContent = `Bulk Approve ${checkboxes.length} Selected`;
+}
+
+async function bulkApprove() {
+    const checkboxes = document.querySelectorAll('.approval-checkbox:checked');
+    const approvalIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (!confirm(`Are you sure you want to approve ${approvalIds.length} requisitions?`)) {
+        return;
+    }
+    
+    const formData = new FormData();
+    approvalIds.forEach(id => formData.append('approval_ids[]', id));
+    formData.append('comments', 'Bulk approval by administrator');
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    try {
+        const response = await fetch('{% url "bulk_approve" %}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    } catch (error) {
+        alert('Error performing bulk approval: ' + error);
+    }
+}
+{% endif %}
+</script>
+{% endblock %}
