@@ -3,12 +3,561 @@
 
 {% block title %}Cancel Tender - {{ tender.tender_number }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Confirm Card */
+    .confirm-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: #FEF2F2;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .card-header i {
+        font-size: 1.5rem;
+        color: var(--danger-color);
+    }
+
+    .card-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Alert Styles */
+    .alert {
+        padding: 1.25rem 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        border: 1px solid;
+    }
+
+    .alert-danger {
+        background: #FEF2F2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    .alert-warning {
+        background: #FFFBEB;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-info {
+        background: #F0F9FF;
+        border-color: #BAE6FD;
+        color: #0C4A6E;
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .alert strong {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .alert p {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .alert ul {
+        margin: 0.5rem 0 0 0;
+        padding-left: 1.25rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .alert li {
+        margin-bottom: 0.25rem;
+    }
+
+    /* Info Table */
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+    }
+
+    .info-table th {
+        padding: 0.75rem 0.5rem 0.75rem 0;
+        text-align: left;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #64748B;
+        width: 35%;
+        vertical-align: top;
+    }
+
+    .info-table td {
+        padding: 0.75rem 0;
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: top;
+    }
+
+    .info-table tr:not(:last-child) {
+        border-bottom: 1px solid #F1F5F9;
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .badge i {
+        font-size: 0.625rem;
+    }
+
+    .badge-draft { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+    .badge-published { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .badge-closed { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .badge-evaluating { 
+        background: #FCE7F3; 
+        color: #9F1239; 
+        border-color: #FBCFE8;
+    }
+    .badge-awarded { 
+        background: #D1FAE5; 
+        color: #047857; 
+        border-color: #A7F3D0;
+    }
+    .badge-cancelled { 
+        background: #FEE2E2; 
+        color: #B91C1C; 
+        border-color: #FECACA;
+    }
+    .badge-submitted { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .badge-disqualified { 
+        background: #FEE2E2; 
+        color: #B91C1C; 
+        border-color: #FECACA;
+    }
+    .badge-qualified { 
+        background: #D1FAE5; 
+        color: #047857; 
+        border-color: #A7F3D0;
+    }
+
+    /* Tender Summary */
+    .tender-summary h3,
+    .form-section h3,
+    .bids-list h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .bids-list {
+        margin: 1.5rem 0;
+        padding: 1.5rem;
+        background: var(--hover-bg);
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Data Table */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 0.75rem;
+    }
+
+    .data-table thead {
+        background: var(--table-header);
+    }
+
+    .data-table th {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    .data-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Form Styles */
+    .form-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: var(--hover-bg);
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        color: #334155;
+        background: white;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+        line-height: 1.5;
+    }
+
+    .form-control::placeholder {
+        color: #94A3B8;
+    }
+
+    .required {
+        color: var(--danger-color);
+    }
+
+    small {
+        display: block;
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        line-height: 1.4;
+    }
+
+    /* Reasons List */
+    .reasons-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .reason-option {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        color: #475569;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .reason-option:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+        transform: translateY(-1px);
+    }
+
+    .reason-option i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    /* Checkbox Label */
+    .checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+        color: #334155;
+        cursor: pointer;
+        line-height: 1.4;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        width: 1.125rem;
+        height: 1.125rem;
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #475569;
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+        transform: translateY(-1px);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+        transform: translateY(-1px);
+    }
+
+    /* Loading State */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .reasons-list {
+            grid-template-columns: 1fr;
+        }
+        
+        .data-table {
+            display: block;
+            overflow-x: auto;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .info-table th,
+        .info-table td {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 0;
+        }
+        
+        .info-table tr {
+            display: flex;
+            flex-direction: column;
+            padding: 0.75rem 0;
+        }
+        
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Cancel Tender</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}">Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'tender_list' %}">Tenders</a>
             <i class="bi bi-chevron-right"></i>
@@ -19,6 +568,7 @@
     </div>
 </div>
 
+<!-- Confirm Card -->
 <div class="confirm-card">
     <div class="card-header">
         <i class="bi bi-x-circle"></i>
@@ -26,14 +576,16 @@
     </div>
     
     <div class="card-body">
+        <!-- Danger Alert -->
         <div class="alert alert-danger">
             <i class="bi bi-exclamation-triangle"></i>
             <div>
-                <strong>Warning: This is a critical action</strong>
-                <p>Cancelling this tender will permanently stop the procurement process. This action should only be taken in exceptional circumstances.</p>
+                <strong>Warning: Critical Action Required</strong>
+                <p>Cancelling this tender will permanently stop the procurement process. This action should only be taken in exceptional circumstances and cannot be easily reversed.</p>
             </div>
         </div>
 
+        <!-- Tender Information -->
         <div class="tender-summary">
             <h3>Tender Information</h3>
             <table class="info-table">
@@ -61,7 +613,7 @@
                 </tr>
                 <tr>
                     <th>Estimated Budget</th>
-                    <td>KES {{ tender.estimated_budget|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ tender.estimated_budget|floatformat:0|intcomma }}</td>
                 </tr>
                 <tr>
                     <th>Published Date</th>
@@ -82,44 +634,49 @@
             </table>
         </div>
 
+        <!-- Bids Warning -->
         {% if tender.bids.exists %}
         <div class="alert alert-warning">
             <i class="bi bi-exclamation-circle"></i>
             <div>
                 <strong>Bids Have Been Submitted</strong>
-                <p>This tender has received {{ tender.bids.count }} bid(s). All submitted bids will be affected by this cancellation.</p>
+                <p>This tender has received {{ tender.bids.count }} bid(s). All submitted bids will be affected by this cancellation and suppliers should be notified.</p>
             </div>
         </div>
 
+        <!-- Bids List -->
         <div class="bids-list">
             <h4>Affected Bids</h4>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Bid Number</th>
-                        <th>Supplier</th>
-                        <th>Bid Amount</th>
-                        <th>Status</th>
-                        <th>Submitted</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for bid in tender.bids.all %}
-                    <tr>
-                        <td>{{ bid.bid_number }}</td>
-                        <td>{{ bid.supplier.name }}</td>
-                        <td>KES {{ bid.bid_amount|floatformat:0|intcomma }}</td>
-                        <td>
-                            <span class="badge badge-{{ bid.status|lower }}">{{ bid.get_status_display }}</span>
-                        </td>
-                        <td>{{ bid.submitted_at|date:"M d, Y H:i" }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Bid Number</th>
+                            <th>Supplier</th>
+                            <th>Bid Amount</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bid in tender.bids.all %}
+                        <tr>
+                            <td>{{ bid.bid_number }}</td>
+                            <td>{{ bid.supplier.name }}</td>
+                            <td class="amount-cell">KES {{ bid.bid_amount|floatformat:0|intcomma }}</td>
+                            <td>
+                                <span class="badge badge-{{ bid.status|lower }}">{{ bid.get_status_display }}</span>
+                            </td>
+                            <td>{{ bid.submitted_at|date:"M d, Y H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
         {% endif %}
 
+        <!-- Information Alert -->
         <div class="alert alert-info">
             <i class="bi bi-info-circle"></i>
             <div>
@@ -135,48 +692,61 @@
             </div>
         </div>
 
-        <form method="post">
+        <!-- Cancellation Form -->
+        <form method="post" id="cancelForm">
             {% csrf_token %}
             
+            <!-- Cancellation Details -->
             <div class="form-section">
                 <h3>Cancellation Details</h3>
                 <div class="form-group">
-                    <label for="cancellation_reason">Reason for Cancellation <span class="required">*</span></label>
-                    <textarea name="cancellation_reason" id="cancellation_reason" class="form-control" rows="5" required placeholder="Provide a detailed explanation for cancelling this tender..."></textarea>
+                    <label class="form-label">
+                        Reason for Cancellation <span class="required">*</span>
+                    </label>
+                    <textarea 
+                        name="cancellation_reason" 
+                        id="cancellation_reason" 
+                        class="form-control" 
+                        rows="5" 
+                        required 
+                        placeholder="Provide a detailed explanation for cancelling this tender..."></textarea>
                     <small>This reason will be recorded in the audit log and may be communicated to suppliers.</small>
                 </div>
             </div>
 
+            <!-- Common Reasons -->
             <div class="form-section">
                 <h3>Common Cancellation Reasons</h3>
+                <p style="font-size: 0.875rem; color: var(--secondary-color); margin-bottom: 1rem;">Click on a reason to pre-fill the textarea:</p>
                 <div class="reasons-list">
-                    <button type="button" class="reason-option" onclick="fillReason('Budget constraints - Insufficient funds available')">
+                    <button type="button" class="reason-option" onclick="fillReason('Budget constraints - Insufficient funds available for this procurement')">
                         <i class="bi bi-wallet2"></i>
                         Budget Constraints
                     </button>
-                    <button type="button" class="reason-option" onclick="fillReason('Change in requirements - Project specifications have changed')">
+                    <button type="button" class="reason-option" onclick="fillReason('Change in requirements - Project specifications have been significantly altered')">
                         <i class="bi bi-file-text"></i>
                         Changed Requirements
                     </button>
-                    <button type="button" class="reason-option" onclick="fillReason('Administrative error - Tender published with incorrect information')">
+                    <button type="button" class="reason-option" onclick="fillReason('Administrative error - Tender published with incorrect information that cannot be corrected')">
                         <i class="bi bi-exclamation-triangle"></i>
                         Administrative Error
                     </button>
-                    <button type="button" class="reason-option" onclick="fillReason('Project cancelled - The underlying project has been discontinued')">
+                    <button type="button" class="reason-option" onclick="fillReason('Project cancelled - The underlying project or requirement has been discontinued')">
                         <i class="bi bi-x-octagon"></i>
                         Project Cancelled
                     </button>
-                    <button type="button" class="reason-option" onclick="fillReason('Insufficient competition - Did not receive adequate number of qualified bids')">
+                    <button type="button" class="reason-option" onclick="fillReason('Insufficient competition - Did not receive adequate number of qualified bids as per procurement policy')">
                         <i class="bi bi-people"></i>
                         Insufficient Bids
                     </button>
-                    <button type="button" class="reason-option" onclick="fillReason('Legal/Compliance issue - Procedural irregularity identified')">
+                    <button type="button" class="reason-option" onclick="fillReason('Legal/Compliance issue - Procedural irregularity identified requiring cancellation')">
                         <i class="bi bi-shield-exclamation"></i>
                         Legal/Compliance Issue
                     </button>
                 </div>
             </div>
 
+            <!-- Confirmation Checkboxes -->
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="confirm_cancellation" required>
@@ -193,12 +763,13 @@
             </div>
             {% endif %}
 
+            <!-- Form Actions -->
             <div class="form-actions">
                 <a href="{% url 'tender_detail' tender.id %}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i>
                     Back to Tender
                 </a>
-                <button type="submit" class="btn btn-danger">
+                <button type="submit" class="btn btn-danger" id="submitBtn">
                     <i class="bi bi-x-circle"></i>
                     Cancel Tender
                 </button>
@@ -212,6 +783,53 @@ function fillReason(reason) {
     const textarea = document.getElementById('cancellation_reason');
     textarea.value = reason;
     textarea.focus();
+    
+    // Scroll to textarea
+    textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('cancelForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get confirmation checkboxes
+            const confirmCancellation = document.querySelector('input[name="confirm_cancellation"]');
+            const acknowledgeBids = document.querySelector('input[name="acknowledge_bids"]');
+            const reason = document.getElementById('cancellation_reason').value.trim();
+            
+            // Validate
+            if (!confirmCancellation.checked) {
+                alert('Please confirm that you understand this action is irreversible');
+                return;
+            }
+            
+            if (acknowledgeBids && !acknowledgeBids.checked) {
+                alert('Please acknowledge the bids that will be affected');
+                return;
+            }
+            
+            if (!reason) {
+                alert('Please provide a reason for cancellation');
+                return;
+            }
+            
+            if (reason.length < 10) {
+                alert('Please provide a more detailed reason for cancellation (minimum 10 characters)');
+                return;
+            }
+            
+            // Show final confirmation
+            if (confirm(`Are you absolutely sure you want to cancel tender ${tender.tender_number}? This action cannot be undone.`)) {
+                submitBtn.classList.add('btn-loading');
+                submitBtn.disabled = true;
+                form.submit();
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

@@ -3,12 +3,525 @@
 
 {% block title %}Award Tender - {{ tender.tender_number }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Card Styles */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .card-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header h2 i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Info Table */
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .info-table th {
+        padding: 0.75rem 0.5rem 0.75rem 0;
+        text-align: left;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #64748B;
+        width: 35%;
+        vertical-align: top;
+    }
+
+    .info-table td {
+        padding: 0.75rem 0;
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: top;
+    }
+
+    .info-table tr:not(:last-child) {
+        border-bottom: 1px solid #F1F5F9;
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Alert Styles */
+    .alert {
+        padding: 1.25rem 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        border: 1px solid;
+    }
+
+    .alert-info {
+        background: #F0F9FF;
+        border-color: #BAE6FD;
+        color: #0C4A6E;
+    }
+
+    .alert-warning {
+        background: #FFFBEB;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .alert strong {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .alert p {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    .alert ul {
+        margin: 0.5rem 0 0 0;
+        padding-left: 1.25rem;
+        font-size: 0.875rem;
+    }
+
+    .alert li {
+        margin-bottom: 0.25rem;
+    }
+
+    /* Bids Comparison */
+    .bids-comparison {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .bids-comparison {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .bids-comparison {
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+        }
+    }
+
+    .bid-comparison-card {
+        background: var(--card-bg);
+        border: 2px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        transition: all 0.2s;
+        position: relative;
+    }
+
+    .bid-comparison-card.recommended {
+        border-color: var(--success-color);
+        background: linear-gradient(to bottom, #F0FDF4, white);
+    }
+
+    .bid-radio {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        z-index: 2;
+    }
+
+    .bid-radio input[type="radio"] {
+        width: 1.25rem;
+        height: 1.25rem;
+        cursor: pointer;
+    }
+
+    .bid-label {
+        display: block;
+        cursor: pointer;
+    }
+
+    .bid-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+
+    .bid-rank {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .bid-rank i {
+        color: #F59E0B;
+    }
+
+    .recommended-badge {
+        padding: 0.375rem 0.75rem;
+        background: var(--success-color);
+        color: white;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .bid-supplier h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .bid-supplier p {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .bid-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 1rem;
+        margin: 1.25rem 0;
+        padding: 1rem;
+        background: var(--hover-bg);
+        border-radius: 0.375rem;
+    }
+
+    .metric label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .metric .value {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .metric .score {
+        color: var(--success-color);
+        font-size: 1rem;
+    }
+
+    .bid-details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+        margin: 1.25rem 0;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .detail-item i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .detail-item label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.125rem;
+    }
+
+    .detail-item span {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1E293B;
+    }
+
+    .evaluation-summary {
+        margin: 1.25rem 0;
+        padding: 1rem;
+        background: #F8FAFC;
+        border-radius: 0.375rem;
+        border-left: 3px solid var(--primary-color);
+    }
+
+    .evaluation-summary h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.75rem 0;
+    }
+
+    .evaluation-summary p {
+        font-size: 0.875rem;
+        color: #475569;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .evaluation-summary strong {
+        color: #334155;
+    }
+
+    .view-details {
+        text-align: center;
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin: 1.5rem 0;
+    }
+
+    .form-group label {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+        color: #334155;
+        cursor: pointer;
+        line-height: 1.4;
+    }
+
+    .form-group input[type="checkbox"] {
+        width: 1.125rem;
+        height: 1.125rem;
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #475569;
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+        transform: translateY(-1px);
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+        transform: translateY(-1px);
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    /* No Data */
+    .no-data {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #94A3B8;
+        font-style: italic;
+    }
+
+    /* Loading State */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .bid-metrics,
+        .bid-details-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .bid-comparison-card {
+            padding: 1rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .bids-comparison {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Award Tender</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}">Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'tender_list' %}">Tenders</a>
             <i class="bi bi-chevron-right"></i>
@@ -19,9 +532,10 @@
     </div>
 </div>
 
+<!-- Tender Information -->
 <div class="info-card">
     <div class="card-header">
-        <h2>Tender: {{ tender.title }}</h2>
+        <h2><i class="bi bi-file-text"></i> Tender Information</h2>
     </div>
     <div class="card-body">
         <table class="info-table">
@@ -30,21 +544,34 @@
                 <td>{{ tender.tender_number }}</td>
             </tr>
             <tr>
+                <th>Title</th>
+                <td>{{ tender.title }}</td>
+            </tr>
+            <tr>
                 <th>Type</th>
                 <td>{{ tender.get_tender_type_display }}</td>
             </tr>
             <tr>
                 <th>Estimated Budget</th>
-                <td>KES {{ tender.estimated_budget|floatformat:0|intcomma }}</td>
+                <td class="amount-cell">KES {{ tender.estimated_budget|floatformat:0|intcomma }}</td>
             </tr>
             <tr>
                 <th>Department</th>
                 <td>{{ tender.requisition.department.name }}</td>
             </tr>
+            <tr>
+                <th>Closing Date</th>
+                <td>{{ tender.closing_date|date:"F d, Y H:i" }}</td>
+            </tr>
+            <tr>
+                <th>Total Bids</th>
+                <td>{{ tender.bids.count }} ({{ qualified_bids|length }} qualified)</td>
+            </tr>
         </table>
     </div>
 </div>
 
+<!-- Info Alert -->
 <div class="alert alert-info">
     <i class="bi bi-info-circle"></i>
     <div>
@@ -53,12 +580,13 @@
     </div>
 </div>
 
-<form method="post">
+<form method="post" id="awardForm">
     {% csrf_token %}
     
+    <!-- Qualified Bids -->
     <div class="info-card">
         <div class="card-header">
-            <h2>Qualified Bids (Ranked by Score)</h2>
+            <h2><i class="bi bi-trophy"></i> Qualified Bids (Ranked by Score)</h2>
         </div>
         <div class="card-body">
             {% if qualified_bids %}
@@ -66,7 +594,12 @@
                 {% for bid in qualified_bids %}
                 <div class="bid-comparison-card {% if forloop.first %}recommended{% endif %}">
                     <div class="bid-radio">
-                        <input type="radio" name="winning_bid" value="{{ bid.id }}" id="bid_{{ bid.id }}" {% if forloop.first %}checked{% endif %} required>
+                        <input type="radio" 
+                               name="winning_bid" 
+                               value="{{ bid.id }}" 
+                               id="bid_{{ bid.id }}" 
+                               {% if forloop.first %}checked{% endif %} 
+                               required>
                     </div>
                     
                     <label for="bid_{{ bid.id }}" class="bid-label">
@@ -90,23 +623,24 @@
                         <div class="bid-metrics">
                             <div class="metric">
                                 <label>Bid Amount</label>
-                                <div class="value">KES {{ bid.bid_amount|floatformat:0|intcomma }}</div>
+                                <div class="value amount-cell">KES {{ bid.bid_amount|floatformat:0|intcomma }}</div>
                             </div>
                             <div class="metric">
                                 <label>Evaluation Score</label>
-                                <div class="value score">{{ bid.evaluation_score }}/100</div>
+                                <div class="value score">{{ bid.evaluation_score|default:"-" }}/100</div>
                             </div>
                             <div class="metric">
                                 <label>Technical Score</label>
-                                <div class="value">{{ bid.technical_score }}/100</div>
+                                <div class="value">{{ bid.technical_score|default:"-" }}/100</div>
                             </div>
                             <div class="metric">
                                 <label>Financial Score</label>
-                                <div class="value">{{ bid.financial_score }}/100</div>
+                                <div class="value">{{ bid.financial_score|default:"-" }}/100</div>
                             </div>
                         </div>
                         
                         <div class="bid-details-grid">
+                            {% if bid.delivery_period_days %}
                             <div class="detail-item">
                                 <i class="bi bi-clock"></i>
                                 <div>
@@ -114,6 +648,9 @@
                                     <span>{{ bid.delivery_period_days }} days</span>
                                 </div>
                             </div>
+                            {% endif %}
+                            
+                            {% if bid.validity_period_days %}
                             <div class="detail-item">
                                 <i class="bi bi-calendar-check"></i>
                                 <div>
@@ -121,6 +658,8 @@
                                     <span>{{ bid.validity_period_days }} days</span>
                                 </div>
                             </div>
+                            {% endif %}
+                            
                             <div class="detail-item">
                                 <i class="bi bi-calendar"></i>
                                 <div>
@@ -144,7 +683,7 @@
                         {% endif %}
 
                         <div class="view-details">
-                            <a href="{% url 'bid_detail' bid.id %}" target="_blank" class="btn btn-sm btn-secondary">
+                            <a href="{% url 'bid_detail' bid.id %}" target="_blank" class="btn btn-secondary btn-sm">
                                 <i class="bi bi-eye"></i>
                                 View Full Details
                             </a>
@@ -154,21 +693,29 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="no-data">No qualified bids available for award</p>
+            <div class="no-data">
+                <i class="bi bi-inbox" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                <p>No qualified bids available for award</p>
+                <a href="{% url 'tender_detail' tender.id %}" class="btn btn-secondary mt-2">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to Tender
+                </a>
+            </div>
             {% endif %}
         </div>
     </div>
 
     {% if qualified_bids %}
+    <!-- Award Confirmation -->
     <div class="info-card">
         <div class="card-header">
-            <h2>Award Confirmation</h2>
+            <h2><i class="bi bi-shield-check"></i> Award Confirmation</h2>
         </div>
         <div class="card-body">
             <div class="alert alert-warning">
                 <i class="bi bi-exclamation-triangle"></i>
                 <div>
-                    <strong>Important</strong>
+                    <strong>Important Notice</strong>
                     <p>By awarding this tender:</p>
                     <ul>
                         <li>The selected supplier will be notified of the award</li>
@@ -187,12 +734,21 @@
                 </label>
             </div>
 
+            <div class="form-group">
+                <label class="form-label">Award Justification (Optional)</label>
+                <textarea 
+                    name="award_notes" 
+                    class="form-control" 
+                    rows="3" 
+                    placeholder="Add any notes or justification for the award decision"></textarea>
+            </div>
+
             <div class="form-actions">
                 <a href="{% url 'tender_detail' tender.id %}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i>
                     Back to Tender
                 </a>
-                <button type="submit" class="btn btn-success">
+                <button type="submit" class="btn btn-success" id="submitBtn">
                     <i class="bi bi-trophy"></i>
                     Award Tender
                 </button>
@@ -201,4 +757,65 @@
     </div>
     {% endif %}
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('awardForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            submitBtn.classList.add('btn-loading');
+            submitBtn.disabled = true;
+            
+            // Get selected bid
+            const selectedBid = document.querySelector('input[name="winning_bid"]:checked');
+            if (!selectedBid) {
+                e.preventDefault();
+                alert('Please select a winning bid');
+                submitBtn.classList.remove('btn-loading');
+                submitBtn.disabled = false;
+                return;
+            }
+            
+            // Get confirmation checkbox
+            const confirmCheckbox = document.querySelector('input[name="confirm_award"]');
+            if (!confirmCheckbox.checked) {
+                e.preventDefault();
+                alert('Please confirm the award by checking the confirmation box');
+                submitBtn.classList.remove('btn-loading');
+                submitBtn.disabled = false;
+                return;
+            }
+            
+            // Show final confirmation
+            const supplierName = selectedBid.closest('.bid-comparison-card')
+                .querySelector('.bid-supplier h3').textContent;
+            
+            if (!confirm(`Are you sure you want to award this tender to ${supplierName}? This action cannot be undone.`)) {
+                e.preventDefault();
+                submitBtn.classList.remove('btn-loading');
+                submitBtn.disabled = false;
+            }
+        });
+    }
+    
+    // Add click handlers to bid cards
+    document.querySelectorAll('.bid-comparison-card').forEach(function(card) {
+        card.addEventListener('click', function(e) {
+            if (!e.target.closest('.btn') && !e.target.closest('input[type="radio"]')) {
+                const radio = this.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = true;
+                    // Update recommended styling
+                    document.querySelectorAll('.bid-comparison-card').forEach(function(c) {
+                        c.classList.remove('recommended');
+                    });
+                    this.classList.add('recommended');
+                }
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
