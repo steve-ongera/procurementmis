@@ -7566,3 +7566,699 @@ Submitted via University Procurement System
             messages.error(request, f'Error submitting support ticket: {str(e)}')
     
     return redirect('help_center')
+
+
+# views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db import transaction
+from django.db.models import Q, Count, Sum
+from django.utils import timezone
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.core.paginator import Paginator
+from .models import (
+    Requisition, RequisitionApproval, User, Notification, 
+    AuditLog, Budget, Department
+)
+import json
+
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def get_user_approval_stage(user):
+    """Get the approval stage based on user role"""
+    role_to_stage = {
+        'HOD': 'HOD',
+        'FINANCE': 'BUDGET',
+        'PROCUREMENT': 'PROCUREMENT',
+    }
+    return role_to_stage.get(user.role)
+
+
+def can_approve_stage(user, approval_stage):
+    """Check if user can approve at a specific stage"""
+    if user.role == 'ADMIN':
+        return True  # Admin can approve at all levels
+    
+    if user.role == 'HOD' and approval_stage == 'HOD':
+        return True
+    
+    if user.role == 'FINANCE' and approval_stage == 'BUDGET':
+        return True
+    
+    if user.role == 'PROCUREMENT' and approval_stage == 'PROCUREMENT':
+        return True
+    
+    return False
+
+
+def get_pending_approvals_for_user(user):
+    """Get all pending approvals for a specific user"""
+    if user.role == 'ADMIN':
+        # Admin can see all pending approvals
+        return RequisitionApproval.objects.filter(
+            status='PENDING'
+        ).select_related('requisition', 'approver')
+    
+    # Get approvals where user is the approver
+    return RequisitionApproval.objects.filter(
+        approver=user,
+        status='PENDING'
+    ).select_related('requisition')
+
+
+def check_budget_availability(requisition):
+    """Check if budget is available for requisition"""
+    if not requisition.budget:
+        return {
+            'available': False,
+            'message': 'No budget line assigned',
+            'details': None
+        }
+    
+    budget = requisition.budget
+    available = budget.available_balance
+    required = requisition.estimated_amount
+    
+    if available >= required:
+        return {
+            'available': True,
+            'message': 'Sufficient budget available',
+            'details': {
+                'allocated': float(budget.allocated_amount),
+                'committed': float(budget.committed_amount),
+                'spent': float(budget.actual_spent),
+                'available': float(available),
+                'required': float(required),
+                'balance_after': float(available - required)
+            }
+        }
+    else:
+        return {
+            'available': False,
+            'message': f'Insufficient budget. Available: {available}, Required: {required}',
+            'details': {
+                'allocated': float(budget.allocated_amount),
+                'committed': float(budget.committed_amount),
+                'spent': float(budget.actual_spent),
+                'available': float(available),
+                'required': float(required),
+                'shortfall': float(required - available)
+            }
+        }
+
+
+def update_requisition_status(requisition):
+    """Update requisition status based on approval workflow"""
+    approvals = requisition.approvals.all().order_by('sequence')
+    
+    # Check if any approval is rejected
+    if approvals.filter(status='REJECTED').exists():
+        requisition.status = 'REJECTED'
+        requisition.save()
+        return
+    
+    # Check if all approvals are approved
+    if all(approval.status == 'APPROVED' for approval in approvals):
+        requisition.status = 'APPROVED'
+        requisition.save()
+        
+        # Commit budget if approved
+        if requisition.budget:
+            budget = requisition.budget
+            budget.committed_amount += requisition.estimated_amount
+            budget.save()
+        
+        return
+    
+    # Update to intermediate status
+    for approval in approvals:
+        if approval.status == 'APPROVED':
+            if approval.approval_stage == 'HOD':
+                requisition.status = 'HOD_APPROVED'
+            elif approval.approval_stage == 'BUDGET':
+                requisition.status = 'BUDGET_APPROVED'
+            elif approval.approval_stage == 'PROCUREMENT':
+                requisition.status = 'PROCUREMENT_APPROVED'
+        elif approval.status == 'PENDING':
+            break  # Stop at first pending approval
+    
+    requisition.save()
+
+
+# ============================================================================
+# API ENDPOINTS
+# ============================================================================
+
+@login_required
+@require_http_methods(["GET"])
+def api_approval_stats(request):
+    """API endpoint to get approval statistics"""
+    user = request.user
+    
+    if user.role == 'ADMIN':
+        pending = RequisitionApproval.objects.filter(status='PENDING').count()
+        approved = RequisitionApproval.objects.filter(status='APPROVED').count()
+        rejected = RequisitionApproval.objects.filter(status='REJECTED').count()
+    else:
+        pending = RequisitionApproval.objects.filter(
+            approver=user, 
+            status='PENDING'
+        ).count()
+        approved = RequisitionApproval.objects.filter(
+            approver=user, 
+            status='APPROVED'
+        ).count()
+        rejected = RequisitionApproval.objects.filter(
+            approver=user, 
+            status='REJECTED'
+        ).count()
+    
+    return JsonResponse({
+        'success': True,
+        'data': {
+            'pending': pending,
+            'approved': approved,
+            'rejected': rejected,
+            'total': pending + approved + rejected
+        }
+    })
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_check_budget(request, requisition_id):
+    """API endpoint to check budget availability"""
+    requisition = get_object_or_404(Requisition, pk=requisition_id)
+    
+    # Check permissions
+    if not can_approve_stage(request.user, 'BUDGET') and request.user.role != 'ADMIN':
+        return JsonResponse({
+            'success': False,
+            'message': 'You do not have permission to check budget'
+        }, status=403)
+    
+    result = check_budget_availability(requisition)
+    
+    return JsonResponse({
+        'success': True,
+        'data': result
+    })
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_approval_details(request, approval_id):
+    """API endpoint to get approval details"""
+    approval = get_object_or_404(RequisitionApproval, pk=approval_id)
+    
+    # Check permissions
+    if approval.approver != request.user and request.user.role != 'ADMIN':
+        return JsonResponse({
+            'success': False,
+            'message': 'You do not have permission to view this approval'
+        }, status=403)
+    
+    requisition = approval.requisition
+    
+    data = {
+        'approval': {
+            'id': str(approval.id),
+            'stage': approval.approval_stage,
+            'stage_display': approval.get_approval_stage_display(),
+            'status': approval.status,
+            'approver': approval.approver.get_full_name(),
+            'comments': approval.comments,
+            'sequence': approval.sequence,
+            'created_at': approval.created_at.isoformat(),
+        },
+        'requisition': {
+            'id': str(requisition.id),
+            'number': requisition.requisition_number,
+            'title': requisition.title,
+            'department': requisition.department.name,
+            'requested_by': requisition.requested_by.get_full_name(),
+            'amount': float(requisition.estimated_amount),
+            'priority': requisition.priority,
+            'status': requisition.status,
+            'items_count': requisition.items.count(),
+        }
+    }
+    
+    # Add budget check if Finance/Budget stage
+    if approval.approval_stage == 'BUDGET':
+        data['budget_check'] = check_budget_availability(requisition)
+    
+    return JsonResponse({
+        'success': True,
+        'data': data
+    })
+
+
+# ============================================================================
+# PENDING APPROVALS VIEW
+# ============================================================================
+
+@login_required
+def pending_approvals(request):
+    """Display pending approvals for the user"""
+    user = request.user
+    
+    # Get pending approvals based on role
+    if user.role == 'ADMIN':
+        approvals_list = RequisitionApproval.objects.filter(
+            status='PENDING',
+            requisition__status__in=['SUBMITTED', 'HOD_APPROVED', 'BUDGET_APPROVED', 'PROCUREMENT_APPROVED']
+        ).select_related(
+            'requisition', 
+            'requisition__department', 
+            'requisition__requested_by',
+            'approver'
+        ).order_by('-created_at')
+    else:
+        approvals_list = RequisitionApproval.objects.filter(
+            approver=user,
+            status='PENDING',
+            requisition__status__in=['SUBMITTED', 'HOD_APPROVED', 'BUDGET_APPROVED', 'PROCUREMENT_APPROVED']
+        ).select_related(
+            'requisition', 
+            'requisition__department', 
+            'requisition__requested_by'
+        ).order_by('-created_at')
+    
+    # Filters
+    priority = request.GET.get('priority')
+    department = request.GET.get('department')
+    stage = request.GET.get('stage')
+    
+    if priority:
+        approvals_list = approvals_list.filter(requisition__priority=priority)
+    
+    if department:
+        approvals_list = approvals_list.filter(requisition__department_id=department)
+    
+    if stage:
+        approvals_list = approvals_list.filter(approval_stage=stage)
+    
+    # Pagination
+    paginator = Paginator(approvals_list, 20)
+    page_number = request.GET.get('page')
+    approvals = paginator.get_page(page_number)
+    
+    # Get filter options
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    
+    # Calculate statistics
+    total_pending = approvals_list.count()
+    urgent_count = approvals_list.filter(requisition__priority='URGENT').count()
+    high_count = approvals_list.filter(requisition__priority='HIGH').count()
+    total_amount = approvals_list.aggregate(
+        total=Sum('requisition__estimated_amount')
+    )['total'] or 0
+    
+    context = {
+        'approvals': approvals,
+        'departments': departments,
+        'selected_priority': priority,
+        'selected_department': department,
+        'selected_stage': stage,
+        'total_pending': total_pending,
+        'urgent_count': urgent_count,
+        'high_count': high_count,
+        'total_amount': total_amount,
+        'user_role': user.role,
+    }
+    
+    return render(request, 'approvals/pending_approvals.html', context)
+
+
+# ============================================================================
+# APPROVED REQUISITIONS VIEW
+# ============================================================================
+
+@login_required
+def approved_requisitions(request):
+    """Display approved requisitions"""
+    user = request.user
+    
+    # Get approved items based on role
+    if user.role == 'ADMIN':
+        approvals_list = RequisitionApproval.objects.filter(
+            status='APPROVED'
+        ).select_related(
+            'requisition', 
+            'requisition__department', 
+            'requisition__requested_by',
+            'approver'
+        ).order_by('-approval_date')
+    else:
+        approvals_list = RequisitionApproval.objects.filter(
+            approver=user,
+            status='APPROVED'
+        ).select_related(
+            'requisition', 
+            'requisition__department', 
+            'requisition__requested_by'
+        ).order_by('-approval_date')
+    
+    # Filters
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    department = request.GET.get('department')
+    
+    if date_from:
+        approvals_list = approvals_list.filter(approval_date__gte=date_from)
+    
+    if date_to:
+        approvals_list = approvals_list.filter(approval_date__lte=date_to)
+    
+    if department:
+        approvals_list = approvals_list.filter(requisition__department_id=department)
+    
+    # Pagination
+    paginator = Paginator(approvals_list, 20)
+    page_number = request.GET.get('page')
+    approvals = paginator.get_page(page_number)
+    
+    # Get filter options
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    
+    # Calculate statistics
+    total_approved = approvals_list.count()
+    total_amount = approvals_list.aggregate(
+        total=Sum('requisition__estimated_amount')
+    )['total'] or 0
+    
+    context = {
+        'approvals': approvals,
+        'departments': departments,
+        'selected_department': department,
+        'date_from': date_from,
+        'date_to': date_to,
+        'total_approved': total_approved,
+        'total_amount': total_amount,
+        'user_role': user.role,
+    }
+    
+    return render(request, 'approvals/approved_requisitions.html', context)
+
+
+# ============================================================================
+# REJECTED REQUISITIONS VIEW
+# ============================================================================
+
+@login_required
+def rejected_requisitions(request):
+    """Display rejected requisitions"""
+    user = request.user
+    
+    # Get rejected items based on role
+    if user.role == 'ADMIN':
+        approvals_list = RequisitionApproval.objects.filter(
+            status='REJECTED'
+        ).select_related(
+            'requisition', 
+            'requisition__department', 
+            'requisition__requested_by',
+            'approver'
+        ).order_by('-approval_date')
+    else:
+        approvals_list = RequisitionApproval.objects.filter(
+            approver=user,
+            status='REJECTED'
+        ).select_related(
+            'requisition', 
+            'requisition__department', 
+            'requisition__requested_by'
+        ).order_by('-approval_date')
+    
+    # Filters
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    department = request.GET.get('department')
+    
+    if date_from:
+        approvals_list = approvals_list.filter(approval_date__gte=date_from)
+    
+    if date_to:
+        approvals_list = approvals_list.filter(approval_date__lte=date_to)
+    
+    if department:
+        approvals_list = approvals_list.filter(requisition__department_id=department)
+    
+    # Pagination
+    paginator = Paginator(approvals_list, 20)
+    page_number = request.GET.get('page')
+    approvals = paginator.get_page(page_number)
+    
+    # Get filter options
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    
+    # Calculate statistics
+    total_rejected = approvals_list.count()
+    
+    context = {
+        'approvals': approvals,
+        'departments': departments,
+        'selected_department': department,
+        'date_from': date_from,
+        'date_to': date_to,
+        'total_rejected': total_rejected,
+        'user_role': user.role,
+    }
+    
+    return render(request, 'approvals/rejected_requisitions.html', context)
+
+
+# ============================================================================
+# APPROVAL DETAIL & ACTION VIEW
+# ============================================================================
+
+@login_required
+def approval_detail(request, approval_id):
+    """Display approval detail and handle approval/rejection"""
+    approval = get_object_or_404(
+        RequisitionApproval.objects.select_related(
+            'requisition',
+            'requisition__department',
+            'requisition__requested_by',
+            'requisition__budget',
+            'approver'
+        ),
+        pk=approval_id
+    )
+    
+    requisition = approval.requisition
+    
+    # Check permissions
+    if approval.approver != request.user and request.user.role != 'ADMIN':
+        messages.error(request, 'You do not have permission to view this approval.')
+        return redirect('pending_approvals')
+    
+    # Check if user can approve this stage
+    can_approve = can_approve_stage(request.user, approval.approval_stage)
+    
+    # Get budget check if finance stage
+    budget_check = None
+    if approval.approval_stage == 'BUDGET':
+        budget_check = check_budget_availability(requisition)
+    
+    # Get all approvals for this requisition
+    all_approvals = requisition.approvals.all().order_by('sequence')
+    
+    # Get requisition items
+    items = requisition.items.all()
+    items_total = sum(item.estimated_total for item in items)
+    
+    context = {
+        'approval': approval,
+        'requisition': requisition,
+        'can_approve': can_approve,
+        'budget_check': budget_check,
+        'all_approvals': all_approvals,
+        'items': items,
+        'items_total': items_total,
+    }
+    
+    return render(request, 'approvals/approval_detail.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def process_approval(request, approval_id):
+    """Process approval or rejection"""
+    approval = get_object_or_404(RequisitionApproval, pk=approval_id)
+    
+    # Check permissions
+    if not can_approve_stage(request.user, approval.approval_stage):
+        return JsonResponse({
+            'success': False,
+            'message': 'You do not have permission to process this approval.'
+        }, status=403)
+    
+    if approval.status != 'PENDING':
+        return JsonResponse({
+            'success': False,
+            'message': 'This approval has already been processed.'
+        }, status=400)
+    
+    action = request.POST.get('action')  # 'approve' or 'reject'
+    comments = request.POST.get('comments', '')
+    
+    if action not in ['approve', 'reject']:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid action.'
+        }, status=400)
+    
+    try:
+        with transaction.atomic():
+            requisition = approval.requisition
+            
+            # For budget stage, check budget availability
+            if approval.approval_stage == 'BUDGET' and action == 'approve':
+                budget_check = check_budget_availability(requisition)
+                if not budget_check['available']:
+                    return JsonResponse({
+                        'success': False,
+                        'message': budget_check['message'],
+                        'budget_details': budget_check['details']
+                    }, status=400)
+            
+            # Update approval
+            approval.status = 'APPROVED' if action == 'approve' else 'REJECTED'
+            approval.comments = comments
+            approval.approval_date = timezone.now()
+            approval.save()
+            
+            # If rejected, update requisition
+            if action == 'reject':
+                requisition.status = 'REJECTED'
+                requisition.rejection_reason = comments
+                requisition.save()
+            else:
+                # Update requisition status
+                update_requisition_status(requisition)
+            
+            # Create notification for requester
+            Notification.objects.create(
+                user=requisition.requested_by,
+                notification_type='APPROVAL',
+                priority='HIGH',
+                title=f'Requisition {action.title()}d',
+                message=f'Your requisition {requisition.requisition_number} has been {action}d at {approval.get_approval_stage_display()} stage.',
+                link_url=f'/requisitions/{requisition.id}/'
+            )
+            
+            # Create audit log
+            AuditLog.objects.create(
+                user=request.user,
+                action='APPROVE' if action == 'approve' else 'REJECT',
+                model_name='RequisitionApproval',
+                object_id=str(approval.id),
+                object_repr=f'{requisition.requisition_number} - {approval.get_approval_stage_display()}',
+                changes={
+                    'status': approval.status,
+                    'comments': comments
+                }
+            )
+            
+            message = f'Requisition {requisition.requisition_number} has been {action}d successfully.'
+            
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'requisition_status': requisition.status,
+                'redirect_url': f'/approvals/pending/'
+            })
+            
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error processing approval: {str(e)}'
+        }, status=500)
+
+
+# ============================================================================
+# BULK APPROVAL ACTION
+# ============================================================================
+
+@login_required
+@require_http_methods(["POST"])
+def bulk_approve(request):
+    """Bulk approve multiple requisitions"""
+    if request.user.role != 'ADMIN':
+        return JsonResponse({
+            'success': False,
+            'message': 'Only administrators can perform bulk approvals.'
+        }, status=403)
+    
+    approval_ids = request.POST.getlist('approval_ids[]')
+    comments = request.POST.get('comments', 'Bulk approval')
+    
+    if not approval_ids:
+        return JsonResponse({
+            'success': False,
+            'message': 'No approvals selected.'
+        }, status=400)
+    
+    approved_count = 0
+    failed_count = 0
+    errors = []
+    
+    for approval_id in approval_ids:
+        try:
+            with transaction.atomic():
+                approval = RequisitionApproval.objects.select_for_update().get(
+                    pk=approval_id,
+                    status='PENDING'
+                )
+                
+                requisition = approval.requisition
+                
+                # Check budget if needed
+                if approval.approval_stage == 'BUDGET':
+                    budget_check = check_budget_availability(requisition)
+                    if not budget_check['available']:
+                        failed_count += 1
+                        errors.append(f'{requisition.requisition_number}: {budget_check["message"]}')
+                        continue
+                
+                # Approve
+                approval.status = 'APPROVED'
+                approval.comments = comments
+                approval.approval_date = timezone.now()
+                approval.save()
+                
+                update_requisition_status(requisition)
+                
+                # Notification
+                Notification.objects.create(
+                    user=requisition.requested_by,
+                    notification_type='APPROVAL',
+                    priority='HIGH',
+                    title='Requisition Approved',
+                    message=f'Your requisition {requisition.requisition_number} has been approved.',
+                    link_url=f'/requisitions/{requisition.id}/'
+                )
+                
+                approved_count += 1
+                
+        except RequisitionApproval.DoesNotExist:
+            failed_count += 1
+            errors.append(f'Approval {approval_id} not found or already processed')
+        except Exception as e:
+            failed_count += 1
+            errors.append(f'Approval {approval_id}: {str(e)}')
+    
+    return JsonResponse({
+        'success': True,
+        'message': f'Bulk approval complete. Approved: {approved_count}, Failed: {failed_count}',
+        'approved_count': approved_count,
+        'failed_count': failed_count,
+        'errors': errors
+    })

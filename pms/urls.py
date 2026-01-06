@@ -23,6 +23,19 @@ urlpatterns = [
     path('requisitions/<uuid:pk>/submit/', views.requisition_submit, name='requisition_submit'),
     path('requisitions/pending/', views.pending_requisitions, name='pending_requisitions'),
     
+    # Approval Management Views
+    path('approvals/pending/', views.pending_approvals, name='pending_approvals'),
+    path('approvals/approved/', views.approved_requisitions, name='approved_requisitions'),
+    path('approvals/rejected/', views.rejected_requisitions, name='rejected_requisitions'),
+    path('approvals/<uuid:approval_id>/', views.approval_detail, name='approval_detail'),
+    path('approvals/<uuid:approval_id>/process/', views.process_approval, name='process_approval'),
+    path('approvals/bulk-approve/', views.bulk_approve, name='bulk_approve'),
+    
+    # API Endpoints
+    path('api/approvals/stats/', views.api_approval_stats, name='api_approval_stats'),
+    path('api/approvals/<uuid:approval_id>/', views.api_approval_details, name='api_approval_details'),
+    path('api/requisitions/<uuid:requisition_id>/budget-check/', views.api_check_budget, name='api_check_budget'),
+    
     # API Endpoints
     path('api/budget/<uuid:budget_id>/', views.get_budget_info, name='api_budget_info'),
     path('api/item/<uuid:item_id>/', views.get_item_info, name='api_item_info'),

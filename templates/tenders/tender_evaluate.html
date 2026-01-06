@@ -3,12 +3,593 @@
 
 {% block title %}Evaluate Bids - {{ tender.tender_number }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Card Styles */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .card-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header h2 i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Tender Info Grid */
+    .tender-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .info-item label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.375rem;
+        font-weight: 600;
+    }
+
+    .info-item span {
+        display: block;
+        font-size: 0.875rem;
+        color: #334155;
+        font-weight: 500;
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Data Table */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+    }
+
+    .data-table thead {
+        background: var(--table-header);
+    }
+
+    .data-table th {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    .data-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: top;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .evaluation-note {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: #F0F9FF;
+        border-radius: 0.375rem;
+        border-left: 3px solid var(--primary-color);
+        font-size: 0.875rem;
+        color: #0C4A6E;
+    }
+
+    /* Bids Grid */
+    .bids-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .bids-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .bids-grid {
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        }
+    }
+
+    /* Bid Card */
+    .bid-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        transition: all 0.2s;
+    }
+
+    .bid-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .bid-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .bid-header h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 0 0 0.25rem 0;
+    }
+
+    .bid-header p {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .bid-amount {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .bid-details {
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .detail-row span:first-child {
+        color: var(--secondary-color);
+    }
+
+    .detail-row span:last-child {
+        color: #334155;
+        font-weight: 500;
+    }
+
+    .score-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0 0.5rem;
+        background: var(--success-color);
+        color: white;
+        border-radius: 0.375rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    /* Bid Actions */
+    .bid-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #475569;
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    /* Evaluation History */
+    .evaluation-history {
+        padding: 1rem;
+        background: var(--hover-bg);
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .evaluation-history h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.75rem 0;
+    }
+
+    .evaluation-item {
+        padding: 0.75rem;
+        background: white;
+        border-radius: 0.25rem;
+        border: 1px solid var(--border-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .evaluation-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .evaluation-item strong {
+        display: block;
+        font-size: 0.875rem;
+        color: #334155;
+        margin-bottom: 0.25rem;
+    }
+
+    .text-muted {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .scores {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    /* No Data */
+    .no-data {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #94A3B8;
+        font-style: italic;
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 0.5rem;
+        width: 100%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+        padding: 1.5rem 1.5rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--secondary-color);
+        cursor: pointer;
+        padding: 0.25rem;
+        line-height: 1;
+    }
+
+    .close-modal:hover {
+        color: var(--danger-color);
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .bid-info {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: var(--hover-bg);
+        border-radius: 0.375rem;
+    }
+
+    .bid-info h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 0 0 0.25rem 0;
+    }
+
+    .bid-info p {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .form-section {
+        margin: 1.5rem 0;
+    }
+
+    .form-section h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        color: #334155;
+        background: white;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea.form-control {
+        min-height: 80px;
+        resize: vertical;
+        line-height: 1.5;
+    }
+
+    small {
+        display: block;
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+        color: #334155;
+        cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .tender-info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .bids-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .data-table {
+            display: block;
+            overflow-x: auto;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .bid-actions {
+            flex-direction: column;
+        }
+        
+        .bid-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .modal-footer {
+            flex-direction: column;
+        }
+        
+        .modal-footer .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Evaluate Bids</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}">Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'tender_list' %}">Tenders</a>
             <i class="bi bi-chevron-right"></i>
@@ -19,9 +600,10 @@
     </div>
 </div>
 
+<!-- Tender Information -->
 <div class="info-card">
     <div class="card-header">
-        <h2>Tender: {{ tender.title }}</h2>
+        <h2><i class="bi bi-file-text"></i> Tender Information</h2>
     </div>
     <div class="card-body">
         <div class="tender-info-grid">
@@ -30,16 +612,32 @@
                 <span>{{ tender.tender_number }}</span>
             </div>
             <div class="info-item">
+                <label>Title</label>
+                <span>{{ tender.title }}</span>
+            </div>
+            <div class="info-item">
                 <label>Type</label>
                 <span>{{ tender.get_tender_type_display }}</span>
             </div>
             <div class="info-item">
                 <label>Estimated Budget</label>
-                <span>KES {{ tender.estimated_budget|floatformat:0|intcomma }}</span>
+                <span class="amount-cell">KES {{ tender.estimated_budget|floatformat:0|intcomma }}</span>
+            </div>
+            <div class="info-item">
+                <label>Procurement Method</label>
+                <span>{{ tender.get_procurement_method_display }}</span>
             </div>
             <div class="info-item">
                 <label>Total Bids</label>
                 <span>{{ bids.count }}</span>
+            </div>
+            <div class="info-item">
+                <label>Closing Date</label>
+                <span>{{ tender.closing_date|date:"F d, Y H:i" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Status</label>
+                <span>{{ tender.get_status_display }}</span>
             </div>
         </div>
     </div>
@@ -48,35 +646,43 @@
 <!-- Evaluation Criteria Reference -->
 <div class="info-card">
     <div class="card-header">
-        <h2>Evaluation Criteria</h2>
+        <h2><i class="bi bi-clipboard-check"></i> Evaluation Criteria</h2>
     </div>
     <div class="card-body">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Criterion Name</th>
-                    <th>Type</th>
-                    <th>Weight (%)</th>
-                    <th>Max Score</th>
-                    <th>Description</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for criterion in criteria %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ criterion.criterion_name }}</td>
-                    <td>{{ criterion.get_criterion_type_display }}</td>
-                    <td>{{ criterion.weight }}%</td>
-                    <td>{{ criterion.max_score }}</td>
-                    <td>{{ criterion.description }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Criterion Name</th>
+                        <th>Type</th>
+                        <th>Weight (%)</th>
+                        <th>Max Score</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for criterion in criteria %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ criterion.criterion_name }}</td>
+                        <td>{{ criterion.get_criterion_type_display }}</td>
+                        <td>{{ criterion.weight }}%</td>
+                        <td>{{ criterion.max_score }}</td>
+                        <td>{{ criterion.description|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="no-data" style="text-align: center; padding: 2rem;">
+                            No evaluation criteria defined
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         <div class="evaluation-note">
-            <strong>Note:</strong> Technical scoring weighted at 70%, Financial scoring weighted at 30%
+            <strong>Note:</strong> Technical scoring weighted at 70%, Financial scoring weighted at 30%. Mandatory criteria must be met for bid qualification.
         </div>
     </div>
 </div>
@@ -84,7 +690,7 @@
 <!-- Bids to Evaluate -->
 <div class="info-card">
     <div class="card-header">
-        <h2>Bids for Evaluation</h2>
+        <h2><i class="bi bi-file-earmark-check"></i> Bids for Evaluation</h2>
     </div>
     <div class="card-body">
         {% if bids %}
@@ -96,7 +702,7 @@
                         <h3>{{ bid.bid_number }}</h3>
                         <p>{{ bid.supplier.name }}</p>
                     </div>
-                    <div class="bid-amount">
+                    <div class="bid-amount amount-cell">
                         KES {{ bid.bid_amount|floatformat:0|intcomma }}
                     </div>
                 </div>
@@ -106,28 +712,36 @@
                         <span>Submitted:</span>
                         <span>{{ bid.submitted_at|date:"M d, Y H:i" }}</span>
                     </div>
+                    {% if bid.delivery_period_days %}
                     <div class="detail-row">
                         <span>Delivery Period:</span>
                         <span>{{ bid.delivery_period_days }} days</span>
                     </div>
+                    {% endif %}
+                    {% if bid.validity_period_days %}
                     <div class="detail-row">
                         <span>Validity:</span>
                         <span>{{ bid.validity_period_days }} days</span>
                     </div>
+                    {% endif %}
                     {% if bid.evaluation_score %}
                     <div class="detail-row">
                         <span>Current Score:</span>
-                        <span class="score-badge">{{ bid.evaluation_score }}</span>
+                        <span class="score-badge">{{ bid.evaluation_score }}/100</span>
                     </div>
                     {% endif %}
+                    <div class="detail-row">
+                        <span>Bid Status:</span>
+                        <span>{{ bid.get_status_display }}</span>
+                    </div>
                 </div>
 
                 <div class="bid-actions">
-                    <a href="{% url 'bid_detail' bid.id %}" class="btn btn-sm btn-secondary" target="_blank">
+                    <a href="{% url 'bid_detail' bid.id %}" class="btn btn-secondary" target="_blank">
                         <i class="bi bi-eye"></i>
                         View Full Bid
                     </a>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="openEvaluationModal('{{ bid.id }}', '{{ bid.bid_number }}', '{{ bid.supplier.name }}')">
+                    <button type="button" class="btn btn-primary" onclick="openEvaluationModal('{{ bid.id }}', '{{ bid.bid_number }}', '{{ bid.supplier.name }}')">
                         <i class="bi bi-clipboard-check"></i>
                         {% if bid.evaluations.exists %}Re-evaluate{% else %}Evaluate{% endif %}
                     </button>
@@ -136,7 +750,7 @@
                 {% if bid.evaluations.exists %}
                 <div class="evaluation-history">
                     <h4>Previous Evaluations</h4>
-                    {% for evaluation in bid.evaluations.all %}
+                    {% for evaluation in bid.evaluations.all|slice:":3" %}
                     <div class="evaluation-item">
                         <div>
                             <strong>{{ evaluation.evaluator.get_full_name }}</strong>
@@ -147,6 +761,11 @@
                             <span>Financial: {{ evaluation.financial_score }}</span>
                             <span>Total: {{ evaluation.total_score }}</span>
                         </div>
+                        {% if evaluation.recommendation %}
+                        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--secondary-color);">
+                            {{ evaluation.recommendation|truncatewords:20 }}
+                        </div>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
@@ -155,16 +774,19 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="no-data">No bids available for evaluation</p>
+        <div class="no-data">
+            <i class="bi bi-inbox" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+            <p>No bids available for evaluation</p>
+        </div>
         {% endif %}
     </div>
 </div>
 
 <!-- Evaluation Modal -->
-<div id="evaluationModal" class="modal" style="display: none;">
+<div id="evaluationModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Evaluate Bid</h2>
+            <h2><i class="bi bi-clipboard-check"></i> Evaluate Bid</h2>
             <button type="button" class="close-modal" onclick="closeEvaluationModal()">
                 <i class="bi bi-x"></i>
             </button>
@@ -183,15 +805,15 @@
                 <div class="form-section">
                     <h4>Compliance Check</h4>
                     <div class="form-group">
-                        <label>
-                            <input type="checkbox" name="technical_compliance" checked>
-                            Technical Compliance
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="technical_compliance" id="technicalCompliance" checked>
+                            Technical Compliance (All mandatory criteria met)
                         </label>
                     </div>
                     <div class="form-group">
-                        <label>
-                            <input type="checkbox" name="financial_compliance" checked>
-                            Financial Compliance
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="financial_compliance" id="financialCompliance" checked>
+                            Financial Compliance (Within budget and all financial documents provided)
                         </label>
                     </div>
                 </div>
@@ -199,45 +821,58 @@
                 <div class="form-section">
                     <h4>Scoring</h4>
                     <div class="form-group">
-                        <label>Technical Score (0-100)</label>
-                        <input type="number" name="technical_score" class="form-control" min="0" max="100" step="0.01" required>
-                        <small>This will be weighted at 70% of total score</small>
+                        <label class="form-label">Technical Score (0-100)</label>
+                        <input type="number" name="technical_score" id="technicalScore" class="form-control" min="0" max="100" step="0.01" value="0" required>
+                        <small>Weighted at 70% of total score</small>
                     </div>
                     <div class="form-group">
-                        <label>Financial Score (0-100)</label>
-                        <input type="number" name="financial_score" class="form-control" min="0" max="100" step="0.01" required>
-                        <small>This will be weighted at 30% of total score</small>
+                        <label class="form-label">Financial Score (0-100)</label>
+                        <input type="number" name="financial_score" id="financialScore" class="form-control" min="0" max="100" step="0.01" value="0" required>
+                        <small>Weighted at 30% of total score</small>
+                    </div>
+                    <div class="form-group" id="totalScoreContainer" style="display: none;">
+                        <label class="form-label">Total Score</label>
+                        <input type="text" id="totalScore" class="form-control" readonly style="background: #F8FAFC;">
                     </div>
                 </div>
 
                 <div class="form-section">
                     <h4>Evaluation Comments</h4>
                     <div class="form-group">
-                        <label>Strengths</label>
-                        <textarea name="strengths" class="form-control" rows="3"></textarea>
+                        <label class="form-label">Strengths</label>
+                        <textarea name="strengths" class="form-control" rows="3" placeholder="List the key strengths of this bid..."></textarea>
                     </div>
                     <div class="form-group">
-                        <label>Weaknesses</label>
-                        <textarea name="weaknesses" class="form-control" rows="3"></textarea>
+                        <label class="form-label">Weaknesses / Areas for Improvement</label>
+                        <textarea name="weaknesses" class="form-control" rows="3" placeholder="Identify any weaknesses or areas that need improvement..."></textarea>
                     </div>
                     <div class="form-group">
-                        <label>Recommendation</label>
-                        <textarea name="recommendation" class="form-control" rows="3" required></textarea>
+                        <label class="form-label">Recommendation <span style="color: var(--danger-color);">*</span></label>
+                        <textarea name="recommendation" class="form-control" rows="3" required placeholder="Provide your overall recommendation and justification..."></textarea>
                     </div>
                 </div>
 
                 <div class="form-section" id="disqualificationSection" style="display: none;">
-                    <h4>Disqualification</h4>
-                    <div class="form-group">
-                        <label>Disqualification Reason</label>
-                        <textarea name="disqualification_reason" class="form-control" rows="3"></textarea>
+                    <div class="alert alert-warning" style="margin: 0;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <div>
+                            <strong>Bid Disqualification</strong>
+                            <p>Since compliance criteria are not met, this bid will be disqualified.</p>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label">Disqualification Reason <span style="color: var(--danger-color);">*</span></label>
+                        <textarea name="disqualification_reason" id="disqualificationReason" class="form-control" rows="3" required placeholder="Explain why the bid fails compliance requirements..."></textarea>
                     </div>
                 </div>
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeEvaluationModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">
+                <button type="button" class="btn btn-secondary" onclick="closeEvaluationModal()">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" id="submitEvaluationBtn">
                     <i class="bi bi-check-circle"></i>
                     Submit Evaluation
                 </button>
@@ -247,39 +882,123 @@
 </div>
 
 <script>
+let currentBidId = null;
+
 function openEvaluationModal(bidId, bidNumber, supplierName) {
+    currentBidId = bidId;
     document.getElementById('bid_id').value = bidId;
     document.getElementById('modal_bid_number').textContent = bidNumber;
     document.getElementById('modal_supplier_name').textContent = supplierName;
     document.getElementById('evaluationModal').style.display = 'flex';
+    document.getElementById('evaluationForm').reset();
+    document.getElementById('disqualificationSection').style.display = 'none';
+    document.getElementById('totalScoreContainer').style.display = 'none';
+    document.body.style.overflow = 'hidden';
 }
 
 function closeEvaluationModal() {
     document.getElementById('evaluationModal').style.display = 'none';
     document.getElementById('evaluationForm').reset();
+    currentBidId = null;
+    document.body.style.overflow = 'auto';
 }
 
-// Show/hide disqualification section based on compliance
-document.querySelectorAll('input[name="technical_compliance"], input[name="financial_compliance"]').forEach(function(checkbox) {
-    checkbox.addEventListener('change', function() {
-        const technicalCompliance = document.querySelector('input[name="technical_compliance"]').checked;
-        const financialCompliance = document.querySelector('input[name="financial_compliance"]').checked;
-        const disqualificationSection = document.getElementById('disqualificationSection');
-        
-        if (!technicalCompliance || !financialCompliance) {
-            disqualificationSection.style.display = 'block';
-        } else {
-            disqualificationSection.style.display = 'none';
+// Calculate total score
+function calculateTotalScore() {
+    const technicalScore = parseFloat(document.getElementById('technicalScore').value) || 0;
+    const financialScore = parseFloat(document.getElementById('financialScore').value) || 0;
+    const totalScore = (technicalScore * 0.7) + (financialScore * 0.3);
+    return Math.round(totalScore * 100) / 100;
+}
+
+// Update total score display
+document.getElementById('technicalScore').addEventListener('input', function() {
+    const totalScore = calculateTotalScore();
+    document.getElementById('totalScore').value = totalScore;
+    document.getElementById('totalScoreContainer').style.display = 'block';
+});
+
+document.getElementById('financialScore').addEventListener('input', function() {
+    const totalScore = calculateTotalScore();
+    document.getElementById('totalScore').value = totalScore;
+    document.getElementById('totalScoreContainer').style.display = 'block';
+});
+
+// Show/hide disqualification section
+document.getElementById('technicalCompliance').addEventListener('change', toggleDisqualification);
+document.getElementById('financialCompliance').addEventListener('change', toggleDisqualification);
+
+function toggleDisqualification() {
+    const technicalCompliance = document.getElementById('technicalCompliance').checked;
+    const financialCompliance = document.getElementById('financialCompliance').checked;
+    const disqualificationSection = document.getElementById('disqualificationSection');
+    const disqualificationReason = document.getElementById('disqualificationReason');
+    
+    if (!technicalCompliance || !financialCompliance) {
+        disqualificationSection.style.display = 'block';
+        disqualificationReason.required = true;
+    } else {
+        disqualificationSection.style.display = 'none';
+        disqualificationReason.required = false;
+    }
+}
+
+// Validate form submission
+document.getElementById('evaluationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const technicalScore = parseFloat(document.getElementById('technicalScore').value);
+    const financialScore = parseFloat(document.getElementById('financialScore').value);
+    const technicalCompliance = document.getElementById('technicalCompliance').checked;
+    const financialCompliance = document.getElementById('financialCompliance').checked;
+    const recommendation = document.querySelector('textarea[name="recommendation"]').value.trim();
+    
+    // Validation
+    if (technicalScore < 0 || technicalScore > 100) {
+        alert('Technical score must be between 0 and 100');
+        return;
+    }
+    
+    if (financialScore < 0 || financialScore > 100) {
+        alert('Financial score must be between 0 and 100');
+        return;
+    }
+    
+    if (!recommendation) {
+        alert('Please provide a recommendation');
+        return;
+    }
+    
+    if (!technicalCompliance || !financialCompliance) {
+        const disqualificationReason = document.getElementById('disqualificationReason').value.trim();
+        if (!disqualificationReason) {
+            alert('Please provide a disqualification reason');
+            return;
         }
-    });
+    }
+    
+    // Show confirmation
+    const bidNumber = document.getElementById('modal_bid_number').textContent;
+    if (confirm(`Submit evaluation for ${bidNumber}? This action cannot be undone.`)) {
+        const submitBtn = document.getElementById('submitEvaluationBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass"></i> Submitting...';
+        this.submit();
+    }
 });
 
 // Close modal on outside click
-window.onclick = function(event) {
-    const modal = document.getElementById('evaluationModal');
-    if (event.target == modal) {
+document.getElementById('evaluationModal').addEventListener('click', function(e) {
+    if (e.target === this) {
         closeEvaluationModal();
     }
-}
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && currentBidId) {
+        closeEvaluationModal();
+    }
+});
 </script>
 {% endblock %}
