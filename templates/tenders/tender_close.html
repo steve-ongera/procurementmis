@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Close Tender - {{ tender.tender_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Close Tender</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_list' %}">Tenders</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_detail' tender.id %}">{{ tender.tender_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Close</span>
+        </div>
+    </div>
+</div>
+
+<div class="confirm-card">
+    <div class="card-header">
+        <i class="bi bi-lock"></i>
+        <h2>Confirm Tender Closure</h2>
+    </div>
+    
+    <div class="card-body">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <div>
+                <strong>Important Notice</strong>
+                <p>Closing this tender will stop accepting new bids. This action should only be performed when the tender closing date has passed or if you need to close the tender early.</p>
+            </div>
+        </div>
+
+        <div class="tender-summary">
+            <h3>Tender Information</h3>
+            <table class="info-table">
+                <tr>
+                    <th>Tender Number</th>
+                    <td>{{ tender.tender_number }}</td>
+                </tr>
+                <tr>
+                    <th>Title</th>
+                    <td>{{ tender.title }}</td>
+                </tr>
+                <tr>
+                    <th>Scheduled Closing Date</th>
+                    <td>{{ tender.closing_date|date:"F d, Y H:i" }}</td>
+                </tr>
+                <tr>
+                    <th>Current Status</th>
+                    <td>
+                        <span class="badge badge-published">{{ tender.get_status_display }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Bids Received</th>
+                    <td>{{ tender.bids.count }}</td>
+                </tr>
+            </table>
+        </div>
+
+        {% if tender.bids.exists %}
+        <div class="bids-summary">
+            <h3>Received Bids</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Bid Number</th>
+                        <th>Supplier</th>
+                        <th>Bid Amount</th>
+                        <th>Submitted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bid in tender.bids.all %}
+                    <tr>
+                        <td>{{ bid.bid_number }}</td>
+                        <td>{{ bid.supplier.name }}</td>
+                        <td>KES {{ bid.bid_amount|floatformat:0|intcomma }}</td>
+                        <td>{{ bid.submitted_at|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <p>No bids have been received for this tender yet.</p>
+        </div>
+        {% endif %}
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <strong>What happens after closing?</strong>
+                <ul>
+                    <li>No new bids will be accepted</li>
+                    <li>All submitted bids will be marked as "Opened"</li>
+                    <li>The tender will move to evaluation stage</li>
+                    <li>You will be able to evaluate and compare bids</li>
+                </ul>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="confirm" required>
+                    I confirm that I want to close this tender and proceed to evaluation
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'tender_detail' tender.id %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to Tender
+                </a>
+                <button type="submit" class="btn btn-warning">
+                    <i class="bi bi-lock"></i>
+                    Close Tender
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Evaluate Bids - {{ tender.tender_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Evaluate Bids</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_list' %}">Tenders</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_detail' tender.id %}">{{ tender.tender_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Evaluate</span>
+        </div>
+    </div>
+</div>
+
+<div class="info-card">
+    <div class="card-header">
+        <h2>Tender: {{ tender.title }}</h2>
+    </div>
+    <div class="card-body">
+        <div class="tender-info-grid">
+            <div class="info-item">
+                <label>Tender Number</label>
+                <span>{{ tender.tender_number }}</span>
+            </div>
+            <div class="info-item">
+                <label>Type</label>
+                <span>{{ tender.get_tender_type_display }}</span>
+            </div>
+            <div class="info-item">
+                <label>Estimated Budget</label>
+                <span>KES {{ tender.estimated_budget|floatformat:0|intcomma }}</span>
+            </div>
+            <div class="info-item">
+                <label>Total Bids</label>
+                <span>{{ bids.count }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Evaluation Criteria Reference -->
+<div class="info-card">
+    <div class="card-header">
+        <h2>Evaluation Criteria</h2>
+    </div>
+    <div class="card-body">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Criterion Name</th>
+                    <th>Type</th>
+                    <th>Weight (%)</th>
+                    <th>Max Score</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for criterion in criteria %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ criterion.criterion_name }}</td>
+                    <td>{{ criterion.get_criterion_type_display }}</td>
+                    <td>{{ criterion.weight }}%</td>
+                    <td>{{ criterion.max_score }}</td>
+                    <td>{{ criterion.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="evaluation-note">
+            <strong>Note:</strong> Technical scoring weighted at 70%, Financial scoring weighted at 30%
+        </div>
+    </div>
+</div>
+
+<!-- Bids to Evaluate -->
+<div class="info-card">
+    <div class="card-header">
+        <h2>Bids for Evaluation</h2>
+    </div>
+    <div class="card-body">
+        {% if bids %}
+        <div class="bids-grid">
+            {% for bid in bids %}
+            <div class="bid-card">
+                <div class="bid-header">
+                    <div>
+                        <h3>{{ bid.bid_number }}</h3>
+                        <p>{{ bid.supplier.name }}</p>
+                    </div>
+                    <div class="bid-amount">
+                        KES {{ bid.bid_amount|floatformat:0|intcomma }}
+                    </div>
+                </div>
+                
+                <div class="bid-details">
+                    <div class="detail-row">
+                        <span>Submitted:</span>
+                        <span>{{ bid.submitted_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Delivery Period:</span>
+                        <span>{{ bid.delivery_period_days }} days</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Validity:</span>
+                        <span>{{ bid.validity_period_days }} days</span>
+                    </div>
+                    {% if bid.evaluation_score %}
+                    <div class="detail-row">
+                        <span>Current Score:</span>
+                        <span class="score-badge">{{ bid.evaluation_score }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="bid-actions">
+                    <a href="{% url 'bid_detail' bid.id %}" class="btn btn-sm btn-secondary" target="_blank">
+                        <i class="bi bi-eye"></i>
+                        View Full Bid
+                    </a>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openEvaluationModal('{{ bid.id }}', '{{ bid.bid_number }}', '{{ bid.supplier.name }}')">
+                        <i class="bi bi-clipboard-check"></i>
+                        {% if bid.evaluations.exists %}Re-evaluate{% else %}Evaluate{% endif %}
+                    </button>
+                </div>
+
+                {% if bid.evaluations.exists %}
+                <div class="evaluation-history">
+                    <h4>Previous Evaluations</h4>
+                    {% for evaluation in bid.evaluations.all %}
+                    <div class="evaluation-item">
+                        <div>
+                            <strong>{{ evaluation.evaluator.get_full_name }}</strong>
+                            <span class="text-muted">{{ evaluation.evaluated_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                        <div class="scores">
+                            <span>Technical: {{ evaluation.technical_score }}</span>
+                            <span>Financial: {{ evaluation.financial_score }}</span>
+                            <span>Total: {{ evaluation.total_score }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-data">No bids available for evaluation</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Evaluation Modal -->
+<div id="evaluationModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Evaluate Bid</h2>
+            <button type="button" class="close-modal" onclick="closeEvaluationModal()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        
+        <form method="post" id="evaluationForm">
+            {% csrf_token %}
+            <input type="hidden" name="bid_id" id="bid_id">
+            
+            <div class="modal-body">
+                <div class="bid-info">
+                    <h3 id="modal_bid_number"></h3>
+                    <p id="modal_supplier_name"></p>
+                </div>
+
+                <div class="form-section">
+                    <h4>Compliance Check</h4>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" name="technical_compliance" checked>
+                            Technical Compliance
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" name="financial_compliance" checked>
+                            Financial Compliance
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>Scoring</h4>
+                    <div class="form-group">
+                        <label>Technical Score (0-100)</label>
+                        <input type="number" name="technical_score" class="form-control" min="0" max="100" step="0.01" required>
+                        <small>This will be weighted at 70% of total score</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Financial Score (0-100)</label>
+                        <input type="number" name="financial_score" class="form-control" min="0" max="100" step="0.01" required>
+                        <small>This will be weighted at 30% of total score</small>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>Evaluation Comments</h4>
+                    <div class="form-group">
+                        <label>Strengths</label>
+                        <textarea name="strengths" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Weaknesses</label>
+                        <textarea name="weaknesses" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Recommendation</label>
+                        <textarea name="recommendation" class="form-control" rows="3" required></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section" id="disqualificationSection" style="display: none;">
+                    <h4>Disqualification</h4>
+                    <div class="form-group">
+                        <label>Disqualification Reason</label>
+                        <textarea name="disqualification_reason" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeEvaluationModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i>
+                    Submit Evaluation
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEvaluationModal(bidId, bidNumber, supplierName) {
+    document.getElementById('bid_id').value = bidId;
+    document.getElementById('modal_bid_number').textContent = bidNumber;
+    document.getElementById('modal_supplier_name').textContent = supplierName;
+    document.getElementById('evaluationModal').style.display = 'flex';
+}
+
+function closeEvaluationModal() {
+    document.getElementById('evaluationModal').style.display = 'none';
+    document.getElementById('evaluationForm').reset();
+}
+
+// Show/hide disqualification section based on compliance
+document.querySelectorAll('input[name="technical_compliance"], input[name="financial_compliance"]').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+        const technicalCompliance = document.querySelector('input[name="technical_compliance"]').checked;
+        const financialCompliance = document.querySelector('input[name="financial_compliance"]').checked;
+        const disqualificationSection = document.getElementById('disqualificationSection');
+        
+        if (!technicalCompliance || !financialCompliance) {
+            disqualificationSection.style.display = 'block';
+        } else {
+            disqualificationSection.style.display = 'none';
+        }
+    });
+});
+
+// Close modal on outside click
+window.onclick = function(event) {
+    const modal = document.getElementById('evaluationModal');
+    if (event.target == modal) {
+        closeEvaluationModal();
+    }
+}
+</script>
+{% endblock %}

@@ -2320,6 +2320,51 @@ def tender_create(request):
     return render(request, 'tenders/tender_create.html', context)
 
 
+
+
+@login_required
+def edit_tender(request, tender_id):
+    tender = get_object_or_404(Tender, id=tender_id)
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                tender.title = request.POST.get('title')
+                tender.tender_type = request.POST.get('tender_type')
+                tender.procurement_method = request.POST.get('procurement_method')
+                tender.description = request.POST.get('description')
+                tender.closing_date = request.POST.get('closing_date')
+                tender.bid_opening_date = request.POST.get('bid_opening_date')
+                tender.estimated_budget = request.POST.get('estimated_budget')
+                tender.status = request.POST.get('status')
+
+                # Optional publish date logic
+                if tender.status == 'PUBLISHED' and not tender.publish_date:
+                    tender.publish_date = timezone.now()
+
+                tender.save()
+
+                # Update invited suppliers (ManyToMany)
+                supplier_ids = request.POST.getlist('invited_suppliers')
+                tender.invited_suppliers.set(supplier_ids)
+
+                messages.success(request, 'Tender updated successfully.')
+                return redirect('tender_detail', tender_id=tender.id)
+
+        except Exception as e:
+            messages.error(request, f'Error updating tender: {str(e)}')
+
+    context = {
+        'tender': tender,
+        'suppliers': Supplier.objects.all(),
+        'tender_types': Tender.TENDER_TYPES,
+        'procurement_methods': Tender.METHOD_CHOICES,
+        'status_choices': Tender.STATUS_CHOICES,
+    }
+
+    return render(request, 'tenders/tender_edit.html', context)
+
+
 @login_required
 def tender_detail(request, pk):
     """View tender details"""

@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Award Tender - {{ tender.tender_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Award Tender</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_list' %}">Tenders</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_detail' tender.id %}">{{ tender.tender_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Award</span>
+        </div>
+    </div>
+</div>
+
+<div class="info-card">
+    <div class="card-header">
+        <h2>Tender: {{ tender.title }}</h2>
+    </div>
+    <div class="card-body">
+        <table class="info-table">
+            <tr>
+                <th>Tender Number</th>
+                <td>{{ tender.tender_number }}</td>
+            </tr>
+            <tr>
+                <th>Type</th>
+                <td>{{ tender.get_tender_type_display }}</td>
+            </tr>
+            <tr>
+                <th>Estimated Budget</th>
+                <td>KES {{ tender.estimated_budget|floatformat:0|intcomma }}</td>
+            </tr>
+            <tr>
+                <th>Department</th>
+                <td>{{ tender.requisition.department.name }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    <div>
+        <strong>Award Process</strong>
+        <p>Select the winning bid from the qualified bids below. The selected supplier will be notified and all other bids will be marked as rejected.</p>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="info-card">
+        <div class="card-header">
+            <h2>Qualified Bids (Ranked by Score)</h2>
+        </div>
+        <div class="card-body">
+            {% if qualified_bids %}
+            <div class="bids-comparison">
+                {% for bid in qualified_bids %}
+                <div class="bid-comparison-card {% if forloop.first %}recommended{% endif %}">
+                    <div class="bid-radio">
+                        <input type="radio" name="winning_bid" value="{{ bid.id }}" id="bid_{{ bid.id }}" {% if forloop.first %}checked{% endif %} required>
+                    </div>
+                    
+                    <label for="bid_{{ bid.id }}" class="bid-label">
+                        <div class="bid-header">
+                            <div class="bid-rank">
+                                {% if forloop.first %}
+                                <i class="bi bi-trophy-fill"></i>
+                                {% endif %}
+                                Rank #{{ forloop.counter }}
+                            </div>
+                            {% if forloop.first %}
+                            <span class="recommended-badge">Recommended</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="bid-supplier">
+                            <h3>{{ bid.supplier.name }}</h3>
+                            <p>{{ bid.bid_number }}</p>
+                        </div>
+                        
+                        <div class="bid-metrics">
+                            <div class="metric">
+                                <label>Bid Amount</label>
+                                <div class="value">KES {{ bid.bid_amount|floatformat:0|intcomma }}</div>
+                            </div>
+                            <div class="metric">
+                                <label>Evaluation Score</label>
+                                <div class="value score">{{ bid.evaluation_score }}/100</div>
+                            </div>
+                            <div class="metric">
+                                <label>Technical Score</label>
+                                <div class="value">{{ bid.technical_score }}/100</div>
+                            </div>
+                            <div class="metric">
+                                <label>Financial Score</label>
+                                <div class="value">{{ bid.financial_score }}/100</div>
+                            </div>
+                        </div>
+                        
+                        <div class="bid-details-grid">
+                            <div class="detail-item">
+                                <i class="bi bi-clock"></i>
+                                <div>
+                                    <label>Delivery Period</label>
+                                    <span>{{ bid.delivery_period_days }} days</span>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-calendar-check"></i>
+                                <div>
+                                    <label>Validity Period</label>
+                                    <span>{{ bid.validity_period_days }} days</span>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-calendar"></i>
+                                <div>
+                                    <label>Submitted</label>
+                                    <span>{{ bid.submitted_at|date:"M d, Y" }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if bid.evaluations.exists %}
+                        <div class="evaluation-summary">
+                            <h4>Latest Evaluation</h4>
+                            {% with bid.evaluations.first as evaluation %}
+                            <p><strong>Evaluator:</strong> {{ evaluation.evaluator.get_full_name }}</p>
+                            <p><strong>Recommendation:</strong> {{ evaluation.recommendation|truncatewords:20 }}</p>
+                            {% if evaluation.strengths %}
+                            <p><strong>Strengths:</strong> {{ evaluation.strengths|truncatewords:15 }}</p>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                        {% endif %}
+
+                        <div class="view-details">
+                            <a href="{% url 'bid_detail' bid.id %}" target="_blank" class="btn btn-sm btn-secondary">
+                                <i class="bi bi-eye"></i>
+                                View Full Details
+                            </a>
+                        </div>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="no-data">No qualified bids available for award</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if qualified_bids %}
+    <div class="info-card">
+        <div class="card-header">
+            <h2>Award Confirmation</h2>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <div>
+                    <strong>Important</strong>
+                    <p>By awarding this tender:</p>
+                    <ul>
+                        <li>The selected supplier will be notified of the award</li>
+                        <li>All other bids will be marked as rejected</li>
+                        <li>The tender status will be changed to "Awarded"</li>
+                        <li>A Purchase Order can be generated for the winning supplier</li>
+                        <li>This action cannot be easily reversed</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="confirm_award" required>
+                    I confirm that I have reviewed all qualified bids and authorize the award of this tender to the selected supplier
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'tender_detail' tender.id %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to Tender
+                </a>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-trophy"></i>
+                    Award Tender
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</form>
+{% endblock %}

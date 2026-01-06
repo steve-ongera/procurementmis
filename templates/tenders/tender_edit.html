@@ -1,0 +1,529 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Tender - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .card-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header h2 i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control,
+    .form-select {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        color: #334155;
+        background: white;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: #94A3B8;
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .form-select[multiple] {
+        min-height: 120px;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .form-select[multiple] option {
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.25rem;
+        margin-bottom: 0.25rem;
+        transition: background-color 0.2s;
+    }
+
+    .form-select[multiple] option:hover {
+        background: var(--hover-bg);
+    }
+
+    .form-select[multiple] option:checked {
+        background: var(--primary-light);
+        color: var(--primary-dark);
+        font-weight: 500;
+    }
+
+    .form-text {
+        display: block;
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    /* Grid Layout */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        .form-grid-full {
+            grid-column: 1 / -1;
+        }
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-outline-secondary {
+        background: white;
+        color: #475569;
+        border-color: var(--border-color);
+    }
+
+    .btn-outline-secondary:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    /* Amount Input */
+    .amount-input {
+        position: relative;
+    }
+
+    .amount-prefix {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #475569;
+        font-weight: 500;
+        pointer-events: none;
+    }
+
+    .amount-input .form-control {
+        padding-left: 3rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    /* Error States */
+    .form-control.is-invalid,
+    .form-select.is-invalid {
+        border-color: var(--danger-color);
+    }
+
+    .invalid-feedback {
+        display: block;
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--danger-color);
+    }
+
+    /* Loading State */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Edit Tender</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_list' %}">Tenders</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_detail' tender.id %}">{{ tender.tender_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Edit</span>
+        </div>
+    </div>
+</div>
+
+<div class="form-card">
+    <div class="card-header">
+        <h2><i class="bi bi-pencil"></i> Edit Tender Details</h2>
+    </div>
+
+    <div class="card-body">
+        <form method="POST" id="tenderForm">
+            {% csrf_token %}
+
+            <div class="form-grid">
+                <!-- Title -->
+                <div class="form-group form-grid-full">
+                    <label class="form-label">Tender Title</label>
+                    <input
+                        type="text"
+                        name="title"
+                        class="form-control"
+                        value="{{ tender.title }}"
+                        placeholder="Enter tender title"
+                        required>
+                </div>
+
+                <!-- Tender Type and Procurement Method -->
+                <div class="form-group">
+                    <label class="form-label">Tender Type</label>
+                    <select name="tender_type" class="form-select" required>
+                        {% for key, label in tender_types %}
+                            <option value="{{ key }}" {% if tender.tender_type == key %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Procurement Method</label>
+                    <select name="procurement_method" class="form-select" required>
+                        {% for key, label in procurement_methods %}
+                            <option value="{{ key }}" {% if tender.procurement_method == key %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group form-grid-full">
+                    <label class="form-label">Description</label>
+                    <textarea
+                        name="description"
+                        class="form-control"
+                        rows="4"
+                        placeholder="Provide a detailed description of the tender"
+                        required>{{ tender.description }}</textarea>
+                </div>
+
+                <!-- Closing Date and Bid Opening Date -->
+                <div class="form-group">
+                    <label class="form-label">Closing Date</label>
+                    <input
+                        type="datetime-local"
+                        name="closing_date"
+                        class="form-control"
+                        value="{{ tender.closing_date|date:'Y-m-d\\TH:i' }}"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Bid Opening Date</label>
+                    <input
+                        type="datetime-local"
+                        name="bid_opening_date"
+                        class="form-control"
+                        value="{{ tender.bid_opening_date|date:'Y-m-d\\TH:i' }}"
+                        required>
+                </div>
+
+                <!-- Estimated Budget -->
+                <div class="form-group">
+                    <label class="form-label">Estimated Budget</label>
+                    <div class="amount-input">
+                        <span class="amount-prefix">KES</span>
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            name="estimated_budget"
+                            class="form-control"
+                            value="{{ tender.estimated_budget }}"
+                            placeholder="0.00"
+                            required>
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        {% for key, label in status_choices %}
+                            <option value="{{ key }}" {% if tender.status == key %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Invited Suppliers (for Restricted Tenders) -->
+                {% if tender.procurement_method == 'RESTRICTED' %}
+                <div class="form-group form-grid-full">
+                    <label class="form-label">Invited Suppliers</label>
+                    <select name="invited_suppliers" class="form-select" multiple>
+                        {% for supplier in suppliers %}
+                            <option value="{{ supplier.id }}"
+                                {% if supplier in tender.invited_suppliers.all %}selected{% endif %}>
+                                {{ supplier.name }} ({{ supplier.supplier_number }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <span class="form-text">Hold Ctrl (Windows) or Cmd (Mac) to select multiple suppliers</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <a href="{% url 'tender_detail' tender.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="bi bi-check-circle"></i>
+                    Update Tender
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('tenderForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    form.addEventListener('submit', function() {
+        submitBtn.classList.add('btn-loading');
+        submitBtn.disabled = true;
+    });
+
+    // Validate closing date is after current date
+    const closingDateInput = form.querySelector('input[name="closing_date"]');
+    const bidOpeningDateInput = form.querySelector('input[name="bid_opening_date"]');
+    
+    function validateDates() {
+        const closingDate = new Date(closingDateInput.value);
+        const bidOpeningDate = new Date(bidOpeningDateInput.value);
+        const now = new Date();
+
+        if (closingDate <= now) {
+            alert('Closing date must be in the future');
+            closingDateInput.focus();
+            return false;
+        }
+
+        if (bidOpeningDate <= closingDate) {
+            alert('Bid opening date must be after the closing date');
+            bidOpeningDateInput.focus();
+            return false;
+        }
+
+        return true;
+    }
+
+    form.addEventListener('submit', function(e) {
+        if (!validateDates()) {
+            e.preventDefault();
+            submitBtn.classList.remove('btn-loading');
+            submitBtn.disabled = false;
+        }
+    });
+
+    // Update invited suppliers visibility based on procurement method
+    const procurementMethodSelect = form.querySelector('select[name="procurement_method"]');
+    const invitedSuppliersGroup = form.querySelector('.form-group:has(select[name="invited_suppliers"])');
+    
+    function toggleInvitedSuppliers() {
+        if (procurementMethodSelect.value === 'RESTRICTED') {
+            if (invitedSuppliersGroup) {
+                invitedSuppliersGroup.style.display = 'block';
+            }
+        } else {
+            if (invitedSuppliersGroup) {
+                invitedSuppliersGroup.style.display = 'none';
+            }
+        }
+    }
+    
+    procurementMethodSelect.addEventListener('change', toggleInvitedSuppliers);
+    toggleInvitedSuppliers(); // Initial check
+});
+</script>
+{% endblock %}

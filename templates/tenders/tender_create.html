@@ -1,0 +1,856 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Create Tender - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .card-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header h2 i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .card-header p {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+        flex: 1;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control,
+    .form-select {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        color: #334155;
+        background: white;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: #94A3B8;
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    /* Grid Layout */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        .form-grid-full {
+            grid-column: 1 / -1;
+        }
+        
+        .form-grid-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+    }
+
+    /* Button Styles */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-secondary {
+        background: #F1F5F9;
+        color: #475569;
+        border-color: #E2E8F0;
+    }
+
+    .btn-secondary:hover {
+        background: #E2E8F0;
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+        transform: translateY(-1px);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+        transform: translateY(-1px);
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    /* Supplier Grid */
+    .supplier-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .supplier-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        background: white;
+        transition: all 0.2s;
+    }
+
+    .supplier-item:hover {
+        border-color: #CBD5E1;
+        background: var(--hover-bg);
+    }
+
+    .supplier-item input[type="checkbox"] {
+        width: 1.125rem;
+        height: 1.125rem;
+        border-radius: 0.25rem;
+    }
+
+    .supplier-item label {
+        flex: 1;
+        cursor: pointer;
+    }
+
+    .supplier-item strong {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #334155;
+        margin-bottom: 0.25rem;
+    }
+
+    .supplier-item span {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    /* Criteria Table */
+    .criteria-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .criteria-table thead {
+        background: var(--table-header);
+    }
+
+    .criteria-table th {
+        padding: 1rem 0.75rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    .criteria-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+
+    .criteria-table input[type="text"],
+    .criteria-table input[type="number"],
+    .criteria-table select {
+        width: 100%;
+        padding: 0.5rem 0.625rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    .criteria-table input[type="checkbox"] {
+        width: 1.125rem;
+        height: 1.125rem;
+        border-radius: 0.25rem;
+    }
+
+    /* Document Items */
+    .document-item {
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .document-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .document-grid {
+            grid-template-columns: 2fr 2fr 1fr auto;
+            align-items: end;
+        }
+    }
+
+    .document-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 0;
+    }
+
+    .document-checkbox input[type="checkbox"] {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Amount Input */
+    .amount-input {
+        position: relative;
+    }
+
+    .amount-prefix {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #475569;
+        font-weight: 500;
+        pointer-events: none;
+    }
+
+    .amount-input .form-control {
+        padding-left: 3rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .card-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .criteria-table {
+            display: block;
+            overflow-x: auto;
+        }
+        
+        .criteria-table th,
+        .criteria-table td {
+            padding: 0.5rem;
+            font-size: 0.75rem;
+        }
+        
+        .supplier-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .criteria-table td:last-child {
+            text-align: center;
+        }
+    }
+
+    /* Error States */
+    .form-control.is-invalid,
+    .form-select.is-invalid {
+        border-color: var(--danger-color);
+    }
+
+    .invalid-feedback {
+        display: block;
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--danger-color);
+    }
+
+    /* Loading State */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Create New Tender</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_list' %}">Tenders</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Create</span>
+        </div>
+    </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="tenderForm">
+    {% csrf_token %}
+    
+    <!-- Basic Information -->
+    <div class="form-card">
+        <div class="card-header">
+            <h2><i class="bi bi-info-circle"></i> Basic Information</h2>
+        </div>
+        <div class="card-body">
+            <div class="form-grid">
+                <!-- Requisition Selection -->
+                <div class="form-group form-grid-full">
+                    <label class="form-label">Requisition</label>
+                    <select name="requisition" id="requisition" class="form-select" required>
+                        <option value="">Select Requisition</option>
+                        {% for req in requisitions %}
+                        <option value="{{ req.id }}" data-amount="{{ req.estimated_amount }}">
+                            {{ req.requisition_number }} - {{ req.title }} (KES {{ req.estimated_amount|floatformat:0|intcomma }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Title -->
+                <div class="form-group form-grid-full">
+                    <label class="form-label">Tender Title</label>
+                    <input 
+                        type="text" 
+                        name="title" 
+                        id="title" 
+                        class="form-control" 
+                        placeholder="Enter tender title"
+                        required>
+                </div>
+
+                <!-- Tender Type and Procurement Method -->
+                <div class="form-group">
+                    <label class="form-label">Tender Type</label>
+                    <select name="tender_type" id="tender_type" class="form-select" required>
+                        <option value="">Select Type</option>
+                        {% for value, label in tender_type_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Procurement Method</label>
+                    <select name="procurement_method" id="procurement_method" class="form-select" required>
+                        <option value="">Select Method</option>
+                        {% for value, label in method_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group form-grid-full">
+                    <label class="form-label">Description</label>
+                    <textarea 
+                        name="description" 
+                        id="description" 
+                        class="form-control" 
+                        rows="4" 
+                        placeholder="Provide detailed description of requirements, scope, and specifications"
+                        required></textarea>
+                </div>
+
+                <!-- Budget and Dates -->
+                <div class="form-group">
+                    <label class="form-label">Estimated Budget</label>
+                    <div class="amount-input">
+                        <span class="amount-prefix">KES</span>
+                        <input 
+                            type="number" 
+                            name="estimated_budget" 
+                            id="estimated_budget" 
+                            class="form-control" 
+                            step="0.01" 
+                            min="0"
+                            placeholder="0.00"
+                            required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Closing Date</label>
+                    <input 
+                        type="datetime-local" 
+                        name="closing_date" 
+                        id="closing_date" 
+                        class="form-control" 
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Bid Opening Date</label>
+                    <input 
+                        type="datetime-local" 
+                        name="bid_opening_date" 
+                        id="bid_opening_date" 
+                        class="form-control" 
+                        required>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invited Suppliers (for Restricted Tenders) -->
+    <div class="form-card" id="invitedSuppliersSection" style="display: none;">
+        <div class="card-header">
+            <div>
+                <h2><i class="bi bi-people"></i> Invited Suppliers</h2>
+                <p>Select suppliers to invite for this restricted tender</p>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="supplier-grid">
+                {% for supplier in suppliers %}
+                <div class="supplier-item">
+                    <input 
+                        type="checkbox" 
+                        name="invited_suppliers" 
+                        value="{{ supplier.id }}" 
+                        id="supplier_{{ supplier.id }}">
+                    <label for="supplier_{{ supplier.id }}">
+                        <strong>{{ supplier.name }}</strong>
+                        <span>{{ supplier.supplier_number }} • {{ supplier.category.name }}</span>
+                    </label>
+                </div>
+                {% empty %}
+                <div class="form-grid-full">
+                    <p class="no-data">No suppliers available. Please add suppliers first.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Evaluation Criteria -->
+    <div class="form-card">
+        <div class="card-header">
+            <h2><i class="bi bi-clipboard-check"></i> Evaluation Criteria</h2>
+            <button type="button" id="addCriterion" class="btn btn-secondary">
+                <i class="bi bi-plus-circle"></i>
+                Add Criterion
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="criteria-table">
+                    <thead>
+                        <tr>
+                            <th>Criterion Name</th>
+                            <th>Type</th>
+                            <th>Weight (%)</th>
+                            <th>Max Score</th>
+                            <th>Mandatory</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="criteriaBody">
+                        <!-- Criteria rows will be added here -->
+                    </tbody>
+                </table>
+            </div>
+            <input type="hidden" name="criteria_json" id="criteria_json">
+        </div>
+    </div>
+
+    <!-- Tender Documents -->
+    <div class="form-card">
+        <div class="card-header">
+            <h2><i class="bi bi-folder"></i> Tender Documents</h2>
+            <button type="button" id="addDocument" class="btn btn-secondary">
+                <i class="bi bi-plus-circle"></i>
+                Add Document
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="documentsContainer">
+                <!-- Document upload fields will be added here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+        <a href="{% url 'tender_list' %}" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i>
+            Cancel
+        </a>
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="submit" name="action" value="save" class="btn btn-primary">
+                <i class="bi bi-save"></i>
+                Save as Draft
+            </button>
+            <button type="submit" name="action" value="publish" class="btn btn-success">
+                <i class="bi bi-megaphone"></i>
+                Save & Publish
+            </button>
+        </div>
+    </div>
+</form>
+
+<script>
+let criteriaCount = 0;
+let documentCount = 0;
+
+// Show/hide invited suppliers section
+document.getElementById('procurement_method').addEventListener('change', function() {
+    const invitedSection = document.getElementById('invitedSuppliersSection');
+    if (this.value === 'RESTRICTED') {
+        invitedSection.style.display = 'block';
+    } else {
+        invitedSection.style.display = 'none';
+    }
+});
+
+// Add evaluation criterion
+document.getElementById('addCriterion').addEventListener('click', function() {
+    criteriaCount++;
+    const row = document.createElement('tr');
+    row.id = `criterion_${criteriaCount}`;
+    row.innerHTML = `
+        <td><input type="text" class="form-control criterion-name" placeholder="e.g., Technical Capability" required></td>
+        <td>
+            <select class="form-control criterion-type" required>
+                <option value="TECHNICAL">Technical</option>
+                <option value="FINANCIAL">Financial</option>
+                <option value="GENERAL">General</option>
+                <option value="EXPERIENCE">Experience</option>
+                <option value="DELIVERY">Delivery Timeline</option>
+            </select>
+        </td>
+        <td><input type="number" class="form-control criterion-weight" step="0.01" min="0" max="100" placeholder="30" required></td>
+        <td><input type="number" class="form-control criterion-max-score" step="0.01" min="0" placeholder="100" required></td>
+        <td><input type="checkbox" class="criterion-mandatory" title="Mandatory for qualification"></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeCriterion(${criteriaCount})">Remove</button></td>
+    `;
+    document.getElementById('criteriaBody').appendChild(row);
+});
+
+function removeCriterion(id) {
+    const row = document.getElementById(`criterion_${id}`);
+    if (row) row.remove();
+}
+
+// Add document upload field
+document.getElementById('addDocument').addEventListener('click', function() {
+    documentCount++;
+    const div = document.createElement('div');
+    div.className = 'document-item';
+    div.id = `document_${documentCount}`;
+    div.innerHTML = `
+        <div class="document-grid">
+            <div>
+                <label class="form-label">Document File</label>
+                <input type="file" name="document_${documentCount}_file" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx" required>
+            </div>
+            <div>
+                <label class="form-label">Description</label>
+                <input type="text" name="document_${documentCount}_description" class="form-control" placeholder="e.g., Terms of Reference" required>
+            </div>
+            <div class="document-checkbox">
+                <input type="checkbox" name="document_${documentCount}_mandatory" id="doc_mandatory_${documentCount}">
+                <label for="doc_mandatory_${documentCount}" style="margin: 0; cursor: pointer;">Mandatory</label>
+            </div>
+            <div>
+                <button type="button" class="btn btn-danger" onclick="removeDocument(${documentCount})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    document.getElementById('documentsContainer').appendChild(div);
+});
+
+function removeDocument(id) {
+    const element = document.getElementById(`document_${id}`);
+    if (element) element.remove();
+}
+
+// Before form submission, collect criteria data
+document.getElementById('tenderForm').addEventListener('submit', function(e) {
+    const submitBtn = e.submitter;
+    submitBtn.classList.add('btn-loading');
+    submitBtn.disabled = true;
+    
+    // Validate dates
+    const closingDate = new Date(document.getElementById('closing_date').value);
+    const bidOpeningDate = new Date(document.getElementById('bid_opening_date').value);
+    const now = new Date();
+    
+    if (closingDate <= now) {
+        alert('Closing date must be in the future');
+        e.preventDefault();
+        submitBtn.classList.remove('btn-loading');
+        submitBtn.disabled = false;
+        return;
+    }
+    
+    if (bidOpeningDate <= closingDate) {
+        alert('Bid opening date must be after the closing date');
+        e.preventDefault();
+        submitBtn.classList.remove('btn-loading');
+        submitBtn.disabled = false;
+        return;
+    }
+    
+    // Collect criteria data
+    const criteria = [];
+    document.querySelectorAll('#criteriaBody tr').forEach(function(row) {
+        criteria.push({
+            criterion_name: row.querySelector('.criterion-name').value,
+            criterion_type: row.querySelector('.criterion-type').value,
+            description: row.querySelector('.criterion-name').value,
+            weight: parseFloat(row.querySelector('.criterion-weight').value),
+            max_score: parseFloat(row.querySelector('.criterion-max-score').value),
+            is_mandatory: row.querySelector('.criterion-mandatory').checked
+        });
+    });
+    
+    // Validate total weight
+    const totalWeight = criteria.reduce((sum, criterion) => sum + criterion.weight, 0);
+    if (criteria.length > 0 && Math.abs(totalWeight - 100) > 0.01) {
+        if (!confirm(`Total weight is ${totalWeight}%. It should total 100%. Continue anyway?`)) {
+            e.preventDefault();
+            submitBtn.classList.remove('btn-loading');
+            submitBtn.disabled = false;
+            return;
+        }
+    }
+    
+    document.getElementById('criteria_json').value = JSON.stringify(criteria);
+});
+
+// Auto-fill estimated budget from requisition
+document.getElementById('requisition').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const amount = selectedOption.getAttribute('data-amount');
+    if (amount) {
+        document.getElementById('estimated_budget').value = amount;
+    }
+});
+
+// Initialize with one document field
+document.addEventListener('DOMContentLoaded', function() {
+    // Add initial document field
+    document.getElementById('addDocument').click();
+    
+    // Set default dates
+    const now = new Date();
+    const closingDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+    const openingDate = new Date(closingDate.getTime() + 2 * 60 * 60 * 1000); // 2 hours after closing
+    
+    document.getElementById('closing_date').value = closingDate.toISOString().slice(0, 16);
+    document.getElementById('bid_opening_date').value = openingDate.toISOString().slice(0, 16);
+});
+</script>
+{% endblock %}

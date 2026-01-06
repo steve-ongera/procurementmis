@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Publish Tender - {{ tender.tender_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Publish Tender</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_list' %}">Tenders</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_detail' tender.id %}">{{ tender.tender_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Publish</span>
+        </div>
+    </div>
+</div>
+
+<div class="confirm-card">
+    <div class="card-header">
+        <i class="bi bi-megaphone"></i>
+        <h2>Confirm Tender Publication</h2>
+    </div>
+    
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <strong>What happens when you publish this tender?</strong>
+                <ul>
+                    <li>The tender will be visible to suppliers</li>
+                    <li>{% if tender.procurement_method == 'RESTRICTED' %}Invited suppliers will be notified{% else %}All approved suppliers will be able to view and bid{% endif %}</li>
+                    <li>Bidding will remain open until the closing date</li>
+                    <li>The tender cannot be edited after publication</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="tender-summary">
+            <h3>Tender Summary</h3>
+            <table class="info-table">
+                <tr>
+                    <th>Tender Number</th>
+                    <td>{{ tender.tender_number }}</td>
+                </tr>
+                <tr>
+                    <th>Title</th>
+                    <td>{{ tender.title }}</td>
+                </tr>
+                <tr>
+                    <th>Type</th>
+                    <td>{{ tender.get_tender_type_display }}</td>
+                </tr>
+                <tr>
+                    <th>Method</th>
+                    <td>{{ tender.get_procurement_method_display }}</td>
+                </tr>
+                <tr>
+                    <th>Estimated Budget</th>
+                    <td>KES {{ tender.estimated_budget|floatformat:0|intcomma }}</td>
+                </tr>
+                <tr>
+                    <th>Closing Date</th>
+                    <td>{{ tender.closing_date|date:"F d, Y H:i" }}</td>
+                </tr>
+                <tr>
+                    <th>Bid Opening Date</th>
+                    <td>{{ tender.bid_opening_date|date:"F d, Y H:i" }}</td>
+                </tr>
+                <tr>
+                    <th>Documents Attached</th>
+                    <td>{{ tender.documents.count }}</td>
+                </tr>
+                <tr>
+                    <th>Evaluation Criteria</th>
+                    <td>{{ tender.evaluation_criteria.count }}</td>
+                </tr>
+                {% if tender.procurement_method == 'RESTRICTED' %}
+                <tr>
+                    <th>Invited Suppliers</th>
+                    <td>{{ tender.invited_suppliers.count }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+
+        <!-- Publication Checklist -->
+        <div class="checklist">
+            <h3>Pre-Publication Checklist</h3>
+            <div class="checklist-item">
+                <i class="bi bi-check-circle {% if tender.documents.exists %}text-success{% else %}text-muted{% endif %}"></i>
+                <span>Tender documents uploaded</span>
+                {% if not tender.documents.exists %}
+                <span class="text-danger">(Required)</span>
+                {% endif %}
+            </div>
+            <div class="checklist-item">
+                <i class="bi bi-check-circle {% if tender.evaluation_criteria.exists %}text-success{% else %}text-muted{% endif %}"></i>
+                <span>Evaluation criteria defined</span>
+                {% if not tender.evaluation_criteria.exists %}
+                <span class="text-danger">(Required)</span>
+                {% endif %}
+            </div>
+            {% if tender.procurement_method == 'RESTRICTED' %}
+            <div class="checklist-item">
+                <i class="bi bi-check-circle {% if tender.invited_suppliers.exists %}text-success{% else %}text-muted{% endif %}"></i>
+                <span>Suppliers invited</span>
+                {% if not tender.invited_suppliers.exists %}
+                <span class="text-warning">(Recommended)</span>
+                {% endif %}
+            </div>
+            {% endif %}
+            <div class="checklist-item">
+                <i class="bi bi-check-circle text-success"></i>
+                <span>All required information provided</span>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="confirm" required>
+                    I confirm that all information is correct and the tender is ready for publication
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'tender_detail' tender.id %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to Tender
+                </a>
+                <button type="submit" class="btn btn-success" {% if not tender.documents.exists or not tender.evaluation_criteria.exists %}disabled{% endif %}>
+                    <i class="bi bi-megaphone"></i>
+                    Publish Tender
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

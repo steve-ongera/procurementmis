@@ -32,6 +32,7 @@ urlpatterns = [
     path('tenders/', views.tender_list, name='tender_list'),
     path('tenders/create/', views.tender_create, name='tender_create'),
     path('tenders/<uuid:pk>/', views.tender_detail, name='tender_detail'),
+     path('tenders/<uuid:tender_id>/edit/', views.edit_tender, name='tender_edit'),
     path('tenders/<uuid:pk>/publish/', views.tender_publish, name='tender_publish'),
     path('tenders/<uuid:pk>/close/', views.tender_close, name='tender_close'),
     path('tenders/<uuid:pk>/evaluate/', views.tender_evaluate, name='tender_evaluate'),

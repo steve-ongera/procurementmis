@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Cancel Tender - {{ tender.tender_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Cancel Tender</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_list' %}">Tenders</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_detail' tender.id %}">{{ tender.tender_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Cancel</span>
+        </div>
+    </div>
+</div>
+
+<div class="confirm-card">
+    <div class="card-header">
+        <i class="bi bi-x-circle"></i>
+        <h2>Confirm Tender Cancellation</h2>
+    </div>
+    
+    <div class="card-body">
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle"></i>
+            <div>
+                <strong>Warning: This is a critical action</strong>
+                <p>Cancelling this tender will permanently stop the procurement process. This action should only be taken in exceptional circumstances.</p>
+            </div>
+        </div>
+
+        <div class="tender-summary">
+            <h3>Tender Information</h3>
+            <table class="info-table">
+                <tr>
+                    <th>Tender Number</th>
+                    <td>{{ tender.tender_number }}</td>
+                </tr>
+                <tr>
+                    <th>Title</th>
+                    <td>{{ tender.title }}</td>
+                </tr>
+                <tr>
+                    <th>Type</th>
+                    <td>{{ tender.get_tender_type_display }}</td>
+                </tr>
+                <tr>
+                    <th>Method</th>
+                    <td>{{ tender.get_procurement_method_display }}</td>
+                </tr>
+                <tr>
+                    <th>Current Status</th>
+                    <td>
+                        <span class="badge badge-{{ tender.status|lower }}">{{ tender.get_status_display }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Estimated Budget</th>
+                    <td>KES {{ tender.estimated_budget|floatformat:0|intcomma }}</td>
+                </tr>
+                <tr>
+                    <th>Published Date</th>
+                    <td>{% if tender.publish_date %}{{ tender.publish_date|date:"F d, Y H:i" }}{% else %}Not published{% endif %}</td>
+                </tr>
+                <tr>
+                    <th>Closing Date</th>
+                    <td>{{ tender.closing_date|date:"F d, Y H:i" }}</td>
+                </tr>
+                <tr>
+                    <th>Bids Received</th>
+                    <td>{{ tender.bids.count }}</td>
+                </tr>
+                <tr>
+                    <th>Created By</th>
+                    <td>{{ tender.created_by.get_full_name }}</td>
+                </tr>
+            </table>
+        </div>
+
+        {% if tender.bids.exists %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-circle"></i>
+            <div>
+                <strong>Bids Have Been Submitted</strong>
+                <p>This tender has received {{ tender.bids.count }} bid(s). All submitted bids will be affected by this cancellation.</p>
+            </div>
+        </div>
+
+        <div class="bids-list">
+            <h4>Affected Bids</h4>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Bid Number</th>
+                        <th>Supplier</th>
+                        <th>Bid Amount</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bid in tender.bids.all %}
+                    <tr>
+                        <td>{{ bid.bid_number }}</td>
+                        <td>{{ bid.supplier.name }}</td>
+                        <td>KES {{ bid.bid_amount|floatformat:0|intcomma }}</td>
+                        <td>
+                            <span class="badge badge-{{ bid.status|lower }}">{{ bid.get_status_display }}</span>
+                        </td>
+                        <td>{{ bid.submitted_at|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <strong>What happens after cancellation?</strong>
+                <ul>
+                    <li>The tender status will be changed to "Cancelled"</li>
+                    <li>No further actions can be taken on this tender</li>
+                    <li>All bids will remain in the system for record-keeping</li>
+                    <li>Suppliers who submitted bids should be notified of the cancellation</li>
+                    <li>The requisition will be freed for a new tender if needed</li>
+                    <li>An audit log entry will be created</li>
+                </ul>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-section">
+                <h3>Cancellation Details</h3>
+                <div class="form-group">
+                    <label for="cancellation_reason">Reason for Cancellation <span class="required">*</span></label>
+                    <textarea name="cancellation_reason" id="cancellation_reason" class="form-control" rows="5" required placeholder="Provide a detailed explanation for cancelling this tender..."></textarea>
+                    <small>This reason will be recorded in the audit log and may be communicated to suppliers.</small>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Common Cancellation Reasons</h3>
+                <div class="reasons-list">
+                    <button type="button" class="reason-option" onclick="fillReason('Budget constraints - Insufficient funds available')">
+                        <i class="bi bi-wallet2"></i>
+                        Budget Constraints
+                    </button>
+                    <button type="button" class="reason-option" onclick="fillReason('Change in requirements - Project specifications have changed')">
+                        <i class="bi bi-file-text"></i>
+                        Changed Requirements
+                    </button>
+                    <button type="button" class="reason-option" onclick="fillReason('Administrative error - Tender published with incorrect information')">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Administrative Error
+                    </button>
+                    <button type="button" class="reason-option" onclick="fillReason('Project cancelled - The underlying project has been discontinued')">
+                        <i class="bi bi-x-octagon"></i>
+                        Project Cancelled
+                    </button>
+                    <button type="button" class="reason-option" onclick="fillReason('Insufficient competition - Did not receive adequate number of qualified bids')">
+                        <i class="bi bi-people"></i>
+                        Insufficient Bids
+                    </button>
+                    <button type="button" class="reason-option" onclick="fillReason('Legal/Compliance issue - Procedural irregularity identified')">
+                        <i class="bi bi-shield-exclamation"></i>
+                        Legal/Compliance Issue
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="confirm_cancellation" required>
+                    <span>I understand that this action is irreversible and confirm that I want to cancel this tender</span>
+                </label>
+            </div>
+
+            {% if tender.bids.exists %}
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="acknowledge_bids" required>
+                    <span>I acknowledge that {{ tender.bids.count }} bid(s) have been submitted and the affected suppliers should be notified</span>
+                </label>
+            </div>
+            {% endif %}
+
+            <div class="form-actions">
+                <a href="{% url 'tender_detail' tender.id %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to Tender
+                </a>
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel Tender
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function fillReason(reason) {
+    const textarea = document.getElementById('cancellation_reason');
+    textarea.value = reason;
+    textarea.focus();
+}
+</script>
+{% endblock %}
