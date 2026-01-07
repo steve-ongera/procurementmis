@@ -760,7 +760,7 @@
             {% endif %}
             
             {% if invoice.status == 'SUBMITTED' and user.role in 'FINANCE,PROCUREMENT,ADMIN' %}
-            <a href="#" class="btn btn-warning">
+            <a href="{% url 'invoice_verify' invoice.id %}" class="btn btn-warning">
                 <i class="bi bi-check-square"></i>
                 Verify Invoice
             </a>

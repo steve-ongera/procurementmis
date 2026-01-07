@@ -1,0 +1,780 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Verify Invoice - {{ invoice.invoice_number }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    body {
+        background: #F8FAFC;
+        color: #334155;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    }
+
+    .page-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .page-title {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Alert Box */
+    .alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1.25rem;
+        border-radius: 0.75rem;
+        margin-bottom: 2rem;
+        border: 1px solid;
+    }
+
+    .alert i {
+        font-size: 1.5rem;
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+    }
+
+    .alert-content {
+        flex: 1;
+    }
+
+    .alert-title {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.375rem;
+    }
+
+    .alert-message {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        line-height: 1.5;
+    }
+
+    .alert-info {
+        background: #DBEAFE;
+        color: #1E40AF;
+        border-color: #BFDBFE;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        color: #92400E;
+        border-color: #FDE68A;
+    }
+
+    /* Card Styles */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .card-header h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header h2 i {
+        color: var(--secondary-color);
+        font-size: 1.25rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Info Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+    }
+
+    .info-value {
+        font-size: 0.9375rem;
+        color: #1E293B;
+        font-weight: 500;
+    }
+
+    .info-value.amount {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 600;
+        font-size: 1.125rem;
+        color: var(--primary-dark);
+    }
+
+    .info-value a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .info-value a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    /* Table Styles */
+    .table-responsive {
+        overflow-x: auto;
+        margin-bottom: 1.5rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 0.875rem 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    th.text-right {
+        text-align: right;
+    }
+
+    td {
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+    }
+
+    td.text-right {
+        text-align: right;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    tfoot {
+        border-top: 2px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    tfoot td {
+        font-weight: 600;
+        padding: 1rem;
+        border-bottom: none;
+    }
+
+    tfoot tr:last-child td {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+    }
+
+    /* Verification Section */
+    .verification-section {
+        background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+        padding: 2rem;
+        border-radius: 0.75rem;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+
+    .verification-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .verification-title i {
+        font-size: 1.5rem;
+    }
+
+    .verification-subtitle {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        margin-bottom: 1.5rem;
+    }
+
+    .checklist {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .checklist-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 0.5rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .checklist-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .checklist-content {
+        flex: 1;
+    }
+
+    .checklist-label {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .checklist-detail {
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .required {
+        color: var(--danger-color);
+        margin-left: 0.125rem;
+    }
+
+    textarea.form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #334155;
+        background: white;
+        transition: all 0.2s;
+        min-height: 120px;
+        resize: vertical;
+        line-height: 1.5;
+        font-family: inherit;
+    }
+
+    textarea.form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea.form-control::placeholder {
+        color: #94A3B8;
+    }
+
+    .form-help {
+        display: block;
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn i {
+        font-size: 1rem;
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #475569;
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+        transform: translateY(-1px);
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-container {
+            padding: 1rem;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .form-actions .btn,
+        .btn-group {
+            width: 100%;
+        }
+
+        .btn-group {
+            flex-direction: column;
+        }
+
+        table {
+            display: block;
+            overflow-x: auto;
+        }
+
+        th, td {
+            padding: 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">Verify Invoice</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'invoice_list' %}">Invoices</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'invoice_detail' invoice.id %}">{{ invoice.invoice_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Verify</span>
+        </div>
+    </div>
+
+    <!-- Alert -->
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle-fill"></i>
+        <div class="alert-content">
+            <div class="alert-title">Invoice Verification</div>
+            <div class="alert-message">
+                Please carefully review all invoice details, verify amounts match the Purchase Order and Goods Receipt Note, 
+                and ensure all supporting documents are in order before approving or disputing this invoice.
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Summary -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="bi bi-receipt"></i> Invoice Summary</h2>
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Invoice Number</span>
+                    <span class="info-value">{{ invoice.invoice_number }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Supplier Invoice #</span>
+                    <span class="info-value">{{ invoice.supplier_invoice_number }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Supplier</span>
+                    <span class="info-value">
+                        <a href="{% url 'supplier_detail' invoice.supplier.id %}">{{ invoice.supplier.name }}</a>
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Purchase Order</span>
+                    <span class="info-value">
+                        <a href="{% url 'po_detail' invoice.purchase_order.id %}">{{ invoice.purchase_order.po_number }}</a>
+                    </span>
+                </div>
+                {% if invoice.grn %}
+                <div class="info-item">
+                    <span class="info-label">Goods Receipt Note</span>
+                    <span class="info-value">
+                        <a href="{% url 'grn_detail' invoice.grn.id %}">{{ invoice.grn.grn_number }}</a>
+                    </span>
+                </div>
+                {% endif %}
+                <div class="info-item">
+                    <span class="info-label">Invoice Date</span>
+                    <span class="info-value">{{ invoice.invoice_date|date:"M d, Y" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Due Date</span>
+                    <span class="info-value">{{ invoice.due_date|date:"M d, Y" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Total Amount</span>
+                    <span class="info-value amount">KES {{ invoice.total_amount|floatformat:2|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verification Checklist -->
+    <div class="verification-section">
+        <div class="verification-title">
+            <i class="bi bi-clipboard-check"></i>
+            Verification Checklist
+        </div>
+        <div class="verification-subtitle">
+            Review the following items before making your decision
+        </div>
+        <div class="checklist">
+            <div class="checklist-item">
+                <div class="checklist-icon">
+                    <i class="bi bi-check"></i>
+                </div>
+                <div class="checklist-content">
+                    <div class="checklist-label">Invoice Details Match</div>
+                    <div class="checklist-detail">Verify that invoice number, date, and supplier information are correct</div>
+                </div>
+            </div>
+            <div class="checklist-item">
+                <div class="checklist-icon">
+                    <i class="bi bi-check"></i>
+                </div>
+                <div class="checklist-content">
+                    <div class="checklist-label">Amounts Correspond</div>
+                    <div class="checklist-detail">Ensure invoice amounts match the Purchase Order and accepted GRN quantities</div>
+                </div>
+            </div>
+            <div class="checklist-item">
+                <div class="checklist-icon">
+                    <i class="bi bi-check"></i>
+                </div>
+                <div class="checklist-content">
+                    <div class="checklist-label">Supporting Documents</div>
+                    <div class="checklist-detail">Confirm all required supporting documents (delivery notes, receipts) are attached</div>
+                </div>
+            </div>
+            <div class="checklist-item">
+                <div class="checklist-icon">
+                    <i class="bi bi-check"></i>
+                </div>
+                <div class="checklist-content">
+                    <div class="checklist-label">Tax Calculations</div>
+                    <div class="checklist-detail">Verify that VAT and other tax calculations are accurate</div>
+                </div>
+            </div>
+            <div class="checklist-item">
+                <div class="checklist-icon">
+                    <i class="bi bi-check"></i>
+                </div>
+                <div class="checklist-content">
+                    <div class="checklist-label">Payment Terms</div>
+                    <div class="checklist-detail">Review payment terms and due dates align with the contract</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Items -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="bi bi-list-ul"></i> Invoice Items</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-right">Quantity</th>
+                            <th class="text-right">Unit Price</th>
+                            <th class="text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in invoice.items.all %}
+                        <tr>
+                            <td>{{ item.description }}</td>
+                            <td class="text-right">{{ item.quantity|floatformat:2|intcomma }}</td>
+                            <td class="text-right amount-cell">KES {{ item.unit_price|floatformat:2|intcomma }}</td>
+                            <td class="text-right amount-cell">KES {{ item.total_price|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-right">Subtotal:</td>
+                            <td class="text-right amount-cell">KES {{ invoice.subtotal|floatformat:2|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="text-right">Tax:</td>
+                            <td class="text-right amount-cell">KES {{ invoice.tax_amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% if invoice.other_charges > 0 %}
+                        <tr>
+                            <td colspan="3" class="text-right">Other Charges:</td>
+                            <td class="text-right amount-cell">KES {{ invoice.other_charges|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td colspan="3" class="text-right">Total Amount:</td>
+                            <td class="text-right amount-cell">KES {{ invoice.total_amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verification Form -->
+    <form method="post" id="verificationForm">
+        {% csrf_token %}
+        
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="bi bi-chat-left-text"></i> Verification Notes</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">
+                        Notes / Comments
+                        <span class="required">*</span>
+                    </label>
+                    <textarea 
+                        name="notes" 
+                        id="notes"
+                        class="form-control" 
+                        required
+                        placeholder="Enter your verification notes or reason for dispute..."></textarea>
+                    <span class="form-help">
+                        Provide detailed notes about your verification decision. 
+                        If disputing, clearly explain the reason for the dispute.
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i>
+                Cancel
+            </a>
+            
+            <div class="btn-group">
+                <button type="button" class="btn btn-danger" onclick="submitForm('dispute')">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Mark as Disputed
+                </button>
+                <button type="button" class="btn btn-success" onclick="submitForm('approve')">
+                    <i class="bi bi-check-circle"></i>
+                    Verify & Match Invoice
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function submitForm(action) {
+    const notes = document.getElementById('notes').value.trim();
+    
+    if (!notes) {
+        alert('Please enter verification notes before proceeding.');
+        document.getElementById('notes').focus();
+        return;
+    }
+    
+    let confirmMessage = '';
+    if (action === 'approve') {
+        confirmMessage = 'Are you sure you want to verify and match this invoice? This will mark it as ready for approval.';
+    } else if (action === 'dispute') {
+        confirmMessage = 'Are you sure you want to dispute this invoice? This will require resolution before it can be processed.';
+    }
+    
+    if (confirm(confirmMessage)) {
+        const form = document.getElementById('verificationForm');
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = action;
+        form.appendChild(actionInput);
+        form.submit();
+    }
+}
+
+// Prevent accidental navigation
+let formChanged = false;
+document.getElementById('notes').addEventListener('input', function() {
+    formChanged = true;
+});
+
+window.addEventListener('beforeunload', function(e) {
+    if (formChanged) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
+document.getElementById('verificationForm').addEventListener('submit', function() {
+    formChanged = false;
+});
+</script>
+{% endblock %}
