@@ -1,0 +1,766 @@
+{% extends 'base.html' %}
+{% load math_filters %}
+{% load humanize %}
+
+{% block title %}Create Invoice - {{ grn.grn_number }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Card Styles */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .card-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header h2 i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Info Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+    }
+
+    .info-value {
+        font-size: 0.875rem;
+        color: #334155;
+        font-weight: 500;
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Form Grid */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .required {
+        color: var(--danger-color);
+        margin-left: 0.125rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        color: #334155;
+        background: white;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: #94A3B8;
+    }
+
+    textarea.form-control {
+        min-height: 80px;
+        resize: vertical;
+        line-height: 1.5;
+    }
+
+    .form-help {
+        display: block;
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    /* Date Input Styling */
+    .date-input {
+        position: relative;
+    }
+
+    .date-input .form-control {
+        padding-right: 2.5rem;
+    }
+
+    .date-input::after {
+        content: '\F4E6';
+        font-family: 'bootstrap-icons';
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--secondary-color);
+        pointer-events: none;
+    }
+
+    /* Table Styles */
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    tfoot tr:last-child td {
+        border-bottom: none;
+        padding-top: 1rem;
+    }
+
+    tfoot td {
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    tfoot tr:last-child td {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        padding-top: 1rem;
+        border-top: 2px solid var(--border-color);
+    }
+
+    /* No Data */
+    .no-data {
+        text-align: center;
+        padding: 2rem;
+        color: #94A3B8;
+        font-style: italic;
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #475569;
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    /* Loading State */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* Status Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .badge-accepted {
+        background: #D1FAE5;
+        color: #047857;
+        border-color: #A7F3D0;
+    }
+
+    .badge-rejected {
+        background: #FEE2E2;
+        color: #B91C1C;
+        border-color: #FECACA;
+    }
+
+    .badge-partial {
+        background: #FEF3C7;
+        color: #92400E;
+        border-color: #FDE68A;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        table {
+            display: block;
+            overflow-x: auto;
+        }
+        
+        th, td {
+            padding: 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Create Invoice from GRN</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'grn_list' %}">Goods Receipt</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'grn_detail' grn.id %}">{{ grn.grn_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Create Invoice</span>
+        </div>
+    </div>
+</div>
+
+<form method="post" id="invoiceForm">
+    {% csrf_token %}
+    
+    <!-- GRN Information Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="bi bi-file-earmark-text"></i> GRN Information</h2>
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">GRN Number</span>
+                    <span class="info-value">{{ grn.grn_number }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Purchase Order</span>
+                    <span class="info-value">{{ po.po_number }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Supplier</span>
+                    <span class="info-value">{{ po.supplier.name }}</span>
+                </div>
+                {% if grn.store %}
+                <div class="info-item">
+                    <span class="info-label">Store</span>
+                    <span class="info-value">{{ grn.store.name }}</span>
+                </div>
+                {% endif %}
+                <div class="info-item">
+                    <span class="info-label">Delivery Date</span>
+                    <span class="info-value">{{ grn.delivery_date|date:"M d, Y" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Received Date</span>
+                    <span class="info-value">{{ grn.received_date|date:"M d, Y" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">PO Amount</span>
+                    <span class="info-value amount-cell">KES {{ po.total_amount|floatformat:0|intcomma }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Created By</span>
+                    <span class="info-value">{{ grn.received_by.get_full_name|default:"N/A" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Invoice Details Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="bi bi-receipt"></i> Invoice Details</h2>
+        </div>
+        <div class="card-body">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">
+                        Supplier Invoice Number
+                        <span class="required">*</span>
+                    </label>
+                    <input type="text" 
+                           name="supplier_invoice_number" 
+                           id="supplier_invoice_number"
+                           class="form-control" 
+                           required
+                           placeholder="Enter supplier's invoice number">
+                    <span class="form-help">Use the invoice number provided by the supplier</span>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Invoice Date
+                        <span class="required">*</span>
+                    </label>
+                    <div class="date-input">
+                        <input type="date" 
+                               name="invoice_date" 
+                               id="invoice_date"
+                               class="form-control" 
+                               value="{{ today|date:'Y-m-d' }}"
+                               required>
+                    </div>
+                    <span class="form-help">Date on supplier's invoice</span>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Due Date
+                        <span class="required">*</span>
+                    </label>
+                    <div class="date-input">
+                        <input type="date" 
+                               name="due_date" 
+                               id="due_date"
+                               class="form-control" 
+                               required>
+                    </div>
+                    <span class="form-help">Payment due date (typically 30 days after invoice)</span>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Tax Rate (%)
+                    </label>
+                    <input type="number" 
+                           name="tax_rate" 
+                           class="form-control" 
+                           step="0.01"
+                           min="0"
+                           max="100"
+                           value="16.00"
+                           id="tax-rate">
+                    <span class="form-help">VAT/Tax percentage (default: 16% for VAT)</span>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Other Charges
+                    </label>
+                    <input type="number" 
+                           name="other_charges" 
+                           class="form-control" 
+                           step="0.01"
+                           min="0"
+                           value="0.00"
+                           id="other-charges">
+                    <span class="form-help">Shipping, handling, or other applicable charges</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" 
+                          class="form-control" 
+                          rows="3"
+                          placeholder="Additional notes about this invoice..."></textarea>
+                <span class="form-help">Optional notes for internal reference</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Items to Invoice Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="bi bi-list-check"></i> Items to Invoice (Accepted Items Only)</h2>
+        </div>
+        <div class="card-body">
+            {% if accepted_items_count > 0 %}
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Description</th>
+                            <th>Accepted Qty</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in grn.items.all %}
+                            {% if item.item_status == 'ACCEPTED' %}
+                            <tr>
+                                <td>{{ item.po_item.item_description }}</td>
+                                <td>{{ item.quantity_accepted|floatformat:2|intcomma }}</td>
+                                <td class="amount-cell">KES {{ item.po_item.unit_price|floatformat:2|intcomma }}</td>
+                                <td class="amount-cell">KES {{ item.quantity_accepted|mul:item.po_item.unit_price|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" style="text-align: right; font-weight: 600;">Subtotal:</td>
+                            <td style="font-weight: 600;" id="subtotal-display" class="amount-cell">KES {{ subtotal|floatformat:2|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" style="text-align: right;">Tax (<span id="tax-rate-display">16.00</span>%):</td>
+                            <td id="tax-display" class="amount-cell">KES 0.00</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" style="text-align: right;">Other Charges:</td>
+                            <td id="charges-display" class="amount-cell">KES 0.00</td>
+                        </tr>
+                        <tr style="font-size: 1.125rem; font-weight: 700;">
+                            <td colspan="3" style="text-align: right;">Total Amount:</td>
+                            <td id="total-display" class="amount-cell">KES {{ subtotal|floatformat:2|intcomma }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="no-data">
+                <i class="bi bi-inbox" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                <p>No accepted items found. You can only create invoices for accepted items.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Form Actions -->
+    <div class="form-actions">
+        <a href="{% url 'grn_detail' grn.id %}" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i>
+            Cancel
+        </a>
+        <button type="submit" class="btn btn-primary" id="submitBtn" {% if accepted_items_count == 0 %}disabled{% endif %}>
+            <i class="bi bi-check-circle"></i>
+            Create Invoice
+        </button>
+    </div>
+</form>
+
+<script>
+// Safely get subtotal
+const subtotal = parseFloat('{{ subtotal|default:0 }}') || 0;
+let acceptedItemsCount = parseInt('{{ accepted_items_count|default:0 }}') || 0;
+
+// Set default due date (30 days from today)
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const dueDate = new Date(today);
+    dueDate.setDate(dueDate.getDate() + 30);
+    
+    const dueDateInput = document.getElementById('due_date');
+    const invoiceDateInput = document.getElementById('invoice_date');
+    
+    if (dueDateInput && !dueDateInput.value) {
+        dueDateInput.value = dueDate.toISOString().split('T')[0];
+    }
+    
+    // Update due date when invoice date changes
+    if (invoiceDateInput) {
+        invoiceDateInput.addEventListener('change', function() {
+            const invoiceDate = new Date(this.value);
+            const newDueDate = new Date(invoiceDate);
+            newDueDate.setDate(newDueDate.getDate() + 30);
+            
+            if (dueDateInput && !dueDateInput.value) {
+                dueDateInput.value = newDueDate.toISOString().split('T')[0];
+            }
+        });
+    }
+    
+    // Disable submit button if no accepted items
+    const submitBtn = document.getElementById('submitBtn');
+    if (acceptedItemsCount === 0 && submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.title = 'Cannot create invoice without accepted items';
+    }
+});
+
+function updateTotals() {
+    const taxRate = parseFloat(document.getElementById('tax-rate').value) || 0;
+    const otherCharges = parseFloat(document.getElementById('other-charges').value) || 0;
+    
+    const taxAmount = (subtotal * taxRate) / 100;
+    const total = subtotal + taxAmount + otherCharges;
+    
+    document.getElementById('tax-rate-display').textContent = taxRate.toFixed(2);
+    document.getElementById('tax-display').textContent = 'KES ' + taxAmount.toLocaleString('en-KE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('charges-display').textContent = 'KES ' + otherCharges.toLocaleString('en-KE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('total-display').textContent = 'KES ' + total.toLocaleString('en-KE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+// Add event listeners for real-time calculation
+document.getElementById('tax-rate').addEventListener('input', updateTotals);
+document.getElementById('other-charges').addEventListener('input', updateTotals);
+
+// Initialize totals
+document.addEventListener('DOMContentLoaded', updateTotals);
+
+// Form validation
+document.getElementById('invoiceForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    const supplierInvoice = document.getElementById('supplier_invoice_number').value.trim();
+    const invoiceDate = document.getElementById('invoice_date').value;
+    const dueDate = document.getElementById('due_date').value;
+    
+    // Basic validation
+    if (!supplierInvoice) {
+        e.preventDefault();
+        alert('Please enter supplier invoice number');
+        document.getElementById('supplier_invoice_number').focus();
+        return;
+    }
+    
+    if (!invoiceDate) {
+        e.preventDefault();
+        alert('Please select invoice date');
+        document.getElementById('invoice_date').focus();
+        return;
+    }
+    
+    if (!dueDate) {
+        e.preventDefault();
+        alert('Please select due date');
+        document.getElementById('due_date').focus();
+        return;
+    }
+    
+    // Check if due date is after invoice date
+    const invoiceDateObj = new Date(invoiceDate);
+    const dueDateObj = new Date(dueDate);
+    
+    if (dueDateObj <= invoiceDateObj) {
+        if (!confirm('Due date is on or before invoice date. Do you want to continue?')) {
+            e.preventDefault();
+            return;
+        }
+    }
+    
+    // Show loading state
+    if (submitBtn) {
+        submitBtn.classList.add('btn-loading');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass"></i> Creating Invoice...';
+    }
+});
+</script>
+{% endblock %}

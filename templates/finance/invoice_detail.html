@@ -1,0 +1,20 @@
+{% if invoice.status == 'APPROVED' and invoice.balance_due > 0 %}
+    {% if user.role in 'FINANCE,ADMIN' %}
+    <a href="{% url 'invoice_pay' invoice.id %}" class="btn btn-primary">
+        <i class="bi bi-cash-stack"></i>
+        Make Payment
+    </a>
+    {% endif %}
+{% endif %}
+
+<!-- Show payment progress -->
+<div class="payment-progress">
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ invoice.amount_paid|div:invoice.total_amount|mul:100 }}%"></div>
+    </div>
+    <div class="progress-text">
+        Paid: KES {{ invoice.amount_paid|floatformat:2|intcomma }} / 
+        KES {{ invoice.total_amount|floatformat:2|intcomma }}
+        (Balance: KES {{ invoice.balance_due|floatformat:2|intcomma }})
+    </div>
+</div>

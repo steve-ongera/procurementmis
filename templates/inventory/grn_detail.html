@@ -380,6 +380,16 @@
             Inspect GRN
         </a>
         {% endif %}
+
+        
+            {% if user.role in 'FINANCE,PROCUREMENT,ADMIN' %}
+            <a href="{% url 'invoice_create' grn.id %}" class="btn btn-primary">
+                <i class="bi bi-receipt"></i>
+                Create Invoice
+            </a>
+            {% endif %}
+       
+
     </div>
 </div>
 
