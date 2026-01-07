@@ -533,12 +533,12 @@
             {% endif %}
             <div class="info-item">
                 <span class="info-label">Created At</span>
-                <span class="info-value">{{ payment.created_at|date:"M d, Y H:i" }}</span>
+                <span class="info-value">{{ payment.created_at|date:"M d, Y" }}</span>
             </div>
             {% if payment.updated_at %}
             <div class="info-item">
                 <span class="info-label">Last Updated</span>
-                <span class="info-value">{{ payment.updated_at|date:"M d, Y H:i" }}</span>
+                <span class="info-value">{{ payment.updated_at|date:"M d, Y" }}</span>
             </div>
             {% endif %}
         </div>
@@ -551,14 +551,14 @@
             </h4>
             
             <div class="timeline-item {% if payment.status == 'COMPLETED' %}completed{% endif %}">
-                <div class="timeline-date">{{ payment.payment_date|date:"M d, Y H:i" }}</div>
+                <div class="timeline-date">{{ payment.payment_date|date:"M d, Y" }}</div>
                 <div class="timeline-content">Payment created</div>
                 <div class="timeline-user">by {{ payment.processed_by.get_full_name }}</div>
             </div>
             
             {% if payment.approved_by %}
             <div class="timeline-item {% if payment.status == 'COMPLETED' %}completed{% endif %}">
-                <div class="timeline-date">{{ payment.approved_at|date:"M d, Y H:i" }}</div>
+                <div class="timeline-date">{{ payment.approved_at|date:"M d, Y" }}</div>
                 <div class="timeline-content">Payment approved</div>
                 <div class="timeline-user">by {{ payment.approved_by.get_full_name }}</div>
             </div>
@@ -566,7 +566,7 @@
             
             {% if payment.completed_at %}
             <div class="timeline-item completed">
-                <div class="timeline-date">{{ payment.completed_at|date:"M d, Y H:i" }}</div>
+                <div class="timeline-date">{{ payment.completed_at|date:"M d, Y" }}</div>
                 <div class="timeline-content">Payment completed</div>
                 {% if payment.completed_by %}
                 <div class="timeline-user">by {{ payment.completed_by.get_full_name }}</div>
