@@ -3,12 +3,496 @@
 
 {% block title %}Complete Payment - {{ payment.payment_number }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Confirm Card */
+    .confirm-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: linear-gradient(135deg, #F0FDF4, #D1FAE5);
+    }
+
+    .card-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #065F46;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header h2 i {
+        color: var(--success-color);
+        font-size: 1.125rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Icon Circle */
+    .icon-circle {
+        width: 4rem;
+        height: 4rem;
+        background: var(--success-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        color: white;
+    }
+
+    .icon-circle i {
+        font-size: 1.75rem;
+    }
+
+    /* Payment Summary */
+    .payment-summary {
+        margin: 1.5rem 0;
+        padding: 1.5rem;
+        background: var(--hover-bg);
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .summary-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .summary-row:first-child {
+        padding-top: 0;
+    }
+
+    .summary-row span:first-child {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    .summary-row span:last-child {
+        font-size: 0.875rem;
+        color: #334155;
+        font-weight: 600;
+        text-align: right;
+    }
+
+    .amount-cell {
+        font-weight: 700;
+        color: var(--success-color);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Alert Styles */
+    .alert {
+        padding: 1rem 1.25rem;
+        border-radius: 0.5rem;
+        margin: 1.5rem 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        border: 1px solid;
+    }
+
+    .alert-warning {
+        background: #FFFBEB;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-info {
+        background: #F0F9FF;
+        border-color: #BAE6FD;
+        color: #0C4A6E;
+    }
+
+    .alert-success {
+        background: #F0FDF4;
+        border-color: #A7F3D0;
+        color: #047857;
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .alert strong {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .alert p {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .alert ul {
+        margin: 0.5rem 0 0 0;
+        padding-left: 1.25rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .alert li {
+        margin-bottom: 0.25rem;
+    }
+
+    /* Status Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .badge-pending {
+        background: #FEF3C7;
+        color: #92400E;
+        border-color: #FDE68A;
+    }
+
+    .badge-processing {
+        background: #DBEAFE;
+        color: #1E40AF;
+        border-color: #BFDBFE;
+    }
+
+    .badge-completed {
+        background: #D1FAE5;
+        color: #047857;
+        border-color: #A7F3D0;
+    }
+
+    .badge-cancelled {
+        background: #FEE2E2;
+        color: #B91C1C;
+        border-color: #FECACA;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin: 1.5rem 0;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        color: #334155;
+        background: white;
+        transition: all 0.2s;
+        line-height: 1.5;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--success-color);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    textarea.form-control {
+        min-height: 80px;
+        resize: vertical;
+    }
+
+    .form-control::placeholder {
+        color: #94A3B8;
+    }
+
+    .form-help {
+        display: block;
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+        color: #334155;
+        cursor: pointer;
+        line-height: 1.4;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        width: 1.125rem;
+        height: 1.125rem;
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #475569;
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+        transform: translateY(-1px);
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+        transform: translateY(-1px);
+    }
+
+    /* Loading State */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* Invoice Impact */
+    .invoice-impact {
+        margin: 1.5rem 0;
+        padding: 1.5rem;
+        background: #F0F9FF;
+        border-radius: 0.5rem;
+        border: 1px solid #BAE6FD;
+    }
+
+    .impact-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #0C4A6E;
+        margin: 0 0 1rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .impact-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .impact-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .impact-label {
+        font-size: 0.75rem;
+        color: #475569;
+        font-weight: 500;
+    }
+
+    .impact-value {
+        font-size: 0.875rem;
+        color: #1E293B;
+        font-weight: 600;
+    }
+
+    .impact-value.paid {
+        color: var(--success-color);
+    }
+
+    .impact-value.due {
+        color: var(--danger-color);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .impact-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .confirm-card {
+            max-width: 100%;
+        }
+        
+        .summary-row {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .summary-row span:last-child {
+            text-align: left;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Complete Payment</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'payment_list' %}">Payments</a>
             <i class="bi bi-chevron-right"></i>
@@ -19,4 +503,277 @@
     </div>
 </div>
 
-<div class="card">
+<!-- Confirm Card -->
+<div class="confirm-card">
+    <div class="card-header">
+        <h2><i class="bi bi-check-circle"></i> Complete Payment</h2>
+    </div>
+    
+    <div class="card-body">
+        <!-- Icon -->
+        <div class="icon-circle">
+            <i class="bi bi-check-lg"></i>
+        </div>
+
+        <!-- Title -->
+        <h3 style="font-size: 1.125rem; font-weight: 600; color: #1E293B; margin-bottom: 0.5rem; text-align: center;">
+            Confirm Payment Completion
+        </h3>
+        <p style="color: var(--secondary-color); font-size: 0.875rem; margin-bottom: 1.5rem; text-align: center;">
+            Mark payment {{ payment.payment_number }} as completed
+        </p>
+
+        <!-- Payment Summary -->
+        <div class="payment-summary">
+            <div class="summary-row">
+                <span>Payment Number</span>
+                <span>{{ payment.payment_number }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Invoice</span>
+                <span>{{ payment.invoice.invoice_number }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Supplier</span>
+                <span>{{ payment.invoice.supplier.name }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Payment Amount</span>
+                <span class="amount-cell">KES {{ payment.payment_amount|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Payment Method</span>
+                <span>{{ payment.get_payment_method_display }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Payment Reference</span>
+                <span>{{ payment.payment_reference }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Current Status</span>
+                <span class="badge badge-{{ payment.status|lower }}">{{ payment.get_status_display }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Processed By</span>
+                <span>{{ payment.processed_by.get_full_name }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Payment Date</span>
+                <span>{{ payment.payment_date|date:"M d, Y" }}</span>
+            </div>
+        </div>
+
+        <!-- Invoice Impact -->
+        <div class="invoice-impact">
+            <h4 class="impact-title">
+                <i class="bi bi-arrow-left-right"></i>
+                Invoice Impact After Completion
+            </h4>
+            <div class="impact-grid">
+                <div class="impact-item">
+                    <span class="impact-label">Current Invoice Balance</span>
+                    <span class="impact-value due amount-cell">KES {{ payment.invoice.balance_due|floatformat:2|intcomma }}</span>
+                </div>
+                <div class="impact-item">
+                    <span class="impact-label">This Payment</span>
+                    <span class="impact-value amount-cell">KES {{ payment.payment_amount|floatformat:2|intcomma }}</span>
+                </div>
+                <div class="impact-item">
+                    <span class="impact-label">New Invoice Balance</span>
+                    <span class="impact-value amount-cell">KES {{ new_balance|floatformat:2|intcomma }}</span>
+                </div>
+                <div class="impact-item">
+                    <span class="impact-label">Invoice Status After</span>
+                    <span class="impact-value">
+                        {% if new_balance == 0 %}
+                            <span style="color: var(--success-color);">PAID</span>
+                        {% else %}
+                            <span style="color: var(--warning-color);">PARTIAL</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warning Alert -->
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <div>
+                <strong>Important: Before completing this payment, confirm:</strong>
+                <ul>
+                    <li>Funds have been successfully transferred to the supplier</li>
+                    <li>Payment confirmation has been received</li>
+                    <li>All documentation is complete and accurate</li>
+                    <li>The payment amount matches the invoice amount (or partial payment is authorized)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Info Alert -->
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <strong>What happens when you complete this payment?</strong>
+                <ul>
+                    <li>The payment status will change to "COMPLETED"</li>
+                    <li>The invoice balance will be updated</li>
+                    <li>The payment will be recorded in financial reports</li>
+                    <li>If this is the final payment, the invoice status will be updated to "PAID"</li>
+                    <li>An audit log entry will be created</li>
+                    <li>This action cannot be easily reversed</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Completion Form -->
+        <form method="post" id="completeForm">
+            {% csrf_token %}
+            
+            <!-- Completion Date -->
+            <div class="form-group">
+                <label class="form-label">
+                    Completion Date <span style="color: var(--danger-color);">*</span>
+                </label>
+                <input type="date" 
+                       name="completion_date" 
+                       id="completion_date"
+                       class="form-control" 
+                       value="{{ today|date:'Y-m-d' }}"
+                       max="{{ today|date:'Y-m-d' }}"
+                       required>
+                <span class="form-help">Date when payment was actually completed (cannot be in the future)</span>
+            </div>
+
+            <!-- Completion Notes -->
+            <div class="form-group">
+                <label class="form-label">Completion Notes</label>
+                <textarea 
+                    name="completion_notes" 
+                    id="completion_notes"
+                    class="form-control" 
+                    rows="3" 
+                    placeholder="Add any notes about the payment completion..."></textarea>
+                <span class="form-help">Optional notes for audit trail and reference</span>
+            </div>
+
+            <!-- Confirmation Checkbox -->
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="confirmCompletion" required>
+                    <span>
+                        I confirm that this payment has been successfully processed and transferred to the supplier. 
+                        All supporting documentation is complete and accurate.
+                    </span>
+                </label>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <a href="{% url 'payment_detail' payment.id %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to Payment
+                </a>
+                <button type="submit" class="btn btn-success" id="submitBtn">
+                    <i class="bi bi-check-circle"></i>
+                    Complete Payment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('completeForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const confirmCheckbox = document.getElementById('confirmCompletion');
+    
+    // Safely get payment details
+    const paymentNumber = '{{ payment.payment_number|escapejs }}';
+    const paymentAmount = parseFloat('{{ payment.payment_amount|default:0 }}') || 0;
+    const invoiceNumber = '{{ payment.invoice.invoice_number|escapejs }}';
+    const newBalance = parseFloat('{{ new_balance|default:0 }}') || 0;
+    const isFullPayment = newBalance == 0;
+    
+    // Set completion date max to today
+    const completionDateInput = document.getElementById('completion_date');
+    const today = new Date().toISOString().split('T')[0];
+    if (completionDateInput) {
+        completionDateInput.max = today;
+    }
+    
+    // Auto-focus completion notes
+    const completionNotes = document.getElementById('completion_notes');
+    if (completionNotes) {
+        completionNotes.focus();
+    }
+    
+    if (form && submitBtn && confirmCheckbox) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate confirmation
+            if (!confirmCheckbox.checked) {
+                alert('Please confirm that the payment has been successfully processed');
+                confirmCheckbox.focus();
+                return;
+            }
+            
+            // Validate completion date
+            const completionDate = completionDateInput.value;
+            if (!completionDate) {
+                alert('Please select a completion date');
+                completionDateInput.focus();
+                return;
+            }
+            
+            // Check if completion date is in the future
+            const selectedDate = new Date(completionDate);
+            const todayObj = new Date();
+            todayObj.setHours(0, 0, 0, 0);
+            
+            if (selectedDate > todayObj) {
+                alert('Completion date cannot be in the future');
+                completionDateInput.focus();
+                return;
+            }
+            
+            // Check if completion date is before payment date
+            const paymentDate = new Date('{{ payment.payment_date|date:"Y-m-d" }}');
+            if (selectedDate < paymentDate) {
+                if (!confirm('Completion date is before the payment date. Are you sure this is correct?')) {
+                    return;
+                }
+            }
+            
+            // Build confirmation message
+            let confirmationMessage = `Complete payment ${paymentNumber} for KES ${paymentAmount.toLocaleString()}?\n\n`;
+            confirmationMessage += `Invoice: ${invoiceNumber}\n`;
+            
+            if (isFullPayment) {
+                confirmationMessage += `✅ This will fully settle the invoice\n`;
+            } else {
+                confirmationMessage += `⚠ This is a partial payment. Remaining balance: KES ${newBalance.toLocaleString()}\n`;
+            }
+            
+            confirmationMessage += `\nThis action cannot be undone. Continue?`;
+            
+            if (confirm(confirmationMessage)) {
+                submitBtn.classList.add('btn-loading');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass"></i> Completing...';
+                form.submit();
+            }
+        });
+    }
+    
+    // Add keyboard shortcut for confirmation (Ctrl/Cmd + Enter)
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && confirmCheckbox) {
+            e.preventDefault();
+            confirmCheckbox.checked = !confirmCheckbox.checked;
+        }
+    });
+});
+</script>
+{% endblock %}
