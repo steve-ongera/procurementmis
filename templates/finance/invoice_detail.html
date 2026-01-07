@@ -765,6 +765,13 @@
                 Verify Invoice
             </a>
             {% endif %}
+
+            {% if invoice.status == 'DRAFT' and user.role in 'FINANCE,PROCUREMENT,ADMIN'%}
+            <a href="{% url 'invoice_submit' invoice.id %}" class="btn btn-secondary">
+                <i class="bi bi-check"></i>
+                  Submit
+            </a>
+            {% endif %}
             
             {% if invoice.status == 'MATCHED' and user.role in 'FINANCE,ADMIN' %}
             <a href="#" class="btn btn-success">
