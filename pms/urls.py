@@ -96,6 +96,16 @@ urlpatterns = [
     path('finance/payments/create/<uuid:invoice_id>/', views.payment_create, name='payment_create'),
     path('finance/payments/<uuid:payment_id>/process/', views.payment_process, name='payment_process'),
     
+    # Invoice URLs
+    path('grn/<uuid:grn_id>/create-invoice/', views.invoice_create, name='invoice_create'),
+    path('invoice/<uuid:invoice_id>/submit/', views.invoice_submit, name='invoice_submit'),
+    path('invoice/<uuid:invoice_id>/pay/', views.invoice_pay, name='invoice_pay'),
+    
+    # Payment URLs
+    path('payment/<uuid:payment_id>/', views.payment_detail, name='payment_detail'),
+    path('payment/<uuid:payment_id>/complete/', views.payment_complete, name='payment_complete'),
+    path('payment/<uuid:payment_id>/cancel/', views.payment_cancel, name='payment_cancel'),
+    
     # Financial Reports
     path('finance/reports/', views.financial_reports, name='financial_reports'),
     path('finance/reports/expenditure/', views.expenditure_report, name='expenditure_report'),

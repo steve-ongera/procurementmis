@@ -4057,6 +4057,323 @@ def invoice_approve(request, invoice_id):
     return render(request, 'finance/invoice_approve.html', context)
 
 
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.db import transaction
+from django.db.models import Sum, Q
+from decimal import Decimal
+from django.utils import timezone
+
+# ============================================================================
+# INVOICE CREATION
+# ============================================================================
+
+@login_required
+def invoice_create(request, grn_id):
+    """Create invoice from GRN"""
+    grn = get_object_or_404(
+        GoodsReceivedNote.objects.select_related(
+            'purchase_order__supplier',
+            'store'
+        ),
+        id=grn_id
+    )
+    
+    # Check permissions
+    if request.user.role not in ['FINANCE', 'PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to create invoices')
+        return redirect('grn_detail', grn_id=grn_id)
+    
+    # Check if GRN is accepted
+    if grn.status not in ['ACCEPTED', 'PARTIAL']:
+        messages.error(request, 'Can only create invoices for accepted GRNs')
+        return redirect('grn_detail', grn_id=grn_id)
+    
+    # Check if invoice already exists
+    if grn.invoices.exists():
+        messages.warning(request, 'Invoice already exists for this GRN')
+        return redirect('invoice_detail', invoice_id=grn.invoices.first().id)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                supplier_invoice_number = request.POST.get('supplier_invoice_number')
+                invoice_date = request.POST.get('invoice_date')
+                due_date = request.POST.get('due_date')
+                tax_rate = Decimal(request.POST.get('tax_rate', 0))
+                other_charges = Decimal(request.POST.get('other_charges', 0))
+                notes = request.POST.get('notes', '')
+                
+                # Calculate subtotal from accepted GRN items
+                subtotal = Decimal('0')
+                for grn_item in grn.items.filter(item_status='ACCEPTED'):
+                    item_total = grn_item.quantity_accepted * grn_item.po_item.unit_price
+                    subtotal += item_total
+                
+                # Calculate tax and total
+                tax_amount = (subtotal * tax_rate) / 100
+                total_amount = subtotal + tax_amount + other_charges
+                
+                # Create invoice
+                invoice = Invoice.objects.create(
+                    supplier_invoice_number=supplier_invoice_number,
+                    purchase_order=grn.purchase_order,
+                    grn=grn,
+                    supplier=grn.purchase_order.supplier,
+                    invoice_date=invoice_date,
+                    due_date=due_date,
+                    subtotal=subtotal,
+                    tax_amount=tax_amount,
+                    other_charges=other_charges,
+                    total_amount=total_amount,
+                    balance_due=total_amount,
+                    status='DRAFT',
+                    submitted_by=request.user
+                )
+                
+                # Create invoice items from accepted GRN items
+                for grn_item in grn.items.filter(item_status='ACCEPTED'):
+                    InvoiceItem.objects.create(
+                        invoice=invoice,
+                        po_item=grn_item.po_item,
+                        description=grn_item.po_item.item_description,
+                        quantity=grn_item.quantity_accepted,
+                        unit_price=grn_item.po_item.unit_price,
+                        total_price=grn_item.quantity_accepted * grn_item.po_item.unit_price,
+                        tax_rate=tax_rate,
+                        tax_amount=(grn_item.quantity_accepted * grn_item.po_item.unit_price * tax_rate) / 100
+                    )
+                
+                messages.success(request, f'Invoice {invoice.invoice_number} created successfully!')
+                return redirect('invoice_detail', invoice_id=invoice.id)
+                
+        except Exception as e:
+            messages.error(request, f'Error creating invoice: {str(e)}')
+    
+    # Calculate totals for display
+    subtotal = Decimal('0')
+    for grn_item in grn.items.filter(item_status='ACCEPTED'):
+        item_total = grn_item.quantity_accepted * grn_item.po_item.unit_price
+        subtotal += item_total
+    
+    context = {
+        'grn': grn,
+        'subtotal': subtotal,
+        'po': grn.purchase_order,
+        'today': timezone.now().date(),
+    }
+    
+    return render(request, 'finance/invoice_create.html', context)
+
+
+@login_required
+def invoice_submit(request, invoice_id):
+    """Submit invoice for verification"""
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    
+    if request.user.role not in ['FINANCE', 'PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to submit invoices')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    if invoice.status != 'DRAFT':
+        messages.error(request, 'Invoice has already been submitted')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    if request.method == 'POST':
+        invoice.status = 'SUBMITTED'
+        invoice.submitted_by = request.user
+        invoice.save()
+        
+        messages.success(request, f'Invoice {invoice.invoice_number} submitted for verification')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    context = {'invoice': invoice}
+    return render(request, 'finance/invoice_submit.html', context)
+
+
+# ============================================================================
+# PAYMENT PROCESSING
+# ============================================================================
+
+@login_required
+def invoice_pay(request, invoice_id):
+    """Create payment for invoice"""
+    invoice = get_object_or_404(
+        Invoice.objects.select_related('supplier', 'purchase_order'),
+        id=invoice_id
+    )
+    
+    # Check permissions
+    if request.user.role not in ['FINANCE', 'ADMIN']:
+        messages.error(request, 'You do not have permission to process payments')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    # Check invoice status
+    if invoice.status != 'APPROVED':
+        messages.error(request, 'Invoice must be approved before payment')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    # Calculate remaining balance
+    total_paid = invoice.payments.filter(
+        status__in=['COMPLETED', 'PROCESSING']
+    ).aggregate(total=Sum('payment_amount'))['total'] or Decimal('0')
+    
+    remaining_balance = invoice.total_amount - total_paid
+    
+    if remaining_balance <= 0:
+        messages.warning(request, 'This invoice has been fully paid')
+        return redirect('invoice_detail', invoice_id=invoice_id)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                payment_date = request.POST.get('payment_date')
+                payment_amount = Decimal(request.POST.get('payment_amount'))
+                payment_method = request.POST.get('payment_method')
+                payment_reference = request.POST.get('payment_reference')
+                bank_name = request.POST.get('bank_name', '')
+                cheque_number = request.POST.get('cheque_number', '')
+                notes = request.POST.get('notes', '')
+                
+                # Validate amount
+                if payment_amount <= 0:
+                    messages.error(request, 'Payment amount must be greater than zero')
+                    return redirect('invoice_pay', invoice_id=invoice_id)
+                
+                if payment_amount > remaining_balance:
+                    messages.error(request, f'Payment amount (KES {payment_amount:,.2f}) exceeds remaining balance (KES {remaining_balance:,.2f})')
+                    return redirect('invoice_pay', invoice_id=invoice_id)
+                
+                # Create payment
+                payment = Payment.objects.create(
+                    invoice=invoice,
+                    payment_date=payment_date,
+                    payment_amount=payment_amount,
+                    payment_method=payment_method,
+                    payment_reference=payment_reference,
+                    bank_name=bank_name,
+                    cheque_number=cheque_number,
+                    notes=notes,
+                    processed_by=request.user,
+                    status='PENDING'
+                )
+                
+                messages.success(
+                    request, 
+                    f'Payment {payment.payment_number} created successfully. Please complete the payment process.'
+                )
+                return redirect('payment_detail', payment_id=payment.id)
+                
+        except Exception as e:
+            messages.error(request, f'Error creating payment: {str(e)}')
+    
+    context = {
+        'invoice': invoice,
+        'remaining_balance': remaining_balance,
+        'total_paid': total_paid,
+        'payment_methods': Payment.PAYMENT_METHODS,
+        'today': timezone.now().date(),
+    }
+    
+    return render(request, 'finance/invoice_pay.html', context)
+
+
+@login_required
+def payment_detail(request, payment_id):
+    """View payment details"""
+    payment = get_object_or_404(
+        Payment.objects.select_related(
+            'invoice__supplier',
+            'invoice__purchase_order',
+            'processed_by',
+            'approved_by'
+        ),
+        id=payment_id
+    )
+    
+    context = {
+        'payment': payment,
+        'can_complete': request.user.role in ['FINANCE', 'ADMIN'] and payment.status == 'PENDING',
+        'can_cancel': request.user.role in ['FINANCE', 'ADMIN'] and payment.status in ['PENDING', 'PROCESSING'],
+    }
+    
+    return render(request, 'finance/payment_detail.html', context)
+
+
+@login_required
+def payment_complete(request, payment_id):
+    """Complete/approve payment"""
+    payment = get_object_or_404(Payment, id=payment_id)
+    
+    # Check permissions
+    if request.user.role not in ['FINANCE', 'ADMIN']:
+        messages.error(request, 'You do not have permission to complete payments')
+        return redirect('payment_detail', payment_id=payment_id)
+    
+    # Check payment status
+    if payment.status not in ['PENDING', 'PROCESSING']:
+        messages.error(request, 'Payment has already been processed')
+        return redirect('payment_detail', payment_id=payment_id)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Update payment status
+                payment.status = 'COMPLETED'
+                payment.approved_by = request.user
+                payment.save()
+                
+                # Update invoice payment status
+                payment.invoice.update_payment_status()
+                
+                messages.success(
+                    request, 
+                    f'Payment {payment.payment_number} completed successfully'
+                )
+                
+                # Check if invoice is fully paid
+                if payment.invoice.status == 'PAID':
+                    messages.success(
+                        request,
+                        f'Invoice {payment.invoice.invoice_number} has been fully paid!'
+                    )
+                
+                return redirect('payment_detail', payment_id=payment_id)
+                
+        except Exception as e:
+            messages.error(request, f'Error completing payment: {str(e)}')
+    
+    context = {'payment': payment}
+    return render(request, 'finance/payment_complete.html', context)
+
+
+@login_required
+def payment_cancel(request, payment_id):
+    """Cancel payment"""
+    payment = get_object_or_404(Payment, id=payment_id)
+    
+    # Check permissions
+    if request.user.role not in ['FINANCE', 'ADMIN']:
+        messages.error(request, 'You do not have permission to cancel payments')
+        return redirect('payment_detail', payment_id=payment_id)
+    
+    # Check payment status
+    if payment.status not in ['PENDING', 'PROCESSING']:
+        messages.error(request, 'Cannot cancel completed or failed payments')
+        return redirect('payment_detail', payment_id=payment_id)
+    
+    if request.method == 'POST':
+        payment.status = 'CANCELLED'
+        payment.notes += f"\n\nCancelled by {request.user.get_full_name()} on {timezone.now()}"
+        payment.save()
+        
+        messages.success(request, f'Payment {payment.payment_number} cancelled')
+        return redirect('invoice_detail', invoice_id=payment.invoice.id)
+    
+    context = {'payment': payment}
+    return render(request, 'finance/payment_cancel.html', context)
+
 # ============================================================================
 # PAYMENT MANAGEMENT
 # ============================================================================
