@@ -4069,6 +4069,9 @@ from django.utils import timezone
 # INVOICE CREATION
 # ============================================================================
 
+from decimal import Decimal
+from django.db import transaction
+
 @login_required
 def invoice_create(request, grn_id):
     """Create invoice from GRN"""
@@ -4076,7 +4079,7 @@ def invoice_create(request, grn_id):
         GoodsReceivedNote.objects.select_related(
             'purchase_order__supplier',
             'store'
-        ),
+        ).prefetch_related('items__po_item'),
         id=grn_id
     )
     
@@ -4095,27 +4098,34 @@ def invoice_create(request, grn_id):
         messages.warning(request, 'Invoice already exists for this GRN')
         return redirect('invoice_detail', invoice_id=grn.invoices.first().id)
     
+    # Calculate subtotal and count accepted items
+    subtotal = Decimal('0')
+    accepted_items = grn.items.filter(item_status='ACCEPTED')
+    
+    for grn_item in accepted_items:
+        item_total = grn_item.quantity_accepted * grn_item.po_item.unit_price
+        subtotal += item_total
+    
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                supplier_invoice_number = request.POST.get('supplier_invoice_number')
+                supplier_invoice_number = request.POST.get('supplier_invoice_number', '').strip()
+                
+                if not supplier_invoice_number:
+                    messages.error(request, 'Supplier invoice number is required')
+                    return redirect('invoice_create', grn_id=grn_id)
+                
                 invoice_date = request.POST.get('invoice_date')
                 due_date = request.POST.get('due_date')
-                tax_rate = Decimal(request.POST.get('tax_rate', 0))
-                other_charges = Decimal(request.POST.get('other_charges', 0))
+                tax_rate = Decimal(request.POST.get('tax_rate', '0'))
+                other_charges = Decimal(request.POST.get('other_charges', '0'))
                 notes = request.POST.get('notes', '')
                 
-                # Calculate subtotal from accepted GRN items
-                subtotal = Decimal('0')
-                for grn_item in grn.items.filter(item_status='ACCEPTED'):
-                    item_total = grn_item.quantity_accepted * grn_item.po_item.unit_price
-                    subtotal += item_total
-                
                 # Calculate tax and total
-                tax_amount = (subtotal * tax_rate) / 100
+                tax_amount = (subtotal * tax_rate) / Decimal('100')
                 total_amount = subtotal + tax_amount + other_charges
                 
-                # Create invoice
+                # Create invoice (invoice_number will be auto-generated)
                 invoice = Invoice.objects.create(
                     supplier_invoice_number=supplier_invoice_number,
                     purchase_order=grn.purchase_order,
@@ -4129,20 +4139,24 @@ def invoice_create(request, grn_id):
                     total_amount=total_amount,
                     balance_due=total_amount,
                     status='DRAFT',
+                    notes=notes,
                     submitted_by=request.user
                 )
                 
                 # Create invoice items from accepted GRN items
-                for grn_item in grn.items.filter(item_status='ACCEPTED'):
+                for grn_item in accepted_items:
+                    item_subtotal = grn_item.quantity_accepted * grn_item.po_item.unit_price
+                    item_tax = (item_subtotal * tax_rate) / Decimal('100')
+                    
                     InvoiceItem.objects.create(
                         invoice=invoice,
                         po_item=grn_item.po_item,
                         description=grn_item.po_item.item_description,
                         quantity=grn_item.quantity_accepted,
                         unit_price=grn_item.po_item.unit_price,
-                        total_price=grn_item.quantity_accepted * grn_item.po_item.unit_price,
+                        total_price=item_subtotal,
                         tax_rate=tax_rate,
-                        tax_amount=(grn_item.quantity_accepted * grn_item.po_item.unit_price * tax_rate) / 100
+                        tax_amount=item_tax
                     )
                 
                 messages.success(request, f'Invoice {invoice.invoice_number} created successfully!')
@@ -4150,18 +4164,15 @@ def invoice_create(request, grn_id):
                 
         except Exception as e:
             messages.error(request, f'Error creating invoice: {str(e)}')
-    
-    # Calculate totals for display
-    subtotal = Decimal('0')
-    for grn_item in grn.items.filter(item_status='ACCEPTED'):
-        item_total = grn_item.quantity_accepted * grn_item.po_item.unit_price
-        subtotal += item_total
+            import traceback
+            print(traceback.format_exc())  # Log full error for debugging
     
     context = {
         'grn': grn,
         'subtotal': subtotal,
         'po': grn.purchase_order,
         'today': timezone.now().date(),
+        'accepted_items_count': accepted_items.count(),  # FIXED: Added this
     }
     
     return render(request, 'finance/invoice_create.html', context)
