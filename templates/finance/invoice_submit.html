@@ -1,0 +1,693 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Submit Invoice - {{ invoice.invoice_number }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Card Styles */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: #F0F9FF;
+    }
+
+    .card-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header h2 i {
+        color: var(--primary-color);
+        font-size: 1.125rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Alert Styles */
+    .alert {
+        padding: 1rem 1.25rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        border: 1px solid;
+    }
+
+    .alert-info {
+        background: #F0F9FF;
+        border-color: #BAE6FD;
+        color: #0C4A6E;
+    }
+
+    .alert-warning {
+        background: #FFFBEB;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-success {
+        background: #F0FDF4;
+        border-color: #A7F3D0;
+        color: #047857;
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .alert strong {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .alert p {
+        margin: 0;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    /* Info Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+        padding: 1.5rem;
+        background: var(--hover-bg);
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+    }
+
+    .info-value {
+        font-size: 0.875rem;
+        color: #334155;
+        font-weight: 500;
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Process Steps */
+    .process-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        padding: 1.5rem;
+        background: var(--hover-bg);
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .process-steps h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.75rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .step-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+    }
+
+    .step-number {
+        width: 1.5rem;
+        height: 1.5rem;
+        background: var(--primary-color);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .step-content h5 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .step-content p {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin: 1.5rem 0;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        color: #334155;
+        background: white;
+        transition: all 0.2s;
+        line-height: 1.5;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea.form-control {
+        min-height: 80px;
+        resize: vertical;
+    }
+
+    .form-help {
+        display: block;
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+        color: #334155;
+        cursor: pointer;
+        line-height: 1.4;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        width: 1.125rem;
+        height: 1.125rem;
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #475569;
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    /* Loading State */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* Status Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .badge-draft {
+        background: #F1F5F9;
+        color: #64748B;
+        border-color: #E2E8F0;
+    }
+    .badge-submitted {
+        background: #DBEAFE;
+        color: #1E40AF;
+        border-color: #BFDBFE;
+    }
+    .badge-verified {
+        background: #D1FAE5;
+        color: #047857;
+        border-color: #A7F3D0;
+    }
+    .badge-approved {
+        background: #D1FAE5;
+        color: #047857;
+        border-color: #A7F3D0;
+    }
+    .badge-paid {
+        background: #D1FAE5;
+        color: #047857;
+        border-color: #A7F3D0;
+    }
+    .badge-rejected {
+        background: #FEE2E2;
+        color: #B91C1C;
+        border-color: #FECACA;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .process-steps {
+            padding: 1rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .card {
+            max-width: 100%;
+        }
+        
+        .step-item {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Submit Invoice for Verification</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'invoice_list' %}">Invoices</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'invoice_detail' invoice.id %}">{{ invoice.invoice_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Submit</span>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="bi bi-exclamation-triangle"></i> Confirm Submission</h2>
+    </div>
+    <div class="card-body">
+        <!-- Information Alert -->
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <strong>Important Notice</strong>
+                <p>You are about to submit invoice <strong>{{ invoice.invoice_number }}</strong> for verification. 
+                Once submitted, the invoice cannot be edited until it is returned or rejected by the verification team.</p>
+            </div>
+        </div>
+
+        <!-- Invoice Information -->
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Invoice Number</span>
+                <span class="info-value">{{ invoice.invoice_number }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Supplier</span>
+                <span class="info-value">{{ invoice.supplier.name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Total Amount</span>
+                <span class="info-value amount-cell">KES {{ invoice.total_amount|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Due Date</span>
+                <span class="info-value">{{ invoice.due_date|date:"M d, Y" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Current Status</span>
+                <span class="badge badge-{{ invoice.status|lower }}">{{ invoice.get_status_display }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Supplier Invoice</span>
+                <span class="info-value">{{ invoice.supplier_invoice_number|default:"N/A" }}</span>
+            </div>
+            {% if invoice.purchase_order %}
+            <div class="info-item">
+                <span class="info-label">Purchase Order</span>
+                <span class="info-value">{{ invoice.purchase_order.po_number }}</span>
+            </div>
+            {% endif %}
+            <div class="info-item">
+                <span class="info-label">Created By</span>
+                <span class="info-value">{{ invoice.created_by.get_full_name }}</span>
+            </div>
+        </div>
+
+        <!-- Submission Process -->
+        <div class="process-steps">
+            <h4>Submission Process</h4>
+            <div class="step-item">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h5>Invoice Submission</h5>
+                    <p>Submit invoice for initial verification by procurement/finance team</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h5>Verification Review</h5>
+                    <p>Verification team reviews invoice details against GRN and purchase order</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h5>Payment Processing</h5>
+                    <p>Approved invoices are queued for payment processing</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verification Requirements -->
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <div>
+                <strong>Before submitting, ensure:</strong>
+                <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem;">
+                    <li>All supporting documents are attached</li>
+                    <li>Invoice matches GRN and purchase order</li>
+                    <li>Calculations are correct (amounts, taxes, etc.)</li>
+                    <li>Supplier details are accurate</li>
+                    <li>Payment terms are clearly specified</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Submission Form -->
+        <form method="post" id="submitForm">
+            {% csrf_token %}
+            
+            <!-- Submission Notes -->
+            <div class="form-group">
+                <label class="form-label">Submission Notes (Optional)</label>
+                <textarea 
+                    name="submission_notes" 
+                    id="submission_notes"
+                    class="form-control" 
+                    rows="3" 
+                    placeholder="Add any notes or comments for the verification team..."></textarea>
+                <span class="form-help">These notes will be visible to the verification team</span>
+            </div>
+
+            <!-- Confirmation Checkbox -->
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="confirmSubmission" required>
+                    <span>I confirm that I have verified all invoice details and supporting documents, and I authorize the submission of this invoice for verification.</span>
+                </label>
+            </div>
+
+            <!-- Urgent Processing -->
+            {% if invoice.due_date <= today_plus_7 %}
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="urgent_processing">
+                    <span>
+                        <strong>Mark as Urgent:</strong> This invoice is due within 7 days (due: {{ invoice.due_date|date:"M d, Y" }})
+                    </span>
+                </label>
+            </div>
+            {% endif %}
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="bi bi-upload"></i>
+                    Submit Invoice
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('submitForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const confirmCheckbox = document.getElementById('confirmSubmission');
+    
+    // Safely get invoice details
+    const invoiceNumber = '{{ invoice.invoice_number|escapejs }}';
+    const invoiceAmount = parseFloat('{{ invoice.total_amount|default:0 }}') || 0;
+    
+    // Set minimum due date check (7 days from today)
+    const today = new Date();
+    const todayPlus7 = new Date(today);
+    todayPlus7.setDate(todayPlus7.getDate() + 7);
+    
+    if (form && submitBtn && confirmCheckbox) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate confirmation
+            if (!confirmCheckbox.checked) {
+                alert('Please confirm that you have verified all invoice details');
+                confirmCheckbox.focus();
+                return;
+            }
+            
+            // Check if invoice amount is valid
+            if (invoiceAmount <= 0) {
+                if (!confirm('Invoice amount is 0. Are you sure you want to submit?')) {
+                    return;
+                }
+            }
+            
+            // Check if due date is approaching
+            const invoiceDueDate = new Date('{{ invoice.due_date|date:"Y-m-d" }}');
+            const daysUntilDue = Math.ceil((invoiceDueDate - today) / (1000 * 60 * 60 * 24));
+            
+            let confirmationMessage = `Submit invoice ${invoiceNumber} for KES ${invoiceAmount.toLocaleString()} verification?`;
+            
+            if (daysUntilDue <= 7) {
+                confirmationMessage += `\n\n⚠ This invoice is due in ${daysUntilDue} day(s).`;
+            }
+            
+            confirmationMessage += `\n\nThis action cannot be undone.`;
+            
+            if (confirm(confirmationMessage)) {
+                submitBtn.classList.add('btn-loading');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass"></i> Submitting...';
+                form.submit();
+            }
+        });
+    }
+    
+    // Add keyboard shortcut for confirmation (Ctrl/Cmd + Enter)
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && confirmCheckbox) {
+            e.preventDefault();
+            confirmCheckbox.checked = !confirmCheckbox.checked;
+        }
+    });
+    
+    // Auto-focus submission notes
+    const submissionNotes = document.getElementById('submission_notes');
+    if (submissionNotes) {
+        submissionNotes.focus();
+    }
+});
+</script>
+{% endblock %}
