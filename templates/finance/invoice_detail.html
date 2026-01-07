@@ -774,7 +774,7 @@
             {% endif %}
             
             {% if invoice.status == 'MATCHED' and user.role in 'FINANCE,ADMIN' %}
-            <a href="#" class="btn btn-success">
+            <a href="{% url 'invoice_approve' invoice.id %}" class="btn btn-success">
                 <i class="bi bi-check-circle"></i>
                 Approve for Payment
             </a>
