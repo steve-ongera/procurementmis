@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Payment {{ payment.payment_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Payment Details: {{ payment.payment_number }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'payment_list' %}">Payments</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ payment.payment_number }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'invoice_detail' payment.invoice.id %}" class="btn">
+            <i class="bi bi-receipt"></i>
+            View Invoice
+        </a>
+        {% if can_complete %}
+        <a href="{% url 'payment_complete' payment.id %}" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i>
+            Complete Payment
+        </a>
+        {% endif %}
+        {% if can_cancel %}
+        <a href="{% url 'payment_cancel' payment.id %}" class="btn btn-danger">
+            <i class="bi bi-x-circle"></i>
+            Cancel Payment
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Payment Information Card -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-cash-stack"></i>
+            Payment Information
+        </h2>
+        <span class="status-badge status-{{ payment.status|lower }}">
+            {{ payment.get_status_display }}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Payment Number</span>
+                <span class="info-value">{{ payment.payment_number }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Invoice Number</span>
+                <span class="info-value">
+                    <a href="{% url 'invoice_detail' payment.invoice.id %}">
+                        {{ payment.invoice.invoice_number }}
+                        <i class="bi bi-arrow-up-right"></i>
+                    </a>
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Supplier</span>
+                <span class="info-value">{{ payment.invoice.supplier.name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Payment Date</span>
+                <span class="info-value">{{ payment.payment_date|date:"M d, Y" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Payment Amount</span>
+                <span class="info-value">KES {{ payment.payment_amount|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Payment Method</span>
+                <span class="info-value">{{ payment.get_payment_method_display }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Payment Reference</span>
+                <span class="info-value">{{ payment.payment_reference }}</span>
+            </div>
+            {% if payment.bank_name %}
+            <div class="info-item">
+                <span class="info-label">Bank Name</span>
+                <span class="info-value">{{ payment.bank_name }}</span>
+            </div>
+            {% endif %}
+            {% if payment.cheque_number %}
+            <div class="info-item">
+                <span class="info-label">Cheque Number</span>
+                <span class="info-value">{{ payment.cheque_number }}</span>
+            </div>
+            {% endif %}
+            <div class="info-item">
+                <span class="info-label">Processed By</span>
+                <span class="info-value">{{ payment.processed_by.get_full_name }}</span>
+            </div>
+            {% if payment.approved_by %}
+            <div class="info-item">
+                <span class="info-label">Approved By</span>
+                <span class="info-value">{{ payment.approved_by.get_full_name }}</span>
+            </div>
+            {% endif %}
+            <div class="info-item">
+                <span class="info-label">Created At</span>
+                <span class="info-value">{{ payment.created_at|date:"M d, Y H:i" }}</span>
+            </div>
+            {% if payment.updated_at %}
+            <div class="info-item">
+                <span class="info-label">Last Updated</span>
+                <span class="info-value">{{ payment.updated_at|date:"M d, Y H:i" }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if payment.notes %}
+        <div class="info-item full-width">
+            <span class="info-label">Notes</span>
+            <span class="info-value">{{ payment.notes }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Related Invoice Card -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-receipt"></i>
+            Related Invoice
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Invoice Number</span>
+                <span class="info-value">{{ payment.invoice.invoice_number }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Invoice Date</span>
+                <span class="info-value">{{ payment.invoice.invoice_date|date:"M d, Y" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Total Amount</span>
+                <span class="info-value">KES {{ payment.invoice.total_amount|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Amount Paid</span>
+                <span class="info-value">KES {{ payment.invoice.amount_paid|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Balance Due</span>
+                <span class="info-value">KES {{ payment.invoice.balance_due|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Invoice Status</span>
+                <span class="info-value">
+                    <span class="status-badge status-{{ payment.invoice.status|lower }}">
+                        {{ payment.invoice.get_status_display }}
+                    </span>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

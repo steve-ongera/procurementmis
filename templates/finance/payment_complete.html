@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Complete Payment - {{ payment.payment_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Complete Payment</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'payment_list' %}">Payments</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'payment_detail' payment.id %}">{{ payment.payment_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Complete</span>
+        </div>
+    </div>
+</div>
+
+<div class="card">
