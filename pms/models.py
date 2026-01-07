@@ -1617,6 +1617,24 @@ class Invoice(models.Model):
             self.payment_date = timezone.now().date()
         
         self.save()
+        
+    # In models.py, Invoice model needs this save method:
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            year = timezone.now().year
+            last_invoice = Invoice.objects.filter(
+                invoice_number__startswith=f'INV-{year}'
+            ).order_by('-invoice_number').first()
+            
+            if last_invoice:
+                last_number = int(last_invoice.invoice_number.split('-')[-1])
+                new_number = last_number + 1
+            else:
+                new_number = 1
+            
+            self.invoice_number = f'INV-{year}-{new_number:06d}'
+        
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.invoice_number} - {self.supplier.name}"
