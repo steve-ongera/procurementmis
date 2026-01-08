@@ -317,3 +317,403 @@ class ProcurementPolicyForm(forms.ModelForm):
                 })
 
         return cleaned_data
+    
+    
+
+# forms.py
+from django import forms
+from django.forms import inlineformset_factory
+from .models import *
+
+
+# ============================================================================
+# SUPPLIER PROFILE FORMS
+# ============================================================================
+
+class SupplierProfileForm(forms.ModelForm):
+    """Form for editing supplier company profile"""
+    
+    class Meta:
+        model = Supplier
+        fields = [
+            'name', 'registration_number', 'tax_id',
+            'email', 'phone_number', 
+            'physical_address', 'postal_address', 'website',
+            'contact_person', 'contact_person_phone', 'contact_person_email',
+            'bank_name', 'bank_branch', 'account_number', 
+            'account_name', 'swift_code',
+            'categories'
+        ]
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Company Name'
+            }),
+            'registration_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Registration Number'
+            }),
+            'tax_id': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Tax ID/PIN'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'company@example.com'
+            }),
+            'phone_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '+254...'
+            }),
+            'physical_address': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Physical Address'
+            }),
+            'postal_address': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'P.O. Box...'
+            }),
+            'website': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://...'
+            }),
+            'contact_person': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Contact Person Name'
+            }),
+            'contact_person_phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Contact Phone'
+            }),
+            'contact_person_email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'contact@example.com'
+            }),
+            'bank_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Bank Name'
+            }),
+            'bank_branch': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Branch Name'
+            }),
+            'account_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Account Number'
+            }),
+            'account_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Account Name'
+            }),
+            'swift_code': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'SWIFT Code (if applicable)'
+            }),
+            'categories': forms.CheckboxSelectMultiple(attrs={
+                'class': 'form-check-input'
+            }),
+        }
+
+
+class SupplierDocumentForm(forms.ModelForm):
+    """Form for uploading supplier documents"""
+    
+    class Meta:
+        model = SupplierDocument
+        fields = [
+            'document_type', 'document_name', 'file',
+            'issue_date', 'expiry_date'
+        ]
+        widgets = {
+            'document_type': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'document_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Document Name'
+            }),
+            'file': forms.FileInput(attrs={
+                'class': 'form-control'
+            }),
+            'issue_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'expiry_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+        }
+
+
+# ============================================================================
+# BID FORMS
+# ============================================================================
+
+class BidForm(forms.ModelForm):
+    """Form for submitting a bid"""
+    
+    class Meta:
+        model = Bid
+        fields = [
+            'bid_amount', 'bid_bond_amount', 'validity_period_days',
+            'delivery_period_days', 'notes'
+        ]
+        widgets = {
+            'bid_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'bid_bond_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'validity_period_days': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '90',
+                'min': '1'
+            }),
+            'delivery_period_days': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Number of days',
+                'min': '1'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Additional notes or comments...'
+            }),
+        }
+
+
+class BidItemForm(forms.ModelForm):
+    """Form for individual bid items"""
+    
+    class Meta:
+        model = BidItem
+        fields = [
+            'requisition_item', 'quoted_unit_price', 'brand', 'model',
+            'specifications', 'delivery_period_days', 
+            'warranty_period_months', 'notes'
+        ]
+        widgets = {
+            'requisition_item': forms.HiddenInput(),
+            'quoted_unit_price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0',
+                'required': True
+            }),
+            'brand': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Brand'
+            }),
+            'model': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Model'
+            }),
+            'specifications': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Technical specifications...'
+            }),
+            'delivery_period_days': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Days',
+                'min': '1'
+            }),
+            'warranty_period_months': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Months',
+                'min': '0'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Additional notes...'
+            }),
+        }
+
+
+# Create formset for bid items
+BidItemFormSet = inlineformset_factory(
+    Bid,
+    BidItem,
+    form=BidItemForm,
+    extra=0,
+    can_delete=False,
+    min_num=1,
+    validate_min=True
+)
+
+
+class BidDocumentForm(forms.ModelForm):
+    """Form for uploading bid documents"""
+    
+    class Meta:
+        model = BidDocument
+        fields = ['document_type', 'document_name', 'file', 'description']
+        widgets = {
+            'document_type': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'document_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Document Name'
+            }),
+            'file': forms.FileInput(attrs={
+                'class': 'form-control'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Brief description...'
+            }),
+        }
+
+
+# ============================================================================
+# INVOICE FORMS
+# ============================================================================
+
+class InvoiceForm(forms.ModelForm):
+    """Form for submitting invoices"""
+    
+    def __init__(self, *args, **kwargs):
+        supplier = kwargs.pop('supplier', None)
+        super().__init__(*args, **kwargs)
+        
+        if supplier:
+            # Filter purchase orders for this supplier
+            self.fields['purchase_order'].queryset = PurchaseOrder.objects.filter(
+                supplier=supplier,
+                status__in=['ACKNOWLEDGED', 'PARTIAL_DELIVERY', 'DELIVERED']
+            )
+    
+    class Meta:
+        model = Invoice
+        fields = [
+            'purchase_order', 'supplier_invoice_number', 
+            'invoice_date', 'due_date', 'grn',
+            'other_charges', 'notes'
+        ]
+        widgets = {
+            'purchase_order': forms.Select(attrs={
+                'class': 'form-control',
+                'required': True
+            }),
+            'supplier_invoice_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Your Invoice Number',
+                'required': True
+            }),
+            'invoice_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+                'required': True
+            }),
+            'due_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+                'required': True
+            }),
+            'grn': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'other_charges': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Additional notes...'
+            }),
+        }
+
+
+class InvoiceItemForm(forms.ModelForm):
+    """Form for individual invoice items"""
+    
+    class Meta:
+        model = InvoiceItem
+        fields = [
+            'po_item', 'description', 'quantity', 
+            'unit_price', 'tax_rate'
+        ]
+        widgets = {
+            'po_item': forms.Select(attrs={
+                'class': 'form-control',
+                'required': True
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Item description...',
+                'required': True
+            }),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0.01',
+                'required': True
+            }),
+            'unit_price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0',
+                'required': True
+            }),
+            'tax_rate': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '16',
+                'step': '0.01',
+                'min': '0',
+                'max': '100'
+            }),
+        }
+
+
+# Create formset for invoice items
+InvoiceItemFormSet = inlineformset_factory(
+    Invoice,
+    InvoiceItem,
+    form=InvoiceItemForm,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True
+)
+
+
+class InvoiceDocumentForm(forms.ModelForm):
+    """Form for uploading invoice documents"""
+    
+    class Meta:
+        model = InvoiceDocument
+        fields = ['document_name', 'file', 'description']
+        widgets = {
+            'document_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Document Name'
+            }),
+            'file': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': '.pdf,.jpg,.jpeg,.png'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Brief description...'
+            }),
+        }

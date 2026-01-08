@@ -332,6 +332,15 @@ class Supplier(models.Model):
         ('BLACKLISTED', 'Blacklisted'),
     ]
     
+    user = models.OneToOneField(
+        User, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='supplier_profile',
+        help_text="User account linked to this supplier"
+    )
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     supplier_number = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=300)

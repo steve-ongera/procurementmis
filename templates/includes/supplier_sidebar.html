@@ -19,23 +19,23 @@
     <div class="menu-section">
         <div class="menu-title">OPPORTUNITIES</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_tenders_list' %}" class="menu-item">
             <i class="fas fa-gavel"></i>
             <span>Available Tenders</span>
             <span class="badge">6</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_bids_list' %}" class="menu-item">
             <i class="fas fa-file-signature"></i>
             <span>My Bids</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_tenders_list' %}" class="menu-item">
             <i class="fas fa-plus-circle"></i>
             <span>Submit Bid</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_awarded_contracts' %}" class="menu-item">
             <i class="fas fa-award"></i>
             <span>Awarded Contracts</span>
         </a>
@@ -45,23 +45,23 @@
     <div class="menu-section">
         <div class="menu-title">ORDERS</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_purchase_orders_list' %}" class="menu-item">
             <i class="fas fa-shopping-bag"></i>
             <span>Purchase Orders</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_pending_orders' %}" class="menu-item">
             <i class="fas fa-clock"></i>
             <span>Pending Orders</span>
             <span class="badge">2</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_deliveries' %}" class="menu-item">
             <i class="fas fa-truck"></i>
             <span>Deliveries</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_completed_orders' %}" class="menu-item">
             <i class="fas fa-check-circle"></i>
             <span>Completed Orders</span>
         </a>
@@ -71,22 +71,22 @@
     <div class="menu-section">
         <div class="menu-title">FINANCE</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_invoices_list' %}" class="menu-item">
             <i class="fas fa-file-invoice"></i>
             <span>My Invoices</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_submit_invoice' %}" class="menu-item">
             <i class="fas fa-plus-square"></i>
             <span>Submit Invoice</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_payments' %}" class="menu-item">
             <i class="fas fa-money-bill-wave"></i>
             <span>Payments</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_payment_history' %}" class="menu-item">
             <i class="fas fa-chart-line"></i>
             <span>Payment History</span>
         </a>
@@ -96,17 +96,17 @@
     <div class="menu-section">
         <div class="menu-title">ACCOUNT</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_company_profile' %}" class="menu-item">
             <i class="fas fa-building"></i>
             <span>Company Profile</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_documents' %}" class="menu-item">
             <i class="fas fa-file-alt"></i>
             <span>Documents</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_certifications' %}" class="menu-item">
             <i class="fas fa-certificate"></i>
             <span>Certifications</span>
         </a>
@@ -116,15 +116,14 @@
     <div class="menu-section">
         <div class="menu-title">SUPPORT</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_help_center' %}" class="menu-item">
             <i class="fas fa-life-ring"></i>
             <span>Help Center</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'supplier_contact_support' %}" class="menu-item">
             <i class="fas fa-comments"></i>
             <span>Contact Support</span>
         </a>
     </div>
-
 </div>
