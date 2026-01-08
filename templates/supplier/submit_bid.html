@@ -35,12 +35,6 @@
         margin: 0 0 0.5rem 0;
     }
 
-    .page-subtitle {
-        font-size: 0.875rem;
-        color: var(--secondary-color);
-        margin: 0;
-    }
-
     .breadcrumb {
         display: flex;
         align-items: center;
@@ -66,7 +60,6 @@
         color: #94A3B8;
     }
 
-    /* Cards */
     .card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
@@ -100,7 +93,6 @@
         padding: 1.5rem;
     }
 
-    /* Tender Info */
     .tender-info {
         margin-bottom: 1.5rem;
         padding: 1rem;
@@ -139,28 +131,6 @@
         font-weight: 600;
         color: var(--primary-color);
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    }
-
-    /* Form Styles */
-    .form-section {
-        margin-bottom: 2rem;
-    }
-
-    .form-section-title {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #1E293B;
-        margin: 0 0 1rem 0;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .form-section-title i {
-        color: var(--secondary-color);
-        font-size: 1.125rem;
     }
 
     .form-grid {
@@ -206,13 +176,26 @@
         font-size: 0.75rem;
         color: #94A3B8;
         margin-top: 0.25rem;
+        display: block;
     }
 
-    .form-text.error {
-        color: var(--danger-color);
+    .price-input-container {
+        position: relative;
+        display: flex;
+        align-items: center;
     }
 
-    /* Bid Items Table */
+    .currency-prefix {
+        position: absolute;
+        left: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+    }
+
+    .price-input-container .form-control {
+        padding-left: 2.5rem;
+    }
+
     .items-table {
         width: 100%;
         border-collapse: collapse;
@@ -236,26 +219,16 @@
         border-bottom: 1px solid var(--border-color);
         font-size: 0.875rem;
         color: #334155;
+        vertical-align: top;
     }
 
-    .items-table tr:last-child td {
-        border-bottom: none;
+    .item-row {
+        background: white;
+        transition: background 0.2s;
     }
 
-    .item-column {
-        width: 30%;
-    }
-
-    .quantity-column {
-        width: 15%;
-    }
-
-    .price-column {
-        width: 20%;
-    }
-
-    .total-column {
-        width: 20%;
+    .item-row:hover {
+        background: var(--hover-bg);
     }
 
     .item-name {
@@ -269,25 +242,6 @@
         color: #94A3B8;
     }
 
-    /* Price Input Container */
-    .price-input-container {
-        position: relative;
-        display: flex;
-        align-items: center;
-    }
-
-    .currency-prefix {
-        position: absolute;
-        left: 0.75rem;
-        font-weight: 500;
-        color: var(--secondary-color);
-    }
-
-    .price-input-container .form-control {
-        padding-left: 2.5rem;
-    }
-
-    /* Documents Section */
     .documents-section {
         padding: 1.5rem;
         background: #F8FAFC;
@@ -343,19 +297,17 @@
 
     .document-upload {
         display: flex;
+        flex-direction: column;
         gap: 0.5rem;
-        align-items: center;
     }
 
     .document-upload input[type="file"] {
-        flex: 1;
         padding: 0.5rem;
         border: 1px solid var(--border-color);
         border-radius: 0.375rem;
         font-size: 0.875rem;
     }
 
-    /* Action Buttons */
     .action-buttons {
         display: flex;
         justify-content: flex-end;
@@ -364,7 +316,6 @@
         border-top: 1px solid var(--border-color);
     }
 
-    /* Buttons */
     .btn {
         display: inline-flex;
         align-items: center;
@@ -419,32 +370,6 @@
         border-color: #059669;
     }
 
-    /* Formset Management */
-    .formset-container {
-        margin-bottom: 1.5rem;
-    }
-
-    .formset-row {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .formset-row:last-child {
-        border-bottom: none;
-    }
-
-    .formset-cell {
-        flex: 1;
-    }
-
-    .formset-cell.small {
-        flex: 0.5;
-    }
-
-    /* Alert */
     .alert {
         padding: 1rem 1.25rem;
         border-radius: 0.375rem;
@@ -453,12 +378,6 @@
         align-items: center;
         gap: 0.75rem;
         font-size: 0.875rem;
-    }
-
-    .alert-warning {
-        background: #FEF3C7;
-        color: #92400E;
-        border: 1px solid #FDE68A;
     }
 
     .alert-info {
@@ -471,12 +390,42 @@
         font-size: 1.25rem;
     }
 
-    /* Responsive */
+    .expandable-section {
+        margin-top: 1rem;
+        border-top: 1px dashed var(--border-color);
+        padding-top: 1rem;
+    }
+
+    .expand-toggle {
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        font-size: 0.75rem;
+        cursor: pointer;
+        padding: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        transition: color 0.2s;
+    }
+
+    .expand-toggle:hover {
+        color: var(--primary-dark);
+    }
+
+    .expand-toggle i {
+        font-size: 0.875rem;
+        transition: transform 0.2s;
+    }
+
+    .expand-toggle.expanded i {
+        transform: rotate(180deg);
+    }
+
     @media (max-width: 768px) {
         .page-header {
             flex-direction: column;
             align-items: stretch;
-            gap: 1rem;
         }
         
         .form-grid {
@@ -488,12 +437,6 @@
             overflow-x: auto;
         }
         
-        .items-table th,
-        .items-table td {
-            padding: 0.75rem;
-            font-size: 0.8125rem;
-        }
-        
         .action-buttons {
             flex-direction: column;
         }
@@ -501,38 +444,6 @@
         .action-buttons .btn {
             width: 100%;
             justify-content: center;
-        }
-        
-        .formset-row {
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-        
-        .formset-cell {
-            width: 100%;
-        }
-    }
-
-    @media (max-width: 640px) {
-        .card-body {
-            padding: 1rem;
-        }
-        
-        .card-header {
-            padding: 1rem 1.25rem;
-        }
-        
-        .tender-info-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .document-item {
-            flex-direction: column;
-        }
-        
-        .document-upload {
-            flex-direction: column;
-            align-items: stretch;
         }
     }
 </style>
@@ -618,7 +529,7 @@
     </div>
 </div>
 
-<form method="post" enctype="multipart/form-data" novalidate>
+<form method="post" enctype="multipart/form-data" novalidate id="bidForm">
     {% csrf_token %}
     
     <!-- Bid Details Section -->
@@ -641,9 +552,9 @@
                         <input type="number" name="bid_amount" id="id_bid_amount" class="form-control" 
                                step="0.01" min="0" required placeholder="0.00">
                     </div>
-                    <div class="form-text">
+                    <small class="form-text">
                         Total bid amount in Kenyan Shillings
-                    </div>
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -656,9 +567,9 @@
                         <input type="number" name="bid_bond_amount" id="id_bid_bond_amount" 
                                class="form-control" step="0.01" min="0" value="0" placeholder="0.00">
                     </div>
-                    <div class="form-text">
+                    <small class="form-text">
                         If bid bond is required for this tender
-                    </div>
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -667,22 +578,22 @@
                         Delivery Period (Days)
                     </label>
                     <input type="number" name="delivery_period_days" id="id_delivery_period_days" 
-                           class="form-control" min="1" required placeholder="90">
-                    <div class="form-text">
+                           class="form-control" min="1" required placeholder="90" value="30">
+                    <small class="form-text">
                         Number of days to complete delivery after award
-                    </div>
+                    </small>
                 </div>
 
                 <div class="form-group">
-                    <label for="id_validity_period_days" class="form-label">
+                    <label for="id_validity_period_days" class="form-label required">
                         <i class="bi bi-clock-history"></i>
                         Validity Period (Days)
                     </label>
                     <input type="number" name="validity_period_days" id="id_validity_period_days" 
-                           class="form-control" min="30" value="90" placeholder="90">
-                    <div class="form-text">
+                           class="form-control" min="30" value="90" required placeholder="90">
+                    <small class="form-text">
                         Number of days your bid remains valid (minimum 30 days)
-                    </div>
+                    </small>
                 </div>
             </div>
         </div>
@@ -700,49 +611,105 @@
             <table class="items-table">
                 <thead>
                     <tr>
-                        <th class="item-column">Item Description</th>
-                        <th class="quantity-column">Quantity</th>
-                        <th class="price-column">Unit Price (KES)</th>
-                        <th class="price-column">Total Price (KES)</th>
-                        <th class="price-column">Delivery Days</th>
+                        <th style="width: 25%;">Item Description</th>
+                        <th style="width: 10%;">Quantity</th>
+                        <th style="width: 15%;">Unit Price (KES)</th>
+                        <th style="width: 15%;">Total Price (KES)</th>
+                        <th style="width: 10%;">Delivery Days</th>
+                        <th style="width: 25%;">Additional Info</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for form in item_formset %}
-                    <tr>
+                    {% for item in requisition_items %}
+                    <tr class="item-row">
                         <td>
                             <div class="item-name">
-                                {{ form.requisition_item.value.item_description }}
+                                {{ item.item_description }}
                             </div>
                             <div class="item-specs">
-                                {{ form.requisition_item.value.specifications|truncatechars:50 }}
+                                {{ item.specifications|truncatechars:100 }}
                             </div>
-                            {{ form.requisition_item }}
                         </td>
                         <td>
-                            {{ form.requisition_item.value.quantity }} 
-                            {{ form.requisition_item.value.unit_of_measure }}
+                            <strong>{{ item.quantity }}</strong> {{ item.unit_of_measure }}
                         </td>
                         <td>
                             <div class="price-input-container">
                                 <span class="currency-prefix">KES</span>
-                                <input type="number" name="items-{{ forloop.counter0 }}-quoted_unit_price" 
-                                       class="form-control item-unit-price" step="0.01" min="0" 
-                                       data-quantity="{{ form.requisition_item.value.quantity }}"
-                                       required placeholder="0.00">
+                                <input type="number" 
+                                       name="items-{{ forloop.counter0 }}-quoted_unit_price" 
+                                       class="form-control item-unit-price" 
+                                       step="0.01" 
+                                       min="0" 
+                                       data-quantity="{{ item.quantity }}"
+                                       data-index="{{ forloop.counter0 }}"
+                                       required 
+                                       placeholder="0.00">
                             </div>
-                            {{ form.id }}
                         </td>
                         <td>
                             <div class="price-input-container">
                                 <span class="currency-prefix">KES</span>
-                                <input type="number" name="items-{{ forloop.counter0 }}-quoted_total" 
-                                       class="form-control item-total-price" readonly>
+                                <input type="number" 
+                                       name="items-{{ forloop.counter0 }}-quoted_total" 
+                                       class="form-control item-total-price" 
+                                       id="total-{{ forloop.counter0 }}"
+                                       readonly 
+                                       tabindex="-1">
                             </div>
                         </td>
                         <td>
-                            <input type="number" name="items-{{ forloop.counter0 }}-delivery_period_days" 
-                                   class="form-control" min="1" value="30" required>
+                            <input type="number" 
+                                   name="items-{{ forloop.counter0 }}-delivery_period_days" 
+                                   class="form-control" 
+                                   min="1" 
+                                   value="30" 
+                                   required
+                                   placeholder="30">
+                        </td>
+                        <td>
+                            <button type="button" 
+                                    class="expand-toggle" 
+                                    onclick="toggleItemDetails({{ forloop.counter0 }})">
+                                <i class="bi bi-chevron-down"></i>
+                                Optional Details
+                            </button>
+                            <div id="item-details-{{ forloop.counter0 }}" class="expandable-section" style="display: none;">
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label class="form-label" style="font-size: 0.75rem;">Brand</label>
+                                    <input type="text" 
+                                           name="items-{{ forloop.counter0 }}-brand" 
+                                           class="form-control" 
+                                           style="font-size: 0.75rem; padding: 0.5rem;"
+                                           placeholder="e.g., Dell, HP">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label class="form-label" style="font-size: 0.75rem;">Model</label>
+                                    <input type="text" 
+                                           name="items-{{ forloop.counter0 }}-model" 
+                                           class="form-control" 
+                                           style="font-size: 0.75rem; padding: 0.5rem;"
+                                           placeholder="e.g., XPS 15">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label class="form-label" style="font-size: 0.75rem;">Warranty (Months)</label>
+                                    <input type="number" 
+                                           name="items-{{ forloop.counter0 }}-warranty_period_months" 
+                                           class="form-control" 
+                                           style="font-size: 0.75rem; padding: 0.5rem;"
+                                           min="0" 
+                                           value="12"
+                                           placeholder="12">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label class="form-label" style="font-size: 0.75rem;">Specifications</label>
+                                    <textarea name="items-{{ forloop.counter0 }}-specifications" 
+                                              class="form-control" 
+                                              rows="2"
+                                              style="font-size: 0.75rem; padding: 0.5rem;"
+                                              placeholder="Additional specifications..."></textarea>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -752,12 +719,10 @@
             <div class="alert alert-info">
                 <i class="bi bi-calculator"></i>
                 <div>
-                    <strong>Bid Total: </strong>
+                    <strong>Calculated Bid Total: </strong>
                     <span id="bid-total" style="font-weight: 600; font-size: 1.125rem;">KES 0.00</span>
                 </div>
             </div>
-            
-            {{ item_formset.management_form }}
         </div>
     </div>
 
@@ -781,10 +746,17 @@
                             Detailed technical specifications, methodology, and approach
                         </div>
                         <div class="document-upload">
-                            <input type="text" name="doc_names" class="form-control" 
-                                   placeholder="Document name" required>
+                            <input type="text" 
+                                   name="doc_names" 
+                                   class="form-control" 
+                                   placeholder="Document name (e.g., Technical Proposal - Company Name)" 
+                                   required>
                             <input type="hidden" name="doc_types" value="TECHNICAL">
-                            <input type="file" name="documents" accept=".pdf,.doc,.docx" required>
+                            <input type="file" 
+                                   name="documents" 
+                                   accept=".pdf,.doc,.docx" 
+                                   required
+                                   class="form-control">
                         </div>
                     </div>
                 </div>
@@ -799,10 +771,17 @@
                             Detailed cost breakdown and pricing structure
                         </div>
                         <div class="document-upload">
-                            <input type="text" name="doc_names" class="form-control" 
-                                   placeholder="Document name" required>
+                            <input type="text" 
+                                   name="doc_names" 
+                                   class="form-control" 
+                                   placeholder="Document name (e.g., Financial Proposal - Company Name)" 
+                                   required>
                             <input type="hidden" name="doc_types" value="FINANCIAL">
-                            <input type="file" name="documents" accept=".pdf,.doc,.docx,.xls,.xlsx" required>
+                            <input type="file" 
+                                   name="documents" 
+                                   accept=".pdf,.doc,.docx,.xls,.xlsx" 
+                                   required
+                                   class="form-control">
                         </div>
                     </div>
                 </div>
@@ -817,10 +796,17 @@
                             Tax compliance, business registration, and other required certificates
                         </div>
                         <div class="document-upload">
-                            <input type="text" name="doc_names" class="form-control" 
-                                   placeholder="Document name" required>
+                            <input type="text" 
+                                   name="doc_names" 
+                                   class="form-control" 
+                                   placeholder="Document name (e.g., Tax Compliance Certificate)" 
+                                   required>
                             <input type="hidden" name="doc_types" value="COMPLIANCE">
-                            <input type="file" name="documents" accept=".pdf,.jpg,.jpeg,.png" required>
+                            <input type="file" 
+                                   name="documents" 
+                                   accept=".pdf,.jpg,.jpeg,.png" 
+                                   required
+                                   class="form-control">
                         </div>
                     </div>
                 </div>
@@ -831,8 +817,11 @@
                     <i class="bi bi-chat-left-text"></i>
                     Additional Notes
                 </label>
-                <textarea name="notes" id="id_notes" class="form-control" rows="4" 
-                          placeholder="Any additional information about your bid..."></textarea>
+                <textarea name="notes" 
+                          id="id_notes" 
+                          class="form-control" 
+                          rows="4" 
+                          placeholder="Any additional information about your bid, special offers, or clarifications..."></textarea>
             </div>
         </div>
     </div>
@@ -851,46 +840,331 @@
 </form>
 
 <script>
-    // Calculate item totals and bid total
-    document.addEventListener('DOMContentLoaded', function() {
-        const unitPriceInputs = document.querySelectorAll('.item-unit-price');
-        const totalPriceInputs = document.querySelectorAll('.item-total-price');
-        const bidTotalElement = document.getElementById('bid-total');
-        const bidAmountInput = document.getElementById('id_bid_amount');
+    // Toggle expandable item details
+function toggleItemDetails(index) {
+    const details = document.getElementById(`item-details-${index}`);
+    const button = event.currentTarget;
+    const icon = button.querySelector('i');
+    
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+        button.classList.add('expanded');
+    } else {
+        details.style.display = 'none';
+        button.classList.remove('expanded');
+    }
+}
+
+// Calculate item totals and bid total
+document.addEventListener('DOMContentLoaded', function() {
+    const unitPriceInputs = document.querySelectorAll('.item-unit-price');
+    const bidTotalElement = document.getElementById('bid-total');
+    const bidAmountInput = document.getElementById('id_bid_amount');
+    
+    function calculateItemTotal(input) {
+        const index = input.dataset.index;
+        const unitPrice = parseFloat(input.value) || 0;
+        const quantity = parseFloat(input.dataset.quantity) || 0;
+        const total = unitPrice * quantity;
         
-        function calculateItemTotal() {
-            let bidTotal = 0;
-            
-            unitPriceInputs.forEach((input, index) => {
-                const unitPrice = parseFloat(input.value) || 0;
-                const quantity = parseFloat(input.dataset.quantity) || 0;
-                const total = unitPrice * quantity;
-                
-                totalPriceInputs[index].value = total.toFixed(2);
-                bidTotal += total;
-            });
-            
-            // Update bid total display
-            bidTotalElement.textContent = `KES ${bidTotal.toFixed(2)}`;
-            
-            // Update bid amount input
-            bidAmountInput.value = bidTotal.toFixed(2);
-        }
+        const totalInput = document.getElementById(`total-${index}`);
+        totalInput.value = total.toFixed(2);
         
-        // Add event listeners to all unit price inputs
-        unitPriceInputs.forEach(input => {
-            input.addEventListener('input', calculateItemTotal);
-            input.addEventListener('change', calculateItemTotal);
+        calculateBidTotal();
+    }
+    
+    function calculateBidTotal() {
+        let bidTotal = 0;
+        
+        unitPriceInputs.forEach((input) => {
+            const unitPrice = parseFloat(input.value) || 0;
+            const quantity = parseFloat(input.dataset.quantity) || 0;
+            bidTotal += unitPrice * quantity;
         });
         
-        // Initial calculation
-        calculateItemTotal();
+        // Update bid total display
+        bidTotalElement.textContent = `KES ${bidTotal.toLocaleString('en-US', {
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2
+        })}`;
         
-        // Bid amount input also updates the total
-        bidAmountInput.addEventListener('input', function() {
-            const amount = parseFloat(this.value) || 0;
-            bidTotalElement.textContent = `KES ${amount.toFixed(2)}`;
+        // Update bid amount input
+        bidAmountInput.value = bidTotal.toFixed(2);
+    }
+    
+    // Add event listeners to all unit price inputs
+    unitPriceInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            calculateItemTotal(this);
+        });
+        input.addEventListener('change', function() {
+            calculateItemTotal(this);
         });
     });
+    
+    // Initial calculation
+    calculateBidTotal();
+    
+    // Form validation before submit
+    document.getElementById('bidForm').addEventListener('submit', function(e) {
+        const bidAmount = parseFloat(bidAmountInput.value) || 0;
+        
+        if (bidAmount <= 0) {
+            e.preventDefault();
+            alert('Please enter prices for all items before submitting.');
+            return false;
+        }
+        
+        // Validate that all required documents are uploaded
+        const requiredDocs = document.querySelectorAll('input[type="file"][required]');
+        let allDocsUploaded = true;
+        let missingDocs = [];
+        
+        requiredDocs.forEach(doc => {
+            if (!doc.files.length) {
+                allDocsUploaded = false;
+                // Get the document name from the previous sibling or parent
+                const docItem = doc.closest('.document-item');
+                const docName = docItem.querySelector('.document-name').textContent;
+                missingDocs.push(docName);
+            }
+        });
+        
+        if (!allDocsUploaded) {
+            e.preventDefault();
+            alert(`Please upload all required documents:\n- ${missingDocs.join('\n- ')}`);
+            return false;
+        }
+        
+        // Validate that all document names are filled
+        const docNameInputs = document.querySelectorAll('input[name="doc_names"]');
+        let allNamesProvided = true;
+        
+        docNameInputs.forEach(input => {
+            if (!input.value.trim()) {
+                allNamesProvided = false;
+            }
+        });
+        
+        if (!allNamesProvided) {
+            e.preventDefault();
+            alert('Please provide names for all uploaded documents.');
+            return false;
+        }
+        
+        // Validate delivery period
+        const deliveryPeriod = parseInt(document.getElementById('id_delivery_period_days').value);
+        if (!deliveryPeriod || deliveryPeriod < 1) {
+            e.preventDefault();
+            alert('Please enter a valid delivery period (minimum 1 day).');
+            return false;
+        }
+        
+        // Validate validity period
+        const validityPeriod = parseInt(document.getElementById('id_validity_period_days').value);
+        if (!validityPeriod || validityPeriod < 30) {
+            e.preventDefault();
+            alert('Please enter a valid validity period (minimum 30 days).');
+            return false;
+        }
+        
+        // Validate item delivery periods
+        const itemDeliveryInputs = document.querySelectorAll('input[name*="delivery_period_days"]');
+        let allItemDeliveriesValid = true;
+        
+        itemDeliveryInputs.forEach(input => {
+            const value = parseInt(input.value);
+            if (!value || value < 1) {
+                allItemDeliveriesValid = false;
+            }
+        });
+        
+        if (!allItemDeliveriesValid) {
+            e.preventDefault();
+            alert('Please ensure all items have valid delivery periods (minimum 1 day).');
+            return false;
+        }
+        
+        // Confirm submission
+        const confirmed = confirm(
+            `You are about to submit a bid for KES ${bidTotal.toLocaleString('en-US', {
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2
+            })}.\n\n` +
+            `Please review all information carefully as bids cannot be edited once submitted.\n\n` +
+            `Do you want to proceed?`
+        );
+        
+        if (!confirmed) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Show loading state
+        const submitButton = this.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Submitting...';
+    });
+    
+    // File upload validation
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    fileInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                // Check file size (max 10MB)
+                const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+                if (file.size > maxSize) {
+                    alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+                    this.value = '';
+                    return;
+                }
+                
+                // Validate file type based on accept attribute
+                const acceptedTypes = this.accept.split(',').map(t => t.trim());
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                
+                let isValidType = false;
+                acceptedTypes.forEach(type => {
+                    if (type === fileExtension || 
+                        (type.includes('*') && fileExtension.match(new RegExp(type.replace('*', '.*'))))) {
+                        isValidType = true;
+                    }
+                });
+                
+                if (!isValidType) {
+                    alert(`File "${file.name}" has an invalid file type. Please upload: ${this.accept}`);
+                    this.value = '';
+                    return;
+                }
+                
+                // Visual feedback
+                const docItem = this.closest('.document-item');
+                docItem.style.borderColor = '#10B981';
+                docItem.style.backgroundColor = '#F0FDF4';
+                
+                // Show file name if document name is empty
+                const nameInput = docItem.querySelector('input[name="doc_names"]');
+                if (!nameInput.value.trim()) {
+                    nameInput.value = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+                }
+            }
+        });
+    });
+    
+    // Auto-save to localStorage (optional - for draft functionality)
+    const autoSaveInterval = 30000; // 30 seconds
+    let autoSaveTimer;
+    
+    function saveDraft() {
+        const formData = {
+            bid_amount: bidAmountInput.value,
+            bid_bond_amount: document.getElementById('id_bid_bond_amount').value,
+            delivery_period_days: document.getElementById('id_delivery_period_days').value,
+            validity_period_days: document.getElementById('id_validity_period_days').value,
+            notes: document.getElementById('id_notes').value,
+            items: [],
+            timestamp: new Date().toISOString()
+        };
+        
+        // Save item prices
+        unitPriceInputs.forEach((input, index) => {
+            formData.items.push({
+                index: index,
+                quoted_unit_price: input.value,
+                delivery_period_days: document.querySelector(`input[name="items-${index}-delivery_period_days"]`).value,
+                brand: document.querySelector(`input[name="items-${index}-brand"]`)?.value || '',
+                model: document.querySelector(`input[name="items-${index}-model"]`)?.value || '',
+                warranty_period_months: document.querySelector(`input[name="items-${index}-warranty_period_months"]`)?.value || '',
+                specifications: document.querySelector(`textarea[name="items-${index}-specifications"]`)?.value || ''
+            });
+        });
+        
+        try {
+            localStorage.setItem(`bid_draft_${window.location.pathname}`, JSON.stringify(formData));
+            console.log('Draft saved successfully');
+        } catch (e) {
+            console.error('Failed to save draft:', e);
+        }
+    }
+    
+    function loadDraft() {
+        try {
+            const savedDraft = localStorage.getItem(`bid_draft_${window.location.pathname}`);
+            if (savedDraft) {
+                const formData = JSON.parse(savedDraft);
+                
+                // Ask user if they want to load the draft
+                if (confirm(`A draft from ${new Date(formData.timestamp).toLocaleString()} was found. Do you want to load it?`)) {
+                    // Load basic fields
+                    if (formData.bid_bond_amount) document.getElementById('id_bid_bond_amount').value = formData.bid_bond_amount;
+                    if (formData.delivery_period_days) document.getElementById('id_delivery_period_days').value = formData.delivery_period_days;
+                    if (formData.validity_period_days) document.getElementById('id_validity_period_days').value = formData.validity_period_days;
+                    if (formData.notes) document.getElementById('id_notes').value = formData.notes;
+                    
+                    // Load item data
+                    formData.items.forEach(item => {
+                        if (item.quoted_unit_price) {
+                            const unitPriceInput = document.querySelector(`input[name="items-${item.index}-quoted_unit_price"]`);
+                            if (unitPriceInput) unitPriceInput.value = item.quoted_unit_price;
+                        }
+                        if (item.delivery_period_days) {
+                            const deliveryInput = document.querySelector(`input[name="items-${item.index}-delivery_period_days"]`);
+                            if (deliveryInput) deliveryInput.value = item.delivery_period_days;
+                        }
+                        if (item.brand) {
+                            const brandInput = document.querySelector(`input[name="items-${item.index}-brand"]`);
+                            if (brandInput) brandInput.value = item.brand;
+                        }
+                        if (item.model) {
+                            const modelInput = document.querySelector(`input[name="items-${item.index}-model"]`);
+                            if (modelInput) modelInput.value = item.model;
+                        }
+                        if (item.warranty_period_months) {
+                            const warrantyInput = document.querySelector(`input[name="items-${item.index}-warranty_period_months"]`);
+                            if (warrantyInput) warrantyInput.value = item.warranty_period_months;
+                        }
+                        if (item.specifications) {
+                            const specsInput = document.querySelector(`textarea[name="items-${item.index}-specifications"]`);
+                            if (specsInput) specsInput.value = item.specifications;
+                        }
+                    });
+                    
+                    // Recalculate totals
+                    calculateBidTotal();
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load draft:', e);
+        }
+    }
+    
+    // Load draft on page load
+    loadDraft();
+    
+    // Auto-save draft periodically
+    const formInputs = document.querySelectorAll('#bidForm input, #bidForm textarea');
+    formInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(saveDraft, 2000); // Save 2 seconds after last input
+        });
+    });
+    
+    // Clear draft on successful submission
+    document.getElementById('bidForm').addEventListener('submit', function() {
+        localStorage.removeItem(`bid_draft_${window.location.pathname}`);
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+S or Cmd+S to save draft
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            saveDraft();
+            alert('Draft saved!');
+        }
+    });
+});
 </script>
 {% endblock %}
