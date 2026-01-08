@@ -61,7 +61,6 @@
         color: #94A3B8;
     }
 
-    /* Form Card */
     .form-card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
@@ -107,7 +106,6 @@
         padding: 1.5rem;
     }
 
-    /* Form Styles */
     .form-group {
         margin-bottom: 1.5rem;
     }
@@ -148,7 +146,6 @@
         resize: vertical;
     }
 
-    /* Grid Layout */
     .form-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -163,13 +160,8 @@
         .form-grid-full {
             grid-column: 1 / -1;
         }
-        
-        .form-grid-3 {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
     }
 
-    /* Button Styles */
     .btn {
         display: inline-flex;
         align-items: center;
@@ -237,7 +229,6 @@
         font-size: 0.75rem;
     }
 
-    /* Supplier Grid */
     .supplier-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -284,7 +275,6 @@
         color: var(--secondary-color);
     }
 
-    /* Criteria Table */
     .criteria-table {
         width: 100%;
         border-collapse: collapse;
@@ -328,7 +318,6 @@
         border-radius: 0.25rem;
     }
 
-    /* Document Items */
     .document-item {
         background: var(--hover-bg);
         border: 1px solid var(--border-color);
@@ -362,7 +351,6 @@
         height: 1.125rem;
     }
 
-    /* Form Actions */
     .form-actions {
         display: flex;
         justify-content: space-between;
@@ -372,7 +360,6 @@
         border-top: 1px solid var(--border-color);
     }
 
-    /* Amount Input */
     .amount-input {
         position: relative;
     }
@@ -391,7 +378,6 @@
         padding-left: 3rem;
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
         .card-header {
             flex-direction: column;
@@ -401,12 +387,6 @@
         .criteria-table {
             display: block;
             overflow-x: auto;
-        }
-        
-        .criteria-table th,
-        .criteria-table td {
-            padding: 0.5rem;
-            font-size: 0.75rem;
         }
         
         .supplier-grid {
@@ -431,26 +411,8 @@
             width: 100%;
             justify-content: center;
         }
-        
-        .criteria-table td:last-child {
-            text-align: center;
-        }
     }
 
-    /* Error States */
-    .form-control.is-invalid,
-    .form-select.is-invalid {
-        border-color: var(--danger-color);
-    }
-
-    .invalid-feedback {
-        display: block;
-        margin-top: 0.375rem;
-        font-size: 0.75rem;
-        color: var(--danger-color);
-    }
-
-    /* Loading State */
     .btn-loading {
         position: relative;
         color: transparent !important;
@@ -472,6 +434,12 @@
 
     @keyframes spin {
         to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .no-data {
+        color: var(--secondary-color);
+        text-align: center;
+        padding: 2rem;
     }
 </style>
 {% endblock %}
@@ -620,7 +588,7 @@
                         id="supplier_{{ supplier.id }}">
                     <label for="supplier_{{ supplier.id }}">
                         <strong>{{ supplier.name }}</strong>
-                        <span>{{ supplier.supplier_number }} • {{ supplier.category.name }}</span>
+                        <span>{{ supplier.supplier_number }}</span>
                     </label>
                 </div>
                 {% empty %}
@@ -730,8 +698,8 @@ document.getElementById('addCriterion').addEventListener('click', function() {
         </td>
         <td><input type="number" class="form-control criterion-weight" step="0.01" min="0" max="100" placeholder="30" required></td>
         <td><input type="number" class="form-control criterion-max-score" step="0.01" min="0" placeholder="100" required></td>
-        <td><input type="checkbox" class="criterion-mandatory" title="Mandatory for qualification"></td>
-        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeCriterion(${criteriaCount})">Remove</button></td>
+        <td style="text-align: center;"><input type="checkbox" class="criterion-mandatory" title="Mandatory for qualification"></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeCriterion(${criteriaCount})"><i class="bi bi-trash"></i></button></td>
     `;
     document.getElementById('criteriaBody').appendChild(row);
 });
@@ -803,13 +771,14 @@ document.getElementById('tenderForm').addEventListener('submit', function(e) {
         return;
     }
     
-    // Collect criteria data
+    // Collect criteria data with correct field names
     const criteria = [];
     document.querySelectorAll('#criteriaBody tr').forEach(function(row) {
+        const name = row.querySelector('.criterion-name').value;
         criteria.push({
-            criterion_name: row.querySelector('.criterion-name').value,
+            criterion_name: name,  // Changed from 'name' to 'criterion_name'
             criterion_type: row.querySelector('.criterion-type').value,
-            description: row.querySelector('.criterion-name').value,
+            description: name,  // Using name as description
             weight: parseFloat(row.querySelector('.criterion-weight').value),
             max_score: parseFloat(row.querySelector('.criterion-max-score').value),
             is_mandatory: row.querySelector('.criterion-mandatory').checked
@@ -819,7 +788,7 @@ document.getElementById('tenderForm').addEventListener('submit', function(e) {
     // Validate total weight
     const totalWeight = criteria.reduce((sum, criterion) => sum + criterion.weight, 0);
     if (criteria.length > 0 && Math.abs(totalWeight - 100) > 0.01) {
-        if (!confirm(`Total weight is ${totalWeight}%. It should total 100%. Continue anyway?`)) {
+        if (!confirm(`Total weight is ${totalWeight.toFixed(2)}%. It should total 100%. Continue anyway?`)) {
             e.preventDefault();
             submitBtn.classList.remove('btn-loading');
             submitBtn.disabled = false;

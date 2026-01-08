@@ -2222,29 +2222,40 @@ def tender_create(request):
                         tender.invited_suppliers.set(supplier_ids)
                 
                 # Create evaluation criteria
-                criteria_data = json.loads(request.POST.get('criteria_json', '[]'))
-                for idx, criterion in enumerate(criteria_data, 1):
-                    EvaluationCriteria.objects.create(
-                        tender=tender,
-                        criterion_name=criterion['name'],
-                        criterion_type=criterion['type'],
-                        description=criterion['description'],
-                        weight=Decimal(criterion['weight']),
-                        max_score=Decimal(criterion['max_score']),
-                        is_mandatory=criterion.get('is_mandatory', False),
-                        sequence=idx
-                    )
+                criteria_json = request.POST.get('criteria_json', '[]')
+                if criteria_json and criteria_json != '[]':
+                    criteria_data = json.loads(criteria_json)
+                    for idx, criterion in enumerate(criteria_data, 1):
+                        EvaluationCriteria.objects.create(
+                            tender=tender,
+                            criterion_name=criterion.get('criterion_name', ''),
+                            criterion_type=criterion.get('criterion_type', 'GENERAL'),
+                            description=criterion.get('description', criterion.get('criterion_name', '')),
+                            weight=Decimal(str(criterion.get('weight', 0))),
+                            max_score=Decimal(str(criterion.get('max_score', 100))),
+                            is_mandatory=criterion.get('is_mandatory', False),
+                            sequence=idx
+                        )
                 
                 # Handle tender documents
-                if request.FILES:
-                    for file_key in request.FILES:
+                document_count = 0
+                for key in request.POST.keys():
+                    if key.startswith('document_') and key.endswith('_file'):
+                        document_count += 1
+                
+                for i in range(1, document_count + 1):
+                    file_key = f'document_{i}_file'
+                    if file_key in request.FILES:
                         file = request.FILES[file_key]
+                        description_key = f'document_{i}_description'
+                        mandatory_key = f'document_{i}_mandatory'
+                        
                         TenderDocument.objects.create(
                             tender=tender,
                             document_name=file.name,
                             file=file,
-                            description=request.POST.get(f'{file_key}_description', ''),
-                            is_mandatory=request.POST.get(f'{file_key}_mandatory') == 'on'
+                            description=request.POST.get(description_key, ''),
+                            is_mandatory=mandatory_key in request.POST
                         )
                 
                 # Create audit log
@@ -2267,6 +2278,8 @@ def tender_create(request):
                 
         except Exception as e:
             messages.error(request, f'Error creating tender: {str(e)}')
+            import traceback
+            print(traceback.format_exc())  # For debugging
             return redirect('tender_create')
     
     # GET request - show form
