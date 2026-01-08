@@ -1,0 +1,1124 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}{{ tender.tender_number }} - Tender Details{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --info-color: #0EA5E9;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    /* Page Header */
+    .page-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .header-left {
+        flex: 1;
+        min-width: 300px;
+    }
+
+    .tender-number {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .tender-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin: 0 0 0.75rem 0;
+        line-height: 1.3;
+    }
+
+    .tender-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .meta-item i {
+        font-size: 1rem;
+    }
+
+    .header-right {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-end;
+    }
+
+    /* Status Badge */
+    .tender-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .tender-status.published {
+        background: rgba(16, 185, 129, 0.15);
+        color: #D1FAE5;
+    }
+
+    .tender-status.closed {
+        background: rgba(239, 68, 68, 0.15);
+        color: #FEE2E2;
+    }
+
+    .tender-status.evaluating {
+        background: rgba(245, 158, 11, 0.15);
+        color: #FEF3C7;
+    }
+
+    .tender-status.awarded {
+        background: rgba(59, 130, 246, 0.15);
+        color: #DBEAFE;
+    }
+
+    /* Alert Boxes */
+    .alert {
+        padding: 1.25rem 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        border: 1px solid;
+    }
+
+    .alert-icon {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .alert-content {
+        flex: 1;
+    }
+
+    .alert-title {
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+        font-size: 0.9375rem;
+    }
+
+    .alert-message {
+        margin: 0;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        border-color: #A7F3D0;
+        color: #065F46;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-danger {
+        background: #FEE2E2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    .alert-info {
+        background: #E0F2FE;
+        border-color: #BAE6FD;
+        color: #075985;
+    }
+
+    /* Countdown Timer */
+    .countdown-timer {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .countdown-label {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .countdown-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--danger-color);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .countdown-value.warning {
+        color: var(--warning-color);
+    }
+
+    .countdown-value.success {
+        color: var(--success-color);
+    }
+
+    /* Grid Layout */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Card Styles */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Info Grid */
+    .info-grid {
+        display: grid;
+        gap: 1.25rem;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .info-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.125rem;
+        flex-shrink: 0;
+    }
+
+    .info-content {
+        flex: 1;
+    }
+
+    .info-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.375rem;
+    }
+
+    .info-value {
+        font-size: 0.9375rem;
+        color: #1E293B;
+        font-weight: 500;
+        line-height: 1.5;
+    }
+
+    .info-value.large {
+        font-size: 1.25rem;
+        font-weight: 600;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Description Section */
+    .description-section {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .description-text {
+        font-size: 0.875rem;
+        color: #475569;
+        line-height: 1.7;
+        white-space: pre-wrap;
+    }
+
+    /* Documents List */
+    .documents-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .document-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        transition: all 0.2s;
+    }
+
+    .document-item:hover {
+        background: #F1F5F9;
+        border-color: var(--primary-color);
+    }
+
+    .document-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+    }
+
+    .document-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        border-radius: 0.375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.125rem;
+    }
+
+    .document-details {
+        flex: 1;
+    }
+
+    .document-name {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .document-meta {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .document-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: 0.25rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .document-badge.mandatory {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .document-badge.optional {
+        background: #E0F2FE;
+        color: #075985;
+    }
+
+    /* Criteria List */
+    .criteria-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .criteria-item {
+        padding: 1rem;
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        border-left: 3px solid var(--primary-color);
+    }
+
+    .criteria-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.5rem;
+        gap: 1rem;
+    }
+
+    .criteria-name {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        flex: 1;
+    }
+
+    .criteria-weight {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.625rem;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .criteria-description {
+        font-size: 0.8125rem;
+        color: #64748B;
+        line-height: 1.5;
+        margin-bottom: 0.5rem;
+    }
+
+    .criteria-footer {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .criteria-type {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        background: #F1F5F9;
+        border-radius: 0.25rem;
+        font-weight: 500;
+    }
+
+    .mandatory-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        color: var(--danger-color);
+        font-weight: 600;
+    }
+
+    /* Sidebar Cards */
+    .sidebar-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .sidebar-card-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .key-dates-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .date-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .date-icon {
+        width: 36px;
+        height: 36px;
+        background: var(--hover-bg);
+        border-radius: 0.375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .date-content {
+        flex: 1;
+    }
+
+    .date-label {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .date-value {
+        font-size: 0.875rem;
+        color: #1E293B;
+        font-weight: 600;
+    }
+
+    /* Action Buttons */
+    .action-section {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.375rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        width: 100%;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #059669;
+    }
+
+    .btn-secondary {
+        background: #F1F5F9;
+        color: #475569;
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: #E2E8F0;
+    }
+
+    .btn-disabled {
+        background: #F1F5F9;
+        color: #94A3B8;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .btn-icon {
+        font-size: 1rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    /* Existing Bid Alert */
+    .existing-bid-card {
+        background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+        border: 2px solid #10B981;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .existing-bid-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .existing-bid-icon {
+        width: 48px;
+        height: 48px;
+        background: white;
+        color: var(--success-color);
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .existing-bid-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #065F46;
+        margin: 0;
+    }
+
+    .existing-bid-content {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .existing-bid-item {
+        background: white;
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+    }
+
+    .existing-bid-label {
+        font-size: 0.75rem;
+        color: #065F46;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .existing-bid-value {
+        font-size: 1rem;
+        color: #047857;
+        font-weight: 700;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #64748B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .empty-state-message {
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .header-content {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .header-right {
+            align-items: stretch;
+        }
+
+        .countdown-timer {
+            text-align: left;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            padding: 1.5rem;
+        }
+
+        .tender-title {
+            font-size: 1.25rem;
+        }
+
+        .tender-meta {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        .existing-bid-content {
+            grid-template-columns: 1fr;
+        }
+
+        .criteria-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="header-content">
+        <div class="header-left">
+            <div class="tender-number">
+                <i class="bi bi-file-text"></i>
+                {{ tender.tender_number }}
+            </div>
+            <h1 class="tender-title">{{ tender.title }}</h1>
+            <div class="tender-meta">
+                <div class="meta-item">
+                    <i class="bi bi-tag"></i>
+                    <span>{{ tender.get_tender_type_display }}</span>
+                </div>
+                <div class="meta-item">
+                    <i class="bi bi-diagram-3"></i>
+                    <span>{{ tender.get_procurement_method_display }}</span>
+                </div>
+                <div class="meta-item">
+                    <i class="bi bi-receipt"></i>
+                    <span>{{ tender.requisition.requisition_number }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <span class="tender-status {{ tender.status|lower }}">
+                {% if tender.status == 'PUBLISHED' %}
+                <i class="bi bi-broadcast"></i>
+                {% elif tender.status == 'CLOSED' %}
+                <i class="bi bi-lock"></i>
+                {% elif tender.status == 'EVALUATING' %}
+                <i class="bi bi-hourglass-split"></i>
+                {% elif tender.status == 'AWARDED' %}
+                <i class="bi bi-trophy"></i>
+                {% endif %}
+                {{ tender.get_status_display }}
+            </span>
+            
+            {% if time_remaining.days >= 0 %}
+            <div class="countdown-timer">
+                <div class="countdown-label">Time Remaining</div>
+                <div class="countdown-value {% if time_remaining.days <= 1 %}danger{% elif time_remaining.days <= 3 %}warning{% else %}success{% endif %}">
+                    {% if time_remaining.days > 0 %}
+                        {{ time_remaining.days }} day{{ time_remaining.days|pluralize }}
+                    {% else %}
+                        {% widthratio time_remaining.seconds 3600 1 %}h remaining
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Alerts -->
+{% if existing_bid %}
+<div class="existing-bid-card">
+    <div class="existing-bid-header">
+        <div class="existing-bid-icon">
+            <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <div>
+            <h3 class="existing-bid-title">You Have Already Submitted a Bid</h3>
+        </div>
+    </div>
+    <div class="existing-bid-content">
+        <div class="existing-bid-item">
+            <div class="existing-bid-label">Bid Number</div>
+            <div class="existing-bid-value">{{ existing_bid.bid_number }}</div>
+        </div>
+        <div class="existing-bid-item">
+            <div class="existing-bid-label">Bid Amount</div>
+            <div class="existing-bid-value">KSh {{ existing_bid.bid_amount|floatformat:2|intcomma }}</div>
+        </div>
+        <div class="existing-bid-item">
+            <div class="existing-bid-label">Submitted On</div>
+            <div class="existing-bid-value">{{ existing_bid.submitted_at|date:"M d, Y H:i" }}</div>
+        </div>
+        <div class="existing-bid-item">
+            <div class="existing-bid-label">Status</div>
+            <div class="existing-bid-value">{{ existing_bid.get_status_display }}</div>
+        </div>
+    </div>
+    <a href="{% url 'supplier_bid_detail' existing_bid.id %}" class="btn btn-success">
+        <i class="bi bi-eye"></i>
+        View Your Bid
+    </a>
+</div>
+{% endif %}
+
+{% if not can_bid and not existing_bid %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle-fill alert-icon"></i>
+    <div class="alert-content">
+        <h4 class="alert-title">Bidding Not Available</h4>
+        <p class="alert-message">
+            {% if tender.closing_date <= timezone.now %}
+            This tender has closed. The closing date was {{ tender.closing_date|date:"F d, Y \a\t H:i" }}.
+            {% else %}
+            You cannot submit a bid for this tender at this time.
+            {% endif %}
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Main Content Grid -->
+<div class="content-grid">
+    <!-- Left Column -->
+    <div>
+        <!-- Tender Details Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="bi bi-info-circle"></i>
+                    Tender Information
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                        <div class="info-content">
+                            <span class="info-label">Estimated Budget</span>
+                            <div class="info-value large">
+                                KSh {{ tender.estimated_budget|floatformat:2|intcomma }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <div class="info-content">
+                            <span class="info-label">Department</span>
+                            <div class="info-value">{{ tender.requisition.department.name }}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="bi bi-person"></i>
+                        </div>
+                        <div class="info-content">
+                            <span class="info-label">Created By</span>
+                            <div class="info-value">{{ tender.created_by.get_full_name }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="description-section">
+                    <h3 class="section-title">
+                        <i class="bi bi-file-text"></i>
+                        Description
+                    </h3>
+                    <div class="description-text">{{ tender.description }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tender Documents Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="bi bi-file-earmark-arrow-down"></i>
+                    Tender Documents ({{ documents.count }})
+                </h2>
+            </div>
+            <div class="card-body">
+                {% if documents %}
+                <div class="documents-list">
+                    {% for doc in documents %}
+                    <div class="document-item">
+                        <div class="document-info">
+                            <div class="document-icon">
+                                <i class="bi bi-file-pdf"></i>
+                            </div>
+                            <div class="document-details">
+                                <div class="document-name">{{ doc.document_name }}</div>
+                                <div class="document-meta">
+                                    <span class="document-badge {% if doc.is_mandatory %}mandatory{% else %}optional{% endif %}">
+                                        {% if doc.is_mandatory %}
+                                        <i class="bi bi-exclamation-circle"></i> Mandatory
+                                        {% else %}
+                                        <i class="bi bi-info-circle"></i> Optional
+                                        {% endif %}
+                                    </span>
+                                    {% if doc.description %}
+                                    <span style="margin-left: 0.5rem;">{{ doc.description }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <a href="{{ doc.file.url }}" target="_blank" class="btn btn-secondary" style="width: auto;">
+                            <i class="bi bi-download"></i>
+                            Download
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-file-earmark-x"></i>
+                    <h4 class="empty-state-title">No Documents Available</h4>
+                    <p class="empty-state-message">No tender documents have been uploaded yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Evaluation Criteria Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="bi bi-clipboard-check"></i>
+                    Evaluation Criteria ({{ criteria.count }})
+                </h2>
+            </div>
+            <div class="card-body">
+                {% if criteria %}
+                <div class="criteria-list">
+                    {% for criterion in criteria %}
+                    <div class="criteria-item">
+                        <div class="criteria-header">
+                            <div class="criteria-name">{{ criterion.criterion_name }}</div>
+                            <div class="criteria-weight">
+                                <i class="bi bi-star-fill"></i>
+                                {{ criterion.weight }}%
+                            </div>
+                        </div>
+                        <div class="criteria-description">{{ criterion.description }}</div>
+                        <div class="criteria-footer">
+                            <span class="criteria-type">
+                            <i class="bi bi-tag"></i>
+                            {{ criterion.get_criterion_type_display }}
+                        </span>
+                        <span>Max Score: {{ criterion.max_score }}</span>
+                        {% if criterion.is_mandatory %}
+                        <span class="mandatory-badge">
+                            <i class="bi bi-exclamation-circle-fill"></i>
+                            Mandatory
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-clipboard-x"></i>
+                <h4 class="empty-state-title">No Criteria Defined</h4>
+                <p class="empty-state-message">Evaluation criteria will be displayed here.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Right Sidebar -->
+<div>
+    <!-- Action Buttons -->
+    <div class="action-section">
+        <div class="action-buttons">
+            {% if can_bid %}
+            <a href="{% url 'supplier_submit_bid' tender.id %}" class="btn btn-primary">
+                <i class="bi bi-send-fill btn-icon"></i>
+                Submit Your Bid
+            </a>
+            {% elif existing_bid %}
+            <a href="{% url 'supplier_bid_detail' existing_bid.id %}" class="btn btn-success">
+                <i class="bi bi-eye btn-icon"></i>
+                View Your Bid
+            </a>
+            {% else %}
+            <button class="btn btn-disabled">
+                <i class="bi bi-lock btn-icon"></i>
+                Bidding Closed
+            </button>
+            {% endif %}
+
+            <a href="#" class="btn btn-secondary">
+                <i class="bi bi-arrow-left btn-icon"></i>
+                Back to Tenders
+            </a>
+        </div>
+    </div>
+
+    <!-- Key Dates Card -->
+    <div class="sidebar-card">
+        <h3 class="sidebar-card-title">
+            <i class="bi bi-calendar-event"></i>
+            Key Dates
+        </h3>
+        <div class="key-dates-list">
+            {% if tender.publish_date %}
+            <div class="date-item">
+                <div class="date-icon">
+                    <i class="bi bi-broadcast"></i>
+                </div>
+                <div class="date-content">
+                    <div class="date-label">Published</div>
+                    <div class="date-value">{{ tender.publish_date|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="date-item">
+                <div class="date-icon">
+                    <i class="bi bi-clock"></i>
+                </div>
+                <div class="date-content">
+                    <div class="date-label">Closing Date</div>
+                    <div class="date-value">{{ tender.closing_date|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+
+            <div class="date-item">
+                <div class="date-icon">
+                    <i class="bi bi-box-arrow-up"></i>
+                </div>
+                <div class="date-content">
+                    <div class="date-label">Bid Opening</div>
+                    <div class="date-value">{{ tender.bid_opening_date|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Info Card -->
+    <div class="sidebar-card">
+        <h3 class="sidebar-card-title">
+            <i class="bi bi-info-square"></i>
+            Quick Information
+        </h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-content">
+                    <span class="info-label">Requisition Number</span>
+                    <div class="info-value">{{ tender.requisition.requisition_number }}</div>
+                </div>
+            </div>
+
+            <div class="info-item">
+                <div class="info-content">
+                    <span class="info-label">Created On</span>
+                    <div class="info-value">{{ tender.created_at|date:"M d, Y" }}</div>
+                </div>
+            </div>
+
+            {% if tender.invited_suppliers.count > 0 %}
+            <div class="info-item">
+                <div class="info-content">
+                    <span class="info-label">Invited Suppliers</span>
+                    <div class="info-value">{{ tender.invited_suppliers.count }} suppliers</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

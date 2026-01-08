@@ -1,0 +1,896 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}Submit Bid - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Cards */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: #F8FAFC;
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Tender Info */
+    .tender-info {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: #F8FAFC;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .tender-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .info-value {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1E293B;
+    }
+
+    .info-value.amount {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Form Styles */
+    .form-section {
+        margin-bottom: 2rem;
+    }
+
+    .form-section-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-section-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-label.required::after {
+        content: ' *';
+        color: var(--danger-color);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: var(--card-bg);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-text {
+        font-size: 0.75rem;
+        color: #94A3B8;
+        margin-top: 0.25rem;
+    }
+
+    .form-text.error {
+        color: var(--danger-color);
+    }
+
+    /* Bid Items Table */
+    .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1.5rem;
+    }
+
+    .items-table th {
+        padding: 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border-color);
+        background: #F8FAFC;
+    }
+
+    .items-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+    }
+
+    .items-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .item-column {
+        width: 30%;
+    }
+
+    .quantity-column {
+        width: 15%;
+    }
+
+    .price-column {
+        width: 20%;
+    }
+
+    .total-column {
+        width: 20%;
+    }
+
+    .item-name {
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .item-specs {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Price Input Container */
+    .price-input-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .currency-prefix {
+        position: absolute;
+        left: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+    }
+
+    .price-input-container .form-control {
+        padding-left: 2.5rem;
+    }
+
+    /* Documents Section */
+    .documents-section {
+        padding: 1.5rem;
+        background: #F8FAFC;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+        margin-bottom: 1.5rem;
+    }
+
+    .document-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--card-bg);
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+        margin-bottom: 1rem;
+    }
+
+    .document-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .document-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 0.375rem;
+        background: var(--primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-color);
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .document-info {
+        flex: 1;
+    }
+
+    .document-name {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .document-description {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .document-upload {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .document-upload input[type="file"] {
+        flex: 1;
+        padding: 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-secondary {
+        background: #F1F5F9;
+        color: #475569;
+        border-color: #E2E8F0;
+    }
+
+    .btn-secondary:hover {
+        background: #E2E8F0;
+        border-color: #CBD5E1;
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    /* Formset Management */
+    .formset-container {
+        margin-bottom: 1.5rem;
+    }
+
+    .formset-row {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .formset-row:last-child {
+        border-bottom: none;
+    }
+
+    .formset-cell {
+        flex: 1;
+    }
+
+    .formset-cell.small {
+        flex: 0.5;
+    }
+
+    /* Alert */
+    .alert {
+        padding: 1rem 1.25rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE68A;
+    }
+
+    .alert-info {
+        background: #E0F2FE;
+        color: #0369A1;
+        border: 1px solid #BAE6FD;
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .items-table {
+            display: block;
+            overflow-x: auto;
+        }
+        
+        .items-table th,
+        .items-table td {
+            padding: 0.75rem;
+            font-size: 0.8125rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .action-buttons .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .formset-row {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .formset-cell {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .card-header {
+            padding: 1rem 1.25rem;
+        }
+        
+        .tender-info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .document-item {
+            flex-direction: column;
+        }
+        
+        .document-upload {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Submit Bid</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'supplier_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'supplier_tenders_list' %}">Tenders</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'supplier_tender_detail' tender.id %}">{{ tender.tender_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Submit Bid</span>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        <i class="bi bi-exclamation-circle"></i>
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-file-earmark-text"></i>
+            Tender Information
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="tender-info">
+            <div class="tender-info-grid">
+                <div class="info-item">
+                    <span class="info-label">Tender Number</span>
+                    <span class="info-value">{{ tender.tender_number }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Title</span>
+                    <span class="info-value">{{ tender.title }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Type</span>
+                    <span class="info-value">{{ tender.get_tender_type_display }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Closing Date</span>
+                    <span class="info-value">{{ tender.closing_date|date:"M d, Y H:i" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Budget</span>
+                    <span class="info-value amount">KES {{ tender.estimated_budget|floatformat:2|intcomma }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Method</span>
+                    <span class="info-value">{{ tender.get_procurement_method_display }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <strong>Important Information</strong>
+                <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem;">
+                    <li>All fields marked with * are required</li>
+                    <li>Ensure all prices are quoted in KES</li>
+                    <li>Bids must be submitted before the closing date</li>
+                    <li>Once submitted, bids cannot be edited</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    
+    <!-- Bid Details Section -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-pencil-square"></i>
+                Bid Details
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="id_bid_amount" class="form-label required">
+                        <i class="bi bi-cash"></i>
+                        Total Bid Amount
+                    </label>
+                    <div class="price-input-container">
+                        <span class="currency-prefix">KES</span>
+                        <input type="number" name="bid_amount" id="id_bid_amount" class="form-control" 
+                               step="0.01" min="0" required placeholder="0.00">
+                    </div>
+                    <div class="form-text">
+                        Total bid amount in Kenyan Shillings
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_bid_bond_amount" class="form-label">
+                        <i class="bi bi-shield-check"></i>
+                        Bid Bond Amount
+                    </label>
+                    <div class="price-input-container">
+                        <span class="currency-prefix">KES</span>
+                        <input type="number" name="bid_bond_amount" id="id_bid_bond_amount" 
+                               class="form-control" step="0.01" min="0" value="0" placeholder="0.00">
+                    </div>
+                    <div class="form-text">
+                        If bid bond is required for this tender
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_delivery_period_days" class="form-label required">
+                        <i class="bi bi-calendar-check"></i>
+                        Delivery Period (Days)
+                    </label>
+                    <input type="number" name="delivery_period_days" id="id_delivery_period_days" 
+                           class="form-control" min="1" required placeholder="90">
+                    <div class="form-text">
+                        Number of days to complete delivery after award
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_validity_period_days" class="form-label">
+                        <i class="bi bi-clock-history"></i>
+                        Validity Period (Days)
+                    </label>
+                    <input type="number" name="validity_period_days" id="id_validity_period_days" 
+                           class="form-control" min="30" value="90" placeholder="90">
+                    <div class="form-text">
+                        Number of days your bid remains valid (minimum 30 days)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bid Items Section -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-list-ul"></i>
+                Bid Items
+            </h2>
+        </div>
+        <div class="card-body">
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th class="item-column">Item Description</th>
+                        <th class="quantity-column">Quantity</th>
+                        <th class="price-column">Unit Price (KES)</th>
+                        <th class="price-column">Total Price (KES)</th>
+                        <th class="price-column">Delivery Days</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form in item_formset %}
+                    <tr>
+                        <td>
+                            <div class="item-name">
+                                {{ form.requisition_item.value.item_description }}
+                            </div>
+                            <div class="item-specs">
+                                {{ form.requisition_item.value.specifications|truncatechars:50 }}
+                            </div>
+                            {{ form.requisition_item }}
+                        </td>
+                        <td>
+                            {{ form.requisition_item.value.quantity }} 
+                            {{ form.requisition_item.value.unit_of_measure }}
+                        </td>
+                        <td>
+                            <div class="price-input-container">
+                                <span class="currency-prefix">KES</span>
+                                <input type="number" name="items-{{ forloop.counter0 }}-quoted_unit_price" 
+                                       class="form-control item-unit-price" step="0.01" min="0" 
+                                       data-quantity="{{ form.requisition_item.value.quantity }}"
+                                       required placeholder="0.00">
+                            </div>
+                            {{ form.id }}
+                        </td>
+                        <td>
+                            <div class="price-input-container">
+                                <span class="currency-prefix">KES</span>
+                                <input type="number" name="items-{{ forloop.counter0 }}-quoted_total" 
+                                       class="form-control item-total-price" readonly>
+                            </div>
+                        </td>
+                        <td>
+                            <input type="number" name="items-{{ forloop.counter0 }}-delivery_period_days" 
+                                   class="form-control" min="1" value="30" required>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-calculator"></i>
+                <div>
+                    <strong>Bid Total: </strong>
+                    <span id="bid-total" style="font-weight: 600; font-size: 1.125rem;">KES 0.00</span>
+                </div>
+            </div>
+            
+            {{ item_formset.management_form }}
+        </div>
+    </div>
+
+    <!-- Documents Section -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-paperclip"></i>
+                Supporting Documents
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="documents-section">
+                <div class="document-item">
+                    <div class="document-icon">
+                        <i class="bi bi-file-text"></i>
+                    </div>
+                    <div class="document-info">
+                        <div class="document-name">Technical Proposal</div>
+                        <div class="document-description">
+                            Detailed technical specifications, methodology, and approach
+                        </div>
+                        <div class="document-upload">
+                            <input type="text" name="doc_names" class="form-control" 
+                                   placeholder="Document name" required>
+                            <input type="hidden" name="doc_types" value="TECHNICAL">
+                            <input type="file" name="documents" accept=".pdf,.doc,.docx" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="document-item">
+                    <div class="document-icon">
+                        <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <div class="document-info">
+                        <div class="document-name">Financial Proposal</div>
+                        <div class="document-description">
+                            Detailed cost breakdown and pricing structure
+                        </div>
+                        <div class="document-upload">
+                            <input type="text" name="doc_names" class="form-control" 
+                                   placeholder="Document name" required>
+                            <input type="hidden" name="doc_types" value="FINANCIAL">
+                            <input type="file" name="documents" accept=".pdf,.doc,.docx,.xls,.xlsx" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="document-item">
+                    <div class="document-icon">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div class="document-info">
+                        <div class="document-name">Compliance Documents</div>
+                        <div class="document-description">
+                            Tax compliance, business registration, and other required certificates
+                        </div>
+                        <div class="document-upload">
+                            <input type="text" name="doc_names" class="form-control" 
+                                   placeholder="Document name" required>
+                            <input type="hidden" name="doc_types" value="COMPLIANCE">
+                            <input type="file" name="documents" accept=".pdf,.jpg,.jpeg,.png" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_notes" class="form-label">
+                    <i class="bi bi-chat-left-text"></i>
+                    Additional Notes
+                </label>
+                <textarea name="notes" id="id_notes" class="form-control" rows="4" 
+                          placeholder="Any additional information about your bid..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="{% url 'supplier_tender_detail' tender.id %}" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i>
+            Cancel
+        </a>
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-send-check"></i>
+            Submit Bid
+        </button>
+    </div>
+</form>
+
+<script>
+    // Calculate item totals and bid total
+    document.addEventListener('DOMContentLoaded', function() {
+        const unitPriceInputs = document.querySelectorAll('.item-unit-price');
+        const totalPriceInputs = document.querySelectorAll('.item-total-price');
+        const bidTotalElement = document.getElementById('bid-total');
+        const bidAmountInput = document.getElementById('id_bid_amount');
+        
+        function calculateItemTotal() {
+            let bidTotal = 0;
+            
+            unitPriceInputs.forEach((input, index) => {
+                const unitPrice = parseFloat(input.value) || 0;
+                const quantity = parseFloat(input.dataset.quantity) || 0;
+                const total = unitPrice * quantity;
+                
+                totalPriceInputs[index].value = total.toFixed(2);
+                bidTotal += total;
+            });
+            
+            // Update bid total display
+            bidTotalElement.textContent = `KES ${bidTotal.toFixed(2)}`;
+            
+            // Update bid amount input
+            bidAmountInput.value = bidTotal.toFixed(2);
+        }
+        
+        // Add event listeners to all unit price inputs
+        unitPriceInputs.forEach(input => {
+            input.addEventListener('input', calculateItemTotal);
+            input.addEventListener('change', calculateItemTotal);
+        });
+        
+        // Initial calculation
+        calculateItemTotal();
+        
+        // Bid amount input also updates the total
+        bidAmountInput.addEventListener('input', function() {
+            const amount = parseFloat(this.value) || 0;
+            bidTotalElement.textContent = `KES ${amount.toFixed(2)}`;
+        });
+    });
+</script>
+{% endblock %}
