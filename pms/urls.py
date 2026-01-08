@@ -188,4 +188,43 @@ urlpatterns = [
     path('documentation/', views.documentation, name='documentation'),
     path('submit-ticket/', views.submit_support_ticket, name='submit_support_ticket'),
     
+    # Dashboard
+    path('supplier/dashboard/', views.supplier_dashboard, name='supplier_dashboard'),
+    
+    # Tenders & Opportunities
+    path('supplier/tenders/', views.supplier_tenders_list, name='supplier_tenders_list'),
+    path('supplier/tenders/<uuid:tender_id>/', views.supplier_tender_detail, name='supplier_tender_detail'),
+    
+    # Bids
+    path('supplier/bids/', views.supplier_bids_list, name='supplier_bids_list'),
+    path('supplier/bids/<uuid:bid_id>/', views.supplier_bid_detail, name='supplier_bid_detail'),
+    path('supplier/tenders/<uuid:tender_id>/submit-bid/', views.supplier_submit_bid, name='supplier_submit_bid'),
+    path('supplier/awarded-contracts/', views.supplier_awarded_contracts, name='supplier_awarded_contracts'),
+    
+    # Purchase Orders
+    path('supplier/purchase-orders/', views.supplier_purchase_orders_list, name='supplier_purchase_orders_list'),
+    path('supplier/purchase-orders/<uuid:po_id>/', views.supplier_purchase_order_detail, name='supplier_purchase_order_detail'),
+    path('supplier/purchase-orders/<uuid:po_id>/acknowledge/', views.supplier_acknowledge_po, name='supplier_acknowledge_po'),
+    path('supplier/pending-orders/', views.supplier_pending_orders, name='supplier_pending_orders'),
+    path('supplier/deliveries/', views.supplier_deliveries, name='supplier_deliveries'),
+    path('supplier/completed-orders/', views.supplier_completed_orders, name='supplier_completed_orders'),
+    
+    # Invoices & Payments
+    path('supplier/invoices/', views.supplier_invoices_list, name='supplier_invoices_list'),
+    path('supplier/invoices/<uuid:invoice_id>/', views.supplier_invoice_detail, name='supplier_invoice_detail'),
+    path('supplier/invoices/submit/', views.supplier_submit_invoice, name='supplier_submit_invoice'),
+    path('supplier/invoices/submit/<uuid:po_id>/', views.supplier_submit_invoice, name='supplier_submit_invoice_for_po'),
+    path('supplier/payments/', views.supplier_payments, name='supplier_payments'),
+    path('supplier/payment-history/', views.supplier_payment_history, name='supplier_payment_history'),
+    
+    # Profile & Documents
+    path('supplier/profile/', views.supplier_company_profile, name='supplier_company_profile'),
+    path('supplier/documents/', views.supplier_documents, name='supplier_documents'),
+    path('supplier/certifications/', views.supplier_certifications, name='supplier_certifications'),
+    
+    # Support
+    path('supplier/help/', views.supplier_help_center, name='supplier_help_center'),
+    path('supplier/contact-support/', views.supplier_contact_support, name='supplier_contact_support'),
+    
+    
 ]

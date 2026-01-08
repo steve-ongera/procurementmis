@@ -627,38 +627,6 @@ def stores_dashboard(request):
     return render(request, 'dashboards/stores_dashboard.html', context)
 
 
-def supplier_dashboard(request):
-    """Supplier Dashboard"""
-    user = request.user
-    
-    try:
-        supplier = Supplier.objects.get(email=user.email)
-        
-        context = {
-            'supplier': supplier,
-            'active_tenders': Tender.objects.filter(
-                invited_suppliers=supplier,
-                status='PUBLISHED'
-            ).order_by('-closing_date')[:10],
-            'my_bids': Bid.objects.filter(
-                supplier=supplier
-            ).order_by('-submitted_at')[:10],
-            'active_pos': PurchaseOrder.objects.filter(
-                supplier=supplier,
-                status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED']
-            ).order_by('-created_at')[:10],
-            'supplier_stats': {
-                'total_bids': Bid.objects.filter(supplier=supplier).count(),
-                'awarded_bids': Bid.objects.filter(supplier=supplier, status='AWARDED').count(),
-                'total_pos': PurchaseOrder.objects.filter(supplier=supplier).count(),
-                'rating': supplier.rating,
-            }
-        }
-    except Supplier.DoesNotExist:
-        context = {'supplier': None}
-    
-    return render(request, 'dashboards/supplier_dashboard.html', context)
-
 
 def auditor_dashboard(request):
     """Auditor Dashboard"""
@@ -8626,3 +8594,997 @@ def bulk_approve(request):
         'failed_count': failed_count,
         'errors': errors
     })
+    
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q, Sum, Count, Avg
+from django.utils import timezone
+from django.http import JsonResponse, HttpResponse
+from django.core.paginator import Paginator
+from datetime import datetime, timedelta
+from decimal import Decimal
+
+from .models import (
+    User, Supplier, SupplierDocument, SupplierPerformance,
+    Tender, TenderDocument, Bid, BidItem, BidDocument,
+    PurchaseOrder, PurchaseOrderItem,
+    Invoice, InvoiceItem, InvoiceDocument, Payment,
+    GoodsReceivedNote, GRNItem, Notification
+)
+from .forms import (
+    SupplierProfileForm, SupplierDocumentForm, BidForm, 
+    BidItemFormSet, BidDocumentForm, InvoiceForm, 
+    InvoiceItemFormSet, InvoiceDocumentForm
+)
+
+
+# ============================================================================
+# SUPPLIER DASHBOARD
+# ============================================================================
+
+@login_required
+def supplier_dashboard(request):
+    """Supplier portal dashboard with key metrics and notifications"""
+    
+    # Get supplier profile
+    try:
+        supplier = request.user.supplier_profile
+    except:
+        messages.error(request, "Supplier profile not found. Please contact administrator.")
+        return redirect('home')
+    
+    # Date ranges
+    today = timezone.now().date()
+    month_start = today.replace(day=1)
+    year_start = today.replace(month=1, day=1)
+    
+    # Key Metrics
+    # Active tenders
+    active_tenders = Tender.objects.filter(
+        status='PUBLISHED',
+        closing_date__gte=timezone.now()
+    ).count()
+    
+    # My bids
+    my_bids = Bid.objects.filter(supplier=supplier)
+    total_bids = my_bids.count()
+    pending_bids = my_bids.filter(status='SUBMITTED').count()
+    awarded_bids = my_bids.filter(status='AWARDED').count()
+    
+    # Purchase orders
+    purchase_orders = PurchaseOrder.objects.filter(supplier=supplier)
+    pending_pos = purchase_orders.filter(
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED']
+    ).count()
+    
+    # Invoices
+    invoices = Invoice.objects.filter(supplier=supplier)
+    pending_invoices = invoices.filter(
+        status__in=['SUBMITTED', 'VERIFYING', 'MATCHED', 'APPROVED']
+    ).count()
+    
+    # Financial metrics
+    total_invoiced = invoices.aggregate(
+        total=Sum('total_amount')
+    )['total'] or Decimal('0')
+    
+    total_paid = invoices.filter(
+        status='PAID'
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    
+    pending_payments = total_invoiced - total_paid
+    
+    # This month's orders
+    month_orders = purchase_orders.filter(
+        po_date__gte=month_start
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    
+    # Performance rating
+    avg_rating = SupplierPerformance.objects.filter(
+        supplier=supplier
+    ).aggregate(avg=Avg('overall_rating'))['avg'] or 0
+    
+    # Recent tenders (open for bidding)
+    recent_tenders = Tender.objects.filter(
+        Q(status='PUBLISHED') &
+        Q(closing_date__gte=timezone.now())
+    ).order_by('-publish_date')[:5]
+    
+    # Recent bids
+    recent_bids = Bid.objects.filter(
+        supplier=supplier
+    ).select_related('tender').order_by('-submitted_at')[:5]
+    
+    # Active purchase orders
+    active_pos = PurchaseOrder.objects.filter(
+        supplier=supplier,
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'PARTIAL_DELIVERY']
+    ).order_by('-po_date')[:5]
+    
+    # Recent invoices
+    recent_invoices = Invoice.objects.filter(
+        supplier=supplier
+    ).order_by('-created_at')[:5]
+    
+    # Notifications
+    notifications = Notification.objects.filter(
+        user=request.user,
+        is_read=False
+    ).order_by('-created_at')[:10]
+    
+    # Documents expiring soon (30 days)
+    expiring_docs = SupplierDocument.objects.filter(
+        supplier=supplier,
+        expiry_date__lte=today + timedelta(days=30),
+        expiry_date__gte=today
+    ).order_by('expiry_date')
+    
+    context = {
+        'supplier': supplier,
+        'active_tenders': active_tenders,
+        'total_bids': total_bids,
+        'pending_bids': pending_bids,
+        'awarded_bids': awarded_bids,
+        'pending_pos': pending_pos,
+        'pending_invoices': pending_invoices,
+        'total_invoiced': total_invoiced,
+        'total_paid': total_paid,
+        'pending_payments': pending_payments,
+        'month_orders': month_orders,
+        'avg_rating': avg_rating,
+        'recent_tenders': recent_tenders,
+        'recent_bids': recent_bids,
+        'active_pos': active_pos,
+        'recent_invoices': recent_invoices,
+        'notifications': notifications,
+        'expiring_docs': expiring_docs,
+    }
+    
+    return render(request, 'supplier/dashboard.html', context)
+
+
+# ============================================================================
+# TENDERS & OPPORTUNITIES
+# ============================================================================
+
+@login_required
+def supplier_tenders_list(request):
+    """List all available tenders"""
+    
+    supplier = request.user.supplier_profile
+    
+    # Filter options
+    status = request.GET.get('status', 'all')
+    tender_type = request.GET.get('type', 'all')
+    search = request.GET.get('search', '')
+    
+    # Base query
+    tenders = Tender.objects.filter(
+        status='PUBLISHED',
+        closing_date__gte=timezone.now()
+    )
+    
+    # Apply filters
+    if tender_type != 'all':
+        tenders = tenders.filter(tender_type=tender_type)
+    
+    if search:
+        tenders = tenders.filter(
+            Q(tender_number__icontains=search) |
+            Q(title__icontains=search) |
+            Q(description__icontains=search)
+        )
+    
+    # Check if supplier has bid
+    for tender in tenders:
+        tender.has_bid = Bid.objects.filter(
+            tender=tender,
+            supplier=supplier
+        ).exists()
+    
+    # Pagination
+    paginator = Paginator(tenders, 10)
+    page_number = request.GET.get('page')
+    tenders_page = paginator.get_page(page_number)
+    
+    context = {
+        'tenders': tenders_page,
+        'tender_types': Tender.TENDER_TYPES,
+        'current_status': status,
+        'current_type': tender_type,
+        'search': search,
+    }
+    
+    return render(request, 'supplier/tenders_list.html', context)
+
+
+@login_required
+def supplier_tender_detail(request, tender_id):
+    """View tender details"""
+    
+    supplier = request.user.supplier_profile
+    tender = get_object_or_404(Tender, id=tender_id)
+    
+    # Check if supplier has already bid
+    existing_bid = Bid.objects.filter(
+        tender=tender,
+        supplier=supplier
+    ).first()
+    
+    # Get tender documents
+    documents = TenderDocument.objects.filter(tender=tender)
+    
+    # Get evaluation criteria
+    criteria = tender.evaluation_criteria.all()
+    
+    # Calculate time remaining
+    time_remaining = tender.closing_date - timezone.now()
+    
+    context = {
+        'tender': tender,
+        'existing_bid': existing_bid,
+        'documents': documents,
+        'criteria': criteria,
+        'time_remaining': time_remaining,
+        'can_bid': tender.closing_date > timezone.now() and not existing_bid,
+    }
+    
+    return render(request, 'supplier/tender_detail.html', context)
+
+
+# ============================================================================
+# BIDS MANAGEMENT
+# ============================================================================
+
+@login_required
+def supplier_bids_list(request):
+    """List all supplier's bids"""
+    
+    supplier = request.user.supplier_profile
+    
+    # Filter options
+    status = request.GET.get('status', 'all')
+    search = request.GET.get('search', '')
+    
+    # Base query
+    bids = Bid.objects.filter(supplier=supplier).select_related('tender')
+    
+    # Apply filters
+    if status != 'all':
+        bids = bids.filter(status=status)
+    
+    if search:
+        bids = bids.filter(
+            Q(bid_number__icontains=search) |
+            Q(tender__tender_number__icontains=search) |
+            Q(tender__title__icontains=search)
+        )
+    
+    # Order by submission date
+    bids = bids.order_by('-submitted_at')
+    
+    # Statistics
+    stats = {
+        'total': bids.count(),
+        'submitted': bids.filter(status='SUBMITTED').count(),
+        'evaluating': bids.filter(status='EVALUATING').count(),
+        'qualified': bids.filter(status='QUALIFIED').count(),
+        'awarded': bids.filter(status='AWARDED').count(),
+        'rejected': bids.filter(status='REJECTED').count(),
+    }
+    
+    # Pagination
+    paginator = Paginator(bids, 15)
+    page_number = request.GET.get('page')
+    bids_page = paginator.get_page(page_number)
+    
+    context = {
+        'bids': bids_page,
+        'stats': stats,
+        'status_choices': Bid.STATUS_CHOICES,
+        'current_status': status,
+        'search': search,
+    }
+    
+    return render(request, 'supplier/bids_list.html', context)
+
+
+@login_required
+def supplier_bid_detail(request, bid_id):
+    """View bid details"""
+    
+    supplier = request.user.supplier_profile
+    bid = get_object_or_404(Bid, id=bid_id, supplier=supplier)
+    
+    # Get bid items
+    items = BidItem.objects.filter(bid=bid).select_related('requisition_item')
+    
+    # Get bid documents
+    documents = BidDocument.objects.filter(bid=bid)
+    
+    # Get evaluation if exists
+    evaluation = bid.evaluations.first()
+    
+    context = {
+        'bid': bid,
+        'items': items,
+        'documents': documents,
+        'evaluation': evaluation,
+    }
+    
+    return render(request, 'supplier/bid_detail.html', context)
+
+
+@login_required
+def supplier_submit_bid(request, tender_id):
+    """Submit a new bid for a tender"""
+    
+    supplier = request.user.supplier_profile
+    tender = get_object_or_404(Tender, id=tender_id)
+    
+    # Check if tender is still open
+    if tender.closing_date < timezone.now():
+        messages.error(request, "This tender has closed.")
+        return redirect('supplier_tender_detail', tender_id=tender_id)
+    
+    # Check if already submitted
+    if Bid.objects.filter(tender=tender, supplier=supplier).exists():
+        messages.error(request, "You have already submitted a bid for this tender.")
+        return redirect('supplier_tender_detail', tender_id=tender_id)
+    
+    if request.method == 'POST':
+        bid_form = BidForm(request.POST)
+        item_formset = BidItemFormSet(request.POST, prefix='items')
+        
+        if bid_form.is_valid() and item_formset.is_valid():
+            # Create bid
+            bid = bid_form.save(commit=False)
+            bid.tender = tender
+            bid.supplier = supplier
+            bid.status = 'SUBMITTED'
+            bid.save()
+            
+            # Save items
+            items = item_formset.save(commit=False)
+            for item in items:
+                item.bid = bid
+                item.save()
+            
+            # Handle document uploads
+            documents = request.FILES.getlist('documents')
+            doc_types = request.POST.getlist('doc_types')
+            doc_names = request.POST.getlist('doc_names')
+            
+            for i, doc_file in enumerate(documents):
+                BidDocument.objects.create(
+                    bid=bid,
+                    document_type=doc_types[i],
+                    document_name=doc_names[i],
+                    file=doc_file
+                )
+            
+            messages.success(request, f"Bid {bid.bid_number} submitted successfully!")
+            return redirect('supplier_bid_detail', bid_id=bid.id)
+    else:
+        bid_form = BidForm()
+        
+        # Get requisition items for this tender
+        requisition_items = tender.requisition.items.all()
+        item_formset = BidItemFormSet(
+            prefix='items',
+            queryset=BidItem.objects.none(),
+            initial=[{'requisition_item': item} for item in requisition_items]
+        )
+    
+    context = {
+        'tender': tender,
+        'bid_form': bid_form,
+        'item_formset': item_formset,
+        'requisition_items': requisition_items,
+    }
+    
+    return render(request, 'supplier/submit_bid.html', context)
+
+
+@login_required
+def supplier_awarded_contracts(request):
+    """List awarded contracts/bids"""
+    
+    supplier = request.user.supplier_profile
+    
+    # Get awarded bids
+    awarded_bids = Bid.objects.filter(
+        supplier=supplier,
+        status='AWARDED'
+    ).select_related('tender').order_by('-submitted_at')
+    
+    # Get related purchase orders
+    for bid in awarded_bids:
+        bid.purchase_order = PurchaseOrder.objects.filter(bid=bid).first()
+    
+    context = {
+        'awarded_bids': awarded_bids,
+    }
+    
+    return render(request, 'supplier/awarded_contracts.html', context)
+
+
+# ============================================================================
+# PURCHASE ORDERS
+# ============================================================================
+
+@login_required
+def supplier_purchase_orders_list(request):
+    """List all purchase orders"""
+    
+    supplier = request.user.supplier_profile
+    
+    # Filter options
+    status = request.GET.get('status', 'all')
+    search = request.GET.get('search', '')
+    
+    # Base query
+    pos = PurchaseOrder.objects.filter(supplier=supplier)
+    
+    # Apply filters
+    if status != 'all':
+        pos = pos.filter(status=status)
+    
+    if search:
+        pos = pos.filter(
+            Q(po_number__icontains=search) |
+            Q(requisition__requisition_number__icontains=search)
+        )
+    
+    pos = pos.order_by('-po_date')
+    
+    # Statistics
+    stats = {
+        'total': pos.count(),
+        'pending': pos.filter(status__in=['APPROVED', 'SENT']).count(),
+        'acknowledged': pos.filter(status='ACKNOWLEDGED').count(),
+        'partial': pos.filter(status='PARTIAL_DELIVERY').count(),
+        'delivered': pos.filter(status='DELIVERED').count(),
+        'total_value': pos.aggregate(total=Sum('total_amount'))['total'] or Decimal('0'),
+    }
+    
+    # Pagination
+    paginator = Paginator(pos, 15)
+    page_number = request.GET.get('page')
+    pos_page = paginator.get_page(page_number)
+    
+    context = {
+        'pos': pos_page,
+        'stats': stats,
+        'status_choices': PurchaseOrder.STATUS_CHOICES,
+        'current_status': status,
+        'search': search,
+    }
+    
+    return render(request, 'supplier/purchase_orders_list.html', context)
+
+
+@login_required
+def supplier_purchase_order_detail(request, po_id):
+    """View purchase order details"""
+    
+    supplier = request.user.supplier_profile
+    po = get_object_or_404(PurchaseOrder, id=po_id, supplier=supplier)
+    
+    # Get PO items
+    items = PurchaseOrderItem.objects.filter(purchase_order=po)
+    
+    # Get amendments
+    amendments = po.amendments.all()
+    
+    # Get related GRNs
+    grns = GoodsReceivedNote.objects.filter(purchase_order=po)
+    
+    # Get related invoices
+    invoices = Invoice.objects.filter(purchase_order=po)
+    
+    context = {
+        'po': po,
+        'items': items,
+        'amendments': amendments,
+        'grns': grns,
+        'invoices': invoices,
+        'can_acknowledge': po.status == 'SENT',
+    }
+    
+    return render(request, 'supplier/purchase_order_detail.html', context)
+
+
+@login_required
+def supplier_acknowledge_po(request, po_id):
+    """Acknowledge receipt of purchase order"""
+    
+    supplier = request.user.supplier_profile
+    po = get_object_or_404(PurchaseOrder, id=po_id, supplier=supplier)
+    
+    if po.status != 'SENT':
+        messages.error(request, "This PO cannot be acknowledged.")
+        return redirect('supplier_purchase_order_detail', po_id=po_id)
+    
+    if request.method == 'POST':
+        po.status = 'ACKNOWLEDGED'
+        po.acknowledged_at = timezone.now()
+        po.save()
+        
+        messages.success(request, f"Purchase Order {po.po_number} acknowledged successfully!")
+        return redirect('supplier_purchase_order_detail', po_id=po_id)
+    
+    return render(request, 'supplier/acknowledge_po.html', {'po': po})
+
+
+@login_required
+def supplier_pending_orders(request):
+    """List pending purchase orders requiring action"""
+    
+    supplier = request.user.supplier_profile
+    
+    pending_pos = PurchaseOrder.objects.filter(
+        supplier=supplier,
+        status__in=['SENT', 'ACKNOWLEDGED']
+    ).order_by('delivery_date')
+    
+    context = {
+        'pending_pos': pending_pos,
+    }
+    
+    return render(request, 'supplier/pending_orders.html', context)
+
+
+@login_required
+def supplier_deliveries(request):
+    """Track deliveries and GRNs"""
+    
+    supplier = request.user.supplier_profile
+    
+    # Get all GRNs for supplier's POs
+    grns = GoodsReceivedNote.objects.filter(
+        purchase_order__supplier=supplier
+    ).select_related('purchase_order', 'store').order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(grns, 15)
+    page_number = request.GET.get('page')
+    grns_page = paginator.get_page(page_number)
+    
+    context = {
+        'grns': grns_page,
+    }
+    
+    return render(request, 'supplier/deliveries.html', context)
+
+
+@login_required
+def supplier_completed_orders(request):
+    """List completed orders"""
+    
+    supplier = request.user.supplier_profile
+    
+    completed_pos = PurchaseOrder.objects.filter(
+        supplier=supplier,
+        status__in=['DELIVERED', 'CLOSED']
+    ).order_by('-po_date')
+    
+    # Pagination
+    paginator = Paginator(completed_pos, 15)
+    page_number = request.GET.get('page')
+    pos_page = paginator.get_page(page_number)
+    
+    context = {
+        'pos': pos_page,
+    }
+    
+    return render(request, 'supplier/completed_orders.html', context)
+
+
+# ============================================================================
+# INVOICES & PAYMENTS
+# ============================================================================
+
+@login_required
+def supplier_invoices_list(request):
+    """List all supplier invoices"""
+    
+    supplier = request.user.supplier_profile
+    
+    # Filter options
+    status = request.GET.get('status', 'all')
+    search = request.GET.get('search', '')
+    
+    # Base query
+    invoices = Invoice.objects.filter(supplier=supplier)
+    
+    # Apply filters
+    if status != 'all':
+        invoices = invoices.filter(status=status)
+    
+    if search:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=search) |
+            Q(supplier_invoice_number__icontains=search) |
+            Q(purchase_order__po_number__icontains=search)
+        )
+    
+    invoices = invoices.order_by('-created_at')
+    
+    # Statistics
+    stats = {
+        'total': invoices.count(),
+        'draft': invoices.filter(status='DRAFT').count(),
+        'submitted': invoices.filter(status='SUBMITTED').count(),
+        'approved': invoices.filter(status='APPROVED').count(),
+        'paid': invoices.filter(status='PAID').count(),
+        'total_invoiced': invoices.aggregate(total=Sum('total_amount'))['total'] or Decimal('0'),
+        'total_paid': invoices.filter(status='PAID').aggregate(total=Sum('total_amount'))['total'] or Decimal('0'),
+    }
+    
+    # Pagination
+    paginator = Paginator(invoices, 15)
+    page_number = request.GET.get('page')
+    invoices_page = paginator.get_page(page_number)
+    
+    context = {
+        'invoices': invoices_page,
+        'stats': stats,
+        'status_choices': Invoice.STATUS_CHOICES,
+        'current_status': status,
+        'search': search,
+    }
+    
+    return render(request, 'supplier/invoices_list.html', context)
+
+
+@login_required
+def supplier_invoice_detail(request, invoice_id):
+    """View invoice details"""
+    
+    supplier = request.user.supplier_profile
+    invoice = get_object_or_404(Invoice, id=invoice_id, supplier=supplier)
+    
+    # Get invoice items
+    items = InvoiceItem.objects.filter(invoice=invoice)
+    
+    # Get invoice documents
+    documents = InvoiceDocument.objects.filter(invoice=invoice)
+    
+    # Get payments
+    payments = Payment.objects.filter(invoice=invoice)
+    
+    context = {
+        'invoice': invoice,
+        'items': items,
+        'documents': documents,
+        'payments': payments,
+    }
+    
+    return render(request, 'supplier/invoice_detail.html', context)
+
+
+@login_required
+def supplier_submit_invoice(request, po_id=None):
+    """Submit a new invoice"""
+    
+    supplier = request.user.supplier_profile
+    
+    # If PO specified, get it
+    po = None
+    if po_id:
+        po = get_object_or_404(PurchaseOrder, id=po_id, supplier=supplier)
+    
+    if request.method == 'POST':
+        invoice_form = InvoiceForm(request.POST, supplier=supplier)
+        item_formset = InvoiceItemFormSet(request.POST, prefix='items')
+        
+        if invoice_form.is_valid() and item_formset.is_valid():
+            # Create invoice
+            invoice = invoice_form.save(commit=False)
+            invoice.supplier = supplier
+            invoice.status = 'SUBMITTED'
+            invoice.submitted_by = request.user
+            invoice.save()
+            
+            # Save items
+            items = item_formset.save(commit=False)
+            total = Decimal('0')
+            tax_total = Decimal('0')
+            
+            for item in items:
+                item.invoice = invoice
+                item.save()
+                total += item.total_price
+                tax_total += item.tax_amount
+            
+            # Update invoice totals
+            invoice.subtotal = total
+            invoice.tax_amount = tax_total
+            invoice.total_amount = total + tax_total + invoice.other_charges
+            invoice.save()
+            
+            # Handle document uploads
+            documents = request.FILES.getlist('documents')
+            doc_names = request.POST.getlist('doc_names')
+            
+            for i, doc_file in enumerate(documents):
+                InvoiceDocument.objects.create(
+                    invoice=invoice,
+                    document_name=doc_names[i] if i < len(doc_names) else doc_file.name,
+                    file=doc_file
+                )
+            
+            messages.success(request, f"Invoice {invoice.invoice_number} submitted successfully!")
+            return redirect('supplier_invoice_detail', invoice_id=invoice.id)
+    else:
+        initial = {}
+        if po:
+            initial = {
+                'purchase_order': po,
+                'due_date': timezone.now().date() + timedelta(days=30)
+            }
+        
+        invoice_form = InvoiceForm(initial=initial, supplier=supplier)
+        
+        # If PO specified, pre-fill items
+        if po:
+            po_items = PurchaseOrderItem.objects.filter(purchase_order=po)
+            item_formset = InvoiceItemFormSet(
+                prefix='items',
+                queryset=InvoiceItem.objects.none(),
+                initial=[{
+                    'po_item': item,
+                    'description': item.item_description,
+                    'quantity': item.quantity,
+                    'unit_price': item.unit_price,
+                } for item in po_items]
+            )
+        else:
+            item_formset = InvoiceItemFormSet(prefix='items', queryset=InvoiceItem.objects.none())
+    
+    context = {
+        'invoice_form': invoice_form,
+        'item_formset': item_formset,
+        'po': po,
+    }
+    
+    return render(request, 'supplier/submit_invoice.html', context)
+
+
+@login_required
+def supplier_payments(request):
+    """View payment information"""
+    
+    supplier = request.user.supplier_profile
+    
+    # Get all payments for supplier's invoices
+    payments = Payment.objects.filter(
+        invoice__supplier=supplier
+    ).select_related('invoice').order_by('-payment_date')
+    
+    # Statistics
+    stats = {
+        'total_paid': payments.filter(status='COMPLETED').aggregate(
+            total=Sum('payment_amount')
+        )['total'] or Decimal('0'),
+        'pending': payments.filter(status='PENDING').aggregate(
+            total=Sum('payment_amount')
+        )['total'] or Decimal('0'),
+        'this_month': payments.filter(
+            status='COMPLETED',
+            payment_date__gte=timezone.now().date().replace(day=1)
+        ).aggregate(total=Sum('payment_amount'))['total'] or Decimal('0'),
+    }
+    
+    # Pagination
+    paginator = Paginator(payments, 15)
+    page_number = request.GET.get('page')
+    payments_page = paginator.get_page(page_number)
+    
+    context = {
+        'payments': payments_page,
+        'stats': stats,
+    }
+    
+    return render(request, 'supplier/payments.html', context)
+
+
+@login_required
+def supplier_payment_history(request):
+    """Detailed payment history with filters"""
+    
+    supplier = request.user.supplier_profile
+    
+    # Date filters
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    status = request.GET.get('status', 'all')
+    
+    # Base query
+    payments = Payment.objects.filter(
+        invoice__supplier=supplier
+    ).select_related('invoice', 'invoice__purchase_order')
+    
+    # Apply filters
+    if start_date:
+        payments = payments.filter(payment_date__gte=start_date)
+    if end_date:
+        payments = payments.filter(payment_date__lte=end_date)
+    if status != 'all':
+        payments = payments.filter(status=status)
+    
+    payments = payments.order_by('-payment_date')
+    
+    # Calculate totals
+    totals = payments.aggregate(
+        total=Sum('payment_amount'),
+        count=Count('id')
+    )
+    
+    # Pagination
+    paginator = Paginator(payments, 20)
+    page_number = request.GET.get('page')
+    payments_page = paginator.get_page(page_number)
+    
+    context = {
+        'payments': payments_page,
+        'totals': totals,
+        'status_choices': Payment.PAYMENT_STATUS,
+        'current_status': status,
+        'start_date': start_date,
+        'end_date': end_date,
+    }
+    
+    return render(request, 'supplier/payment_history.html', context)
+
+
+# ============================================================================
+# SUPPLIER PROFILE & DOCUMENTS
+# ============================================================================
+
+@login_required
+def supplier_company_profile(request):
+    """View and edit company profile"""
+    
+    supplier = request.user.supplier_profile
+    
+    if request.method == 'POST':
+        form = SupplierProfileForm(request.POST, instance=supplier)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Company profile updated successfully!")
+            return redirect('supplier_company_profile')
+    else:
+        form = SupplierProfileForm(instance=supplier)
+    
+    # Performance statistics
+    performance_stats = SupplierPerformance.objects.filter(
+        supplier=supplier
+    ).aggregate(
+        avg_quality=Avg('quality_rating'),
+        avg_delivery=Avg('delivery_rating'),
+        avg_service=Avg('service_rating'),
+        avg_overall=Avg('overall_rating'),
+        count=Count('id')
+    )
+    
+    context = {
+        'form': form,
+        'supplier': supplier,
+        'performance_stats': performance_stats,
+    }
+    
+    return render(request, 'supplier/company_profile.html', context)
+
+
+@login_required
+def supplier_documents(request):
+    """Manage supplier documents"""
+    
+    supplier = request.user.supplier_profile
+    
+    # Get all documents
+    documents = SupplierDocument.objects.filter(
+        supplier=supplier
+    ).order_by('-uploaded_at')
+    
+    # Check for expiring documents
+    today = timezone.now().date()
+    expiring_soon = documents.filter(
+        expiry_date__lte=today + timedelta(days=30),
+        expiry_date__gte=today
+    )
+    
+    expired = documents.filter(expiry_date__lt=today)
+    
+    if request.method == 'POST':
+        form = SupplierDocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            doc = form.save(commit=False)
+            doc.supplier = supplier
+            doc.save()
+            messages.success(request, "Document uploaded successfully!")
+            return redirect('supplier_documents')
+    else:
+        form = SupplierDocumentForm()
+    
+    context = {
+        'documents': documents,
+        'expiring_soon': expiring_soon,
+        'expired': expired,
+        'form': form,
+    }
+    
+    return render(request, 'supplier/documents.html', context)
+
+
+@login_required
+def supplier_certifications(request):
+    """View certifications and compliance status"""
+    
+    supplier = request.user.supplier_profile
+    
+    # Get certification documents
+    certifications = SupplierDocument.objects.filter(
+        supplier=supplier,document_type__in=['REGISTRATION', 'LICENSE', 'INSURANCE']
+    ).order_by('-uploaded_at')
+
+    # Compliance status
+    today = timezone.now().date()
+    compliance = {
+        'tax_compliant': supplier.tax_compliance_expiry and supplier.tax_compliance_expiry >= today,
+        'registration_valid': supplier.registration_expiry and supplier.registration_expiry >= today,
+        'documents_verified': certifications.filter(is_verified=True).count(),
+        'total_documents': certifications.count(),
+    }
+
+    context = {
+        'certifications': certifications,
+        'compliance': compliance,
+        'supplier': supplier,
+    }
+
+    return render(request, 'supplier/certifications.html', context)
+
+#============================================================================
+#SUPPORT & HELP
+#============================================================================
+@login_required
+def supplier_help_center(request):
+    """Help center and FAQs"""
+    faqs = [
+        {
+            'question': 'How do I submit a bid?',
+            'answer': 'Navigate to "Available Tenders", select a tender, and click "Submit Bid". Fill in all required information and upload necessary documents.'
+        },
+        {
+            'question': 'When will I receive payment?',
+            'answer': 'Payments are typically processed within 30 days of invoice approval. You can track payment status in the "Payments" section.'
+        },
+        # Add more FAQs
+    ]
+
+    context = {
+        'faqs': faqs,
+    }
+
+    return render(request, 'supplier/help_center.html', context)
+
+@login_required
+def supplier_contact_support(request):
+    """Contact support form"""
+    if request.method == 'POST':
+        subject = request.POST.get('subject')
+        message = request.POST.get('message')
+        
+        # Send email or create support ticket
+        # Implementation depends on your requirements
+        
+        messages.success(request, "Your message has been sent. We'll get back to you soon!")
+        return redirect('supplier_dashboard')
+
+    return render(request, 'supplier/contact_support.html')
+
