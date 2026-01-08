@@ -1,0 +1,1071 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% load static %}
+{% load humanize %}
+{% block title %}Bid Details - {{ bid.bid_number }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --info-color: #3B82F6;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title-section {
+        flex: 1;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Status Badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .status-badge i {
+        font-size: 0.875rem;
+    }
+
+    .status-badge.status-submitted {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .status-badge.status-opened {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .status-badge.status-evaluating {
+        background: #E0E7FF;
+        color: #3730A3;
+    }
+
+    .status-badge.status-qualified {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .status-badge.status-disqualified {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .status-badge.status-awarded {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .status-badge.status-rejected {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    /* Cards */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: #F8FAFC;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Info Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .info-label i {
+        font-size: 0.875rem;
+    }
+
+    .info-value {
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: #1E293B;
+    }
+
+    .info-value.amount {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 1.125rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .info-value.rank {
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: var(--warning-color);
+    }
+
+    /* Summary Card */
+    .summary-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+
+    .summary-item {
+        text-align: center;
+    }
+
+    .summary-label {
+        font-size: 0.75rem;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    /* Table */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table thead th {
+        padding: 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border-color);
+        background: #F8FAFC;
+    }
+
+    .data-table tbody td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: top;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .data-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .item-description {
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .item-specs {
+        font-size: 0.75rem;
+        color: #94A3B8;
+        line-height: 1.4;
+    }
+
+    .item-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .item-detail-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        background: #F1F5F9;
+        border-radius: 0.25rem;
+        color: #475569;
+    }
+
+    .item-detail-badge i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Documents List */
+    .documents-list {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .document-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        background: white;
+        transition: all 0.2s;
+    }
+
+    .document-card:hover {
+        background: var(--hover-bg);
+        border-color: var(--primary-color);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .document-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 0.375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .document-icon.technical {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .document-icon.financial {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .document-icon.compliance {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .document-icon.certificate {
+        background: #E0E7FF;
+        color: #3730A3;
+    }
+
+    .document-icon.other {
+        background: #F3E8FF;
+        color: #6B21A8;
+    }
+
+    .document-info {
+        flex: 1;
+    }
+
+    .document-name {
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .document-meta {
+        font-size: 0.75rem;
+        color: #94A3B8;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .document-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* Evaluation Section */
+    .evaluation-section {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .evaluation-scores {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .score-item {
+        text-align: center;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 1rem;
+        border-radius: 0.375rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .score-label {
+        font-size: 0.75rem;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .score-value {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .evaluation-text {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 0.375rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .evaluation-text h4 {
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+        opacity: 0.9;
+    }
+
+    .evaluation-text p {
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    /* Alert */
+    .alert {
+        padding: 1rem 1.25rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        color: #065F46;
+        border: 1px solid #A7F3D0;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE68A;
+    }
+
+    .alert-info {
+        background: #E0F2FE;
+        color: #0369A1;
+        border: 1px solid #BAE6FD;
+    }
+
+    .alert-danger {
+        background: #FEE2E2;
+        color: #991B1B;
+        border: 1px solid #FECACA;
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-secondary {
+        background: #F1F5F9;
+        color: #475569;
+        border-color: #E2E8F0;
+    }
+
+    .btn-secondary:hover {
+        background: #E2E8F0;
+        border-color: #CBD5E1;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .info-grid,
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .data-table {
+            display: block;
+            overflow-x: auto;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .action-buttons .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .document-card {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .document-actions {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-section">
+        <h1 class="page-title">
+            <i class="bi bi-file-earmark-text"></i>
+            {{ bid.bid_number }}
+        </h1>
+        <div class="breadcrumb">
+            <a href="{% url 'supplier_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="#">My Bids</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ bid.bid_number }}</span>
+        </div>
+    </div>
+    <div class="action-buttons">
+        <a href="{% url 'supplier_tender_detail' bid.tender.id %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            View Tender
+        </a>
+        <button onclick="window.print()" class="btn btn-secondary">
+            <i class="bi bi-printer"></i>
+            Print
+        </button>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+        <div>{{ message }}</div>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Status Alerts -->
+{% if bid.status == 'AWARDED' %}
+<div class="alert alert-success">
+    <i class="bi bi-trophy"></i>
+    <div>
+        <strong>Congratulations!</strong> Your bid has been awarded. You will be contacted soon with further instructions.
+    </div>
+</div>
+{% elif bid.status == 'DISQUALIFIED' %}
+<div class="alert alert-danger">
+    <i class="bi bi-x-circle"></i>
+    <div>
+        <strong>Bid Disqualified</strong>
+        {% if bid.disqualification_reason %}
+        <p style="margin: 0.5rem 0 0 0;">Reason: {{ bid.disqualification_reason }}</p>
+        {% endif %}
+    </div>
+</div>
+{% elif bid.status == 'EVALUATING' %}
+<div class="alert alert-info">
+    <i class="bi bi-hourglass-split"></i>
+    <div>
+        <strong>Under Evaluation</strong> Your bid is currently being evaluated by the procurement team.
+    </div>
+</div>
+{% endif %}
+
+<!-- Summary Card -->
+<div class="summary-card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0; font-size: 1.25rem;">Bid Summary</h2>
+        <span class="status-badge status-{{ bid.status|lower }}">
+            <i class="bi bi-{% if bid.status == 'SUBMITTED' %}send-check{% elif bid.status == 'OPENED' %}envelope-open{% elif bid.status == 'EVALUATING' %}hourglass-split{% elif bid.status == 'AWARDED' %}trophy{% elif bid.status == 'DISQUALIFIED' %}x-circle{% else %}check-circle{% endif %}"></i>
+            {{ bid.get_status_display }}
+        </span>
+    </div>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="summary-label">Bid Amount</div>
+            <div class="summary-value">KES {{ bid.bid_amount|floatformat:2|intcomma }}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Submitted</div>
+            <div class="summary-value">{{ bid.submitted_at|date:"M d, Y" }}</div>
+        </div>
+        {% if bid.rank %}
+        <div class="summary-item">
+            <div class="summary-label">Rank</div>
+            <div class="summary-value">#{{ bid.rank }}</div>
+        </div>
+        {% endif %}
+        {% if bid.evaluation_score %}
+        <div class="summary-item">
+            <div class="summary-label">Score</div>
+            <div class="summary-value">{{ bid.evaluation_score }}/100</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Bid Details Card -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-info-circle"></i>
+            Bid Details
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-file-earmark-text"></i>
+                    Tender Number
+                </span>
+                <span class="info-value">{{ bid.tender.tender_number }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-calendar-event"></i>
+                    Tender Title
+                </span>
+                <span class="info-value">{{ bid.tender.title }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-cash-stack"></i>
+                    Bid Amount
+                </span>
+                <span class="info-value amount">KES {{ bid.bid_amount|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-shield-check"></i>
+                    Bid Bond
+                </span>
+                <span class="info-value">KES {{ bid.bid_bond_amount|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-truck"></i>
+                    Delivery Period
+                </span>
+                <span class="info-value">{{ bid.delivery_period_days }} days</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-clock-history"></i>
+                    Validity Period
+                </span>
+                <span class="info-value">{{ bid.validity_period_days }} days</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-send-check"></i>
+                    Submitted At
+                </span>
+                <span class="info-value">{{ bid.submitted_at|date:"M d, Y H:i" }}</span>
+            </div>
+            {% if bid.opened_at %}
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-envelope-open"></i>
+                    Opened At
+                </span>
+                <span class="info-value">{{ bid.opened_at|date:"M d, Y H:i" }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if bid.notes %}
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+            <h3 style="font-size: 0.875rem; font-weight: 600; color: #1E293B; margin-bottom: 0.5rem;">
+                <i class="bi bi-chat-left-text"></i> Additional Notes
+            </h3>
+            <p style="margin: 0; color: #475569; line-height: 1.6;">{{ bid.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Evaluation Section -->
+{% if evaluation %}
+<div class="evaluation-section">
+    <h2 style="margin: 0 0 0.5rem 0; font-size: 1.25rem;">
+        <i class="bi bi-graph-up"></i> Evaluation Results
+    </h2>
+    <p style="margin: 0; opacity: 0.9; font-size: 0.875rem;">
+        Evaluated by {{ evaluation.evaluator.get_full_name }} on {{ evaluation.evaluated_at|date:"M d, Y" }}
+    </p>
+    
+    <div class="evaluation-scores">
+        <div class="score-item">
+            <div class="score-label">Technical Score</div>
+            <div class="score-value">{{ evaluation.technical_score }}/100</div>
+        </div>
+        <div class="score-item">
+            <div class="score-label">Financial Score</div>
+            <div class="score-value">{{ evaluation.financial_score }}/100</div>
+        </div>
+        <div class="score-item">
+            <div class="score-label">Total Score</div>
+            <div class="score-value">{{ evaluation.total_score }}/100</div>
+        </div>
+        <div class="score-item">
+            <div class="score-label">Compliance</div>
+            <div class="score-value">
+                {% if evaluation.technical_compliance and evaluation.financial_compliance %}
+                <i class="bi bi-check-circle"></i>
+                {% else %}
+                <i class="bi bi-x-circle"></i>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if evaluation.strengths %}
+    <div class="evaluation-text">
+        <h4><i class="bi bi-plus-circle"></i> Strengths</h4>
+        <p>{{ evaluation.strengths }}</p>
+    </div>
+    {% endif %}
+
+    {% if evaluation.weaknesses %}
+    <div class="evaluation-text">
+        <h4><i class="bi bi-dash-circle"></i> Weaknesses</h4>
+        <p>{{ evaluation.weaknesses }}</p>
+    </div>
+    {% endif %}
+
+    {% if evaluation.recommendation %}
+    <div class="evaluation-text">
+        <h4><i class="bi bi-lightbulb"></i> Recommendation</h4>
+        <p>{{ evaluation.recommendation }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Bid Items Card -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-list-ul"></i>
+            Bid Items
+        </h2>
+        <span style="font-size: 0.875rem; color: var(--secondary-color);">
+            {{ items.count }} item{{ items.count|pluralize }}
+        </span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 30%;">Description</th>
+                    <th style="width: 10%;">Quantity</th>
+                    <th style="width: 15%;">Unit Price</th>
+                    <th style="width: 15%;">Total</th>
+                    <th style="width: 10%;">Delivery</th>
+                    <th style="width: 15%;">Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td style="font-weight: 600; color: var(--secondary-color);">{{ forloop.counter }}</td>
+                    <td>
+                        <div class="item-description">{{ item.requisition_item.item_description }}</div>
+                        {% if item.requisition_item.specifications %}
+                        <div class="item-specs">{{ item.requisition_item.specifications|truncatechars:100 }}</div>
+                        {% endif %}
+                        {% if item.specifications %}
+                        <div class="item-specs" style="margin-top: 0.5rem;">
+                            <strong>Your Specs:</strong> {{ item.specifications|truncatechars:100 }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ item.requisition_item.quantity }}</strong><br>
+                        <span style="font-size: 0.75rem; color: #94A3B8;">{{ item.requisition_item.unit_of_measure }}</span>
+                    </td>
+                    <td style="font-family: monospace;">
+                        KES {{ item.quoted_unit_price|floatformat:2|intcomma }}
+                    </td>
+                    <td style="font-family: monospace; font-weight: 600;">
+                        KES {{ item.quoted_total|floatformat:2|intcomma }}
+                    </td>
+                    <td>
+                        {{ item.delivery_period_days }} days
+                    </td>
+                    <td>
+                        <div class="item-details">
+                            {% if item.brand %}
+                            <span class="item-detail-badge">
+                                <i class="bi bi-tag"></i>
+                                {{ item.brand }}
+                            </span>
+                            {% endif %}
+                            {% if item.model %}
+                            <span class="item-detail-badge">
+                                <i class="bi bi-gear"></i>
+                                {{ item.model }}
+                            </span>
+                            {% endif %}
+                            {% if item.warranty_period_months > 0 %}
+                            <span class="item-detail-badge">
+                                <i class="bi bi-shield-check"></i>
+                                {{ item.warranty_period_months }}mo warranty
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <p>No items found</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Documents Card -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-paperclip"></i>
+            Supporting Documents
+        </h2>
+        <span style="font-size: 0.875rem; color: var(--secondary-color);">
+            {{ documents.count }} document{{ documents.count|pluralize }}
+        </span>
+    </div>
+    <div class="card-body">
+        {% if documents %}
+        <div class="documents-list">
+            {% for doc in documents %}
+            <div class="document-card">
+                <div class="document-icon {{ doc.document_type|lower }}">
+                    <i class="bi bi-{% if doc.document_type == 'TECHNICAL' %}file-text{% elif doc.document_type == 'FINANCIAL' %}cash-coin{% elif doc.document_type == 'COMPLIANCE' %}check-circle{% elif doc.document_type == 'CERTIFICATE' %}award{% else %}file-earmark{% endif %}"></i>
+                </div>
+                <div class="document-info">
+                    <div class="document-name">{{ doc.document_name }}</div>
+                    <div class="document-meta">
+                        <span>
+                            <i class="bi bi-tag"></i>
+                            {{ doc.get_document_type_display }}
+                        </span>
+                        <span>
+                            <i class="bi bi-calendar"></i>
+                            {{ doc.uploaded_at|date:"M d, Y" }}
+                        </span>
+                        <span>
+                            <i class="bi bi-file-earmark"></i>
+                            {{ doc.file.name|split:'/'|last }}
+                        </span>
+                    </div>
+                </div>
+                <div class="document-actions">
+                    <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-primary">
+                        <i class="bi bi-eye"></i>
+                        View
+                    </a>
+                    <a href="{{ doc.file.url }}" download class="btn btn-sm btn-secondary">
+                        <i class="bi bi-download"></i>
+                        Download
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-file-earmark-x"></i>
+            <p>No documents uploaded</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tender Information Card -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-file-earmark-text"></i>
+            Tender Information
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-hash"></i>
+                    Tender Number
+                </span>
+                <span class="info-value">{{ bid.tender.tender_number }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-tag"></i>
+                    Type
+                </span>
+                <span class="info-value">{{ bid.tender.get_tender_type_display }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-calendar-x"></i>
+                    Closing Date
+                </span>
+                <span class="info-value">{{ bid.tender.closing_date|date:"M d, Y H:i" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-calendar-check"></i>
+                    Bid Opening
+                </span>
+                <span class="info-value">{{ bid.tender.bid_opening_date|date:"M d, Y H:i" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-cash"></i>
+                    Estimated Budget
+                </span>
+                <span class="info-value amount">KES {{ bid.tender.estimated_budget|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">
+                    <i class="bi bi-gear"></i>
+                    Procurement Method
+                </span>
+                <span class="info-value">{{ bid.tender.get_procurement_method_display }}</span>
+            </div>
+        </div>
+
+        {% if bid.tender.description %}
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+            <h3 style="font-size: 0.875rem; font-weight: 600; color: #1E293B; margin-bottom: 0.5rem;">
+                <i class="bi bi-file-text"></i> Tender Description
+            </h3>
+            <p style="margin: 0; color: #475569; line-height: 1.6;">{{ bid.tender.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Print functionality
+    window.addEventListener('beforeprint', function() {
+        document.querySelectorAll('.btn, .breadcrumb').forEach(el => {
+            el.style.display = 'none';
+        });
+    });
+
+    window.addEventListener('afterprint', function() {
+        document.querySelectorAll('.btn, .breadcrumb').forEach(el => {
+            el.style.display = '';
+        });
+    });
+</script>
+
+{% endblock %}
