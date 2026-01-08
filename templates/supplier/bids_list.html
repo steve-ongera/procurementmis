@@ -1,0 +1,855 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}My Bids - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --info-color: #3B82F6;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    /* Statistics Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card.active {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+    }
+
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 0.375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .stat-icon.total {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .stat-icon.submitted {
+        background: #E0E7FF;
+        color: #3730A3;
+    }
+
+    .stat-icon.evaluating {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .stat-icon.qualified {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .stat-icon.awarded {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .stat-icon.rejected {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1E293B;
+        line-height: 1;
+    }
+
+    /* Filters Section */
+    .filters-section {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filters-row {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .filter-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.5rem;
+    }
+
+    .filter-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .filter-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .search-group {
+        position: relative;
+        flex: 2;
+        min-width: 250px;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94A3B8;
+        pointer-events: none;
+    }
+
+    .search-group .filter-control {
+        padding-left: 2.5rem;
+    }
+
+    /* Bids Table */
+    .bids-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .bids-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .bids-table thead th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border-color);
+        background: #F8FAFC;
+    }
+
+    .bids-table tbody td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    .bids-table tbody tr {
+        transition: background 0.2s;
+    }
+
+    .bids-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .bids-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .bid-number {
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        transition: color 0.2s;
+    }
+
+    .bid-number:hover {
+        color: var(--primary-dark);
+    }
+
+    .tender-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .tender-number {
+        font-weight: 500;
+        color: #1E293B;
+    }
+
+    .tender-title {
+        font-size: 0.8125rem;
+        color: #64748B;
+    }
+
+    .amount-cell {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .date-cell {
+        font-size: 0.8125rem;
+        color: #64748B;
+    }
+
+    .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+
+    .rank-badge.rank-1 {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+    }
+
+    .rank-badge.rank-2 {
+        background: linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(192, 192, 192, 0.4);
+    }
+
+    .rank-badge.rank-3 {
+        background: linear-gradient(135deg, #CD7F32 0%, #B8860B 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(205, 127, 50, 0.4);
+    }
+
+    .rank-badge.rank-other {
+        background: #F1F5F9;
+        color: #64748B;
+    }
+
+    /* Status Badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    .status-badge i {
+        font-size: 0.75rem;
+    }
+
+    .status-badge.status-submitted {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .status-badge.status-opened {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .status-badge.status-evaluating {
+        background: #E0E7FF;
+        color: #3730A3;
+    }
+
+    .status-badge.status-qualified {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .status-badge.status-disqualified {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .status-badge.status-awarded {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .status-badge.status-rejected {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: white;
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .pagination a,
+    .pagination span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .pagination a {
+        color: var(--secondary-color);
+        border: 1px solid var(--border-color);
+        background: white;
+    }
+
+    .pagination a:hover {
+        background: var(--hover-bg);
+        border-color: var(--primary-color);
+    }
+
+    .pagination .current {
+        background: var(--primary-color);
+        color: white;
+        border: 1px solid var(--primary-color);
+        font-weight: 600;
+    }
+
+    .pagination .disabled {
+        color: #CBD5E1;
+        cursor: not-allowed;
+        border: 1px solid #E2E8F0;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #475569;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .empty-state p {
+        margin: 0 0 1.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .filters-row {
+            flex-direction: column;
+        }
+
+        .filter-group,
+        .search-group {
+            width: 100%;
+            min-width: auto;
+        }
+
+        .bids-table {
+            display: block;
+            overflow-x: auto;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .bids-table thead {
+            display: none;
+        }
+
+        .bids-table tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+        }
+
+        .bids-table tbody td {
+            display: block;
+            text-align: right;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .bids-table tbody td:last-child {
+            border-bottom: none;
+        }
+
+        .bids-table tbody td::before {
+            content: attr(data-label);
+            float: left;
+            font-weight: 600;
+            color: #64748B;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-file-earmark-text"></i>
+            My Bids
+        </h1>
+        <p class="page-subtitle">Track and manage all your submitted bids</p>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <a href="?status=all" class="stat-card {% if current_status == 'all' %}active{% endif %}">
+        <div class="stat-header">
+            <span class="stat-label">Total Bids</span>
+            <div class="stat-icon total">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+        </div>
+        <div class="stat-value">{{ stats.total }}</div>
+    </a>
+
+    <a href="?status=SUBMITTED" class="stat-card {% if current_status == 'SUBMITTED' %}active{% endif %}">
+        <div class="stat-header">
+            <span class="stat-label">Submitted</span>
+            <div class="stat-icon submitted">
+                <i class="bi bi-send-check"></i>
+            </div>
+        </div>
+        <div class="stat-value">{{ stats.submitted }}</div>
+    </a>
+
+    <a href="?status=EVALUATING" class="stat-card {% if current_status == 'EVALUATING' %}active{% endif %}">
+        <div class="stat-header">
+            <span class="stat-label">Evaluating</span>
+            <div class="stat-icon evaluating">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+        </div>
+        <div class="stat-value">{{ stats.evaluating }}</div>
+    </a>
+
+    <a href="?status=QUALIFIED" class="stat-card {% if current_status == 'QUALIFIED' %}active{% endif %}">
+        <div class="stat-header">
+            <span class="stat-label">Qualified</span>
+            <div class="stat-icon qualified">
+                <i class="bi bi-check-circle"></i>
+            </div>
+        </div>
+        <div class="stat-value">{{ stats.qualified }}</div>
+    </a>
+
+    <a href="?status=AWARDED" class="stat-card {% if current_status == 'AWARDED' %}active{% endif %}">
+        <div class="stat-header">
+            <span class="stat-label">Awarded</span>
+            <div class="stat-icon awarded">
+                <i class="bi bi-trophy"></i>
+            </div>
+        </div>
+        <div class="stat-value">{{ stats.awarded }}</div>
+    </a>
+
+    <a href="?status=REJECTED" class="stat-card {% if current_status == 'REJECTED' %}active{% endif %}">
+        <div class="stat-header">
+            <span class="stat-label">Rejected</span>
+            <div class="stat-icon rejected">
+                <i class="bi bi-x-circle"></i>
+            </div>
+        </div>
+        <div class="stat-value">{{ stats.rejected }}</div>
+    </a>
+</div>
+
+<!-- Filters Section -->
+<div class="filters-section">
+    <form method="get" id="filterForm">
+        <div class="filters-row">
+            <div class="filter-group">
+                <label for="status" class="filter-label">
+                    <i class="bi bi-funnel"></i>
+                    Filter by Status
+                </label>
+                <select name="status" id="status" class="filter-control" onchange="document.getElementById('filterForm').submit()">
+                    <option value="all" {% if current_status == 'all' %}selected{% endif %}>All Statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="search-group">
+                <label for="search" class="filter-label">
+                    <i class="bi bi-search"></i>
+                    Search Bids
+                </label>
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" 
+                       name="search" 
+                       id="search" 
+                       class="filter-control" 
+                       placeholder="Search by bid number, tender number, or title..."
+                       value="{{ search }}">
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i>
+                    Search
+                </button>
+                {% if search or current_status != 'all' %}
+                <a href="{% url 'supplier_my_bids' %}" class="btn">
+                    <i class="bi bi-x-circle"></i>
+                    Clear
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Bids Table -->
+<div class="bids-card">
+    {% if bids %}
+    <table class="bids-table">
+        <thead>
+            <tr>
+                <th>Bid Number</th>
+                <th>Tender</th>
+                <th>Bid Amount</th>
+                <th>Submitted</th>
+                <th>Status</th>
+                <th>Rank</th>
+                <th>Score</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bid in bids %}
+            <tr>
+                <td data-label="Bid Number">
+                    <a href="{% url 'supplier_bid_detail' bid.id %}" class="bid-number">
+                        <i class="bi bi-file-earmark-text"></i>
+                        {{ bid.bid_number }}
+                    </a>
+                </td>
+                <td data-label="Tender">
+                    <div class="tender-info">
+                        <span class="tender-number">{{ bid.tender.tender_number }}</span>
+                        <span class="tender-title">{{ bid.tender.title|truncatechars:50 }}</span>
+                    </div>
+                </td>
+                <td data-label="Bid Amount" class="amount-cell">
+                    KES {{ bid.bid_amount|floatformat:2|intcomma }}
+                </td>
+                <td data-label="Submitted" class="date-cell">
+                    {{ bid.submitted_at|date:"M d, Y" }}<br>
+                    <small style="color: #94A3B8;">{{ bid.submitted_at|date:"H:i" }}</small>
+                </td>
+                <td data-label="Status">
+                    <span class="status-badge status-{{ bid.status|lower }}">
+                        <i class="bi bi-{% if bid.status == 'SUBMITTED' %}send-check{% elif bid.status == 'OPENED' %}envelope-open{% elif bid.status == 'EVALUATING' %}hourglass-split{% elif bid.status == 'QUALIFIED' %}check-circle{% elif bid.status == 'AWARDED' %}trophy{% elif bid.status == 'DISQUALIFIED' %}x-circle{% else %}file-earmark{% endif %}"></i>
+                        {{ bid.get_status_display }}
+                    </span>
+                </td>
+                <td data-label="Rank">
+                    {% if bid.rank %}
+                        {% if bid.rank == 1 %}
+                        <span class="rank-badge rank-1" title="1st Place">
+                            <i class="bi bi-trophy-fill"></i>
+                        </span>
+                        {% elif bid.rank == 2 %}
+                        <span class="rank-badge rank-2" title="2nd Place">2</span>
+                        {% elif bid.rank == 3 %}
+                        <span class="rank-badge rank-3" title="3rd Place">3</span>
+                        {% else %}
+                        <span class="rank-badge rank-other">#{{ bid.rank }}</span>
+                        {% endif %}
+                    {% else %}
+                    <span style="color: #CBD5E1; font-size: 0.75rem;">-</span>
+                    {% endif %}
+                </td>
+                <td data-label="Score">
+                    {% if bid.evaluation_score %}
+                    <strong style="color: var(--primary-color);">{{ bid.evaluation_score }}/100</strong>
+                    {% else %}
+                    <span style="color: #CBD5E1; font-size: 0.75rem;">Not scored</span>
+                    {% endif %}
+                </td>
+                <td data-label="Actions">
+                    <div class="action-buttons">
+                        <a href="{% url 'supplier_bid_detail' bid.id %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-eye"></i>
+                            View
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    {% if bids.has_other_pages %}
+    <div class="pagination">
+        {% if bids.has_previous %}
+        <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}">
+            <i class="bi bi-chevron-double-left"></i>
+        </a>
+        <a href="?page={{ bids.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        {% else %}
+        <span class="disabled">
+            <i class="bi bi-chevron-double-left"></i>
+        </span>
+        <span class="disabled">
+            <i class="bi bi-chevron-left"></i>
+        </span>
+        {% endif %}
+
+        <span style="color: var(--secondary-color); font-size: 0.875rem; padding: 0 1rem;">
+            Page {{ bids.number }} of {{ bids.paginator.num_pages }}
+        </span>
+
+        {% if bids.has_next %}
+        <a href="?page={{ bids.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+        <a href="?page={{ bids.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}">
+            <i class="bi bi-chevron-double-right"></i>
+        </a>
+        {% else %}
+        <span class="disabled">
+            <i class="bi bi-chevron-right"></i>
+        </span>
+        <span class="disabled">
+            <i class="bi bi-chevron-double-right"></i>
+        </span>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <h3>No Bids Found</h3>
+        <p>
+            {% if search %}
+            No bids match your search criteria. Try adjusting your filters.
+            {% else %}
+            You haven't submitted any bids yet. Browse available tenders to get started.
+            {% endif %}
+        </p>
+        <a href="{% url 'supplier_tenders_list' %}" class="btn btn-primary">
+            <i class="bi bi-search"></i>
+            Browse Tenders
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Auto-submit search on Enter key
+    document.getElementById('search').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('filterForm').submit();
+        }
+    });
+
+    // Highlight search terms
+    {% if search %}
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchTerm = "{{ search }}".toLowerCase();
+        const cells = document.querySelectorAll('.bid-number, .tender-number, .tender-title');
+        
+        cells.forEach(cell => {
+            const text = cell.textContent;
+            const lowerText = text.toLowerCase();
+            
+            if (lowerText.includes(searchTerm)) {
+                const regex = new RegExp(`(${searchTerm})`, 'gi');
+                cell.innerHTML = text.replace(regex, '<mark style="background: #FEF3C7; padding: 0.125rem 0.25rem; border-radius: 0.125rem;">$1</mark>');
+            }
+        });
+    });
+    {% endif %}
+</script>
+
+{% endblock%}
