@@ -1,95 +1,604 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load humanize %}
+{% block title %}Purchase Orders - University Procurement System{% endblock %}
 
-{% block title %}Purchase Orders{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin: 0 auto 1rem;
+    }
+
+    .stat-icon.blue { background: #E0F2FE; color: #0369A1; }
+    .stat-icon.orange { background: #FEF3C7; color: #92400E; }
+    .stat-icon.green { background: #D1FAE5; color: #047857; }
+    .stat-icon.purple { background: #EDE9FE; color: #5B21B6; }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Search Input */
+    .search-container {
+        position: relative;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94A3B8;
+        font-size: 0.875rem;
+    }
+
+    .search-container .form-control {
+        padding-left: 2.25rem;
+    }
+
+    /* Filter Actions */
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-body {
+        padding: 0;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* PO Number */
+    .po-number {
+        font-weight: 600;
+        color: var(--primary-color);
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .req-number {
+        font-size: 0.75rem;
+        color: #94A3B8;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Date Cells */
+    .date-cell {
+        color: #334155;
+        font-weight: 500;
+    }
+
+    .date-cell .overdue {
+        display: block;
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Amount Cells */
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .badge i {
+        font-size: 0.625rem;
+    }
+
+    /* Status Badges */
+    .badge-sent { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .badge-acknowledged { 
+        background: #E0F2FE; 
+        color: #0369A1; 
+        border-color: #BAE6FD;
+    }
+    .badge-delivered { 
+        background: #D1FAE5; 
+        color: #047857; 
+        border-color: #A7F3D0;
+    }
+    .badge-partial { 
+        background: #FDE68A; 
+        color: #92400E; 
+        border-color: #FCD34D;
+    }
+    .badge-closed { 
+        background: #F1F5F9; 
+        color: #475569; 
+        border-color: #E2E8F0;
+    }
+    .badge-overdue { 
+        background: #FEE2E2; 
+        color: #B91C1C; 
+        border-color: #FECACA;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.375rem;
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .action-btn-primary {
+        background: var(--primary-light);
+        color: var(--primary-color);
+        border-color: var(--primary-light);
+    }
+
+    .action-btn-primary:hover {
+        background: #DBEAFE;
+        border-color: var(--primary-color);
+    }
+
+    .action-btn-success {
+        background: #D1FAE5;
+        color: #047857;
+        border-color: #D1FAE5;
+    }
+
+    .action-btn-success:hover {
+        background: #A7F3D0;
+        border-color: #047857;
+    }
+
+    .action-btn-info {
+        background: #E0F2FE;
+        color: #0369A1;
+        border-color: #E0F2FE;
+    }
+
+    .action-btn-info:hover {
+        background: #BAE6FD;
+        border-color: #0369A1;
+    }
+
+    .action-btn i {
+        font-size: 0.875rem;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0;
+        font-weight: 500;
+        color: #64748B;
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-decoration: none;
+        border: 1px solid var(--border-color);
+        transition: all 0.2s;
+    }
+
+    .page-link:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .page-link i {
+        font-size: 0.875rem;
+    }
+
+    .page-info {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0 1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .filter-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .table-responsive {
+            margin: 0 -1rem;
+            padding: 0 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-shopping-bag"></i> Purchase Orders</h1>
-        <p>Manage your purchase orders and deliveries</p>
+        <h1 class="page-title">Purchase Orders</h1>
+        <p class="page-subtitle">Manage your purchase orders and deliveries</p>
     </div>
 </div>
 
-<!-- Statistics Cards -->
+<!-- Statistics -->
 <div class="stats-grid">
-    <div class="stat-card blue">
-        <i class="fas fa-file-alt"></i>
-        <div>
-            <h3>{{ stats.total }}</h3>
-            <p>Total Orders</p>
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <i class="bi bi-file-text"></i>
         </div>
+        <div class="stat-value">{{ stats.total|intcomma }}</div>
+        <div class="stat-label">Total Orders</div>
     </div>
     
-    <div class="stat-card orange">
-        <i class="fas fa-clock"></i>
-        <div>
-            <h3>{{ stats.pending }}</h3>
-            <p>Pending</p>
+    <div class="stat-card">
+        <div class="stat-icon orange">
+            <i class="bi bi-clock"></i>
         </div>
+        <div class="stat-value">{{ stats.pending|intcomma }}</div>
+        <div class="stat-label">Pending</div>
     </div>
     
-    <div class="stat-card green">
-        <i class="fas fa-check-circle"></i>
-        <div>
-            <h3>{{ stats.delivered }}</h3>
-            <p>Delivered</p>
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <i class="bi bi-check-circle"></i>
         </div>
+        <div class="stat-value">{{ stats.delivered|intcomma }}</div>
+        <div class="stat-label">Delivered</div>
     </div>
     
-    <div class="stat-card purple">
-        <i class="fas fa-money-bill-wave"></i>
-        <div>
-            <h3>KSh {{ stats.total_value|floatformat:2 }}</h3>
-            <p>Total Value</p>
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <i class="bi bi-cash"></i>
         </div>
+        <div class="stat-value">KSh {{ stats.total_value|floatformat:0|intcomma }}</div>
+        <div class="stat-label">Total Value</div>
     </div>
 </div>
 
 <!-- Filters -->
-<div class="card">
-    <div class="card-body">
-        <form method="get" class="filter-form">
-            <div class="filter-grid">
-                <div class="form-group">
-                    <label><i class="fas fa-search"></i> Search</label>
+<div class="filter-card">
+    <form method="get" action="{% url 'supplier_purchase_orders_list' %}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="bi bi-search"></i>
+                    Search Orders
+                </label>
+                <div class="search-container">
+                    <i class="bi bi-search search-icon"></i>
                     <input type="text" name="search" class="form-control" 
                            placeholder="Search by PO number..." value="{{ search }}">
                 </div>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-filter"></i> Status</label>
-                    <select name="status" class="form-control">
-                        <option value="all">All Status</option>
-                        {% for value, label in status_choices %}
-                        <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
-                            {{ label }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search"></i> Search
-                    </button>
-                    <a href="{% url 'supplier_purchase_orders_list' %}" class="btn btn-secondary">
-                        <i class="fas fa-redo"></i> Reset
-                    </a>
-                </div>
             </div>
-        </form>
-    </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="bi bi-filter"></i>
+                    Status
+                </label>
+                <select name="status" class="form-control">
+                    <option value="all">All Status</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <a href="{% url 'supplier_purchase_orders_list' %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i>
+                Reset Filters
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Search Orders
+            </button>
+        </div>
+    </form>
 </div>
 
 <!-- Purchase Orders Table -->
-<div class="card">
-    <div class="card-header">
-        <h2><i class="fas fa-list"></i> Purchase Orders</h2>
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-list-check"></i>
+            Purchase Orders ({{ stats.total }})
+        </h2>
     </div>
-    <div class="card-body">
+    
+    <div class="table-body">
         <div class="table-responsive">
-            <table class="data-table">
+            <table>
                 <thead>
                     <tr>
                         <th>PO Number</th>
@@ -104,47 +613,64 @@
                     {% for po in pos %}
                     <tr>
                         <td>
-                            <strong>{{ po.po_number }}</strong>
-                            <br>
-                            <small class="text-muted">{{ po.requisition.requisition_number }}</small>
+                            <span class="po-number">{{ po.po_number }}</span>
+                            <span class="req-number">{{ po.requisition.requisition_number }}</span>
                         </td>
-                        <td>{{ po.po_date|date:"M d, Y" }}</td>
-                        <td>
+                        <td class="date-cell">{{ po.po_date|date:"M d, Y" }}</td>
+                        <td class="date-cell">
                             {{ po.delivery_date|date:"M d, Y" }}
                             {% if po.delivery_date < today and po.status not in 'DELIVERED,CLOSED' %}
-                            <span class="badge badge-danger">Overdue</span>
+                            <span class="badge badge-overdue">Overdue</span>
                             {% endif %}
                         </td>
-                        <td><strong>KSh {{ po.total_amount|floatformat:2 }}</strong></td>
+                        <td class="amount-cell">KSh {{ po.total_amount|floatformat:2|intcomma }}</td>
                         <td>
                             {% if po.status == 'SENT' %}
-                            <span class="badge badge-warning">{{ po.get_status_display }}</span>
+                            <span class="badge badge-sent">
+                                <i class="bi bi-envelope"></i>
+                                {{ po.get_status_display }}
+                            </span>
                             {% elif po.status == 'ACKNOWLEDGED' %}
-                            <span class="badge badge-info">{{ po.get_status_display }}</span>
+                            <span class="badge badge-acknowledged">
+                                <i class="bi bi-check-circle"></i>
+                                {{ po.get_status_display }}
+                            </span>
                             {% elif po.status == 'DELIVERED' %}
-                            <span class="badge badge-success">{{ po.get_status_display }}</span>
+                            <span class="badge badge-delivered">
+                                <i class="bi bi-truck"></i>
+                                {{ po.get_status_display }}
+                            </span>
                             {% elif po.status == 'PARTIAL_DELIVERY' %}
-                            <span class="badge badge-orange">{{ po.get_status_display }}</span>
+                            <span class="badge badge-partial">
+                                <i class="bi bi-hourglass-split"></i>
+                                {{ po.get_status_display }}
+                            </span>
                             {% else %}
-                            <span class="badge badge-secondary">{{ po.get_status_display }}</span>
+                            <span class="badge badge-closed">
+                                <i class="bi bi-archive"></i>
+                                {{ po.get_status_display }}
+                            </span>
                             {% endif %}
                         </td>
                         <td>
                             <div class="action-buttons">
                                 <a href="{% url 'supplier_purchase_order_detail' po.id %}" 
-                                   class="btn btn-sm btn-primary" title="View Details">
-                                    <i class="fas fa-eye"></i>
+                                   class="action-btn action-btn-primary" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                    View
                                 </a>
                                 {% if po.status == 'SENT' %}
                                 <a href="{% url 'supplier_acknowledge_po' po.id %}" 
-                                   class="btn btn-sm btn-success" title="Acknowledge">
-                                    <i class="fas fa-check"></i>
+                                   class="action-btn action-btn-success" title="Acknowledge">
+                                    <i class="bi bi-check"></i>
+                                    Acknowledge
                                 </a>
                                 {% endif %}
                                 {% if po.status in 'ACKNOWLEDGED,PARTIAL_DELIVERY' %}
                                 <a href="{% url 'supplier_submit_invoice_for_po' po.id %}" 
-                                   class="btn btn-sm btn-info" title="Submit Invoice">
-                                    <i class="fas fa-file-invoice"></i>
+                                   class="action-btn action-btn-info" title="Submit Invoice">
+                                    <i class="bi bi-file-earmark-plus"></i>
+                                    Invoice
                                 </a>
                                 {% endif %}
                             </div>
@@ -152,9 +678,9 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center">
-                            <div class="empty-state-small">
-                                <i class="fas fa-inbox"></i>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
                                 <p>No purchase orders found</p>
                             </div>
                         </td>
@@ -171,12 +697,12 @@
 <div class="pagination">
     {% if pos.has_previous %}
     <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
-       class="page-link">
-        <i class="fas fa-angle-double-left"></i>
+       class="page-link" title="First Page">
+        <i class="bi bi-chevron-double-left"></i>
     </a>
     <a href="?page={{ pos.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
-       class="page-link">
-        <i class="fas fa-angle-left"></i>
+       class="page-link" title="Previous Page">
+        <i class="bi bi-chevron-left"></i>
     </a>
     {% endif %}
     
@@ -186,100 +712,14 @@
     
     {% if pos.has_next %}
     <a href="?page={{ pos.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
-       class="page-link">
-        <i class="fas fa-angle-right"></i>
+       class="page-link" title="Next Page">
+        <i class="bi bi-chevron-right"></i>
     </a>
     <a href="?page={{ pos.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
-       class="page-link">
-        <i class="fas fa-angle-double-right"></i>
+       class="page-link" title="Last Page">
+        <i class="bi bi-chevron-double-right"></i>
     </a>
     {% endif %}
 </div>
 {% endif %}
-
-<style>
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
-    }
-
-    .stat-card {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .stat-card.blue { border-left: 4px solid #3b82f6; }
-    .stat-card.orange { border-left: 4px solid #f59e0b; }
-    .stat-card.green { border-left: 4px solid #10b981; }
-    .stat-card.purple { border-left: 4px solid #8b5cf6; }
-
-    .stat-card i {
-        font-size: 32px;
-        opacity: 0.7;
-    }
-
-    .stat-card.blue i { color: #3b82f6; }
-    .stat-card.orange i { color: #f59e0b; }
-    .stat-card.green i { color: #10b981; }
-    .stat-card.purple i { color: #8b5cf6; }
-
-    .stat-card h3 {
-        margin: 0;
-        font-size: 28px;
-        font-weight: bold;
-    }
-
-    .stat-card p {
-        margin: 0;
-        color: #64748b;
-        font-size: 14px;
-    }
-
-    .action-buttons {
-        display: flex;
-        gap: 5px;
-    }
-
-    .empty-state-small {
-        padding: 40px 20px;
-        text-align: center;
-    }
-
-    .empty-state-small i {
-        font-size: 48px;
-        color: #cbd5e1;
-        margin-bottom: 10px;
-    }
-
-    .empty-state-small p {
-        color: #94a3b8;
-        margin: 0;
-    }
-
-    .badge-orange {
-        background: #f59e0b;
-        color: white;
-    }
-
-    @media (max-width: 768px) {
-        .stats-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .filter-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .action-buttons {
-            flex-direction: column;
-        }
-    }
-</style>
 {% endblock %}

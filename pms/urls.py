@@ -28,7 +28,9 @@ urlpatterns = [
     path('approvals/approved/', views.approved_requisitions, name='approved_requisitions'),
     path('approvals/rejected/', views.rejected_requisitions, name='rejected_requisitions'),
     path('approvals/<uuid:approval_id>/', views.approval_detail, name='approval_detail'),
-    path('approvals/<uuid:approval_id>/process/', views.process_approval, name='process_approval'),
+    #path('approvals/<uuid:approval_id>/process/', views.process_approval, name='process_approval'),
+    
+     path('approvals/<uuid:requisition_id>/process/', views.process_approval, name='process_approval'),
     path('approvals/bulk-approve/', views.bulk_approve, name='bulk_approve'),
     
     # API Endpoints

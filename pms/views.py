@@ -8419,100 +8419,190 @@ def approval_detail(request, approval_id):
     return render(request, 'approvals/approval_detail.html', context)
 
 
+# views.py
+
 @login_required
-@require_http_methods(["POST"])
-def process_approval(request, approval_id):
-    """Process approval or rejection"""
-    approval = get_object_or_404(RequisitionApproval, pk=approval_id)
+def process_approval(request, requisition_id):
+    """Process single or bulk approval/rejection"""
+    requisition = get_object_or_404(Requisition, pk=requisition_id)
     
-    # Check permissions
-    if not can_approve_stage(request.user, approval.approval_stage):
-        return JsonResponse({
-            'success': False,
-            'message': 'You do not have permission to process this approval.'
-        }, status=403)
+    # Get pending approvals for this user
+    pending_approvals = RequisitionApproval.objects.filter(
+        requisition=requisition,
+        status='PENDING'
+    ).order_by('sequence')
     
-    if approval.status != 'PENDING':
-        return JsonResponse({
-            'success': False,
-            'message': 'This approval has already been processed.'
-        }, status=400)
+    # Check if user is admin and can bulk approve
+    is_admin = request.user.role == 'ADMIN'
+    can_bulk_approve = is_admin and pending_approvals.exists()
     
-    action = request.POST.get('action')  # 'approve' or 'reject'
-    comments = request.POST.get('comments', '')
+    if request.method == 'GET':
+        # Show approval form
+        context = {
+            'requisition': requisition,
+            'pending_approvals': pending_approvals,
+            'can_bulk_approve': can_bulk_approve,
+            'is_admin': is_admin,
+        }
+        return render(request, 'procurement/process_approval.html', context)
     
-    if action not in ['approve', 'reject']:
-        return JsonResponse({
-            'success': False,
-            'message': 'Invalid action.'
-        }, status=400)
+    elif request.method == 'POST':
+        action = request.POST.get('action')  # 'approve' or 'reject'
+        comments = request.POST.get('comments', '')
+        bulk_approve = request.POST.get('bulk_approve') == 'true'
+        
+        if action not in ['approve', 'reject']:
+            messages.error(request, 'Invalid action.')
+            return redirect('requisition_detail', pk=requisition_id)
+        
+        try:
+            with transaction.atomic():
+                # Bulk approval for admin
+                if bulk_approve and is_admin and action == 'approve':
+                    approved_count = 0
+                    
+                    for approval in pending_approvals:
+                        # For budget stage, check availability
+                        if approval.approval_stage == 'BUDGET':
+                            budget_check = check_budget_availability(requisition)
+                            if not budget_check['available']:
+                                messages.error(request, f"Budget check failed: {budget_check['message']}")
+                                raise Exception("Insufficient budget")
+                        
+                        # Approve this stage
+                        approval.status = 'APPROVED'
+                        approval.approver = request.user
+                        approval.comments = comments or f'Bulk approved by {request.user.get_full_name()}'
+                        approval.approval_date = timezone.now()
+                        approval.save()
+                        approved_count += 1
+                        
+                        # Create audit log
+                        AuditLog.objects.create(
+                            user=request.user,
+                            action='APPROVE',
+                            model_name='RequisitionApproval',
+                            object_id=str(approval.id),
+                            object_repr=f'{requisition.requisition_number} - {approval.get_approval_stage_display()}',
+                            changes={
+                                'status': 'APPROVED',
+                                'comments': approval.comments,
+                                'bulk_approved': True
+                            }
+                        )
+                    
+                    # Update requisition to fully approved
+                    requisition.status = 'APPROVED'
+                    requisition.save()
+                    
+                    # Notify requester
+                    Notification.objects.create(
+                        user=requisition.requested_by,
+                        notification_type='APPROVAL',
+                        priority='HIGH',
+                        title='Requisition Fully Approved',
+                        message=f'Your requisition {requisition.requisition_number} has been fully approved (bulk approval).',
+                        link_url=f'/requisitions/{requisition.id}/'
+                    )
+                    
+                    messages.success(request, f'Requisition {requisition.requisition_number} has been fully approved ({approved_count} stages).')
+                
+                else:
+                    # Single approval
+                    approval_id = request.POST.get('approval_id')
+                    if not approval_id:
+                        messages.error(request, 'No approval ID provided.')
+                        return redirect('requisition_detail', pk=requisition_id)
+                    
+                    approval = get_object_or_404(RequisitionApproval, pk=approval_id)
+                    
+                    if approval.status != 'PENDING':
+                        messages.error(request, 'This approval has already been processed.')
+                        return redirect('requisition_detail', pk=requisition_id)
+                    
+                    # For budget stage, check budget availability
+                    if approval.approval_stage == 'BUDGET' and action == 'approve':
+                        budget_check = check_budget_availability(requisition)
+                        if not budget_check['available']:
+                            messages.error(request, f"Budget check failed: {budget_check['message']}")
+                            return redirect('process_approval', requisition_id=requisition_id)
+                    
+                    # Update approval
+                    approval.status = 'APPROVED' if action == 'approve' else 'REJECTED'
+                    approval.approver = request.user
+                    approval.comments = comments
+                    approval.approval_date = timezone.now()
+                    approval.save()
+                    
+                    # If rejected, update requisition
+                    if action == 'reject':
+                        requisition.status = 'REJECTED'
+                        requisition.rejection_reason = comments
+                        requisition.save()
+                    else:
+                        # Update requisition status based on workflow
+                        update_requisition_status(requisition)
+                    
+                    # Notify requester
+                    Notification.objects.create(
+                        user=requisition.requested_by,
+                        notification_type='APPROVAL',
+                        priority='HIGH',
+                        title=f'Requisition {action.title()}d',
+                        message=f'Your requisition {requisition.requisition_number} has been {action}d at {approval.get_approval_stage_display()} stage.',
+                        link_url=f'/requisitions/{requisition.id}/'
+                    )
+                    
+                    # Create audit log
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='APPROVE' if action == 'approve' else 'REJECT',
+                        model_name='RequisitionApproval',
+                        object_id=str(approval.id),
+                        object_repr=f'{requisition.requisition_number} - {approval.get_approval_stage_display()}',
+                        changes={
+                            'status': approval.status,
+                            'comments': comments
+                        }
+                    )
+                    
+                    messages.success(request, f'Requisition {requisition.requisition_number} has been {action}d successfully.')
+                
+                return redirect('requisition_detail', pk=requisition_id)
+                
+        except Exception as e:
+            messages.error(request, f'Error processing approval: {str(e)}')
+            return redirect('process_approval', requisition_id=requisition_id)
+
+
+def update_requisition_status(requisition):
+    """Update requisition status based on approval workflow"""
+    approvals = RequisitionApproval.objects.filter(
+        requisition=requisition
+    ).order_by('sequence')
     
-    try:
-        with transaction.atomic():
-            requisition = approval.requisition
-            
-            # For budget stage, check budget availability
-            if approval.approval_stage == 'BUDGET' and action == 'approve':
-                budget_check = check_budget_availability(requisition)
-                if not budget_check['available']:
-                    return JsonResponse({
-                        'success': False,
-                        'message': budget_check['message'],
-                        'budget_details': budget_check['details']
-                    }, status=400)
-            
-            # Update approval
-            approval.status = 'APPROVED' if action == 'approve' else 'REJECTED'
-            approval.comments = comments
-            approval.approval_date = timezone.now()
-            approval.save()
-            
-            # If rejected, update requisition
-            if action == 'reject':
-                requisition.status = 'REJECTED'
-                requisition.rejection_reason = comments
-                requisition.save()
-            else:
-                # Update requisition status
-                update_requisition_status(requisition)
-            
-            # Create notification for requester
-            Notification.objects.create(
-                user=requisition.requested_by,
-                notification_type='APPROVAL',
-                priority='HIGH',
-                title=f'Requisition {action.title()}d',
-                message=f'Your requisition {requisition.requisition_number} has been {action}d at {approval.get_approval_stage_display()} stage.',
-                link_url=f'/requisitions/{requisition.id}/'
-            )
-            
-            # Create audit log
-            AuditLog.objects.create(
-                user=request.user,
-                action='APPROVE' if action == 'approve' else 'REJECT',
-                model_name='RequisitionApproval',
-                object_id=str(approval.id),
-                object_repr=f'{requisition.requisition_number} - {approval.get_approval_stage_display()}',
-                changes={
-                    'status': approval.status,
-                    'comments': comments
+    # Check if all approved
+    if all(approval.status == 'APPROVED' for approval in approvals):
+        requisition.status = 'APPROVED'
+    # Check for any rejections
+    elif any(approval.status == 'REJECTED' for approval in approvals):
+        requisition.status = 'REJECTED'
+    # Otherwise, update to current stage
+    else:
+        for approval in approvals:
+            if approval.status == 'APPROVED':
+                # Map approval stage to requisition status
+                status_map = {
+                    'HOD': 'HOD_APPROVED',
+                    'FACULTY': 'FACULTY_APPROVED',
+                    'BUDGET': 'BUDGET_APPROVED',
+                    'PROCUREMENT': 'PROCUREMENT_APPROVED',
                 }
-            )
-            
-            message = f'Requisition {requisition.requisition_number} has been {action}d successfully.'
-            
-            return JsonResponse({
-                'success': True,
-                'message': message,
-                'requisition_status': requisition.status,
-                'redirect_url': f'/approvals/pending/'
-            })
-            
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'message': f'Error processing approval: {str(e)}'
-        }, status=500)
+                requisition.status = status_map.get(approval.approval_stage, requisition.status)
+            elif approval.status == 'PENDING':
+                break  # Stop at first pending
+    
+    requisition.save()
 
 
 # ============================================================================
