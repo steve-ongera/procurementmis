@@ -9059,6 +9059,14 @@ def supplier_bid_detail(request, bid_id):
     return render(request, 'supplier/bid_detail.html', context)
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from django.db import transaction
+from decimal import Decimal
+
+
 @login_required
 def supplier_submit_bid(request, tender_id):
     """Submit a new bid for a tender"""
@@ -9076,54 +9084,78 @@ def supplier_submit_bid(request, tender_id):
         messages.error(request, "You have already submitted a bid for this tender.")
         return redirect('supplier_tender_detail', tender_id=tender_id)
     
+    # Get requisition items for this tender
+    requisition_items = tender.requisition.items.all()
+    
     if request.method == 'POST':
-        bid_form = BidForm(request.POST)
-        item_formset = BidItemFormSet(request.POST, prefix='items')
-        
-        if bid_form.is_valid() and item_formset.is_valid():
-            # Create bid
-            bid = bid_form.save(commit=False)
-            bid.tender = tender
-            bid.supplier = supplier
-            bid.status = 'SUBMITTED'
-            bid.save()
-            
-            # Save items
-            items = item_formset.save(commit=False)
-            for item in items:
-                item.bid = bid
-                item.save()
-            
-            # Handle document uploads
-            documents = request.FILES.getlist('documents')
-            doc_types = request.POST.getlist('doc_types')
-            doc_names = request.POST.getlist('doc_names')
-            
-            for i, doc_file in enumerate(documents):
-                BidDocument.objects.create(
-                    bid=bid,
-                    document_type=doc_types[i],
-                    document_name=doc_names[i],
-                    file=doc_file
+        try:
+            with transaction.atomic():
+                # Create the bid
+                bid = Bid.objects.create(
+                    tender=tender,
+                    supplier=supplier,
+                    bid_amount=Decimal(request.POST.get('bid_amount', 0)),
+                    bid_bond_amount=Decimal(request.POST.get('bid_bond_amount', 0)),
+                    validity_period_days=int(request.POST.get('validity_period_days', 90)),
+                    delivery_period_days=int(request.POST.get('delivery_period_days', 30)),
+                    status='SUBMITTED',
+                    notes=request.POST.get('notes', '')
                 )
-            
-            messages.success(request, f"Bid {bid.bid_number} submitted successfully!")
-            return redirect('supplier_bid_detail', bid_id=bid.id)
-    else:
-        bid_form = BidForm()
-        
-        # Get requisition items for this tender
-        requisition_items = tender.requisition.items.all()
-        item_formset = BidItemFormSet(
-            prefix='items',
-            queryset=BidItem.objects.none(),
-            initial=[{'requisition_item': item} for item in requisition_items]
-        )
+                
+                # Save bid items
+                for i, req_item in enumerate(requisition_items):
+                    quoted_unit_price = Decimal(request.POST.get(f'items-{i}-quoted_unit_price', 0))
+                    quoted_total = Decimal(request.POST.get(f'items-{i}-quoted_total', 0))
+                    delivery_days = int(request.POST.get(f'items-{i}-delivery_period_days', 30))
+                    
+                    # Optional fields
+                    brand = request.POST.get(f'items-{i}-brand', '')
+                    model = request.POST.get(f'items-{i}-model', '')
+                    specifications = request.POST.get(f'items-{i}-specifications', '')
+                    warranty_months = int(request.POST.get(f'items-{i}-warranty_period_months', 0))
+                    item_notes = request.POST.get(f'items-{i}-notes', '')
+                    
+                    BidItem.objects.create(
+                        bid=bid,
+                        requisition_item=req_item,
+                        quoted_unit_price=quoted_unit_price,
+                        quoted_total=quoted_total,
+                        delivery_period_days=delivery_days,
+                        brand=brand,
+                        model=model,
+                        specifications=specifications,
+                        warranty_period_months=warranty_months,
+                        notes=item_notes
+                    )
+                
+                # Handle document uploads
+                documents = request.FILES.getlist('documents')
+                doc_types = request.POST.getlist('doc_types')
+                doc_names = request.POST.getlist('doc_names')
+                
+                if len(documents) != len(doc_types) or len(documents) != len(doc_names):
+                    raise ValueError("Document upload data mismatch")
+                
+                for i, doc_file in enumerate(documents):
+                    if doc_file:
+                        BidDocument.objects.create(
+                            bid=bid,
+                            document_type=doc_types[i],
+                            document_name=doc_names[i],
+                            file=doc_file,
+                            description=request.POST.get(f'doc_descriptions-{i}', '')
+                        )
+                
+                messages.success(request, f"Bid {bid.bid_number} submitted successfully!")
+                return redirect('supplier_bid_detail', bid_id=bid.id)
+                
+        except ValueError as e:
+            messages.error(request, f"Invalid data: {str(e)}")
+        except Exception as e:
+            messages.error(request, f"Error submitting bid: {str(e)}")
     
     context = {
         'tender': tender,
-        'bid_form': bid_form,
-        'item_formset': item_formset,
         'requisition_items': requisition_items,
     }
     
