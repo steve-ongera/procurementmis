@@ -315,7 +315,7 @@ class SupplierPerformanceInline(admin.TabularInline):
 
 @admin.register(Supplier)
 class SupplierAdmin(admin.ModelAdmin):
-    list_display = ['supplier_number', 'name', 'email', 'phone_number', 'status', 'rating', 'created_at']
+    list_display = ['supplier_number', 'user', 'name', 'email', 'phone_number', 'status', 'rating', 'created_at']
     list_filter = ['status', 'created_at']
     search_fields = ['name', 'supplier_number', 'email', 'registration_number']
     ordering = ['name']
@@ -324,7 +324,7 @@ class SupplierAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('supplier_number', 'name', 'registration_number', 'tax_id')
+            'fields': ('user','supplier_number', 'name', 'registration_number', 'tax_id')
         }),
         ('Contact Information', {
             'fields': ('email', 'phone_number', 'physical_address', 'postal_address', 'website',
