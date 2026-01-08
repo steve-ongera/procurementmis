@@ -117,6 +117,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # for collectstatic
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # for dev
 
 # Media files (user uploads)
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 

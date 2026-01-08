@@ -2329,15 +2329,57 @@ def edit_tender(request, tender_id):
                 supplier_ids = request.POST.getlist('invited_suppliers')
                 tender.invited_suppliers.set(supplier_ids)
 
+                # Handle document deletion
+                delete_doc_ids = request.POST.getlist('delete_documents')
+                if delete_doc_ids:
+                    TenderDocument.objects.filter(
+                        id__in=delete_doc_ids,
+                        tender=tender
+                    ).delete()
+
+                # Handle new document uploads
+                document_count = 0
+                for key in request.POST.keys():
+                    if key.startswith('document_') and key.endswith('_file'):
+                        document_count += 1
+                
+                for i in range(1, document_count + 1):
+                    file_key = f'document_{i}_file'
+                    if file_key in request.FILES:
+                        file = request.FILES[file_key]
+                        description_key = f'document_{i}_description'
+                        mandatory_key = f'document_{i}_mandatory'
+                        
+                        TenderDocument.objects.create(
+                            tender=tender,
+                            document_name=file.name,
+                            file=file,
+                            description=request.POST.get(description_key, ''),
+                            is_mandatory=mandatory_key in request.POST
+                        )
+
+                # Create audit log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='UPDATE',
+                    model_name='Tender',
+                    object_id=str(tender.id),
+                    object_repr=tender.tender_number,
+                    changes={'updated': True}
+                )
+
                 messages.success(request, 'Tender updated successfully.')
-                return redirect('tender_detail', tender_id=tender.id)
+                return redirect('tender_detail', pk=tender.id)
 
         except Exception as e:
             messages.error(request, f'Error updating tender: {str(e)}')
+            import traceback
+            print(traceback.format_exc())  # For debugging
 
     context = {
         'tender': tender,
-        'suppliers': Supplier.objects.all(),
+        'existing_documents': tender.documents.all(),
+        'suppliers': Supplier.objects.filter(status='APPROVED').order_by('name'),
         'tender_types': Tender.TENDER_TYPES,
         'procurement_methods': Tender.METHOD_CHOICES,
         'status_choices': Tender.STATUS_CHOICES,
@@ -2425,10 +2467,7 @@ def tender_publish(request, pk):
         messages.error(request, 'Only draft tenders can be published.')
         return redirect('tender_detail', pk=pk)
     
-    # Validate tender is ready
-    if not tender.documents.exists():
-        messages.error(request, 'Please upload tender documents before publishing.')
-        return redirect('tender_detail', pk=pk)
+    
     
     if not tender.evaluation_criteria.exists():
         messages.error(request, 'Please add evaluation criteria before publishing.')

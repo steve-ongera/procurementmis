@@ -61,18 +61,23 @@
         color: #94A3B8;
     }
 
-    /* Form Card */
     .form-card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
         border-radius: 0.5rem;
         overflow: hidden;
+        margin-bottom: 1.5rem;
     }
 
     .card-header {
         padding: 1.25rem 1.5rem;
         border-bottom: 1px solid var(--border-color);
         background: var(--table-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
 
     .card-header h2 {
@@ -94,7 +99,6 @@
         padding: 1.5rem;
     }
 
-    /* Form Styles */
     .form-group {
         margin-bottom: 1.5rem;
     }
@@ -164,7 +168,6 @@
         color: var(--secondary-color);
     }
 
-    /* Grid Layout */
     .form-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -181,7 +184,6 @@
         }
     }
 
-    /* Button Styles */
     .form-actions {
         display: flex;
         justify-content: space-between;
@@ -217,6 +219,17 @@
         border-color: #CBD5E1;
     }
 
+    .btn-secondary {
+        background: #F1F5F9;
+        color: #475569;
+        border-color: #E2E8F0;
+    }
+
+    .btn-secondary:hover {
+        background: #E2E8F0;
+        transform: translateY(-1px);
+    }
+
     .btn-primary {
         background: var(--primary-color);
         color: white;
@@ -229,7 +242,23 @@
         transform: translateY(-1px);
     }
 
-    /* Amount Input */
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+        transform: translateY(-1px);
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
     .amount-input {
         position: relative;
     }
@@ -248,7 +277,121 @@
         padding-left: 3rem;
     }
 
-    /* Responsive */
+    /* Document Styles */
+    .document-item {
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .document-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .document-grid {
+            grid-template-columns: 2fr 2fr 1fr auto;
+            align-items: end;
+        }
+    }
+
+    .document-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 0;
+    }
+
+    .document-checkbox input[type="checkbox"] {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    .existing-document {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        transition: all 0.2s;
+    }
+
+    .existing-document:hover {
+        border-color: #CBD5E1;
+        background: var(--hover-bg);
+    }
+
+    .document-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .document-name {
+        font-weight: 500;
+        color: #1E293B;
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .document-name i {
+        color: var(--primary-color);
+    }
+
+    .document-meta {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .document-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .badge-warning {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .document-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        padding: 0;
+        border-radius: 0.375rem;
+    }
+
     @media (max-width: 640px) {
         .page-header {
             flex-direction: column;
@@ -266,22 +409,17 @@
             width: 100%;
             justify-content: center;
         }
+
+        .existing-document {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .document-actions {
+            justify-content: flex-end;
+        }
     }
 
-    /* Error States */
-    .form-control.is-invalid,
-    .form-select.is-invalid {
-        border-color: var(--danger-color);
-    }
-
-    .invalid-feedback {
-        display: block;
-        margin-top: 0.375rem;
-        font-size: 0.75rem;
-        color: var(--danger-color);
-    }
-
-    /* Loading State */
     .btn-loading {
         position: relative;
         color: transparent !important;
@@ -326,15 +464,16 @@
     </div>
 </div>
 
-<div class="form-card">
-    <div class="card-header">
-        <h2><i class="bi bi-pencil"></i> Edit Tender Details</h2>
-    </div>
+<form method="POST" id="tenderForm" enctype="multipart/form-data">
+    {% csrf_token %}
 
-    <div class="card-body">
-        <form method="POST" id="tenderForm">
-            {% csrf_token %}
+    <!-- Basic Information -->
+    <div class="form-card">
+        <div class="card-header">
+            <h2><i class="bi bi-pencil"></i> Edit Tender Details</h2>
+        </div>
 
+        <div class="card-body">
             <div class="form-grid">
                 <!-- Title -->
                 <div class="form-group form-grid-full">
@@ -362,7 +501,7 @@
 
                 <div class="form-group">
                     <label class="form-label">Procurement Method</label>
-                    <select name="procurement_method" class="form-select" required>
+                    <select name="procurement_method" id="procurement_method" class="form-select" required>
                         {% for key, label in procurement_methods %}
                             <option value="{{ key }}" {% if tender.procurement_method == key %}selected{% endif %}>
                                 {{ label }}
@@ -388,6 +527,7 @@
                     <input
                         type="datetime-local"
                         name="closing_date"
+                        id="closing_date"
                         class="form-control"
                         value="{{ tender.closing_date|date:'Y-m-d\\TH:i' }}"
                         required>
@@ -398,6 +538,7 @@
                     <input
                         type="datetime-local"
                         name="bid_opening_date"
+                        id="bid_opening_date"
                         class="form-control"
                         value="{{ tender.bid_opening_date|date:'Y-m-d\\TH:i' }}"
                         required>
@@ -433,8 +574,8 @@
                 </div>
 
                 <!-- Invited Suppliers (for Restricted Tenders) -->
-                {% if tender.procurement_method == 'RESTRICTED' %}
-                <div class="form-group form-grid-full">
+                <div class="form-group form-grid-full" id="invitedSuppliersSection" 
+                     style="display: {% if tender.procurement_method == 'RESTRICTED' %}block{% else %}none{% endif %};">
                     <label class="form-label">Invited Suppliers</label>
                     <select name="invited_suppliers" class="form-select" multiple>
                         {% for supplier in suppliers %}
@@ -446,38 +587,169 @@
                     </select>
                     <span class="form-text">Hold Ctrl (Windows) or Cmd (Mac) to select multiple suppliers</span>
                 </div>
-                {% endif %}
             </div>
-
-            <!-- Form Actions -->
-            <div class="form-actions">
-                <a href="{% url 'tender_detail' tender.id %}" class="btn btn-outline-secondary">
-                    <i class="bi bi-x-circle"></i>
-                    Cancel
-                </a>
-                <button type="submit" class="btn btn-primary" id="submitBtn">
-                    <i class="bi bi-check-circle"></i>
-                    Update Tender
-                </button>
-            </div>
-        </form>
+        </div>
     </div>
-</div>
+
+    <!-- Existing Documents -->
+    {% if existing_documents %}
+    <div class="form-card">
+        <div class="card-header">
+            <h2><i class="bi bi-folder"></i> Existing Documents</h2>
+        </div>
+        <div class="card-body">
+            {% for doc in existing_documents %}
+            <div class="existing-document">
+                <div class="document-info">
+                    <div class="document-name">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                        {{ doc.document_name }}
+                    </div>
+                    <div class="document-meta">
+                        <span>
+                            <i class="bi bi-calendar3"></i>
+                            {{ doc.uploaded_at|date:"M d, Y" }}
+                        </span>
+                        {% if doc.description %}
+                        <span>
+                            <i class="bi bi-info-circle"></i>
+                            {{ doc.description }}
+                        </span>
+                        {% endif %}
+                        {% if doc.is_mandatory %}
+                        <span class="badge badge-warning">Mandatory</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="document-actions">
+                    <a href="{{ doc.file.url }}" target="_blank" class="btn btn-outline-secondary btn-icon" title="View Document">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <button type="button" class="btn btn-danger btn-icon" 
+                            onclick="markForDeletion('{{ doc.id }}')" 
+                            id="delete-btn-{{ doc.id }}"
+                            title="Delete Document">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <input type="hidden" name="delete_documents" value="" id="delete-input-{{ doc.id }}">
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Add New Documents -->
+    <div class="form-card">
+        <div class="card-header">
+            <h2><i class="bi bi-file-earmark-plus"></i> Add New Documents</h2>
+            <button type="button" id="addDocument" class="btn btn-secondary">
+                <i class="bi bi-plus-circle"></i>
+                Add Document
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="documentsContainer">
+                <!-- Document upload fields will be added here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+        <a href="{% url 'tender_detail' tender.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-x-circle"></i>
+            Cancel
+        </a>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+            <i class="bi bi-check-circle"></i>
+            Update Tender
+        </button>
+    </div>
+</form>
 
 <script>
+let documentCount = 0;
+
+// Add document upload field
+document.getElementById('addDocument').addEventListener('click', function() {
+    documentCount++;
+    const div = document.createElement('div');
+    div.className = 'document-item';
+    div.id = `document_${documentCount}`;
+    div.innerHTML = `
+        <div class="document-grid">
+            <div>
+                <label class="form-label">Document File</label>
+                <input type="file" name="document_${documentCount}_file" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx" required>
+            </div>
+            <div>
+                <label class="form-label">Description</label>
+                <input type="text" name="document_${documentCount}_description" class="form-control" placeholder="e.g., Terms of Reference" required>
+            </div>
+            <div class="document-checkbox">
+                <input type="checkbox" name="document_${documentCount}_mandatory" id="doc_mandatory_${documentCount}">
+                <label for="doc_mandatory_${documentCount}" style="margin: 0; cursor: pointer;">Mandatory</label>
+            </div>
+            <div>
+                <button type="button" class="btn btn-danger" onclick="removeDocument(${documentCount})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    document.getElementById('documentsContainer').appendChild(div);
+});
+
+function removeDocument(id) {
+    const element = document.getElementById(`document_${id}`);
+    if (element) element.remove();
+}
+
+function markForDeletion(docId) {
+    const deleteBtn = document.getElementById(`delete-btn-${docId}`);
+    const deleteInput = document.getElementById(`delete-input-${docId}`);
+    const docElement = deleteBtn.closest('.existing-document');
+    
+    if (deleteInput.value === docId) {
+        // Unmark for deletion
+        deleteInput.value = '';
+        docElement.style.opacity = '1';
+        docElement.style.backgroundColor = '';
+        deleteBtn.classList.remove('btn-danger');
+        deleteBtn.classList.add('btn-outline-secondary');
+        deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+        deleteBtn.title = 'Delete Document';
+    } else {
+        // Mark for deletion
+        deleteInput.value = docId;
+        docElement.style.opacity = '0.5';
+        docElement.style.backgroundColor = '#FEE2E2';
+        deleteBtn.classList.remove('btn-outline-secondary');
+        deleteBtn.classList.add('btn-danger');
+        deleteBtn.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i>';
+        deleteBtn.title = 'Undo Delete';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('tenderForm');
     const submitBtn = document.getElementById('submitBtn');
+    const closingDateInput = document.getElementById('closing_date');
+    const bidOpeningDateInput = document.getElementById('bid_opening_date');
+    const procurementMethodSelect = document.getElementById('procurement_method');
+    const invitedSuppliersSection = document.getElementById('invitedSuppliersSection');
     
-    form.addEventListener('submit', function() {
-        submitBtn.classList.add('btn-loading');
-        submitBtn.disabled = true;
+    // Show/hide invited suppliers section
+    procurementMethodSelect.addEventListener('change', function() {
+        if (this.value === 'RESTRICTED') {
+            invitedSuppliersSection.style.display = 'block';
+        } else {
+            invitedSuppliersSection.style.display = 'none';
+        }
     });
 
-    // Validate closing date is after current date
-    const closingDateInput = form.querySelector('input[name="closing_date"]');
-    const bidOpeningDateInput = form.querySelector('input[name="bid_opening_date"]');
-    
+    // Validate dates
     function validateDates() {
         const closingDate = new Date(closingDateInput.value);
         const bidOpeningDate = new Date(bidOpeningDateInput.value);
@@ -501,29 +773,12 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(e) {
         if (!validateDates()) {
             e.preventDefault();
-            submitBtn.classList.remove('btn-loading');
-            submitBtn.disabled = false;
+            return;
         }
+        
+        submitBtn.classList.add('btn-loading');
+        submitBtn.disabled = true;
     });
-
-    // Update invited suppliers visibility based on procurement method
-    const procurementMethodSelect = form.querySelector('select[name="procurement_method"]');
-    const invitedSuppliersGroup = form.querySelector('.form-group:has(select[name="invited_suppliers"])');
-    
-    function toggleInvitedSuppliers() {
-        if (procurementMethodSelect.value === 'RESTRICTED') {
-            if (invitedSuppliersGroup) {
-                invitedSuppliersGroup.style.display = 'block';
-            }
-        } else {
-            if (invitedSuppliersGroup) {
-                invitedSuppliersGroup.style.display = 'none';
-            }
-        }
-    }
-    
-    procurementMethodSelect.addEventListener('change', toggleInvitedSuppliers);
-    toggleInvitedSuppliers(); // Initial check
 });
 </script>
 {% endblock %}

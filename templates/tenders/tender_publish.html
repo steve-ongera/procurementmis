@@ -1,14 +1,433 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}Publish Tender - {{ tender.tender_number }}{% endblock %}
+{% block title %}Publish Tender - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Card */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: #F8FAFC;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .card-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Alert */
+    .alert {
+        padding: 1.25rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .alert-info {
+        background: #E0F2FE;
+        color: #0369A1;
+        border: 1px solid #BAE6FD;
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .alert strong {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #0369A1;
+    }
+
+    .alert ul {
+        margin: 0.5rem 0 0 0;
+        padding-left: 1.25rem;
+    }
+
+    .alert li {
+        margin-bottom: 0.25rem;
+    }
+
+    /* Tender Summary */
+    .tender-summary {
+        margin-bottom: 1.5rem;
+    }
+
+    .tender-summary h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    .info-table th,
+    .info-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        text-align: left;
+    }
+
+    .info-table th {
+        font-weight: 500;
+        color: #64748B;
+        width: 40%;
+        white-space: nowrap;
+    }
+
+    .info-table td {
+        font-weight: 500;
+        color: #1E293B;
+    }
+
+    .info-table tr:last-child th,
+    .info-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Checklist */
+    .checklist {
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+        background: #F8FAFC;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .checklist h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .checklist-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem;
+    }
+
+    .checklist-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .checklist-item i {
+        font-size: 1.125rem;
+        flex-shrink: 0;
+    }
+
+    .checklist-item span {
+        font-size: 0.875rem;
+        color: #334155;
+        flex: 1;
+    }
+
+    .checklist-item .text-success {
+        color: var(--success-color);
+    }
+
+    .checklist-item .text-muted {
+        color: #94A3B8;
+    }
+
+    .checklist-item .text-danger {
+        color: var(--danger-color);
+        font-weight: 500;
+        font-size: 0.75rem;
+    }
+
+    .checklist-item .text-warning {
+        color: var(--warning-color);
+        font-weight: 500;
+        font-size: 0.75rem;
+    }
+
+    /* Form */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1E293B;
+        cursor: pointer;
+        padding: 0.75rem;
+        background: #F8FAFC;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+        transition: all 0.2s;
+    }
+
+    .form-group label:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+    }
+
+    .form-group input[type="checkbox"] {
+        margin-top: 0.125rem;
+        accent-color: var(--primary-color);
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: #F1F5F9;
+        color: #475569;
+        border-color: #E2E8F0;
+    }
+
+    .btn-secondary:hover {
+        background: #E2E8F0;
+        border-color: #CBD5E1;
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    .btn-success:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .btn-success:disabled:hover {
+        background: var(--success-color);
+        border-color: var(--success-color);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .card-header {
+            padding: 1.25rem 1rem;
+        }
+        
+        .card-body {
+            padding: 1.25rem 1rem;
+        }
+        
+        .info-table th,
+        .info-table td {
+            padding: 0.5rem;
+            font-size: 0.8125rem;
+        }
+        
+        .alert {
+            padding: 1rem;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .checklist {
+            padding: 1.25rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .page-title {
+            font-size: 1.5rem;
+        }
+        
+        .breadcrumb {
+            font-size: 0.8125rem;
+        }
+        
+        .card-header {
+            padding: 1rem;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .info-table th,
+        .info-table td {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 0;
+            border-bottom: none;
+        }
+        
+        .info-table th {
+            padding-top: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .info-table td {
+            padding-bottom: 0.75rem;
+        }
+        
+        .info-table tr {
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .info-table tr:last-child {
+            border-bottom: none;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Publish Tender</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}">Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'tender_list' %}">Tenders</a>
             <i class="bi bi-chevron-right"></i>
@@ -19,10 +438,10 @@
     </div>
 </div>
 
-<div class="confirm-card">
+<div class="card">
     <div class="card-header">
         <i class="bi bi-megaphone"></i>
-        <h2>Confirm Tender Publication</h2>
+        <h2 class="card-title">Confirm Tender Publication</h2>
     </div>
     
     <div class="card-body">
