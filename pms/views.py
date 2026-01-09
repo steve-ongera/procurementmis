@@ -9817,15 +9817,17 @@ def supplier_awarded_contracts(request):
     
     supplier = request.user.supplier_profile
     
-    # Get awarded bids
+    # Get awarded bids with purchase orders prefetched
     awarded_bids = Bid.objects.filter(
         supplier=supplier,
         status='AWARDED'
-    ).select_related('tender').order_by('-submitted_at')
-    
-    # Get related purchase orders
-    for bid in awarded_bids:
-        bid.purchase_order = PurchaseOrder.objects.filter(bid=bid).first()
+    ).select_related(
+        'tender',
+        'tender__requisition',
+        'tender__requisition__department'
+    ).prefetch_related(
+        'purchase_order'  # This will prefetch the related PurchaseOrder
+    ).order_by('-submitted_at')
     
     context = {
         'awarded_bids': awarded_bids,
