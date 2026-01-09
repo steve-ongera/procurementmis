@@ -2757,79 +2757,713 @@ def tender_cancel(request, pk):
     return render(request, 'tenders/tender_cancel.html', {'tender': tender})
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Sum, Avg, Q, Count, Min, Max
+from django.core.paginator import Paginator
+from django.utils import timezone
+from django.http import JsonResponse
+from decimal import Decimal
+from .models import (
+    Bid, Tender, Supplier, BidItem, BidDocument, 
+    BidEvaluation, PurchaseOrder, AuditLog, Notification,
+    RequisitionItem
+)
+
+
+# ============================================================================
 # BID MANAGEMENT VIEWS
+# ============================================================================
 
 @login_required
-def bid_list(request, tender_id):
-    """List all bids for a tender"""
-    tender = get_object_or_404(Tender, pk=tender_id)
+def bid_list(request):
+    """List all bids in the system with filtering and statistics"""
     
-    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+    # Permission check
+    if request.user.role not in ['PROCUREMENT', 'ADMIN', 'SUPPLIER']:
         messages.error(request, 'You do not have permission to view bids.')
-        return redirect('tender_detail', pk=tender_id)
+        return redirect('dashboard')
     
-    bids = tender.bids.select_related('supplier').prefetch_related(
-        'items', 'documents', 'evaluations'
-    ).order_by('-submitted_at')
+    # Base queryset
+    bids = Bid.objects.select_related(
+        'tender',
+        'supplier',
+        'opened_by'
+    ).prefetch_related(
+        'items__requisition_item',
+        'documents',
+        'evaluations'
+    ).annotate(
+        evaluation_count=Count('evaluations'),
+        items_count=Count('items')
+    )
     
-    # Filter
+    # Filter for suppliers - only show their own bids
+    if request.user.role == 'SUPPLIER':
+        try:
+            supplier = request.user.supplier_profile
+            bids = bids.filter(supplier=supplier)
+        except:
+            messages.error(request, 'Supplier profile not found.')
+            return redirect('dashboard')
+    
+    # Filters
     status_filter = request.GET.get('status', '')
+    tender_filter = request.GET.get('tender', '')
+    supplier_filter = request.GET.get('supplier', '')
+    search_query = request.GET.get('search', '')
+    min_amount = request.GET.get('min_amount', '')
+    max_amount = request.GET.get('max_amount', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
     if status_filter:
         bids = bids.filter(status=status_filter)
     
-    # Statistics
+    if tender_filter:
+        bids = bids.filter(tender_id=tender_filter)
+    
+    if supplier_filter and request.user.role in ['PROCUREMENT', 'ADMIN']:
+        bids = bids.filter(supplier_id=supplier_filter)
+    
+    if search_query:
+        bids = bids.filter(
+            Q(bid_number__icontains=search_query) |
+            Q(supplier__name__icontains=search_query) |
+            Q(supplier__supplier_number__icontains=search_query) |
+            Q(tender__tender_number__icontains=search_query) |
+            Q(tender__title__icontains=search_query)
+        )
+    
+    if min_amount:
+        try:
+            bids = bids.filter(bid_amount__gte=Decimal(min_amount))
+        except:
+            pass
+    
+    if max_amount:
+        try:
+            bids = bids.filter(bid_amount__lte=Decimal(max_amount))
+        except:
+            pass
+    
+    if date_from:
+        bids = bids.filter(submitted_at__date__gte=date_from)
+    
+    if date_to:
+        bids = bids.filter(submitted_at__date__lte=date_to)
+    
+    # Sorting
+    sort_by = request.GET.get('sort', '-submitted_at')
+    valid_sort_fields = [
+        'bid_amount', '-bid_amount', 
+        'submitted_at', '-submitted_at', 
+        'rank', '-rank',
+        'bid_number', '-bid_number'
+    ]
+    if sort_by in valid_sort_fields:
+        bids = bids.order_by(sort_by)
+    else:
+        bids = bids.order_by('-submitted_at')
+    
+    # Statistics (before pagination)
+    all_bids = Bid.objects.all()
+    if request.user.role == 'SUPPLIER':
+        all_bids = all_bids.filter(supplier=supplier)
+    
     stats = {
-        'total': bids.count(),
-        'submitted': bids.filter(status='SUBMITTED').count(),
-        'qualified': bids.filter(status='QUALIFIED').count(),
-        'disqualified': bids.filter(status='DISQUALIFIED').count(),
-        'average_amount': bids.aggregate(Avg('bid_amount'))['bid_amount__avg'],
+        'total': all_bids.count(),
+        'submitted': all_bids.filter(status='SUBMITTED').count(),
+        'opened': all_bids.filter(status='OPENED').count(),
+        'evaluating': all_bids.filter(status='EVALUATING').count(),
+        'qualified': all_bids.filter(status='QUALIFIED').count(),
+        'disqualified': all_bids.filter(status='DISQUALIFIED').count(),
+        'awarded': all_bids.filter(status='AWARDED').count(),
+        'rejected': all_bids.filter(status='REJECTED').count(),
+        'average_amount': all_bids.aggregate(Avg('bid_amount'))['bid_amount__avg'] or 0,
+        'total_value': all_bids.aggregate(Sum('bid_amount'))['bid_amount__sum'] or 0,
     }
+    
+    # Get filter choices for dropdowns (only for procurement/admin)
+    tenders_list = []
+    suppliers_list = []
+    
+    if request.user.role in ['PROCUREMENT', 'ADMIN']:
+        tenders_list = Tender.objects.filter(
+            status__in=['PUBLISHED', 'CLOSED', 'EVALUATING']
+        ).order_by('-created_at')[:50]
+        
+        suppliers_list = Supplier.objects.filter(
+            status='APPROVED'
+        ).order_by('name')
+    
+    # Pagination
+    paginator = Paginator(bids, 25)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
     
     context = {
-        'tender': tender,
-        'bids': bids,
+        'bids': page_obj,
+        'page_obj': page_obj,
         'status_filter': status_filter,
+        'tender_filter': tender_filter,
+        'supplier_filter': supplier_filter,
+        'search_query': search_query,
+        'min_amount': min_amount,
+        'max_amount': max_amount,
+        'date_from': date_from,
+        'date_to': date_to,
+        'sort_by': sort_by,
         'stats': stats,
+        'status_choices': Bid.STATUS_CHOICES,
+        'tenders_list': tenders_list,
+        'suppliers_list': suppliers_list,
+        'total_count': paginator.count,
     }
     
-    return render(request, 'tenders/bid_list.html', context)
+    return render(request, 'bids/bid_list.html', context)
 
 
 @login_required
 def bid_detail(request, pk):
-    """View bid details"""
+    """View detailed bid information"""
     bid = get_object_or_404(
         Bid.objects.select_related(
-            'tender', 'supplier'
+            'tender',
+            'supplier',
+            'opened_by'
         ).prefetch_related(
-            'items__requisition_item',
+            'items__requisition_item__item',
             'documents',
             'evaluations__evaluator'
         ),
         pk=pk
     )
     
-    # Check permissions
-    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
-        # Suppliers can only view their own bids
-        if request.user.role == 'SUPPLIER':
-            if not bid.supplier.user_set.filter(id=request.user.id).exists():
-                messages.error(request, 'You do not have permission to view this bid.')
+    # Permission check
+    if request.user.role not in ['PROCUREMENT', 'ADMIN', 'SUPPLIER']:
+        messages.error(request, 'You do not have permission to view this bid.')
+        return redirect('dashboard')
+    
+    # Suppliers can only view their own bids
+    if request.user.role == 'SUPPLIER':
+        try:
+            supplier = request.user.supplier_profile
+            if bid.supplier != supplier:
+                messages.error(request, 'You can only view your own bids.')
                 return redirect('dashboard')
-        else:
-            messages.error(request, 'You do not have permission to view bids.')
+        except:
+            messages.error(request, 'Supplier profile not found.')
             return redirect('dashboard')
     
-    # Calculate totals
+    # Calculate totals and statistics
     items_total = bid.items.aggregate(Sum('quoted_total'))['quoted_total__sum'] or 0
+    items_count = bid.items.count()
+    
+    # Get evaluation summary
+    evaluations = bid.evaluations.all()
+    evaluation_summary = {
+        'count': evaluations.count(),
+        'avg_technical': evaluations.aggregate(Avg('technical_score'))['technical_score__avg'] or 0,
+        'avg_financial': evaluations.aggregate(Avg('financial_score'))['financial_score__avg'] or 0,
+        'avg_total': evaluations.aggregate(Avg('total_score'))['total_score__avg'] or 0,
+    }
+    
+    # Compare with tender estimated budget
+    variance = bid.bid_amount - bid.tender.estimated_budget
+    variance_percentage = (variance / bid.tender.estimated_budget * 100) if bid.tender.estimated_budget > 0 else 0
+    
+    # Check if bid can be awarded
+    can_award = (
+        request.user.role in ['PROCUREMENT', 'ADMIN'] and
+        bid.status in ['QUALIFIED'] and
+        bid.tender.status in ['EVALUATING', 'CLOSED'] and
+        not PurchaseOrder.objects.filter(bid=bid).exists()
+    )
+    
+    # Check if bid can be opened
+    can_open = (
+        request.user.role in ['PROCUREMENT', 'ADMIN'] and
+        bid.status == 'SUBMITTED' and
+        bid.tender.closing_date <= timezone.now()
+    )
+    
+    # Check if bid can be evaluated
+    can_evaluate = (
+        request.user.role in ['PROCUREMENT', 'ADMIN'] and
+        bid.status in ['OPENED', 'EVALUATING']
+    )
+    
+    # Check if bid can be disqualified
+    can_disqualify = (
+        request.user.role in ['PROCUREMENT', 'ADMIN'] and
+        bid.status not in ['DISQUALIFIED', 'AWARDED', 'REJECTED']
+    )
     
     context = {
         'bid': bid,
         'items_total': items_total,
+        'items_count': items_count,
+        'evaluation_summary': evaluation_summary,
+        'variance': variance,
+        'variance_percentage': variance_percentage,
+        'can_award': can_award,
+        'can_open': can_open,
+        'can_evaluate': can_evaluate,
+        'can_disqualify': can_disqualify,
     }
     
-    return render(request, 'tenders/bid_detail.html', context)
+    return render(request, 'bids/bid_detail.html', context)
+
+
+@login_required
+def bid_open(request, pk):
+    """Open a submitted bid"""
+    bid = get_object_or_404(Bid, pk=pk)
+    
+    # Permission check
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to open bids.')
+        return redirect('bid_detail', pk=pk)
+    
+    # Check if bid can be opened
+    if bid.status != 'SUBMITTED':
+        messages.error(request, 'Only submitted bids can be opened.')
+        return redirect('bid_detail', pk=pk)
+    
+    # Check if tender closing date has passed
+    if bid.tender.closing_date > timezone.now():
+        messages.error(request, 'Cannot open bids before tender closing date.')
+        return redirect('bid_detail', pk=pk)
+    
+    if request.method == 'POST':
+        bid.status = 'OPENED'
+        bid.opened_by = request.user
+        bid.opened_at = timezone.now()
+        bid.save()
+        
+        # Create audit log
+        AuditLog.objects.create(
+            user=request.user,
+            action='APPROVE',
+            model_name='Bid',
+            object_id=str(bid.id),
+            object_repr=str(bid),
+            changes={'status': 'OPENED', 'opened_at': str(timezone.now())},
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        
+        messages.success(request, f'Bid {bid.bid_number} has been opened successfully.')
+        return redirect('bid_detail', pk=pk)
+    
+    return render(request, 'bids/bid_open_confirm.html', {'bid': bid})
+
+
+@login_required
+def bid_evaluate(request, pk):
+    """Evaluate a bid"""
+    bid = get_object_or_404(Bid, pk=pk)
+    
+    # Permission check
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to evaluate bids.')
+        return redirect('bid_detail', pk=pk)
+    
+    # Check if bid can be evaluated
+    if bid.status not in ['OPENED', 'EVALUATING']:
+        messages.error(request, 'This bid cannot be evaluated.')
+        return redirect('bid_detail', pk=pk)
+    
+    # Check if user already evaluated this bid
+    existing_evaluation = BidEvaluation.objects.filter(
+        bid=bid, 
+        evaluator=request.user
+    ).first()
+    
+    if request.method == 'POST':
+        technical_compliance = request.POST.get('technical_compliance') == 'on'
+        financial_compliance = request.POST.get('financial_compliance') == 'on'
+        technical_score = Decimal(request.POST.get('technical_score', 0))
+        financial_score = Decimal(request.POST.get('financial_score', 0))
+        strengths = request.POST.get('strengths', '')
+        weaknesses = request.POST.get('weaknesses', '')
+        recommendation = request.POST.get('recommendation', '')
+        
+        # Validate scores
+        if technical_score < 0 or technical_score > 100:
+            messages.error(request, 'Technical score must be between 0 and 100.')
+            return redirect('bid_evaluate', pk=pk)
+        
+        if financial_score < 0 or financial_score > 100:
+            messages.error(request, 'Financial score must be between 0 and 100.')
+            return redirect('bid_evaluate', pk=pk)
+        
+        if existing_evaluation:
+            # Update existing evaluation
+            existing_evaluation.technical_compliance = technical_compliance
+            existing_evaluation.financial_compliance = financial_compliance
+            existing_evaluation.technical_score = technical_score
+            existing_evaluation.financial_score = financial_score
+            existing_evaluation.strengths = strengths
+            existing_evaluation.weaknesses = weaknesses
+            existing_evaluation.recommendation = recommendation
+            existing_evaluation.save()
+            
+            messages.success(request, 'Your evaluation has been updated successfully.')
+        else:
+            # Create new evaluation
+            BidEvaluation.objects.create(
+                bid=bid,
+                evaluator=request.user,
+                technical_compliance=technical_compliance,
+                financial_compliance=financial_compliance,
+                technical_score=technical_score,
+                financial_score=financial_score,
+                strengths=strengths,
+                weaknesses=weaknesses,
+                recommendation=recommendation
+            )
+            
+            messages.success(request, 'Bid evaluation submitted successfully.')
+        
+        # Update bid status to EVALUATING if it's OPENED
+        if bid.status == 'OPENED':
+            bid.status = 'EVALUATING'
+            bid.save()
+        
+        # Create audit log
+        AuditLog.objects.create(
+            user=request.user,
+            action='UPDATE',
+            model_name='Bid',
+            object_id=str(bid.id),
+            object_repr=str(bid),
+            changes={'evaluation_added': True},
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        
+        return redirect('bid_detail', pk=pk)
+    
+    # Get evaluation criteria for the tender
+    criteria = bid.tender.evaluation_criteria.all().order_by('sequence')
+    
+    context = {
+        'bid': bid,
+        'existing_evaluation': existing_evaluation,
+        'criteria': criteria,
+    }
+    
+    return render(request, 'bids/bid_evaluate.html', context)
+
+
+@login_required
+def bid_qualify(request, pk):
+    """Mark bid as qualified"""
+    bid = get_object_or_404(Bid, pk=pk)
+    
+    # Permission check
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to qualify bids.')
+        return redirect('bid_detail', pk=pk)
+    
+    # Check if bid can be qualified
+    if bid.status not in ['EVALUATING']:
+        messages.error(request, 'Only bids under evaluation can be qualified.')
+        return redirect('bid_detail', pk=pk)
+    
+    if request.method == 'POST':
+        # Calculate average scores from evaluations
+        evaluations = bid.evaluations.all()
+        if evaluations.count() == 0:
+            messages.error(request, 'Bid must be evaluated before qualification.')
+            return redirect('bid_detail', pk=pk)
+        
+        avg_technical = evaluations.aggregate(Avg('technical_score'))['technical_score__avg']
+        avg_financial = evaluations.aggregate(Avg('financial_score'))['financial_score__avg']
+        
+        bid.technical_score = avg_technical
+        bid.financial_score = avg_financial
+        bid.evaluation_score = (avg_technical * Decimal('0.7')) + (avg_financial * Decimal('0.3'))
+        bid.status = 'QUALIFIED'
+        bid.save()
+        
+        # Update rankings for all qualified bids in this tender
+        qualified_bids = Bid.objects.filter(
+            tender=bid.tender,
+            status='QUALIFIED'
+        ).order_by('-evaluation_score')
+        
+        for idx, qualified_bid in enumerate(qualified_bids, start=1):
+            qualified_bid.rank = idx
+            qualified_bid.save()
+        
+        # Create audit log
+        AuditLog.objects.create(
+            user=request.user,
+            action='APPROVE',
+            model_name='Bid',
+            object_id=str(bid.id),
+            object_repr=str(bid),
+            changes={'status': 'QUALIFIED', 'rank': bid.rank},
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        
+        # Notify supplier
+        Notification.objects.create(
+            user=bid.supplier.user if hasattr(bid.supplier, 'user') else None,
+            notification_type='TENDER',
+            priority='MEDIUM',
+            title=f'Bid Qualified - {bid.tender.tender_number}',
+            message=f'Your bid {bid.bid_number} has been qualified and ranked #{bid.rank}.',
+            link_url=f'/bids/{bid.id}/'
+        )
+        
+        messages.success(request, f'Bid {bid.bid_number} has been qualified and ranked #{bid.rank}.')
+        return redirect('bid_detail', pk=pk)
+    
+    return render(request, 'bids/bid_qualify_confirm.html', {'bid': bid})
+
+
+@login_required
+def bid_disqualify(request, pk):
+    """Disqualify a bid"""
+    bid = get_object_or_404(Bid, pk=pk)
+    
+    # Permission check
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to disqualify bids.')
+        return redirect('bid_detail', pk=pk)
+    
+    # Check if bid can be disqualified
+    if bid.status in ['DISQUALIFIED', 'AWARDED']:
+        messages.error(request, 'This bid cannot be disqualified.')
+        return redirect('bid_detail', pk=pk)
+    
+    if request.method == 'POST':
+        reason = request.POST.get('disqualification_reason', '')
+        
+        if not reason:
+            messages.error(request, 'Please provide a reason for disqualification.')
+            return redirect('bid_disqualify', pk=pk)
+        
+        bid.status = 'DISQUALIFIED'
+        bid.disqualification_reason = reason
+        bid.rank = None
+        bid.save()
+        
+        # Create audit log
+        AuditLog.objects.create(
+            user=request.user,
+            action='REJECT',
+            model_name='Bid',
+            object_id=str(bid.id),
+            object_repr=str(bid),
+            changes={'status': 'DISQUALIFIED', 'reason': reason},
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        
+        # Notify supplier
+        if hasattr(bid.supplier, 'user') and bid.supplier.user:
+            Notification.objects.create(
+                user=bid.supplier.user,
+                notification_type='TENDER',
+                priority='HIGH',
+                title=f'Bid Disqualified - {bid.tender.tender_number}',
+                message=f'Your bid {bid.bid_number} has been disqualified. Reason: {reason}',
+                link_url=f'/bids/{bid.id}/'
+            )
+        
+        messages.success(request, f'Bid {bid.bid_number} has been disqualified.')
+        return redirect('bid_detail', pk=pk)
+    
+    context = {'bid': bid}
+    return render(request, 'bids/bid_disqualify.html', context)
+
+
+@login_required
+def bid_award(request, pk):
+    """Award tender to a bid (creates Purchase Order)"""
+    bid = get_object_or_404(Bid, pk=pk)
+    
+    # Permission check
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to award tenders.')
+        return redirect('bid_detail', pk=pk)
+    
+    # Check if bid can be awarded
+    if bid.status != 'QUALIFIED':
+        messages.error(request, 'Only qualified bids can be awarded.')
+        return redirect('bid_detail', pk=pk)
+    
+    # Check if tender already awarded
+    if PurchaseOrder.objects.filter(bid__tender=bid.tender, status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED']).exists():
+        messages.error(request, 'This tender has already been awarded.')
+        return redirect('bid_detail', pk=pk)
+    
+    if request.method == 'POST':
+        delivery_date = request.POST.get('delivery_date')
+        delivery_address = request.POST.get('delivery_address')
+        payment_terms = request.POST.get('payment_terms')
+        warranty_terms = request.POST.get('warranty_terms', '')
+        special_instructions = request.POST.get('special_instructions', '')
+        
+        if not all([delivery_date, delivery_address, payment_terms]):
+            messages.error(request, 'Please fill in all required fields.')
+            return redirect('bid_award', pk=pk)
+        
+        try:
+            # Calculate totals
+            items_total = bid.items.aggregate(Sum('quoted_total'))['quoted_total__sum'] or 0
+            tax_rate = Decimal('0.16')  # 16% VAT - adjust as needed
+            tax_amount = items_total * tax_rate
+            total_amount = items_total + tax_amount
+            
+            # Create Purchase Order
+            po = PurchaseOrder.objects.create(
+                requisition=bid.tender.requisition,
+                supplier=bid.supplier,
+                bid=bid,
+                delivery_date=delivery_date,
+                delivery_address=delivery_address,
+                subtotal=items_total,
+                tax_amount=tax_amount,
+                total_amount=total_amount,
+                payment_terms=payment_terms,
+                warranty_terms=warranty_terms,
+                special_instructions=special_instructions,
+                status='DRAFT',
+                created_by=request.user
+            )
+            
+            # Create PO items from bid items
+            from .models import PurchaseOrderItem
+            for bid_item in bid.items.all():
+                PurchaseOrderItem.objects.create(
+                    purchase_order=po,
+                    requisition_item=bid_item.requisition_item,
+                    item_description=bid_item.requisition_item.item_description,
+                    specifications=bid_item.specifications,
+                    quantity=bid_item.requisition_item.quantity,
+                    unit_of_measure=bid_item.requisition_item.unit_of_measure,
+                    unit_price=bid_item.quoted_unit_price,
+                )
+            
+            # Update bid status
+            bid.status = 'AWARDED'
+            bid.save()
+            
+            # Update tender status
+            bid.tender.status = 'AWARDED'
+            bid.tender.save()
+            
+            # Update other bids as rejected
+            Bid.objects.filter(
+                tender=bid.tender
+            ).exclude(id=bid.id).update(status='REJECTED')
+            
+            # Create audit log
+            AuditLog.objects.create(
+                user=request.user,
+                action='APPROVE',
+                model_name='Bid',
+                object_id=str(bid.id),
+                object_repr=str(bid),
+                changes={'status': 'AWARDED', 'po_created': str(po.po_number)},
+                ip_address=request.META.get('REMOTE_ADDR'),
+            )
+            
+            # Notify supplier
+            if hasattr(bid.supplier, 'user') and bid.supplier.user:
+                Notification.objects.create(
+                    user=bid.supplier.user,
+                    notification_type='PO',
+                    priority='HIGH',
+                    title=f'Tender Awarded - PO {po.po_number}',
+                    message=f'Congratulations! Your bid has been awarded. PO Number: {po.po_number}',
+                    link_url=f'/purchase-orders/{po.id}/'
+                )
+            
+            messages.success(request, f'Tender awarded successfully. Purchase Order {po.po_number} created.')
+            return redirect('purchase_order_detail', pk=po.id)
+            
+        except Exception as e:
+            messages.error(request, f'Error creating purchase order: {str(e)}')
+            return redirect('bid_award', pk=pk)
+    
+    # Calculate estimated totals
+    items_total = bid.items.aggregate(Sum('quoted_total'))['quoted_total__sum'] or 0
+    tax_amount = items_total * Decimal('0.16')
+    total_amount = items_total + tax_amount
+    
+    context = {
+        'bid': bid,
+        'items_total': items_total,
+        'tax_amount': tax_amount,
+        'total_amount': total_amount,
+    }
+    
+    return render(request, 'bids/bid_award.html', context)
+
+
+@login_required
+def bid_comparison(request, tender_id):
+    """Compare all bids for a tender side by side"""
+    tender = get_object_or_404(Tender, pk=tender_id)
+    
+    # Permission check
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to compare bids.')
+        return redirect('tender_detail', pk=tender_id)
+    
+    # Get all bids that are not disqualified
+    bids = tender.bids.exclude(status='DISQUALIFIED').select_related(
+        'supplier'
+    ).prefetch_related(
+        'items__requisition_item',
+        'evaluations'
+    ).order_by('rank', 'bid_amount')
+    
+    if not bids.exists():
+        messages.info(request, 'No bids available for comparison.')
+        return redirect('tender_detail', pk=tender_id)
+    
+    # Get all requisition items
+    requisition_items = tender.requisition.items.all()
+    
+    # Build comparison data
+    comparison_data = []
+    for req_item in requisition_items:
+        item_data = {
+            'requisition_item': req_item,
+            'bids': []
+        }
+        
+        for bid in bids:
+            bid_item = bid.items.filter(requisition_item=req_item).first()
+            item_data['bids'].append({
+                'bid': bid,
+                'bid_item': bid_item
+            })
+        
+        comparison_data.append(item_data)
+    
+    # Calculate statistics
+    stats = {
+        'total_bids': bids.count(),
+        'average_amount': bids.aggregate(Avg('bid_amount'))['bid_amount__avg'] or 0,
+        'lowest_bid': bids.order_by('bid_amount').first(),
+        'highest_bid': bids.order_by('-bid_amount').first(),
+    }
+    
+    context = {
+        'tender': tender,
+        'bids': bids,
+        'comparison_data': comparison_data,
+        'stats': stats,
+    }
+    
+    return render(request, 'bids/bid_comparison.html', context)
 
 
 # API ENDPOINTS
