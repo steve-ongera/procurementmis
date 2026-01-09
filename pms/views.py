@@ -3059,6 +3059,18 @@ def bid_open(request, pk):
     
     return render(request, 'bids/bid_open_confirm.html', {'bid': bid})
 
+from decimal import Decimal, InvalidOperation
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+
+def to_decimal(value, default='0'):
+    """Safely convert value to Decimal"""
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return Decimal(default)
+
 
 @login_required
 def bid_evaluate(request, pk):
@@ -3084,8 +3096,11 @@ def bid_evaluate(request, pk):
     if request.method == 'POST':
         technical_compliance = request.POST.get('technical_compliance') == 'on'
         financial_compliance = request.POST.get('financial_compliance') == 'on'
-        technical_score = Decimal(request.POST.get('technical_score', 0))
-        financial_score = Decimal(request.POST.get('financial_score', 0))
+        
+        # Use to_decimal helper for safe conversion
+        technical_score = to_decimal(request.POST.get('technical_score', '0'))
+        financial_score = to_decimal(request.POST.get('financial_score', '0'))
+        
         strengths = request.POST.get('strengths', '')
         weaknesses = request.POST.get('weaknesses', '')
         recommendation = request.POST.get('recommendation', '')

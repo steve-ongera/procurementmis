@@ -868,7 +868,8 @@ class BidEvaluation(models.Model):
 
     def save(self, *args, **kwargs):
         # Weighted scoring: 70% technical, 30% financial
-        self.total_score = (self.technical_score * 0.7) + (self.financial_score * 0.3)
+        # Convert float literals to Decimal to avoid TypeError 
+        self.total_score = (self.technical_score * Decimal('0.7')) + (self.financial_score * Decimal('0.3'))
         super().save(*args, **kwargs)
 
     def __str__(self):

@@ -611,41 +611,37 @@
         </div>
     </div>
     <div class="header-actions">
-        <a href="{% url 'bid_list' %}" class="btn">
-            <i class="bi bi-arrow-left"></i>
-            Back to List
-        </a>
+       
         {% if user.role in 'PROCUREMENT,ADMIN' %}
-            {% if can_open %}
+            
             <a href="{% url 'bid_open' bid.id %}" class="btn btn-primary">
                 <i class="bi bi-envelope-open"></i>
                 Open Bid
             </a>
-            {% endif %}
-            {% if can_evaluate %}
+           
             <a href="{% url 'bid_evaluate' bid.id %}" class="btn btn-primary">
                 <i class="bi bi-clipboard-check"></i>
                 Evaluate Bid
             </a>
-            {% endif %}
-            {% if bid.status == 'EVALUATING' %}
+            
+          
             <a href="{% url 'bid_qualify' bid.id %}" class="btn btn-success">
                 <i class="bi bi-check-circle"></i>
                 Qualify Bid
             </a>
-            {% endif %}
+           
             {% if can_disqualify %}
             <a href="{% url 'bid_disqualify' bid.id %}" class="btn btn-danger">
                 <i class="bi bi-x-circle"></i>
                 Disqualify
             </a>
             {% endif %}
-            {% if can_award %}
+            
             <a href="{% url 'bid_award' bid.id %}" class="btn btn-success">
                 <i class="bi bi-trophy"></i>
                 Award Tender
             </a>
-            {% endif %}
+            
             <a href="{% url 'bid_comparison' bid.tender.id %}" class="btn">
                 <i class="bi bi-table"></i>
                 Compare Bids
