@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Evaluate Bid - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Evaluate Bid</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'bid_list' %}">Bids</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'bid_detail' bid.id %}">{{ bid.bid_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Evaluate</span>
+        </div>
+    </div>
+</div>
+
+<!-- Bid Summary -->
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-receipt"></i>
+            Bid Information
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Bid Number</label>
+                <value>{{ bid.bid_number }}</value>
+            </div>
+            <div class="info-item">
+                <label>Supplier</label>
+                <value>{{ bid.supplier.name }}</value>
+            </div>
+            <div class="info-item">
+                <label>Bid Amount</label>
+                <value class="amount-text">KES {{ bid.bid_amount|floatformat:0|intcomma }}</value>
+            </div>
+            <div class="info-item">
+                <label>Tender</label>
+                <value>{{ bid.tender.tender_number }}</value>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Evaluation Criteria -->
+{% if criteria.exists %}
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-list-check"></i>
+            Evaluation Criteria
+        </h2>
+    </div>
+    <div class="card-body">
+        <table class="criteria-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Criterion</th>
+                    <th>Type</th>
+                    <th>Weight</th>
+                    <th>Max Score</th>
+                    <th>Mandatory</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for criterion in criteria %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <div><strong>{{ criterion.criterion_name }}</strong></div>
+                        <div class="text-muted small">{{ criterion.description }}</div>
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ criterion.criterion_type|lower }}">
+                            {{ criterion.get_criterion_type_display }}
+                        </span>
+                    </td>
+                    <td>{{ criterion.weight }}%</td>
+                    <td>{{ criterion.max_score }}</td>
+                    <td>
+                        {% if criterion.is_mandatory %}
+                        <i class="bi bi-check-circle text-success"></i> Yes
+                        {% else %}
+                        <i class="bi bi-dash-circle text-muted"></i> No
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Evaluation Form -->
+<div class="form-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-clipboard-check"></i>
+            {% if existing_evaluation %}Update Your Evaluation{% else %}Submit Your Evaluation{% endif %}
+        </h2>
+    </div>
+    <div class="card-body">
+        {% if existing_evaluation %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            You have already evaluated this bid. You can update your evaluation below.
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- Compliance Checks -->
+            <div class="form-section">
+                <h3>Compliance Verification</h3>
+                
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" name="technical_compliance" 
+                               {% if existing_evaluation.technical_compliance %}checked{% endif %}>
+                        <span>Technical Compliance</span>
+                    </label>
+                    <p class="help-text">Check if the bid meets all technical requirements and specifications</p>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" name="financial_compliance" 
+                               {% if existing_evaluation.financial_compliance %}checked{% endif %}>
+                        <span>Financial Compliance</span>
+                    </label>
+                    <p class="help-text">Check if the bid meets all financial requirements and documentation</p>
+                </div>
+            </div>
+
+            <!-- Scoring -->
+            <div class="form-section">
+                <h3>Evaluation Scores</h3>
+                
+                <div class="form-group">
+                    <label class="form-label required">Technical Score (0-100)</label>
+                    <input type="number" name="technical_score" class="form-control" 
+                           min="0" max="100" step="0.01" required
+                           value="{{ existing_evaluation.technical_score|default:'' }}"
+                           placeholder="Enter technical score">
+                    <p class="help-text">
+                        Score the bid based on technical merit, quality, specifications, and capability
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Financial Score (0-100)</label>
+                    <input type="number" name="financial_score" class="form-control" 
+                           min="0" max="100" step="0.01" required
+                           value="{{ existing_evaluation.financial_score|default:'' }}"
+                           placeholder="Enter financial score">
+                    <p class="help-text">
+                        Score the bid based on price competitiveness and value for money
+                    </p>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Note:</strong> Final score will be calculated as: (Technical × 70%) + (Financial × 30%)
+                </div>
+            </div>
+
+            <!-- Evaluation Details -->
+            <div class="form-section">
+                <h3>Detailed Evaluation</h3>
+                
+                <div class="form-group">
+                    <label class="form-label">Strengths</label>
+                    <textarea name="strengths" class="form-control" rows="4"
+                              placeholder="List the key strengths of this bid...">{{ existing_evaluation.strengths|default:'' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Weaknesses</label>
+                    <textarea name="weaknesses" class="form-control" rows="4"
+                              placeholder="List any weaknesses or concerns about this bid...">{{ existing_evaluation.weaknesses|default:'' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Recommendation</label>
+                    <textarea name="recommendation" class="form-control" rows="4" required
+                              placeholder="Provide your overall recommendation...">{{ existing_evaluation.recommendation|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'bid_detail' bid.id %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i>
+                    {% if existing_evaluation %}Update Evaluation{% else %}Submit Evaluation{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bid Items for Reference -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-list-ul"></i>
+            Bid Items for Reference
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                    <th>Brand/Model</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in bid.items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.requisition_item.item_description }}</td>
+                    <td>{{ item.requisition_item.quantity }} {{ item.requisition_item.unit_of_measure }}</td>
+                    <td>KES {{ item.quoted_unit_price|floatformat:2|intcomma }}</td>
+                    <td>KES {{ item.quoted_total|floatformat:2|intcomma }}</td>
+                    <td>
+                        {% if item.brand %}{{ item.brand }}{% endif %}
+                        {% if item.model %} - {{ item.model }}{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

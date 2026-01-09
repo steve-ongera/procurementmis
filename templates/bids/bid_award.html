@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Award Tender - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Award Tender</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'bid_list' %}">Bids</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'bid_detail' bid.id %}">{{ bid.bid_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Award</span>
+        </div>
+    </div>
+</div>
+
+<!-- Award Summary -->
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-trophy"></i>
+            Award Summary
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="award-banner">
+            <i class="bi bi-trophy-fill"></i>
+            <div>
+                <h3>You are awarding this tender to:</h3>
+                <p class="supplier-name">{{ bid.supplier.name }}</p>
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Bid Number</label>
+                <value>{{ bid.bid_number }}</value>
+            </div>
+            <div class="info-item">
+                <label>Tender</label>
+                <value>{{ bid.tender.tender_number }} - {{ bid.tender.title }}</value>
+            </div>
+            <div class="info-item">
+                <label>Supplier</label>
+                <value>{{ bid.supplier.name }}</value>
+            </div>
+            <div class="info-item">
+                <label>Supplier Number</label>
+                <value>{{ bid.supplier.supplier_number }}</value>
+            </div>
+            <div class="info-item">
+                <label>Bid Rank</label>
+                <value>
+                    <span class="rank-badge rank-{{ bid.rank }}">
+                        #{{ bid.rank }}
+                    </span>
+                </value>
+            </div>
+            <div class="info-item">
+                <label>Evaluation Score</label>
+                <value>{{ bid.evaluation_score|floatformat:2 }}/100</value>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Summary -->
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-currency-exchange"></i>
+            Financial Summary
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="financial-breakdown">
+            <div class="breakdown-row">
+                <label>Items Subtotal:</label>
+                <value>KES {{ items_total|floatformat:2|intcomma }}</value>
+            </div>
+            <div class="breakdown-row">
+                <label>Tax (16% VAT):</label>
+                <value>KES {{ tax_amount|floatformat:2|intcomma }}</value>
+            </div>
+            <div class="breakdown-row total">
+                <label>Total Amount:</label>
+                <value>KES {{ total_amount|floatformat:2|intcomma }}</value>
+            </div>
+        </div>
+
+        <div class="comparison-box">
+            <div class="comparison-item">
+                <label>Tender Estimated Budget:</label>
+                <value>KES {{ bid.tender.estimated_budget|floatformat:2|intcomma }}</value>
+            </div>
+            <div class="comparison-item">
+                <label>Variance:</label>
+                <value class="{% if total_amount > bid.tender.estimated_budget %}text-warning{% else %}text-success{% endif %}">
+                    {% if total_amount > bid.tender.estimated_budget %}
+                    Over budget by KES {{ total_amount|add:bid.tender.estimated_budget|floatformat:2|intcomma }}
+                    {% else %}
+                    Within budget (Savings: KES {{ bid.tender.estimated_budget|add:"-"|add:total_amount|floatformat:2|intcomma }})
+                    {% endif %}
+                </value>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Purchase Order Details Form -->
+<div class="form-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-file-earmark-text"></i>
+            Purchase Order Details
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            Awarding this tender will automatically create a Purchase Order. Please provide the following details:
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-section">
+                <h3>Delivery Information</h3>
+                
+                <div class="form-group">
+                    <label class="form-label required">Delivery Date</label>
+                    <input type="date" name="delivery_date" class="form-control" required
+                           min="{{ today|date:'Y-m-d' }}">
+                    <p class="help-text">Expected delivery date based on supplier's proposed delivery period of {{ bid.delivery_period_days }} days</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Delivery Address</label>
+                    <textarea name="delivery_address" class="form-control" rows="4" required
+                              placeholder="Enter the full delivery address including building, floor, room number, etc."></textarea>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Payment & Terms</h3>
+                
+                <div class="form-group">
+                    <label class="form-label required">Payment Terms</label>
+                    <textarea name="payment_terms" class="form-control" rows="4" required
+                              placeholder="e.g., Payment within 30 days of delivery and acceptance of goods/services. Payment will be made via bank transfer to the supplier's registered account."></textarea>
+                    <p class="help-text">Specify payment schedule, conditions, and method</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Warranty Terms</label>
+                    <textarea name="warranty_terms" class="form-control" rows="3"
+                              placeholder="Enter warranty terms and conditions if applicable"></textarea>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Additional Instructions</h3>
+                
+                <div class="form-group">
+                    <label class="form-label">Special Instructions</label>
+                    <textarea name="special_instructions" class="form-control" rows="4"
+                              placeholder="Any special instructions, handling requirements, or additional terms"></textarea>
+                </div>
+            </div>
+
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <div>
+                    <strong>Important:</strong> Once you award this tender:
+                    <ul>
+                        <li>A Purchase Order will be created in DRAFT status</li>
+                        <li>This bid will be marked as AWARDED</li>
+                        <li>All other bids for this tender will be marked as REJECTED</li>
+                        <li>The tender status will be updated to AWARDED</li>
+                        <li>The supplier will be notified</li>
+                        <li>An audit trail will be created</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <a href="{% url 'bid_detail' bid.id %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-trophy"></i>
+                    Award Tender & Create PO
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bid Items Preview -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-list-ul"></i>
+            Items to be Included in PO
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Description</th>
+                    <th>Specifications</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in bid.items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.requisition_item.item_description }}</td>
+                    <td>{{ item.specifications|truncatewords:10 }}</td>
+                    <td>{{ item.requisition_item.quantity }} {{ item.requisition_item.unit_of_measure }}</td>
+                    <td>KES {{ item.quoted_unit_price|floatformat:2|intcomma }}</td>
+                    <td>KES {{ item.quoted_total|floatformat:2|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" style="text-align: right;"><strong>Subtotal:</strong></td>
+                    <td><strong>KES {{ items_total|floatformat:2|intcomma }}</strong></td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="text-align: right;"><strong>Tax (16%):</strong></td>
+                    <td><strong>KES {{ tax_amount|floatformat:2|intcomma }}</strong></td>
+                </tr>
+                <tr class="total-row">
+                    <td colspan="5" style="text-align: right;"><strong>Total Amount:</strong></td>
+                    <td><strong>KES {{ total_amount|floatformat:2|intcomma }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Bid Comparison - {{ tender.tender_number }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Bid Comparison</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_list' %}">Tenders</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'tender_detail' tender.id %}">{{ tender.tender_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Bid Comparison</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'tender_detail' tender.id %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Tender
+        </a>
+        <button onclick="window.print()" class="btn">
+            <i class="bi bi-printer"></i>
+            Print Comparison
+        </button>
+        <button onclick="exportToExcel()" class="btn">
+            <i class="bi bi-file-earmark-excel"></i>
+            Export to Excel
+        </button>
+    </div>
+</div>
+
+<!-- Tender Information -->
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-clipboard-check"></i>
+            Tender Information
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Tender Number</label>
+                <value>{{ tender.tender_number }}</value>
+            </div>
+            <div class="info-item">
+                <label>Title</label>
+                <value>{{ tender.title }}</value>
+            </div>
+            <div class="info-item">
+                <label>Estimated Budget</label>
+                <value>KES {{ tender.estimated_budget|floatformat:0|intcomma }}</value>
+            </div>
+            <div class="info-item">
+                <label>Number of Bids</label>
+                <value>{{ stats.total_bids }}</value>
+            </div>
+            <div class="info-item">
+                <label>Closing Date</label>
+                <value>{{ tender.closing_date|date:"M d, Y H:i" }}</value>
+            </div>
+            <div class="info-item">
+                <label>Status</label>
+                <value>
+                    <span class="status-badge status-{{ tender.status|lower }}">
+                        {{ tender.get_status_display }}
+                    </span>
+                </value>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bid Statistics -->
+<div class="stats-summary">
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.total_bids }}</div>
+        <div class="summary-label">Total Bids</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ stats.average_amount|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Average Bid Amount</div>
+    </div>
+    <div class="summary-card best">
+        <div class="summary-value">KES {{ stats.lowest_bid.bid_amount|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Lowest Bid</div>
+        <div class="summary-supplier">{{ stats.lowest_bid.supplier.name }}</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ stats.highest_bid.bid_amount|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Highest Bid</div>
+        <div class="summary-supplier">{{ stats.highest_bid.supplier.name }}</div>
+    </div>
+</div>
+
+<!-- Overall Bid Comparison -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-table"></i>
+            Overall Bid Summary
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Supplier</th>
+                    <th>Bid Number</th>
+                    <th>Total Amount</th>
+                    <th>Variance from Budget</th>
+                    <th>Technical Score</th>
+                    <th>Financial Score</th>
+                    <th>Overall Score</th>
+                    <th>Delivery (days)</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bid in bids %}
+                <tr class="{% if bid.rank == 1 %}best-bid{% endif %}">
+                    <td>
+                        {% if bid.rank %}
+                        <span class="rank-badge rank-{{ bid.rank }}">{{ bid.rank }}</span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="supplier-info">
+                            <strong>{{ bid.supplier.name }}</strong>
+                            <small>{{ bid.supplier.supplier_number }}</small>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{% url 'bid_detail' bid.id %}">{{ bid.bid_number }}</a>
+                    </td>
+                    <td class="amount-cell">KES {{ bid.bid_amount|floatformat:0|intcomma }}</td>
+                    <td class="{% if bid.bid_amount > tender.estimated_budget %}text-danger{% else %}text-success{% endif %}">
+                        {% with variance=bid.bid_amount|add:"-"|add:tender.estimated_budget %}
+                        {% if variance > 0 %}+{% endif %}{{ variance|floatformat:0|intcomma }}
+                        ({% widthratio variance tender.estimated_budget 100 %}%)
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {% if bid.technical_score %}
+                        {{ bid.technical_score|floatformat:1 }}
+                        {% else %}
+                        <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if bid.financial_score %}
+                        {{ bid.financial_score|floatformat:1 }}
+                        {% else %}
+                        <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if bid.evaluation_score %}
+                        <strong>{{ bid.evaluation_score|floatformat:2 }}</strong>
+                        {% else %}
+                        <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ bid.delivery_period_days }}</td>
+                    <td>
+                        <span class="status-badge status-{{ bid.status|lower }}">
+                            {{ bid.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Item-by-Item Comparison -->
+<div class="comparison-section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <i class="bi bi-list-columns"></i>
+            Item-by-Item Price Comparison
+        </h2>
+    </div>
+
+    {% for item_data in comparison_data %}
+    <div class="item-comparison-card">
+        <div class="item-header">
+            <div class="item-info">
+                <h3>Item {{ forloop.counter }}</h3>
+                <p class="item-description">{{ item_data.requisition_item.item_description }}</p>
+                <div class="item-specs">
+                    <span><i class="bi bi-box"></i> Quantity: {{ item_data.requisition_item.quantity }} {{ item_data.requisition_item.unit_of_measure }}</span>
+                    <span><i class="bi bi-cash"></i> Estimated: KES {{ item_data.requisition_item.estimated_unit_price|floatformat:2|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="item-comparison-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Supplier</th>
+                        <th>Unit Price</th>
+                        <th>Total Price</th>
+                        <th>Variance</th>
+                        <th>Brand/Model</th>
+                        <th>Delivery</th>
+                        <th>Warranty</th>
+                        <th>Specifications</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bid_data in item_data.bids %}
+                    {% with bid=bid_data.bid item=bid_data.bid_item %}
+                    <tr class="{% if bid.rank == 1 %}best-price{% endif %}">
+                        <td>
+                            <div class="supplier-cell">
+                                {{ bid.supplier.name }}
+                                {% if bid.rank %}
+                                <span class="rank-badge small">Rank {{ bid.rank }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="amount-cell">
+                            {% if item %}
+                            KES {{ item.quoted_unit_price|floatformat:2|intcomma }}
+                            {% else %}
+                            <span class="text-muted">No quote</span>
+                            {% endif %}
+                        </td>
+                        <td class="amount-cell">
+                            {% if item %}
+                            KES {{ item.quoted_total|floatformat:2|intcomma }}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item %}
+                            {% with variance=item.quoted_unit_price|add:"-"|add:item_data.requisition_item.estimated_unit_price %}
+                            <span class="{% if variance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {% if variance > 0 %}+{% endif %}{{ variance|floatformat:2 }}
+                            </span>
+                            {% endwith %}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item %}
+                            {{ item.brand|default:"-" }}
+                            {% if item.model %}<br><small>{{ item.model }}</small>{% endif %}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item %}
+                            {{ item.delivery_period_days }} days
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item %}
+                            {{ item.warranty_period_months }} months
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="specs-cell">
+                            {% if item and item.specifications %}
+                            <button class="btn-link" onclick="showSpecs('{{ forloop.counter }}', '{{ forloop.parentloop.counter }}')">
+                                <i class="bi bi-eye"></i> View
+                            </button>
+                            <div id="specs-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" class="specs-modal" style="display: none;">
+                                {{ item.specifications }}
+                            </div>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Price Analysis Chart -->
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-bar-chart"></i>
+            Price Analysis
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="chart-container">
+            <canvas id="priceComparisonChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Evaluation Summary -->
+{% if bids.exclude|default:False %}
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-clipboard-data"></i>
+            Evaluation Summary
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="evaluation-chart">
+            <canvas id="evaluationScoresChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function showSpecs(bidIndex, itemIndex) {
+    const modal = document.getElementById(`specs-${itemIndex}-${bidIndex}`);
+    alert(modal.textContent);
+}
+
+function exportToExcel() {
+    // Placeholder for Excel export functionality
+    alert('Excel export functionality will be implemented');
+}
+
+// Chart.js initialization (placeholder - add actual data)
+document.addEventListener('DOMContentLoaded', function() {
+    // Price Comparison Chart
+    const priceCtx = document.getElementById('priceComparisonChart');
+    if (priceCtx) {
+        new Chart(priceCtx, {
+            type: 'bar',
+            data: {
+                labels: [{% for bid in bids %}'{{ bid.supplier.name|truncatewords:3 }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Bid Amount',
+                    data: [{% for bid in bids %}{{ bid.bid_amount }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                    backgroundColor: 'rgba(37, 99, 235, 0.5)',
+                    borderColor: 'rgba(37, 99, 235, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Estimated Budget',
+                    data: Array({{ bids.count }}).fill({{ tender.estimated_budget }}),
+                    type: 'line',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 2,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Evaluation Scores Chart
+    const evalCtx = document.getElementById('evaluationScoresChart');
+    if (evalCtx) {
+        new Chart(evalCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Technical Score', 'Financial Score', 'Overall Score'],
+                datasets: [
+                    {% for bid in bids %}
+                    {% if bid.evaluation_score %}
+                    {
+                        label: '{{ bid.supplier.name|truncatewords:3 }}',
+                        data: [{{ bid.technical_score|default:0 }}, {{ bid.financial_score|default:0 }}, {{ bid.evaluation_score|default:0 }}],
+                        fill: true,
+                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                        borderColor: 'rgba(37, 99, 235, 1)',
+                        pointBackgroundColor: 'rgba(37, 99, 235, 1)'
+                    }{% if not forloop.last %},{% endif %}
+                    {% endif %}
+                    {% endfor %}
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

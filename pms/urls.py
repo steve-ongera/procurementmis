@@ -55,8 +55,14 @@ urlpatterns = [
     path('tenders/<uuid:pk>/cancel/', views.tender_cancel, name='tender_cancel'),
     
     # Bid Management
-    path('tenders/<uuid:tender_id>/bids/', views.bid_list, name='bid_list'),
+    path('bids/', views.bid_list, name='bid_list'),
     path('bids/<uuid:pk>/', views.bid_detail, name='bid_detail'),
+    path('bids/<uuid:pk>/open/', views.bid_open, name='bid_open'),
+    path('bids/<uuid:pk>/evaluate/', views.bid_evaluate, name='bid_evaluate'),
+    path('bids/<uuid:pk>/qualify/', views.bid_qualify, name='bid_qualify'),
+    path('bids/<uuid:pk>/disqualify/', views.bid_disqualify, name='bid_disqualify'),
+    path('bids/<uuid:pk>/award/', views.bid_award, name='bid_award'),
+    path('tenders/<uuid:tender_id>/bids/comparison/', views.bid_comparison, name='bid_comparison'),
     
     # API Endpoints
     path('api/requisition/<uuid:requisition_id>/items/', views.get_requisition_items, name='api_requisition_items'),

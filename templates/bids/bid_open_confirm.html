@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Open Bid - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Open Bid</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'bid_list' %}">Bids</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'bid_detail' bid.id %}">{{ bid.bid_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Open Bid</span>
+        </div>
+    </div>
+</div>
+
+<div class="confirmation-card">
+    <div class="confirmation-icon warning">
+        <i class="bi bi-envelope-open"></i>
+    </div>
+    
+    <h2>Confirm Bid Opening</h2>
+    <p>You are about to open the following bid. This action cannot be undone.</p>
+
+    <div class="details-box">
+        <div class="detail-row">
+            <label>Bid Number:</label>
+            <value>{{ bid.bid_number }}</value>
+        </div>
+        <div class="detail-row">
+            <label>Tender:</label>
+            <value>{{ bid.tender.tender_number }} - {{ bid.tender.title }}</value>
+        </div>
+        <div class="detail-row">
+            <label>Supplier:</label>
+            <value>{{ bid.supplier.name }}</value>
+        </div>
+        <div class="detail-row">
+            <label>Bid Amount:</label>
+            <value class="amount-text">KES {{ bid.bid_amount|floatformat:0|intcomma }}</value>
+        </div>
+        <div class="detail-row">
+            <label>Submitted Date:</label>
+            <value>{{ bid.submitted_at|date:"M d, Y H:i" }}</value>
+        </div>
+        <div class="detail-row">
+            <label>Current Status:</label>
+            <value>
+                <span class="status-badge status-{{ bid.status|lower }}">
+                    {{ bid.get_status_display }}
+                </span>
+            </value>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        <div>
+            <strong>Note:</strong> Opening this bid will:
+            <ul>
+                <li>Change the bid status to "Opened"</li>
+                <li>Record the opening timestamp and user</li>
+                <li>Allow the bid to proceed to evaluation</li>
+            </ul>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-actions">
+            <a href="{% url 'bid_detail' bid.id %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i>
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-envelope-open"></i>
+                Confirm & Open Bid
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

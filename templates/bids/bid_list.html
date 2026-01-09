@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Bids List - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Bids & Quotations</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Bids</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        {% if user.role in 'PROCUREMENT,ADMIN' %}
+        <a href="{% url 'tender_list' %}" class="btn">
+            <i class="bi bi-clipboard-check"></i>
+            View Tenders
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get" action="{% url 'bid_list' %}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Bid number, supplier, tender..." value="{{ search_query }}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% if user.role in 'PROCUREMENT,ADMIN' %}
+            <div class="form-group">
+                <label class="form-label">Tender</label>
+                <select name="tender" class="form-control">
+                    <option value="">All Tenders</option>
+                    {% for tender in tenders_list %}
+                    <option value="{{ tender.id }}" {% if tender_filter == tender.id|stringformat:"s" %}selected{% endif %}>
+                        {{ tender.tender_number }} - {{ tender.title }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Supplier</label>
+                <select name="supplier" class="form-control">
+                    <option value="">All Suppliers</option>
+                    {% for supplier in suppliers_list %}
+                    <option value="{{ supplier.id }}" {% if supplier_filter == supplier.id|stringformat:"s" %}selected{% endif %}>
+                        {{ supplier.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label class="form-label">Amount Range</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="number" name="min_amount" class="form-control" placeholder="Min" value="{{ min_amount }}" step="0.01">
+                    <input type="number" name="max_amount" class="form-control" placeholder="Max" value="{{ max_amount }}" step="0.01">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Date Range</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-actions">
+            <a href="{% url 'bid_list' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-summary">
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.total|intcomma }}</div>
+        <div class="summary-label">Total Bids</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.submitted|intcomma }}</div>
+        <div class="summary-label">Submitted</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.evaluating|intcomma }}</div>
+        <div class="summary-label">Under Evaluation</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.qualified|intcomma }}</div>
+        <div class="summary-label">Qualified</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.awarded|intcomma }}</div>
+        <div class="summary-label">Awarded</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ stats.total_value|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Value</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ stats.average_amount|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Average Amount</div>
+    </div>
+</div>
+
+<!-- Bids Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-receipt"></i>
+            Bids ({{ total_count }})
+        </h2>
+    </div>
+
+    {% if bids %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Bid Number</th>
+                    <th>Tender</th>
+                    <th>Supplier</th>
+                    <th>Bid Amount</th>
+                    <th>Submitted Date</th>
+                    {% if user.role in 'PROCUREMENT,ADMIN' %}
+                    <th>Rank</th>
+                    <th>Score</th>
+                    {% endif %}
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bid in bids %}
+                <tr>
+                    <td>
+                        <a href="{% url 'bid_detail' bid.id %}" class="bid-number">
+                            {{ bid.bid_number }}
+                            <i class="bi bi-arrow-up-right"></i>
+                        </a>
+                    </td>
+                    <td>
+                        <div>{{ bid.tender.tender_number }}</div>
+                        <div class="text-muted">{{ bid.tender.title|truncatewords:5 }}</div>
+                    </td>
+                    <td>{{ bid.supplier.name }}</td>
+                    <td class="amount-cell">KES {{ bid.bid_amount|floatformat:0|intcomma }}</td>
+                    <td class="date-cell">{{ bid.submitted_at|date:"M d, Y H:i" }}</td>
+                    {% if user.role in 'PROCUREMENT,ADMIN' %}
+                    <td>
+                        {% if bid.rank %}
+                            <span class="rank-badge">{{ bid.rank }}</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if bid.evaluation_score %}
+                            {{ bid.evaluation_score|floatformat:2 }}
+                        {% else %}
+                            <span class="text-muted">Not evaluated</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                    <td>
+                        <span class="status-badge status-{{ bid.status|lower }}">
+                            {% if bid.status == 'SUBMITTED' %}<i class="bi bi-send"></i>{% endif %}
+                            {% if bid.status == 'OPENED' %}<i class="bi bi-envelope-open"></i>{% endif %}
+                            {% if bid.status == 'EVALUATING' %}<i class="bi bi-clipboard-check"></i>{% endif %}
+                            {% if bid.status == 'QUALIFIED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                            {% if bid.status == 'DISQUALIFIED' %}<i class="bi bi-x-circle"></i>{% endif %}
+                            {% if bid.status == 'AWARDED' %}<i class="bi bi-trophy"></i>{% endif %}
+                            {% if bid.status == 'REJECTED' %}<i class="bi bi-x-square"></i>{% endif %}
+                            {{ bid.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'bid_detail' bid.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if user.role in 'PROCUREMENT,ADMIN' %}
+                            {% if bid.status == 'SUBMITTED' and bid.tender.closing_date <= now %}
+                            <a href="{% url 'bid_open' bid.id %}" class="action-btn" title="Open Bid">
+                                <i class="bi bi-envelope-open"></i>
+                            </a>
+                            {% endif %}
+                            {% if bid.status in 'OPENED,EVALUATING' %}
+                            <a href="{% url 'bid_evaluate' bid.id %}" class="action-btn" title="Evaluate">
+                                <i class="bi bi-clipboard-check"></i>
+                            </a>
+                            {% endif %}
+                            {% if bid.status == 'QUALIFIED' %}
+                            <a href="{% url 'bid_award' bid.id %}" class="action-btn" title="Award Tender">
+                                <i class="bi bi-trophy"></i>
+                            </a>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        <div class="pagination-info">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ total_count }} bids
+        </div>
+        <div class="pagination-controls">
+            {% if page_obj.has_previous %}
+            <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn">
+                <i class="bi bi-chevron-double-left"></i>
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            {% endif %}
+            
+            <span class="pagination-current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="pagination-btn">
+                <i class="bi bi-chevron-double-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-receipt"></i>
+        <p>No bids found matching your criteria</p>
+        {% if user.role == 'SUPPLIER' %}
+        <a href="{% url 'tender_list' %}" class="btn btn-primary">
+            <i class="bi bi-search"></i>
+            Browse Available Tenders
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,449 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Bid {{ bid.bid_number }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Bid Details</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'bid_list' %}">Bids</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ bid.bid_number }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'bid_list' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to List
+        </a>
+        {% if user.role in 'PROCUREMENT,ADMIN' %}
+            {% if can_open %}
+            <a href="{% url 'bid_open' bid.id %}" class="btn btn-primary">
+                <i class="bi bi-envelope-open"></i>
+                Open Bid
+            </a>
+            {% endif %}
+            {% if can_evaluate %}
+            <a href="{% url 'bid_evaluate' bid.id %}" class="btn btn-primary">
+                <i class="bi bi-clipboard-check"></i>
+                Evaluate Bid
+            </a>
+            {% endif %}
+            {% if bid.status == 'EVALUATING' %}
+            <a href="{% url 'bid_qualify' bid.id %}" class="btn btn-success">
+                <i class="bi bi-check-circle"></i>
+                Qualify Bid
+            </a>
+            {% endif %}
+            {% if can_disqualify %}
+            <a href="{% url 'bid_disqualify' bid.id %}" class="btn btn-danger">
+                <i class="bi bi-x-circle"></i>
+                Disqualify
+            </a>
+            {% endif %}
+            {% if can_award %}
+            <a href="{% url 'bid_award' bid.id %}" class="btn btn-success">
+                <i class="bi bi-trophy"></i>
+                Award Tender
+            </a>
+            {% endif %}
+            <a href="{% url 'bid_comparison' bid.tender.id %}" class="btn">
+                <i class="bi bi-table"></i>
+                Compare Bids
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Bid Overview -->
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-receipt"></i>
+            Bid Information
+        </h2>
+        <span class="status-badge status-{{ bid.status|lower }}">
+            {{ bid.get_status_display }}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Bid Number</label>
+                <value>{{ bid.bid_number }}</value>
+            </div>
+            <div class="info-item">
+                <label>Submitted Date</label>
+                <value>{{ bid.submitted_at|date:"M d, Y H:i" }}</value>
+            </div>
+            <div class="info-item">
+                <label>Bid Amount</label>
+                <value class="amount-text">KES {{ bid.bid_amount|floatformat:0|intcomma }}</value>
+            </div>
+            <div class="info-item">
+                <label>Bid Bond Amount</label>
+                <value>KES {{ bid.bid_bond_amount|floatformat:0|intcomma }}</value>
+            </div>
+            <div class="info-item">
+                <label>Validity Period</label>
+                <value>{{ bid.validity_period_days }} days</value>
+            </div>
+            <div class="info-item">
+                <label>Delivery Period</label>
+                <value>{{ bid.delivery_period_days }} days</value>
+            </div>
+            {% if user.role in 'PROCUREMENT,ADMIN' %}
+            <div class="info-item">
+                <label>Rank</label>
+                <value>
+                    {% if bid.rank %}
+                        <span class="rank-badge">{{ bid.rank }}</span>
+                    {% else %}
+                        <span class="text-muted">Not ranked</span>
+                    {% endif %}
+                </value>
+            </div>
+            <div class="info-item">
+                <label>Evaluation Score</label>
+                <value>
+                    {% if bid.evaluation_score %}
+                        {{ bid.evaluation_score|floatformat:2 }}/100
+                    {% else %}
+                        <span class="text-muted">Not evaluated</span>
+                    {% endif %}
+                </value>
+            </div>
+            {% endif %}
+            {% if bid.opened_at %}
+            <div class="info-item">
+                <label>Opened Date</label>
+                <value>{{ bid.opened_at|date:"M d, Y H:i" }}</value>
+            </div>
+            <div class="info-item">
+                <label>Opened By</label>
+                <value>{{ bid.opened_by.get_full_name }}</value>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Tender Information -->
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-clipboard-check"></i>
+            Related Tender
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Tender Number</label>
+                <value>
+                    <a href="{% url 'tender_detail' bid.tender.id %}">{{ bid.tender.tender_number }}</a>
+                </value>
+            </div>
+            <div class="info-item">
+                <label>Title</label>
+                <value>{{ bid.tender.title }}</value>
+            </div>
+            <div class="info-item">
+                <label>Estimated Budget</label>
+                <value>KES {{ bid.tender.estimated_budget|floatformat:0|intcomma }}</value>
+            </div>
+            <div class="info-item">
+                <label>Variance</label>
+                <value class="{% if variance > 0 %}text-danger{% else %}text-success{% endif %}">
+                    {% if variance > 0 %}+{% endif %}KES {{ variance|floatformat:0|intcomma }}
+                    ({{ variance_percentage|floatformat:1 }}%)
+                </value>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Information -->
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-building"></i>
+            Supplier Information
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Supplier Name</label>
+                <value>
+                    {% if user.role in 'PROCUREMENT,ADMIN' %}
+                    <a href="{% url 'supplier_detail' bid.supplier.id %}">{{ bid.supplier.name }}</a>
+                    {% else %}
+                    {{ bid.supplier.name }}
+                    {% endif %}
+                </value>
+            </div>
+            <div class="info-item">
+                <label>Supplier Number</label>
+                <value>{{ bid.supplier.supplier_number }}</value>
+            </div>
+            <div class="info-item">
+                <label>Contact Person</label>
+                <value>{{ bid.supplier.contact_person }}</value>
+            </div>
+            <div class="info-item">
+                <label>Phone</label>
+                <value>{{ bid.supplier.contact_person_phone }}</value>
+            </div>
+            <div class="info-item">
+                <label>Email</label>
+                <value>{{ bid.supplier.contact_person_email }}</value>
+            </div>
+            {% if user.role in 'PROCUREMENT,ADMIN' %}
+            <div class="info-item">
+                <label>Supplier Rating</label>
+                <value>
+                    {{ bid.supplier.rating|floatformat:1 }}/5.0
+                    <span class="stars">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= bid.supplier.rating %}
+                            <i class="bi bi-star-fill"></i>
+                            {% else %}
+                            <i class="bi bi-star"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </span>
+                </value>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Bid Items -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-list-ul"></i>
+            Bid Items ({{ items_count }})
+        </h2>
+        <div class="table-summary">
+            Total: KES {{ items_total|floatformat:0|intcomma }}
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Unit</th>
+                    <th>Unit Price</th>
+                    <th>Total Price</th>
+                    <th>Brand/Model</th>
+                    <th>Delivery (days)</th>
+                    <th>Warranty (months)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in bid.items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <div>{{ item.requisition_item.item_description }}</div>
+                        {% if item.specifications %}
+                        <div class="text-muted small">{{ item.specifications|truncatewords:10 }}</div>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.requisition_item.quantity }}</td>
+                    <td>{{ item.requisition_item.unit_of_measure }}</td>
+                    <td class="amount-cell">KES {{ item.quoted_unit_price|floatformat:2|intcomma }}</td>
+                    <td class="amount-cell">KES {{ item.quoted_total|floatformat:2|intcomma }}</td>
+                    <td>
+                        {% if item.brand %}{{ item.brand }}{% endif %}
+                        {% if item.model %} - {{ item.model }}{% endif %}
+                        {% if not item.brand and not item.model %}-{% endif %}
+                    </td>
+                    <td>{{ item.delivery_period_days }}</td>
+                    <td>{{ item.warranty_period_months }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" style="text-align: right;"><strong>Subtotal:</strong></td>
+                    <td colspan="4" class="amount-cell"><strong>KES {{ items_total|floatformat:2|intcomma }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- Bid Documents -->
+{% if bid.documents.exists %}
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-paperclip"></i>
+            Supporting Documents ({{ bid.documents.count }})
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Document Type</th>
+                    <th>Document Name</th>
+                    <th>Description</th>
+                    <th>Uploaded Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in bid.documents.all %}
+                <tr>
+                    <td>
+                        <span class="doc-type-badge">{{ doc.get_document_type_display }}</span>
+                    </td>
+                    <td>{{ doc.document_name }}</td>
+                    <td>{{ doc.description|default:"-" }}</td>
+                    <td>{{ doc.uploaded_at|date:"M d, Y H:i" }}</td>
+                    <td>
+                        <a href="{{ doc.file.url }}" class="action-btn" title="Download" download>
+                            <i class="bi bi-download"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Evaluation Summary -->
+{% if user.role in 'PROCUREMENT,ADMIN' and evaluation_summary.count > 0 %}
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-clipboard-data"></i>
+            Evaluation Summary
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Number of Evaluations</label>
+                <value>{{ evaluation_summary.count }}</value>
+            </div>
+            <div class="info-item">
+                <label>Average Technical Score</label>
+                <value>{{ evaluation_summary.avg_technical|floatformat:2 }}/100</value>
+            </div>
+            <div class="info-item">
+                <label>Average Financial Score</label>
+                <value>{{ evaluation_summary.avg_financial|floatformat:2 }}/100</value>
+            </div>
+            <div class="info-item">
+                <label>Average Total Score</label>
+                <value class="score-value">{{ evaluation_summary.avg_total|floatformat:2 }}/100</value>
+            </div>
+        </div>
+
+        <!-- Individual Evaluations -->
+        <div class="evaluations-list">
+            <h3>Individual Evaluations</h3>
+            {% for evaluation in bid.evaluations.all %}
+            <div class="evaluation-item">
+                <div class="evaluation-header">
+                    <div>
+                        <strong>{{ evaluation.evaluator.get_full_name }}</strong>
+                        <span class="text-muted"> - {{ evaluation.evaluated_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <div class="score-badge">
+                        Score: {{ evaluation.total_score|floatformat:2 }}/100
+                    </div>
+                </div>
+                <div class="evaluation-scores">
+                    <div class="score-item">
+                        <label>Technical:</label>
+                        <value>{{ evaluation.technical_score }}/100</value>
+                    </div>
+                    <div class="score-item">
+                        <label>Financial:</label>
+                        <value>{{ evaluation.financial_score }}/100</value>
+                    </div>
+                    <div class="score-item">
+                        <label>Technical Compliance:</label>
+                        <value>
+                            {% if evaluation.technical_compliance %}
+                            <i class="bi bi-check-circle text-success"></i> Yes
+                            {% else %}
+                            <i class="bi bi-x-circle text-danger"></i> No
+                            {% endif %}
+                        </value>
+                    </div>
+                    <div class="score-item">
+                        <label>Financial Compliance:</label>
+                        <value>
+                            {% if evaluation.financial_compliance %}
+                            <i class="bi bi-check-circle text-success"></i> Yes
+                            {% else %}
+                            <i class="bi bi-x-circle text-danger"></i> No
+                            {% endif %}
+                        </value>
+                    </div>
+                </div>
+                {% if evaluation.strengths %}
+                <div class="evaluation-detail">
+                    <strong>Strengths:</strong>
+                    <p>{{ evaluation.strengths }}</p>
+                </div>
+                {% endif %}
+                {% if evaluation.weaknesses %}
+                <div class="evaluation-detail">
+                    <strong>Weaknesses:</strong>
+                    <p>{{ evaluation.weaknesses }}</p>
+                </div>
+                {% endif %}
+                {% if evaluation.recommendation %}
+                <div class="evaluation-detail">
+                    <strong>Recommendation:</strong>
+                    <p>{{ evaluation.recommendation }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Disqualification Reason -->
+{% if bid.status == 'DISQUALIFIED' and bid.disqualification_reason %}
+<div class="alert alert-danger">
+    <h4><i class="bi bi-exclamation-triangle"></i> Disqualification Reason</h4>
+    <p>{{ bid.disqualification_reason }}</p>
+</div>
+{% endif %}
+
+<!-- Notes -->
+{% if bid.notes %}
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-sticky"></i>
+            Additional Notes
+        </h2>
+    </div>
+    <div class="card-body">
+        <p>{{ bid.notes|linebreaks }}</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

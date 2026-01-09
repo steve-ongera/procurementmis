@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Disqualify Bid - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Disqualify Bid</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'bid_list' %}">Bids</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'bid_detail' bid.id %}">{{ bid.bid_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Disqualify</span>
+        </div>
+    </div>
+</div>
+
+<div class="confirmation-card">
+    <div class="confirmation-icon danger">
+        <i class="bi bi-x-circle"></i>
+    </div>
+    
+    <h2>Disqualify Bid</h2>
+    <p>You are about to disqualify this bid. Please provide a detailed reason for the disqualification.</p>
+
+    <div class="details-box">
+        <div class="detail-row">
+            <label>Bid Number:</label>
+            <value>{{ bid.bid_number }}</value>
+        </div>
+        <div class="detail-row">
+            <label>Tender:</label>
+            <value>{{ bid.tender.tender_number }} - {{ bid.tender.title }}</value>
+        </div>
+        <div class="detail-row">
+            <label>Supplier:</label>
+            <value>{{ bid.supplier.name }}</value>
+        </div>
+        <div class="detail-row">
+            <label>Bid Amount:</label>
+            <value class="amount-text">KES {{ bid.bid_amount|floatformat:0|intcomma }}</value>
+        </div>
+        <div class="detail-row">
+            <label>Current Status:</label>
+            <value>
+                <span class="status-badge status-{{ bid.status|lower }}">
+                    {{ bid.get_status_display }}
+                </span>
+            </value>
+        </div>
+    </div>
+
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        <div>
+            <strong>Warning:</strong> Disqualifying this bid will:
+            <ul>
+                <li>Remove it from consideration for award</li>
+                <li>Remove any assigned rank</li>
+                <li>Notify the supplier of the disqualification</li>
+                <li>Create an audit trail of this action</li>
+            </ul>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <div class="form-group">
+                <label class="form-label required">Disqualification Reason</label>
+                <textarea name="disqualification_reason" class="form-control" rows="6" required
+                          placeholder="Provide a detailed explanation for disqualifying this bid. This reason will be communicated to the supplier."></textarea>
+                <p class="help-text">
+                    Be specific and professional. Common reasons include:
+                </p>
+                <ul class="help-list">
+                    <li>Non-compliance with technical specifications</li>
+                    <li>Incomplete or missing documentation</li>
+                    <li>Failure to meet mandatory requirements</li>
+                    <li>Price exceeds budget constraints</li>
+                    <li>Expired or invalid certifications</li>
+                    <li>Non-responsive bid</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{% url 'bid_detail' bid.id %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i>
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-x-circle"></i>
+                Confirm Disqualification
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
