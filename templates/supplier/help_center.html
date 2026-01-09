@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Help Center - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Help Center</h1>
+        <p class="page-subtitle">Frequently asked questions and support resources</p>
+    </div>
+    <a href="{% url 'supplier_contact_support' %}" class="btn btn-primary">
+        <i class="bi bi-headset"></i> Contact Support
+    </a>
+</div>
+
+<!-- Quick Links -->
+<div class="quick-links-grid">
+    <a href="#getting-started" class="quick-link-card">
+        <div class="quick-link-icon">
+            <i class="bi bi-play-circle"></i>
+        </div>
+        <h3>Getting Started</h3>
+        <p>Learn the basics of using the portal</p>
+    </a>
+    
+    <a href="#tenders" class="quick-link-card">
+        <div class="quick-link-icon">
+            <i class="bi bi-file-earmark-text"></i>
+        </div>
+        <h3>Tendering Process</h3>
+        <p>How to find and bid on tenders</p>
+    </a>
+    
+    <a href="#invoices" class="quick-link-card">
+        <div class="quick-link-icon">
+            <i class="bi bi-receipt"></i>
+        </div>
+        <h3>Invoices & Payments</h3>
+        <p>Submitting invoices and tracking payments</p>
+    </a>
+    
+    <a href="#compliance" class="quick-link-card">
+        <div class="quick-link-icon">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <h3>Compliance</h3>
+        <p>Document requirements and certifications</p>
+    </a>
+</div>
+
+<!-- Search Box -->
+<div class="search-box">
+    <div class="search-container">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" class="form-control" id="faqSearch" 
+               placeholder="Search for help articles..." onkeyup="searchFAQs()">
+    </div>
+</div>
+
+<!-- FAQ Sections -->
+<div class="faq-container">
+    <!-- Getting Started -->
+    <div class="faq-section" id="getting-started">
+        <h2 class="faq-section-title">
+            <i class="bi bi-play-circle"></i>
+            Getting Started
+        </h2>
+        
+        {% for faq in faqs %}
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>{{ faq.question }}</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>{{ faq.answer }}</p>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>How do I register as a supplier?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>To register as a supplier:</p>
+                <ol>
+                    <li>Click on "Register as Supplier" on the homepage</li>
+                    <li>Fill in your company details and contact information</li>
+                    <li>Upload required documents (Business Registration, Tax Certificate)</li>
+                    <li>Submit your application for approval</li>
+                    <li>Wait for verification (typically 3-5 business days)</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>How do I update my company profile?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Navigate to "Company Profile" from your dashboard menu. Update your information and click "Save Changes". Important changes may require re-verification.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tenders & Bidding -->
+    <div class="faq-section" id="tenders">
+        <h2 class="faq-section-title">
+            <i class="bi bi-file-earmark-text"></i>
+            Tenders & Bidding
+        </h2>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>How do I find available tenders?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Go to "Available Tenders" in your dashboard. You can filter tenders by category, value, and closing date. Tenders matching your business categories are highlighted.</p>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>What documents do I need to submit with my bid?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Required documents typically include:</p>
+                <ul>
+                    <li>Technical proposal</li>
+                    <li>Financial proposal (price breakdown)</li>
+                    <li>Current tax compliance certificate</li>
+                    <li>Business registration certificate</li>
+                    <li>Completed tender forms</li>
+                    <li>Any other documents specified in the tender document</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>Can I submit a bid after the closing date?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>No, the system automatically closes tender submissions at the specified closing date and time. Late submissions are not accepted. Ensure you submit well before the deadline.</p>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>How will I know if my bid was successful?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>You will receive notifications via email and in your dashboard. Check "My Bids" section regularly for bid status updates. Successful bidders will receive a Letter of Award.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Invoices & Payments -->
+    <div class="faq-section" id="invoices">
+        <h2 class="faq-section-title">
+            <i class="bi bi-receipt"></i>
+            Invoices & Payments
+        </h2>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>How do I submit an invoice?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>After delivering goods/services:</p>
+                <ol>
+                    <li>Go to "Invoices" and click "Submit New Invoice"</li>
+                    <li>Select the relevant Purchase Order</li>
+                    <li>Fill in invoice details and line items</li>
+                    <li>Upload supporting documents (delivery note, receipts)</li>
+                    <li>Submit for verification</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>When will I receive payment?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Payments are typically processed within 7-14 business days after invoice approval. Bulk payments are usually made on the 15th and last day of each month. Track your payment status in the "Payments" section.</p>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>Why was my invoice disputed?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Invoices may be disputed due to:</p>
+                <ul>
+                    <li>Mismatch between invoice and purchase order</li>
+                    <li>Missing or incorrect documentation</li>
+                    <li>Quality issues with delivered goods/services</li>
+                    <li>Pricing discrepancies</li>
+                </ul>
+                <p>Check the dispute reason in your invoice details and contact the procurement office to resolve.</p>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>How do I update my banking details?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Go to "Company Profile" and update your banking information. Changes to banking details may require verification before taking effect.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Compliance & Documents -->
+    <div class="faq-section" id="compliance">
+        <h2 class="faq-section-title">
+            <i class="bi bi-shield-check"></i>
+            Compliance & Documents
+        </h2>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>What documents are required to maintain supplier status?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Required documents include:</p>
+                <ul>
+                    <li>Valid Business Registration Certificate</li>
+                    <li>Current Tax Compliance Certificate (renewed annually)</li>
+                    <li>Bank Statement (updated quarterly)</li>
+                    <li>Professional licenses relevant to your category</li>
+                    <li>Insurance certificates (if applicable)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>How often should I update my documents?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>You'll receive notifications 30 days before document expiry. Update documents promptly to avoid suspension. Tax compliance should be renewed annually, and other documents as per their expiry dates.</p>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>What happens if my documents expire?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>If critical documents (Tax Compliance, Business Registration) expire, your account may be suspended. You won't be able to bid on new tenders or submit invoices until documents are updated.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Technical Support -->
+    <div class="faq-section" id="technical">
+        <h2 class="faq-section-title">
+            <i class="bi bi-gear"></i>
+            Technical Support
+        </h2>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>I forgot my password. How do I reset it?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Click "Forgot Password" on the login page. Enter your email address and follow the instructions sent to your email to reset your password.</p>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>What file formats are accepted for uploads?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Accepted formats: PDF, JPG, JPEG, PNG. Maximum file size is 5MB per document. For larger files, please compress or split them.</p>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFAQ(this)">
+                <h3>I'm experiencing technical issues. Who do I contact?</h3>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Contact our technical support team at support@university.ac.ke or use the "Contact Support" button. Include details about the issue and screenshots if possible.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Still Need Help -->
+<div class="help-cta">
+    <div class="help-cta-content">
+        <i class="bi bi-question-circle"></i>
+        <h3>Still need help?</h3>
+        <p>Can't find what you're looking for? Our support team is here to help.</p>
+        <div class="help-cta-actions">
+            <a href="{% url 'supplier_contact_support' %}" class="btn btn-primary">
+                <i class="bi bi-envelope"></i> Contact Support
+            </a>
+            <a href="tel:+254XXXXXXXXX" class="btn btn-secondary">
+                <i class="bi bi-telephone"></i> Call Us
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Information -->
+<div class="info-card">
+    <h3 class="card-title">Contact Information</h3>
+    <div class="contact-grid">
+        <div class="contact-item">
+            <i class="bi bi-envelope"></i>
+            <div>
+                <strong>Email</strong>
+                <p>procurement@university.ac.ke</p>
+            </div>
+        </div>
+        <div class="contact-item">
+            <i class="bi bi-telephone"></i>
+            <div>
+                <strong>Phone</strong>
+                <p>+254 XXX XXX XXX</p>
+            </div>
+        </div>
+        <div class="contact-item">
+            <i class="bi bi-clock"></i>
+            <div>
+                <strong>Office Hours</strong>
+                <p>Monday - Friday, 8:00 AM - 5:00 PM</p>
+            </div>
+        </div>
+        <div class="contact-item">
+            <i class="bi bi-geo-alt"></i>
+            <div>
+                <strong>Location</strong>
+                <p>Procurement Office, Main Campus</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleFAQ(element) {
+    const faqItem = element.parentElement;
+    const answer = faqItem.querySelector('.faq-answer');
+    const icon = element.querySelector('i');
+    
+    // Close all other FAQs
+    document.querySelectorAll('.faq-item').forEach(item => {
+        if (item !== faqItem) {
+            item.classList.remove('active');
+            item.querySelector('.faq-answer').style.maxHeight = null;
+            item.querySelector('.faq-question i').style.transform = 'rotate(0deg)';
+        }
+    });
+    
+    // Toggle current FAQ
+    faqItem.classList.toggle('active');
+    
+    if (faqItem.classList.contains('active')) {
+        answer.style.maxHeight = answer.scrollHeight + 'px';
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        answer.style.maxHeight = null;
+        icon.style.transform = 'rotate(0deg)';
+    }
+}
+
+function searchFAQs() {
+    const input = document.getElementById('faqSearch');
+    const filter = input.value.toUpperCase();
+    const faqItems = document.querySelectorAll('.faq-item');
+    
+    faqItems.forEach(item => {
+        const question = item.querySelector('.faq-question h3').textContent;
+        const answer = item.querySelector('.faq-answer').textContent;
+        
+        if (question.toUpperCase().indexOf(filter) > -1 || answer.toUpperCase().indexOf(filter) > -1) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+</script>
+
+{% endblock %}

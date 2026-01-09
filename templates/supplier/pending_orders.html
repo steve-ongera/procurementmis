@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pending Orders - Supplier Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Pending Purchase Orders</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'supplier_dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item active">Pending Orders</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-warning text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title">Pending Orders</h6>
+                    <h3 class="mb-0">{{ pending_pos|length }}</h3>
+                    <small>Requires Action</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title">Awaiting Acknowledgment</h6>
+                    <h3 class="mb-0">
+                        {% widthratio pending_pos|length 1 pending_pos|length as sent_count %}
+                        {{ sent_count|default:0 }}
+                    </h3>
+                    <small>Action Required</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title">Total Value</h6>
+                    <h3 class="mb-0">
+                        KES {% with total=0 %}
+                            {% for po in pending_pos %}
+                                {% widthratio po.total_amount 1 1 as amount %}
+                            {% endfor %}
+                        {% endwith %}
+                        {{ pending_pos.0.total_amount|default:0|floatformat:2|intcomma }}
+                    </h3>
+                    <small>Pending Orders</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    {% if pending_pos %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>PO Number</th>
+                                    <th>PO Date</th>
+                                    <th>Delivery Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Items</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for po in pending_pos %}
+                                <tr class="{% if po.delivery_date < today %}table-danger{% endif %}">
+                                    <td>
+                                        <strong>{{ po.po_number }}</strong><br>
+                                        <small class="text-muted">Req: {{ po.requisition.requisition_number }}</small>
+                                    </td>
+                                    <td>{{ po.po_date|date:"d M, Y" }}</td>
+                                    <td>
+                                        <strong class="{% if po.delivery_date < today %}text-danger{% else %}text-primary{% endif %}">
+                                            {{ po.delivery_date|date:"d M, Y" }}
+                                        </strong>
+                                        {% if po.delivery_date < today %}
+                                            <br><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> Overdue</small>
+                                        {% else %}
+                                            <br><small class="text-muted">{{ po.delivery_date|timeuntil }} remaining</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">KES {{ po.total_amount|floatformat:2|intcomma }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if po.status == 'SENT' %}warning text-dark{% elif po.status == 'ACKNOWLEDGED' %}info{% else %}secondary{% endif %}">
+                                            {{ po.get_status_display }}
+                                        </span>
+                                        {% if po.status == 'SENT' %}
+                                            <br><small class="text-warning"><i class="bi bi-clock"></i> Action Required</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ po.items.count }} items</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'supplier_purchase_order_detail' po.id %}" 
+                                               class="btn btn-outline-primary" 
+                                               title="View Details">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                            {% if po.status == 'SENT' %}
+                                                <a href="{% url 'supplier_acknowledge_po' po.id %}" 
+                                                   class="btn btn-outline-success" 
+                                                   title="Acknowledge">
+                                                    <i class="bi bi-check-circle"></i> Acknowledge
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                        <h5 class="mt-3 text-muted">No Pending Orders</h5>
+                        <p class="text-muted">You don't have any pending purchase orders at the moment.</p>
+                        <a href="{% url 'supplier_awarded_contracts' %}" class="btn btn-primary mt-3">
+                            <i class="bi bi-trophy"></i> View Awarded Contracts
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    {% if pending_pos %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6><i class="bi bi-info-circle"></i> Order Status Guide</h6>
+                <ul class="mb-0">
+                    <li><strong>Sent:</strong> Purchase order has been sent to you. Please acknowledge receipt to confirm you can fulfill the order.</li>
+                    <li><strong>Acknowledged:</strong> You have acknowledged the PO. Proceed with order fulfillment and delivery.</li>
+                    <li><strong>Overdue:</strong> Orders highlighted in red have passed their delivery date. Please expedite delivery.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+.table-danger:hover {
+    background-color: #f8d7da !important;
+}
+</style>
+{% endblock %}

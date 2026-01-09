@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Contact Support - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Contact Support</h1>
+        <p class="page-subtitle">Get help from our support team</p>
+    </div>
+    <a href="{% url 'supplier_help_center' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Help Center
+    </a>
+</div>
+
+<!-- Quick Contact Options -->
+<div class="contact-options-grid">
+    <div class="contact-option-card">
+        <div class="contact-option-icon">
+            <i class="bi bi-envelope"></i>
+        </div>
+        <h3>Email Us</h3>
+        <p>Send us an email and we'll respond within 24 hours</p>
+        <a href="mailto:procurement@university.ac.ke" class="contact-link">
+            procurement@university.ac.ke
+        </a>
+    </div>
+    
+    <div class="contact-option-card">
+        <div class="contact-option-icon">
+            <i class="bi bi-telephone"></i>
+        </div>
+        <h3>Call Us</h3>
+        <p>Speak directly with our support team</p>
+        <a href="tel:+254XXXXXXXXX" class="contact-link">
+            +254 XXX XXX XXX
+        </a>
+        <small class="text-muted">Mon-Fri, 8:00 AM - 5:00 PM</small>
+    </div>
+    
+    <div class="contact-option-card">
+        <div class="contact-option-icon">
+            <i class="bi bi-geo-alt"></i>
+        </div>
+        <h3>Visit Us</h3>
+        <p>Come to our office for in-person assistance</p>
+        <p class="contact-link">
+            Procurement Office<br>
+            Main Campus Building<br>
+            University Name
+        </p>
+    </div>
+</div>
+
+<!-- Support Request Form -->
+<div class="form-card">
+    <h3 class="card-title">Submit a Support Request</h3>
+    <p class="card-description">Fill out the form below and our team will get back to you as soon as possible.</p>
+    
+    <form method="post" action="{% url 'supplier_contact_support' %}">
+        {% csrf_token %}
+        
+        <!-- Requester Information -->
+        <div class="form-section">
+            <h4 class="form-section-title">Your Information</h4>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label" for="name">
+                        Full Name <span class="required">*</span>
+                    </label>
+                    <input type="text" id="name" name="name" class="form-control" 
+                           value="{{ request.user.get_full_name }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="email">
+                        Email Address <span class="required">*</span>
+                    </label>
+                    <input type="email" id="email" name="email" class="form-control" 
+                           value="{{ request.user.email }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="phone">
+                        Phone Number
+                    </label>
+                    <input type="tel" id="phone" name="phone" class="form-control" 
+                           value="{{ request.user.supplier_profile.phone_number }}">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="company">
+                        Company Name
+                    </label>
+                    <input type="text" id="company" name="company" class="form-control" 
+                           value="{{ request.user.supplier_profile.name }}" readonly>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Request Details -->
+        <div class="form-section">
+            <h4 class="form-section-title">Request Details</h4>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label" for="category">
+                        Issue Category <span class="required">*</span>
+                    </label>
+                    <select id="category" name="category" class="form-control" required>
+                        <option value="">Select a category</option>
+                        <option value="account">Account & Profile Issues</option>
+                        <option value="tender">Tender & Bidding</option>
+                        <option value="invoice">Invoice & Payment</option>
+                        <option value="documents">Document Upload/Verification</option>
+                        <option value="technical">Technical Issues</option>
+                        <option value="compliance">Compliance & Certification</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="priority">
+                        Priority <span class="required">*</span>
+                    </label>
+                    <select id="priority" name="priority" class="form-control" required>
+                        <option value="low">Low - General inquiry</option>
+                        <option value="medium" selected>Medium - Issue affecting work</option>
+                        <option value="high">High - Urgent issue</option>
+                        <option value="critical">Critical - System down</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="subject">
+                    Subject <span class="required">*</span>
+                </label>
+                <input type="text" id="subject" name="subject" class="form-control" 
+                       placeholder="Brief description of your issue" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="message">
+                    Message <span class="required">*</span>
+                </label>
+                <textarea id="message" name="message" class="form-control" rows="8" 
+                          placeholder="Please provide detailed information about your issue or question..." required></textarea>
+                <small class="help-text">Include any relevant details such as error messages, dates, reference numbers, etc.</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="attachments">
+                    Attachments (Optional)
+                </label>
+                <input type="file" id="attachments" name="attachments" class="form-control" 
+                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple>
+                <small class="help-text">You can attach screenshots or documents to help us understand your issue better (Max 5MB per file)</small>
+            </div>
+        </div>
+        
+        <!-- Reference Information -->
+        <div class="form-section">
+            <h4 class="form-section-title">Related Information (Optional)</h4>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label" for="reference_type">
+                        Reference Type
+                    </label>
+                    <select id="reference_type" name="reference_type" class="form-control">
+                        <option value="">Not applicable</option>
+                        <option value="tender">Tender Number</option>
+                        <option value="po">Purchase Order Number</option>
+                        <option value="invoice">Invoice Number</option>
+                        <option value="payment">Payment Number</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="reference_number">
+                        Reference Number
+                    </label>
+                    <input type="text" id="reference_number" name="reference_number" class="form-control" 
+                           placeholder="Enter relevant reference number">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Consent -->
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="consent" required>
+                <span>I agree to allow the support team to access my account information to resolve this issue</span>
+            </label>
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <a href="{% url 'supplier_help_center' %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-send"></i> Submit Request
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Response Time Information -->
+<div class="info-card">
+    <h3 class="card-title">What to Expect</h3>
+    <div class="expectations-list">
+        <div class="expectation-item">
+            <div class="expectation-icon">
+                <i class="bi bi-clock"></i>
+            </div>
+            <div class="expectation-content">
+                <h4>Response Time</h4>
+                <ul>
+                    <li><strong>Critical:</strong> Within 2 hours during business hours</li>
+                    <li><strong>High:</strong> Within 4 hours</li>
+                    <li><strong>Medium:</strong> Within 1 business day</li>
+                    <li><strong>Low:</strong> Within 2 business days</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="expectation-item">
+            <div class="expectation-icon">
+                <i class="bi bi-envelope-check"></i>
+            </div>
+            <div class="expectation-content">
+                <h4>Confirmation</h4>
+                <p>You'll receive an automatic confirmation email with a ticket number. Keep this for reference.</p>
+            </div>
+        </div>
+        
+        <div class="expectation-item">
+            <div class="expectation-icon">
+                <i class="bi bi-chat-dots"></i>
+            </div>
+            <div class="expectation-content">
+                <h4>Follow-up</h4>
+                <p>Our team will contact you via email or phone. Please ensure your contact details are up to date.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Common Issues & Solutions -->
+<div class="info-card">
+    <h3 class="card-title">Common Issues & Quick Solutions</h3>
+    <div class="quick-solutions">
+        <div class="solution-item">
+            <h4><i class="bi bi-exclamation-circle"></i> Cannot login to account</h4>
+            <p>Try resetting your password using the "Forgot Password" link. Clear your browser cache and cookies.</p>
+        </div>
+        
+        <div class="solution-item">
+            <h4><i class="bi bi-file-earmark-x"></i> Document upload failed</h4>
+            <p>Ensure file is under 5MB and in accepted format (PDF, JPG, PNG). Try using a different browser.</p>
+        </div>
+        
+        <div class="solution-item">
+            <h4><i class="bi bi-cash-coin"></i> Payment not received</h4>
+            <p>Check payment status in "Payments" section. Payments typically take 7-14 business days after invoice approval.</p>
+        </div>
+        
+        <div class="solution-item">
+            <h4><i class="bi bi-shield-x"></i> Account suspended</h4>
+            <p>Usually due to expired documents. Update compliance documents in "Documents" section.</p>
+        </div>
+    </div>
+    
+    <a href="{% url 'supplier_help_center' %}" class="btn btn-secondary">
+        <i class="bi bi-question-circle"></i> View More FAQs
+    </a>
+</div>
+
+<!-- Business Hours -->
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    <div>
+        <strong>Office Hours</strong>
+        <p>Our support team is available Monday to Friday, 8:00 AM - 5:00 PM (EAT). 
+        Requests submitted outside business hours will be responded to on the next business day.</p>
+    </div>
+</div>
+
+<script>
+// Auto-fill reference number based on type selection
+document.getElementById('reference_type').addEventListener('change', function() {
+    const refNumber = document.getElementById('reference_number');
+    if (this.value) {
+        refNumber.focus();
+        refNumber.placeholder = `Enter ${this.options[this.selectedIndex].text}`;
+    } else {
+        refNumber.placeholder = 'Enter relevant reference number';
+    }
+});
+
+// Character counter for message
+const messageField = document.getElementById('message');
+if (messageField) {
+    messageField.addEventListener('input', function() {
+        const length = this.value.length;
+        const counter = document.getElementById('charCounter');
+        if (!counter) {
+            const counterEl = document.createElement('small');
+            counterEl.id = 'charCounter';
+            counterEl.className = 'help-text';
+            this.parentElement.appendChild(counterEl);
+        }
+        document.getElementById('charCounter').textContent = `${length} characters`;
+    });
+}
+</script>
+
+{% endblock %}

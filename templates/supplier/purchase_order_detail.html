@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}Purchase Order {{ po.po_number }} - Supplier Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">Purchase Order {{ po.po_number }}</h2>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-calendar"></i> Issued: {{ po.po_date|date:"d M, Y" }}
+                    </p>
+                </div>
+                <div>
+                    {% if can_acknowledge %}
+                        <a href="{% url 'supplier_acknowledge_po' po.id %}" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Acknowledge PO
+                        </a>
+                    {% endif %}
+                    <button onclick="window.print()" class="btn btn-outline-primary">
+                        <i class="bi bi-printer"></i> Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Alert -->
+    {% if can_acknowledge %}
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> 
+        <strong>Action Required:</strong> Please acknowledge receipt of this purchase order.
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- PO Details Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-text"></i> Order Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Status:</strong><br>
+                            <span class="badge bg-{% if po.status == 'SENT' %}warning{% elif po.status == 'ACKNOWLEDGED' %}info{% elif po.status == 'DELIVERED' %}success{% else %}secondary{% endif %} mt-1">
+                                {{ po.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Requisition:</strong><br>
+                            {{ po.requisition.requisition_number }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Delivery Date:</strong><br>
+                            <span class="text-{% if po.delivery_date < today %}danger{% else %}primary{% endif %}">
+                                {{ po.delivery_date|date:"d M, Y" }}
+                            </span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Delivery Address:</strong><br>
+                            {{ po.delivery_address }}
+                        </div>
+                        {% if po.acknowledged_at %}
+                        <div class="col-md-6 mb-3">
+                            <strong>Acknowledged:</strong><br>
+                            {{ po.acknowledged_at|date:"d M, Y H:i" }}
+                        </div>
+                        {% endif %}
+                        {% if po.sent_at %}
+                        <div class="col-md-6 mb-3">
+                            <strong>Sent to Supplier:</strong><br>
+                            {{ po.sent_at|date:"d M, Y H:i" }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <hr>
+
+                    <h6 class="mb-3">Payment Terms</h6>
+                    <p>{{ po.payment_terms|linebreaks }}</p>
+
+                    {% if po.warranty_terms %}
+                    <h6 class="mb-3">Warranty Terms</h6>
+                    <p>{{ po.warranty_terms|linebreaks }}</p>
+                    {% endif %}
+
+                    {% if po.special_instructions %}
+                    <h6 class="mb-3">Special Instructions</h6>
+                    <p>{{ po.special_instructions|linebreaks }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Order Items</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Description</th>
+                                    <th>Specifications</th>
+                                    <th class="text-end">Qty</th>
+                                    <th>Unit</th>
+                                    <th class="text-end">Unit Price</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-end">Delivered</th>
+                                    <th class="text-end">Pending</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ item.item_description }}</td>
+                                    <td><small>{{ item.specifications|truncatewords:10 }}</small></td>
+                                    <td class="text-end">{{ item.quantity }}</td>
+                                    <td>{{ item.unit_of_measure }}</td>
+                                    <td class="text-end">KES {{ item.unit_price|floatformat:2|intcomma }}</td>
+                                    <td class="text-end"><strong>KES {{ item.total_price|floatformat:2|intcomma }}</strong></td>
+                                    <td class="text-end">
+                                        <span class="badge bg-success">{{ item.quantity_delivered }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge bg-warning text-dark">{{ item.quantity_pending }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="6" class="text-end">Subtotal:</th>
+                                    <th class="text-end">KES {{ po.subtotal|floatformat:2|intcomma }}</th>
+                                    <th colspan="2"></th>
+                                </tr>
+                                <tr>
+                                    <th colspan="6" class="text-end">Tax:</th>
+                                    <th class="text-end">KES {{ po.tax_amount|floatformat:2|intcomma }}</th>
+                                    <th colspan="2"></th>
+                                </tr>
+                                <tr class="table-primary">
+                                    <th colspan="6" class="text-end">Total Amount:</th>
+                                    <th class="text-end">KES {{ po.total_amount|floatformat:2|intcomma }}</th>
+                                    <th colspan="2"></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Amendments -->
+            {% if amendments %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Amendments</h5>
+                </div>
+                <div class="card-body">
+                    {% for amendment in amendments %}
+                    <div class="border-bottom pb-3 mb-3">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ amendment.amendment_number }} - {{ amendment.get_amendment_type_display }}</strong>
+                            <small class="text-muted">{{ amendment.created_at|date:"d M, Y" }}</small>
+                        </div>
+                        <p class="mb-1"><strong>Description:</strong> {{ amendment.description }}</p>
+                        <p class="mb-1"><strong>Justification:</strong> {{ amendment.justification }}</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small><strong>Old Value:</strong> {{ amendment.old_value }}</small>
+                            </div>
+                            <div class="col-md-6">
+                                <small><strong>New Value:</strong> {{ amendment.new_value }}</small>
+                            </div>
+                        </div>
+                        {% if amendment.amount_change != 0 %}
+                        <p class="mb-0 mt-2">
+                            <strong>Amount Change:</strong> 
+                            <span class="{% if amendment.amount_change > 0 %}text-success{% else %}text-danger{% endif %}">
+                                KES {{ amendment.amount_change|floatformat:2|intcomma }}
+                            </span>
+                        </p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Delivery Status -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-truck"></i> Delivery Status</h5>
+                </div>
+                <div class="card-body">
+                    {% if grns %}
+                        <div class="list-group list-group-flush">
+                            {% for grn in grns %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>{{ grn.grn_number }}</strong><br>
+                                        <small class="text-muted">{{ grn.received_date|date:"d M, Y" }}</small><br>
+                                        <span class="badge bg-{% if grn.status == 'ACCEPTED' %}success{% elif grn.status == 'REJECTED' %}danger{% else %}warning{% endif %} mt-1">
+                                            {{ grn.get_status_display }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted">{{ grn.store.name }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No deliveries recorded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Invoices -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-receipt"></i> Invoices</h5>
+                </div>
+                <div class="card-body">
+                    {% if invoices %}
+                        <div class="list-group list-group-flush">
+                            {% for invoice in invoices %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>{{ invoice.invoice_number }}</strong><br>
+                                        <small class="text-muted">{{ invoice.invoice_date|date:"d M, Y" }}</small><br>
+                                        <span class="badge bg-{% if invoice.status == 'PAID' %}success{% elif invoice.status == 'APPROVED' %}info{% else %}warning{% endif %} mt-1">
+                                            {{ invoice.get_status_display }}
+                                        </span>
+                                    </div>
+                                    <div class="text-end">
+                                        <strong>KES {{ invoice.total_amount|floatformat:2|intcomma }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No invoices submitted yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if can_acknowledge %}
+                        <a href="{% url 'supplier_acknowledge_po' po.id %}" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Acknowledge PO
+                        </a>
+                        {% endif %}
+                        <button onclick="window.print()" class="btn btn-outline-primary">
+                            <i class="bi bi-printer"></i> Print PO
+                        </button>
+                        <a href="{% url 'supplier_pending_orders' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Orders
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .card-header, nav, .no-print {
+        display: none !important;
+    }
+}
+</style>
+{% endblock %}

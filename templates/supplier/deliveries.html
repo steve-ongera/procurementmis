@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Deliveries & GRNs - Supplier Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Deliveries & Goods Received Notes</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'supplier_dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item active">Deliveries</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title">Total Deliveries</h6>
+                    <h3 class="mb-0">{{ grns.paginator.count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title">Accepted</h6>
+                    <h3 class="mb-0">
+                        {% with accepted=0 %}
+                            {% for grn in grns %}
+                                {% if grn.status == 'ACCEPTED' %}{{ accepted|add:1 }}{% endif %}
+                            {% endfor %}
+                        {% endwith %}
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title">Under Inspection</h6>
+                    <h3 class="mb-0">
+                        {% with inspecting=0 %}
+                            {% for grn in grns %}
+                                {% if grn.status == 'INSPECTING' %}{{ inspecting|add:1 }}{% endif %}
+                            {% endfor %}
+                        {% endwith %}
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title">Rejected</h6>
+                    <h3 class="mb-0">
+                        {% with rejected=0 %}
+                            {% for grn in grns %}
+                                {% if grn.status == 'REJECTED' %}{{ rejected|add:1 }}{% endif %}
+                            {% endfor %}
+                        {% endwith %}
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRN List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    {% if grns %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>GRN Number</th>
+                                    <th>Purchase Order</th>
+                                    <th>Delivery Note</th>
+                                    <th>Store</th>
+                                    <th>Delivery Date</th>
+                                    <th>Received Date</th>
+                                    <th>Status</th>
+                                    <th>Inspection</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for grn in grns %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ grn.grn_number }}</strong>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'supplier_purchase_order_detail' grn.purchase_order.id %}">
+                                            {{ grn.purchase_order.po_number }}
+                                        </a><br>
+                                        <small class="text-muted">
+                                            KES {{ grn.purchase_order.total_amount|floatformat:2|intcomma }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {{ grn.delivery_note_number }}
+                                    </td>
+                                    <td>
+                                        <i class="bi bi-shop"></i> {{ grn.store.name }}<br>
+                                        <small class="text-muted">{{ grn.store.code }}</small>
+                                    </td>
+                                    <td>
+                                        {{ grn.delivery_date|date:"d M, Y" }}
+                                    </td>
+                                    <td>
+                                        {{ grn.received_date|date:"d M, Y" }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if grn.status == 'ACCEPTED' %}success{% elif grn.status == 'REJECTED' %}danger{% elif grn.status == 'INSPECTING' %}warning text-dark{% elif grn.status == 'PARTIAL' %}info{% else %}secondary{% endif %}">
+                                            {{ grn.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if grn.inspected_by %}
+                                            <i class="bi bi-check-circle text-success"></i> 
+                                            {{ grn.inspected_by.get_full_name }}<br>
+                                            <small class="text-muted">{{ grn.inspection_date|date:"d M, Y" }}</small>
+                                        {% else %}
+                                            <span class="text-muted">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary" 
+                                           data-bs-toggle="modal" 
+                                           data-bs-target="#grnModal{{ grn.id }}">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+
+                                <!-- GRN Details Modal -->
+                                <div class="modal fade" id="grnModal{{ grn.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">{{ grn.grn_number }} - Details</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <strong>Purchase Order:</strong><br>
+                                                        {{ grn.purchase_order.po_number }}
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <strong>Status:</strong><br>
+                                                        <span class="badge bg-{% if grn.status == 'ACCEPTED' %}success{% elif grn.status == 'REJECTED' %}danger{% else %}warning{% endif %}">
+                                                            {{ grn.get_status_display }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <strong>Delivery Note:</strong><br>
+                                                        {{ grn.delivery_note_number }}
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <strong>Store:</strong><br>
+                                                        {{ grn.store.name }}
+                                                    </div>
+                                                </div>
+
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <strong>Received By:</strong><br>
+                                                        {{ grn.received_by.get_full_name }}
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <strong>Received Date:</strong><br>
+                                                        {{ grn.received_date|date:"d M, Y" }}
+                                                    </div>
+                                                </div>
+
+                                                {% if grn.inspected_by %}
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <strong>Inspected By:</strong><br>
+                                                        {{ grn.inspected_by.get_full_name }}
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <strong>Inspection Date:</strong><br>
+                                                        {{ grn.inspection_date|date:"d M, Y" }}
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+
+                                                {% if grn.general_condition %}
+                                                <div class="mb-3">
+                                                    <strong>General Condition:</strong><br>
+                                                    {{ grn.general_condition }}
+                                                </div>
+                                                {% endif %}
+
+                                                {% if grn.rejection_reason %}
+                                                <div class="alert alert-danger">
+                                                    <strong>Rejection Reason:</strong><br>
+                                                    {{ grn.rejection_reason }}
+                                                </div>
+                                                {% endif %}
+
+                                                {% if grn.notes %}
+                                                <div class="mb-3">
+                                                    <strong>Notes:</strong><br>
+                                                    {{ grn.notes }}
+                                                </div>
+                                                {% endif %}
+
+                                                <h6 class="mt-4 mb-3">Items Received</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-bordered">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Item</th>
+                                                                <th>Ordered</th>
+                                                                <th>Delivered</th>
+                                                                <th>Accepted</th>
+                                                                <th>Rejected</th>
+                                                                <th>Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for item in grn.items.all %}
+                                                            <tr>
+                                                                <td>{{ item.po_item.item_description|truncatewords:8 }}</td>
+                                                                <td>{{ item.quantity_ordered }}</td>
+                                                                <td>{{ item.quantity_delivered }}</td>
+                                                                <td class="text-success">{{ item.quantity_accepted }}</td>
+                                                                <td class="text-danger">{{ item.quantity_rejected }}</td>
+                                                                <td>
+                                                                    <span class="badge bg-{% if item.item_status == 'ACCEPTED' %}success{% elif item.item_status == 'REJECTED' %}danger{% else %}warning{% endif %}">
+                                                                        {{ item.get_item_status_display }}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if grns.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if grns.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ grns.previous_page_number }}">Previous</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Previous</span>
+                                </li>
+                            {% endif %}
+
+                            {% for num in grns.paginator.page_range %}
+                                {% if grns.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% elif num > grns.number|add:'-3' and num < grns.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if grns.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ grns.next_page_number }}">Next</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Next</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-truck" style="font-size: 3rem; color: #ccc;"></i>
+                        <h5 class="mt-3 text-muted">No Deliveries Yet</h5>
+                        <p class="text-muted">Your delivery records will appear here once goods are received.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}

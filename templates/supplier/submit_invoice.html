@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}Submit Invoice - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Submit Invoice</h1>
+        <p class="page-subtitle">
+            {% if po %}For Purchase Order: {{ po.po_number }}{% else %}Create a new invoice{% endif %}
+        </p>
+    </div>
+    <a href="{% url 'supplier_invoices_list' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Invoices
+    </a>
+</div>
+
+{% if po %}
+<!-- PO Information -->
+<div class="info-card">
+    <h3 class="card-title">Purchase Order Information</h3>
+    <div class="info-rows">
+        <div class="info-row">
+            <span class="info-label">PO Number:</span>
+            <span class="info-value">{{ po.po_number }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">PO Date:</span>
+            <span class="info-value">{{ po.po_date|date:"M d, Y" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Department:</span>
+            <span class="info-value">{{ po.requisition.department.name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Total Amount:</span>
+            <span class="info-value">KSh {{ po.total_amount|floatformat:2|intcomma }}</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Invoice Form -->
+<form method="post" enctype="multipart/form-data" id="invoiceForm">
+    {% csrf_token %}
+    
+    <div class="form-card">
+        <h3 class="card-title">Invoice Details</h3>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label" for="id_supplier_invoice_number">
+                    Your Invoice Number <span class="required">*</span>
+                </label>
+                {{ invoice_form.supplier_invoice_number }}
+                {% if invoice_form.supplier_invoice_number.errors %}
+                <div class="form-error">{{ invoice_form.supplier_invoice_number.errors }}</div>
+                {% endif %}
+            </div>
+            
+            {% if not po %}
+            <div class="form-group">
+                <label class="form-label" for="id_purchase_order">
+                    Purchase Order <span class="required">*</span>
+                </label>
+                {{ invoice_form.purchase_order }}
+                {% if invoice_form.purchase_order.errors %}
+                <div class="form-error">{{ invoice_form.purchase_order.errors }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label class="form-label" for="id_invoice_date">
+                    Invoice Date <span class="required">*</span>
+                </label>
+                {{ invoice_form.invoice_date }}
+                {% if invoice_form.invoice_date.errors %}
+                <div class="form-error">{{ invoice_form.invoice_date.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_due_date">
+                    Due Date <span class="required">*</span>
+                </label>
+                {{ invoice_form.due_date }}
+                {% if invoice_form.due_date.errors %}
+                <div class="form-error">{{ invoice_form.due_date.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_other_charges">
+                    Other Charges (if any)
+                </label>
+                {{ invoice_form.other_charges }}
+                {% if invoice_form.other_charges.errors %}
+                <div class="form-error">{{ invoice_form.other_charges.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label" for="id_notes">
+                Notes/Comments
+            </label>
+            {{ invoice_form.notes }}
+            {% if invoice_form.notes.errors %}
+            <div class="form-error">{{ invoice_form.notes.errors }}</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Invoice Items -->
+    <div class="form-card">
+        <div class="card-header-with-action">
+            <h3 class="card-title">Invoice Items</h3>
+            <button type="button" class="btn btn-primary" onclick="addItem()">
+                <i class="bi bi-plus-circle"></i> Add Item
+            </button>
+        </div>
+        
+        <div id="invoice-items">
+            {{ item_formset.management_form }}
+            
+            <div class="table-responsive">
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>PO Item</th>
+                            <th>Description</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Tax Rate (%)</th>
+                            <th>Total</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-tbody">
+                        {% for form in item_formset %}
+                        <tr class="item-row">
+                            <td>
+                                {{ form.po_item }}
+                                {{ form.id }}
+                            </td>
+                            <td>
+                                {{ form.description }}
+                            </td>
+                            <td>
+                                {{ form.quantity }}
+                            </td>
+                            <td>
+                                {{ form.unit_price }}
+                            </td>
+                            <td>
+                                {{ form.tax_rate }}
+                            </td>
+                            <td>
+                                <span class="item-total">0.00</span>
+                            </td>
+                            <td>
+                                <button type="button" class="btn-icon btn-danger" onclick="removeItem(this)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Totals Summary -->
+        <div class="totals-summary">
+            <div class="totals-row">
+                <span class="totals-label">Subtotal:</span>
+                <span class="totals-value" id="subtotal">KSh 0.00</span>
+            </div>
+            <div class="totals-row">
+                <span class="totals-label">Tax:</span>
+                <span class="totals-value" id="tax-total">KSh 0.00</span>
+            </div>
+            <div class="totals-row">
+                <span class="totals-label">Other Charges:</span>
+                <span class="totals-value" id="other-charges">KSh 0.00</span>
+            </div>
+            <div class="totals-row total">
+                <span class="totals-label">Total Amount:</span>
+                <span class="totals-value" id="grand-total">KSh 0.00</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Supporting Documents -->
+    <div class="form-card">
+        <h3 class="card-title">Supporting Documents</h3>
+        <p class="help-text">Upload supporting documents such as delivery notes, receipts, etc.</p>
+        
+        <div id="documents-container">
+            <div class="document-upload-row">
+                <div class="form-group">
+                    <label class="form-label">Document Name</label>
+                    <input type="text" name="doc_names" class="form-control" placeholder="e.g., Delivery Note">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Choose File</label>
+                    <input type="file" name="documents" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+                <button type="button" class="btn-icon btn-danger" onclick="removeDocument(this)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+        
+        <button type="button" class="btn btn-secondary" onclick="addDocument()">
+            <i class="bi bi-plus-circle"></i> Add Another Document
+        </button>
+    </div>
+    
+    <!-- Form Actions -->
+    <div class="form-actions">
+        <a href="{% url 'supplier_invoices_list' %}" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i> Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-send"></i> Submit Invoice
+        </button>
+    </div>
+</form>
+
+<script>
+// Calculate item totals
+function calculateItemTotal(row) {
+    const quantity = parseFloat(row.querySelector('[name*="quantity"]').value) || 0;
+    const unitPrice = parseFloat(row.querySelector('[name*="unit_price"]').value) || 0;
+    const taxRate = parseFloat(row.querySelector('[name*="tax_rate"]').value) || 0;
+    
+    const subtotal = quantity * unitPrice;
+    const tax = subtotal * (taxRate / 100);
+    const total = subtotal + tax;
+    
+    row.querySelector('.item-total').textContent = total.toFixed(2);
+    
+    calculateGrandTotal();
+}
+
+// Calculate grand total
+function calculateGrandTotal() {
+    let subtotal = 0;
+    let taxTotal = 0;
+    
+    document.querySelectorAll('.item-row').forEach(row => {
+        const quantity = parseFloat(row.querySelector('[name*="quantity"]').value) || 0;
+        const unitPrice = parseFloat(row.querySelector('[name*="unit_price"]').value) || 0;
+        const taxRate = parseFloat(row.querySelector('[name*="tax_rate"]').value) || 0;
+        
+        const itemSubtotal = quantity * unitPrice;
+        const itemTax = itemSubtotal * (taxRate / 100);
+        
+        subtotal += itemSubtotal;
+        taxTotal += itemTax;
+    });
+    
+    const otherCharges = parseFloat(document.querySelector('[name="other_charges"]').value) || 0;
+    const grandTotal = subtotal + taxTotal + otherCharges;
+    
+    document.getElementById('subtotal').textContent = 'KSh ' + subtotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('tax-total').textContent = 'KSh ' + taxTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('other-charges').textContent = 'KSh ' + otherCharges.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('grand-total').textContent = 'KSh ' + grandTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// Add event listeners to all numeric inputs
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.item-row').forEach(row => {
+        row.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', () => calculateItemTotal(row));
+        });
+    });
+    
+    document.querySelector('[name="other_charges"]').addEventListener('input', calculateGrandTotal);
+    
+    calculateGrandTotal();
+});
+
+// Remove item row
+function removeItem(button) {
+    if (document.querySelectorAll('.item-row').length > 1) {
+        button.closest('.item-row').remove();
+        calculateGrandTotal();
+    } else {
+        alert('You must have at least one item in the invoice.');
+    }
+}
+
+// Add document upload row
+function addDocument() {
+    const container = document.getElementById('documents-container');
+    const newRow = container.querySelector('.document-upload-row').cloneNode(true);
+    newRow.querySelectorAll('input').forEach(input => input.value = '');
+    container.appendChild(newRow);
+}
+
+// Remove document upload row
+function removeDocument(button) {
+    if (document.querySelectorAll('.document-upload-row').length > 1) {
+        button.closest('.document-upload-row').remove();
+    }
+}
+</script>
+
+{% endblock %}

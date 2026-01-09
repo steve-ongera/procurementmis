@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}Certifications & Compliance - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Certifications & Compliance</h1>
+        <p class="page-subtitle">Your compliance status and certifications</p>
+    </div>
+    <a href="{% url 'supplier_documents' %}" class="btn btn-primary">
+        <i class="bi bi-cloud-upload"></i> Upload Certificate
+    </a>
+</div>
+
+<!-- Compliance Status Overview -->
+<div class="compliance-overview">
+    <h3 class="section-title">Compliance Status</h3>
+    
+    <div class="compliance-grid">
+        <div class="compliance-card {% if compliance.tax_compliant %}compliant{% else %}non-compliant{% endif %}">
+            <div class="compliance-icon">
+                <i class="bi {% if compliance.tax_compliant %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %}"></i>
+            </div>
+            <div class="compliance-content">
+                <h4>Tax Compliance</h4>
+                {% if compliance.tax_compliant %}
+                <p class="status-text success">Compliant</p>
+                <small>Valid until {{ supplier.tax_compliance_expiry|date:"M d, Y" }}</small>
+                {% else %}
+                <p class="status-text danger">Not Compliant</p>
+                <small>Please upload current tax certificate</small>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="compliance-card {% if compliance.registration_valid %}compliant{% else %}non-compliant{% endif %}">
+            <div class="compliance-icon">
+                <i class="bi {% if compliance.registration_valid %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %}"></i>
+            </div>
+            <div class="compliance-content">
+                <h4>Business Registration</h4>
+                {% if compliance.registration_valid %}
+                <p class="status-text success">Valid</p>
+                <small>Valid until {{ supplier.registration_expiry|date:"M d, Y" }}</small>
+                {% else %}
+                <p class="status-text danger">Expired/Invalid</p>
+                <small>Please renew your registration</small>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="compliance-card">
+            <div class="compliance-icon">
+                <i class="bi bi-file-check"></i>
+            </div>
+            <div class="compliance-content">
+                <h4>Document Verification</h4>
+                <p class="status-text">
+                    {{ compliance.documents_verified }} / {{ compliance.total_documents }}
+                </p>
+                <small>Verified documents</small>
+            </div>
+        </div>
+        
+        <div class="compliance-card">
+            <div class="compliance-icon">
+                <i class="bi bi-star"></i>
+            </div>
+            <div class="compliance-content">
+                <h4>Supplier Rating</h4>
+                <p class="status-text">{{ supplier.rating|floatformat:2 }} / 5.00</p>
+                <small>Overall performance rating</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overall Compliance Status Alert -->
+{% if not compliance.tax_compliant or not compliance.registration_valid %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle"></i>
+    <div>
+        <strong>Action Required!</strong>
+        <p>Your account is not fully compliant. Please update the required documents to maintain your supplier status.</p>
+        <ul>
+            {% if not compliance.tax_compliant %}
+            <li>Upload current Tax Compliance Certificate</li>
+            {% endif %}
+            {% if not compliance.registration_valid %}
+            <li>Renew Business Registration Certificate</li>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success">
+    <i class="bi bi-check-circle"></i>
+    <div>
+        <strong>Fully Compliant</strong>
+        <p>Your supplier account is fully compliant with all requirements.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Certifications Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-award"></i>
+            Certificates & Licenses
+        </h2>
+    </div>
+    
+    <div class="table-body">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Certificate Type</th>
+                        <th>Certificate Name</th>
+                        <th>Issue Date</th>
+                        <th>Expiry Date</th>
+                        <th>Days Remaining</th>
+                        <th>Status</th>
+                        <th>Verification</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cert in certifications %}
+                    {% with days_remaining=cert.expiry_date|timeuntil %}
+                    <tr>
+                        <td>
+                            <span class="badge badge-info">
+                                {% if cert.document_type == 'REGISTRATION' %}
+                                <i class="bi bi-building"></i>
+                                {% elif cert.document_type == 'LICENSE' %}
+                                <i class="bi bi-award"></i>
+                                {% elif cert.document_type == 'INSURANCE' %}
+                                <i class="bi bi-shield-check"></i>
+                                {% endif %}
+                                {{ cert.get_document_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>{{ cert.document_name }}</strong>
+                        </td>
+                        <td class="date-cell">
+                            {% if cert.issue_date %}
+                            {{ cert.issue_date|date:"M d, Y" }}
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="date-cell">
+                            {% if cert.expiry_date %}
+                            {{ cert.expiry_date|date:"M d, Y" }}
+                            {% else %}
+                            <span class="text-muted">No Expiry</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cert.expiry_date %}
+                                {% if cert.expiry_date < today %}
+                                <span class="badge badge-disputed">Expired</span>
+                                {% else %}
+                                {{ days_remaining }}
+                                {% endif %}
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cert.expiry_date %}
+                                {% if cert.expiry_date < today %}
+                                <span class="badge badge-disputed">
+                                    <i class="bi bi-x-circle"></i>
+                                    Expired
+                                </span>
+                                {% elif cert.expiry_date <= expiring_threshold %}
+                                <span class="badge badge-warning">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    Expiring Soon
+                                </span>
+                                {% else %}
+                                <span class="badge badge-paid">
+                                    <i class="bi bi-check-circle"></i>
+                                    Valid
+                                </span>
+                                {% endif %}
+                            {% else %}
+                            <span class="badge badge-draft">
+                                <i class="bi bi-infinity"></i>
+                                No Expiry
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cert.is_verified %}
+                            <div class="verification-badge verified">
+                                <i class="bi bi-patch-check-fill"></i>
+                                <span>Verified</span>
+                                {% if cert.verified_by %}
+                                <small>by {{ cert.verified_by.get_full_name }}</small>
+                                <small>{{ cert.verified_at|date:"M d, Y" }}</small>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div class="verification-badge pending">
+                                <i class="bi bi-clock"></i>
+                                <span>Pending Verification</span>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{{ cert.file.url }}" class="action-btn action-btn-primary" 
+                                   target="_blank" title="View">
+                                    <i class="bi bi-eye"></i>
+                                    View
+                                </a>
+                                <a href="{{ cert.file.url }}" class="action-btn action-btn-info" 
+                                   download title="Download">
+                                    <i class="bi bi-download"></i>
+                                    Download
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <i class="bi bi-award"></i>
+                                <h4>No Certificates Found</h4>
+                                <p>You haven't uploaded any certificates or licenses yet</p>
+                                <a href="{% url 'supplier_documents' %}" class="btn btn-primary">
+                                    <i class="bi bi-cloud-upload"></i> Upload Certificate
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Compliance Requirements -->
+<div class="info-card">
+    <h3 class="card-title">Compliance Requirements</h3>
+    
+    <div class="requirements-list">
+        <div class="requirement-item">
+            <div class="requirement-icon">
+                <i class="bi bi-building"></i>
+            </div>
+            <div class="requirement-content">
+                <h4>Business Registration</h4>
+                <p>Valid certificate of business registration or incorporation from the Registrar of Companies.</p>
+                <span class="requirement-status {% if compliance.registration_valid %}met{% else %}not-met{% endif %}">
+                    {% if compliance.registration_valid %}
+                    <i class="bi bi-check-circle"></i> Requirement Met
+                    {% else %}
+                    <i class="bi bi-x-circle"></i> Action Required
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        
+        <div class="requirement-item">
+            <div class="requirement-icon">
+                <i class="bi bi-file-text"></i>
+            </div>
+            <div class="requirement-content">
+                <h4>Tax Compliance</h4>
+                <p>Current tax compliance certificate from Kenya Revenue Authority (KRA).</p>
+                <span class="requirement-status {% if compliance.tax_compliant %}met{% else %}not-met{% endif %}">
+                    {% if compliance.tax_compliant %}
+                    <i class="bi bi-check-circle"></i> Requirement Met
+                    {% else %}
+                    <i class="bi bi-x-circle"></i> Action Required
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        
+        <div class="requirement-item">
+            <div class="requirement-icon">
+                <i class="bi bi-award"></i>
+            </div>
+            <div class="requirement-content">
+                <h4>Professional Licenses</h4>
+                <p>Relevant professional licenses or permits required for your business category.</p>
+                <span class="requirement-status {% if certifications|selectattr:"document_type","equalto","LICENSE"|list %}met{% else %}not-met{% endif %}">
+                    {% if certifications|selectattr:"document_type","equalto","LICENSE"|list %}
+                    <i class="bi bi-check-circle"></i> Requirement Met
+                    {% else %}
+                    <i class="bi bi-x-circle"></i> Recommended
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        
+        <div class="requirement-item">
+            <div class="requirement-icon">
+                <i class="bi bi-shield-check"></i>
+            </div>
+            <div class="requirement-content">
+                <h4>Insurance Coverage</h4>
+                <p>Valid public liability or professional indemnity insurance certificate.</p>
+                <span class="requirement-status {% if certifications|selectattr:"document_type","equalto","INSURANCE"|list %}met{% else %}not-met{% endif %}">
+                    {% if certifications|selectattr:"document_type","equalto","INSURANCE"|list %}
+                    <i class="bi bi-check-circle"></i> Requirement Met
+                    {% else %}
+                    <i class="bi bi-x-circle"></i> Recommended
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Section -->
+<div class="info-card">
+    <h3 class="card-title">Need Help?</h3>
+    <p>If you have questions about compliance requirements or need assistance with document uploads, please contact us:</p>
+    <div class="contact-info">
+        <div class="contact-item">
+            <i class="bi bi-envelope"></i>
+            <span>procurement@university.ac.ke</span>
+        </div>
+        <div class="contact-item">
+            <i class="bi bi-telephone"></i>
+            <span>+254 XXX XXX XXX</span>
+        </div>
+        <div class="contact-item">
+            <i class="bi bi-clock"></i>
+            <span>Monday - Friday, 8:00 AM - 5:00 PM</span>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

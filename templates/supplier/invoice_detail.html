@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}Invoice {{ invoice.invoice_number }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Invoice Details</h1>
+        <p class="page-subtitle">{{ invoice.invoice_number }}</p>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'supplier_invoices_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Invoices
+        </a>
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="bi bi-printer"></i> Print
+        </button>
+    </div>
+</div>
+
+<!-- Invoice Status Alert -->
+{% if invoice.status == 'DISPUTED' %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>Invoice Disputed:</strong> {{ invoice.dispute_reason }}
+</div>
+{% elif invoice.status == 'PAID' %}
+<div class="alert alert-success">
+    <i class="bi bi-check-circle"></i>
+    <strong>Invoice Paid:</strong> This invoice has been fully paid on {{ invoice.payment_date|date:"M d, Y" }}
+</div>
+{% elif invoice.due_date < today and invoice.status not in 'PAID' %}
+<div class="alert alert-warning">
+    <i class="bi bi-clock"></i>
+    <strong>Overdue:</strong> This invoice was due on {{ invoice.due_date|date:"M d, Y" }}
+</div>
+{% endif %}
+
+<!-- Invoice Information Grid -->
+<div class="info-grid">
+    <div class="info-card">
+        <h3 class="card-title">Invoice Information</h3>
+        <div class="info-rows">
+            <div class="info-row">
+                <span class="info-label">Invoice Number:</span>
+                <span class="info-value">{{ invoice.invoice_number }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Supplier Invoice #:</span>
+                <span class="info-value">{{ invoice.supplier_invoice_number }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Invoice Date:</span>
+                <span class="info-value">{{ invoice.invoice_date|date:"M d, Y" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Due Date:</span>
+                <span class="info-value">{{ invoice.due_date|date:"M d, Y" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Status:</span>
+                <span class="info-value">
+                    {% if invoice.status == 'DRAFT' %}
+                    <span class="badge badge-draft">{{ invoice.get_status_display }}</span>
+                    {% elif invoice.status == 'SUBMITTED' %}
+                    <span class="badge badge-submitted">{{ invoice.get_status_display }}</span>
+                    {% elif invoice.status == 'VERIFYING' %}
+                    <span class="badge badge-verifying">{{ invoice.get_status_display }}</span>
+                    {% elif invoice.status == 'APPROVED' %}
+                    <span class="badge badge-approved">{{ invoice.get_status_display }}</span>
+                    {% elif invoice.status == 'PAID' %}
+                    <span class="badge badge-paid">{{ invoice.get_status_display }}</span>
+                    {% elif invoice.status == 'DISPUTED' %}
+                    <span class="badge badge-disputed">{{ invoice.get_status_display }}</span>
+                    {% else %}
+                    <span class="badge badge-draft">{{ invoice.get_status_display }}</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <h3 class="card-title">Purchase Order</h3>
+        <div class="info-rows">
+            <div class="info-row">
+                <span class="info-label">PO Number:</span>
+                <span class="info-value">{{ invoice.purchase_order.po_number }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">PO Date:</span>
+                <span class="info-value">{{ invoice.purchase_order.po_date|date:"M d, Y" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Department:</span>
+                <span class="info-value">{{ invoice.purchase_order.requisition.department.name }}</span>
+            </div>
+            {% if invoice.grn %}
+            <div class="info-row">
+                <span class="info-label">GRN Number:</span>
+                <span class="info-value">{{ invoice.grn.grn_number }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">GRN Date:</span>
+                <span class="info-value">{{ invoice.grn.received_date|date:"M d, Y" }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="info-card">
+        <h3 class="card-title">Payment Summary</h3>
+        <div class="info-rows">
+            <div class="info-row">
+                <span class="info-label">Subtotal:</span>
+                <span class="info-value">KSh {{ invoice.subtotal|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Tax Amount:</span>
+                <span class="info-value">KSh {{ invoice.tax_amount|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Other Charges:</span>
+                <span class="info-value">KSh {{ invoice.other_charges|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-row total">
+                <span class="info-label">Total Amount:</span>
+                <span class="info-value">KSh {{ invoice.total_amount|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Amount Paid:</span>
+                <span class="info-value success">KSh {{ invoice.amount_paid|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Balance Due:</span>
+                <span class="info-value warning">KSh {{ invoice.balance_due|floatformat:2|intcomma }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Items -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-list-ul"></i>
+            Invoice Items
+        </h2>
+    </div>
+    <div class="table-body">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Tax Rate</th>
+                        <th>Tax Amount</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.description }}</td>
+                        <td>{{ item.quantity|floatformat:2 }} {{ item.po_item.unit_of_measure }}</td>
+                        <td>KSh {{ item.unit_price|floatformat:2|intcomma }}</td>
+                        <td>{{ item.tax_rate|floatformat:2 }}%</td>
+                        <td>KSh {{ item.tax_amount|floatformat:2|intcomma }}</td>
+                        <td>KSh {{ item.total_price|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <p>No items found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Supporting Documents -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-paperclip"></i>
+            Supporting Documents
+        </h2>
+    </div>
+    <div class="table-body">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Document Name</th>
+                        <th>Uploaded Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for document in documents %}
+                    <tr>
+                        <td>{{ document.document_name }}</td>
+                        <td>{{ document.uploaded_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <a href="{{ document.file.url }}" class="action-btn action-btn-primary" target="_blank">
+                                <i class="bi bi-download"></i> Download
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="empty-state">
+                            <i class="bi bi-file-earmark"></i>
+                            <p>No documents attached</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Payment History -->
+{% if payments %}
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-cash-stack"></i>
+            Payment History
+        </h2>
+    </div>
+    <div class="table-body">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Payment Number</th>
+                        <th>Payment Date</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Reference</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td>{{ payment.payment_number }}</td>
+                        <td>{{ payment.payment_date|date:"M d, Y" }}</td>
+                        <td>KSh {{ payment.payment_amount|floatformat:2|intcomma }}</td>
+                        <td>{{ payment.get_payment_method_display }}</td>
+                        <td>{{ payment.payment_reference }}</td>
+                        <td>
+                            {% if payment.status == 'COMPLETED' %}
+                            <span class="badge badge-paid">{{ payment.get_status_display }}</span>
+                            {% elif payment.status == 'PENDING' %}
+                            <span class="badge badge-submitted">{{ payment.get_status_display }}</span>
+                            {% elif payment.status == 'PROCESSING' %}
+                            <span class="badge badge-verifying">{{ payment.get_status_display }}</span>
+                            {% elif payment.status == 'FAILED' %}
+                            <span class="badge badge-disputed">{{ payment.get_status_display }}</span>
+                            {% else %}
+                            <span class="badge badge-draft">{{ payment.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Notes and Additional Information -->
+{% if invoice.notes or invoice.matching_notes %}
+<div class="info-card">
+    <h3 class="card-title">Additional Information</h3>
+    {% if invoice.notes %}
+    <div class="notes-section">
+        <h4>Notes:</h4>
+        <p>{{ invoice.notes }}</p>
+    </div>
+    {% endif %}
+    {% if invoice.matching_notes %}
+    <div class="notes-section">
+        <h4>Matching Notes:</h4>
+        <p>{{ invoice.matching_notes }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

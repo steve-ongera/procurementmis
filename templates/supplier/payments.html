@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}My Payments - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Payment Information</h1>
+        <p class="page-subtitle">Track your payments and payment history</p>
+    </div>
+    <a href="{% url 'supplier_payment_history' %}" class="btn btn-primary">
+        <i class="bi bi-clock-history"></i> View Full History
+    </a>
+</div>
+
+<!-- Payment Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="stat-value">KSh {{ stats.total_paid|floatformat:0|intcomma }}</div>
+        <div class="stat-label">Total Paid</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon orange">
+            <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div class="stat-value">KSh {{ stats.pending|floatformat:0|intcomma }}</div>
+        <div class="stat-label">Pending Payments</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <i class="bi bi-calendar-month"></i>
+        </div>
+        <div class="stat-value">KSh {{ stats.this_month|floatformat:0|intcomma }}</div>
+        <div class="stat-label">This Month</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <i class="bi bi-receipt"></i>
+        </div>
+        <div class="stat-value">{{ payments.paginator.count|intcomma }}</div>
+        <div class="stat-label">Total Transactions</div>
+    </div>
+</div>
+
+<!-- Recent Payments -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-cash-stack"></i>
+            Recent Payments
+        </h2>
+    </div>
+    
+    <div class="table-body">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Payment Number</th>
+                        <th>Invoice Number</th>
+                        <th>Payment Date</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Reference</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td>
+                            <span class="invoice-number">{{ payment.payment_number }}</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'supplier_invoice_detail' payment.invoice.id %}" class="link-primary">
+                                {{ payment.invoice.invoice_number }}
+                            </a>
+                        </td>
+                        <td class="date-cell">{{ payment.payment_date|date:"M d, Y" }}</td>
+                        <td class="amount-cell">KSh {{ payment.payment_amount|floatformat:2|intcomma }}</td>
+                        <td>{{ payment.get_payment_method_display }}</td>
+                        <td>
+                            <span class="supplier-number">{{ payment.payment_reference }}</span>
+                        </td>
+                        <td>
+                            {% if payment.status == 'COMPLETED' %}
+                            <span class="badge badge-paid">
+                                <i class="bi bi-check-circle"></i>
+                                {{ payment.get_status_display }}
+                            </span>
+                            {% elif payment.status == 'PENDING' %}
+                            <span class="badge badge-submitted">
+                                <i class="bi bi-clock"></i>
+                                {{ payment.get_status_display }}
+                            </span>
+                            {% elif payment.status == 'PROCESSING' %}
+                            <span class="badge badge-verifying">
+                                <i class="bi bi-hourglass-split"></i>
+                                {{ payment.get_status_display }}
+                            </span>
+                            {% elif payment.status == 'FAILED' %}
+                            <span class="badge badge-disputed">
+                                <i class="bi bi-x-circle"></i>
+                                {{ payment.get_status_display }}
+                            </span>
+                            {% elif payment.status == 'CANCELLED' %}
+                            <span class="badge badge-draft">
+                                <i class="bi bi-slash-circle"></i>
+                                {{ payment.get_status_display }}
+                            </span>
+                            {% else %}
+                            <span class="badge badge-draft">{{ payment.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{% url 'supplier_invoice_detail' payment.invoice.id %}" 
+                                   class="action-btn action-btn-primary" title="View Invoice">
+                                    <i class="bi bi-receipt"></i>
+                                    Invoice
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <i class="bi bi-cash-stack"></i>
+                                <h4>No Payments Found</h4>
+                                <p>You haven't received any payments yet</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if payments.has_other_pages %}
+    <div class="pagination">
+        {% if payments.has_previous %}
+        <a href="?page=1" class="page-link" title="First Page">
+            <i class="bi bi-chevron-double-left"></i>
+        </a>
+        <a href="?page={{ payments.previous_page_number }}" class="page-link" title="Previous Page">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        {% endif %}
+        
+        <span class="page-info">
+            Page {{ payments.number }} of {{ payments.paginator.num_pages }}
+        </span>
+        
+        {% if payments.has_next %}
+        <a href="?page={{ payments.next_page_number }}" class="page-link" title="Next Page">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+        <a href="?page={{ payments.paginator.num_pages }}" class="page-link" title="Last Page">
+            <i class="bi bi-chevron-double-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Payment Methods Info -->
+<div class="info-card">
+    <h3 class="card-title">Payment Information</h3>
+    <div class="info-rows">
+        <div class="info-row">
+            <span class="info-label">Bank Name:</span>
+            <span class="info-value">{{ request.user.supplier_profile.bank_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Bank Branch:</span>
+            <span class="info-value">{{ request.user.supplier_profile.bank_branch }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Account Number:</span>
+            <span class="info-value">{{ request.user.supplier_profile.account_number }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Account Name:</span>
+            <span class="info-value">{{ request.user.supplier_profile.account_name }}</span>
+        </div>
+        {% if request.user.supplier_profile.swift_code %}
+        <div class="info-row">
+            <span class="info-label">Swift Code:</span>
+            <span class="info-value">{{ request.user.supplier_profile.swift_code }}</span>
+        </div>
+        {% endif %}
+    </div>
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        Payments are typically processed within 7-14 business days after invoice approval. 
+        If you need to update your banking details, please contact the procurement office.
+    </div>
+</div>
+
+{% endblock %}

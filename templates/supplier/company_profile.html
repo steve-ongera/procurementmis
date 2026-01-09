@@ -1,426 +1,361 @@
 {% extends 'base.html' %}
 {% load static %}
-
-{% block title %}Company Profile{% endblock %}
+{% load humanize %}
+{% block title %}Company Profile - University Procurement System{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <h1><i class="fas fa-building"></i> Company Profile</h1>
-    <p>Manage your company information and settings</p>
+    <div>
+        <h1 class="page-title">Company Profile</h1>
+        <p class="page-subtitle">Manage your company information</p>
+    </div>
+    <a href="{% url 'supplier_dashboard' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
 </div>
 
-<!-- Performance Overview -->
-<div class="card performance-card">
-    <div class="card-header">
-        <h2><i class="fas fa-chart-line"></i> Performance Overview</h2>
-    </div>
-    <div class="card-body">
-        <div class="performance-grid">
-            <div class="performance-item">
-                <div class="rating-circle">
-                    <div class="rating-value">{{ performance_stats.avg_overall|default:0|floatformat:1 }}</div>
-                    <div class="rating-label">Overall</div>
-                </div>
-                <div class="rating-stars">
-                    {% for i in "12345" %}
-                        {% if forloop.counter <= performance_stats.avg_overall|default:0 %}
-                            <i class="fas fa-star filled"></i>
-                        {% else %}
-                            <i class="far fa-star"></i>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-            </div>
-            
-            <div class="performance-item">
-                <label>Quality Rating</label>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: {{ performance_stats.avg_quality|default:0|multiply:20 }}%"></div>
-                </div>
-                <span class="rating-score">{{ performance_stats.avg_quality|default:0|floatformat:1 }} / 5.0</span>
-            </div>
-            
-            <div class="performance-item">
-                <label>Delivery Rating</label>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: {{ performance_stats.avg_delivery|default:0|multiply:20 }}%"></div>
-                </div>
-                <span class="rating-score">{{ performance_stats.avg_delivery|default:0|floatformat:1 }} / 5.0</span>
-            </div>
-            
-            <div class="performance-item">
-                <label>Service Rating</label>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: {{ performance_stats.avg_service|default:0|multiply:20 }}%"></div>
-                </div>
-                <span class="rating-score">{{ performance_stats.avg_service|default:0|floatformat:1 }} / 5.0</span>
-            </div>
-            
-            <div class="performance-item">
-                <label>Total Reviews</label>
-                <div class="stat-value">{{ performance_stats.count|default:0 }}</div>
-            </div>
+<!-- Supplier Status -->
+<div class="alert {% if supplier.status == 'APPROVED' %}alert-success{% elif supplier.status == 'PENDING' %}alert-warning{% elif supplier.status == 'SUSPENDED' %}alert-danger{% else %}alert-danger{% endif %}">
+    <div class="alert-content">
+        <i class="bi {% if supplier.status == 'APPROVED' %}bi-check-circle{% elif supplier.status == 'PENDING' %}bi-clock{% else %}bi-exclamation-triangle{% endif %}"></i>
+        <div>
+            <strong>Supplier Status: {{ supplier.get_status_display }}</strong>
+            {% if supplier.status == 'PENDING' %}
+            <p>Your application is under review. You'll be notified once approved.</p>
+            {% elif supplier.status == 'SUSPENDED' %}
+            <p>Your account has been suspended. Please contact procurement office.</p>
+            {% elif supplier.status == 'BLACKLISTED' %}
+            <p>Your account has been blacklisted. Please contact procurement office for more information.</p>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Company Information Form -->
-<div class="card">
-    <div class="card-header">
-        <h2><i class="fas fa-info-circle"></i> Company Information</h2>
+<!-- Performance Summary -->
+{% if performance_stats.count > 0 %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <i class="bi bi-star"></i>
+        </div>
+        <div class="stat-value">{{ performance_stats.avg_overall|floatformat:2|default:"N/A" }}</div>
+        <div class="stat-label">Overall Rating</div>
     </div>
-    <div class="card-body">
-        <form method="post" class="profile-form">
-            {% csrf_token %}
-            
-            <!-- Basic Information -->
-            <div class="form-section">
-                <h3>Basic Information</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Supplier Number</label>
-                        <input type="text" class="form-control" value="{{ supplier.supplier_number }}" disabled>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Company Name <span class="required">*</span></label>
-                        {{ form.name }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Registration Number <span class="required">*</span></label>
-                        {{ form.registration_number }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Tax ID</label>
-                        {{ form.tax_id }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Email <span class="required">*</span></label>
-                        {{ form.email }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Phone Number <span class="required">*</span></label>
-                        {{ form.phone_number }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Website</label>
-                        {{ form.website }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Status</label>
-                        <div class="status-display">
-                            {% if supplier.status == 'APPROVED' %}
-                            <span class="badge badge-success">
-                                <i class="fas fa-check-circle"></i> {{ supplier.get_status_display }}
-                            </span>
-                            {% elif supplier.status == 'PENDING' %}
-                            <span class="badge badge-warning">
-                                <i class="fas fa-clock"></i> {{ supplier.get_status_display }}
-                            </span>
-                            {% elif supplier.status == 'SUSPENDED' %}
-                            <span class="badge badge-danger">
-                                <i class="fas fa-ban"></i> {{ supplier.get_status_display }}
-                            </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <i class="bi bi-award"></i>
+        </div>
+        <div class="stat-value">{{ performance_stats.avg_quality|floatformat:2|default:"N/A" }}</div>
+        <div class="stat-label">Quality Rating</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon orange">
+            <i class="bi bi-truck"></i>
+        </div>
+        <div class="stat-value">{{ performance_stats.avg_delivery|floatformat:2|default:"N/A" }}</div>
+        <div class="stat-label">Delivery Rating</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <i class="bi bi-people"></i>
+        </div>
+        <div class="stat-value">{{ performance_stats.avg_service|floatformat:2|default:"N/A" }}</div>
+        <div class="stat-label">Service Rating</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Company Information Form -->
+<form method="post" action="{% url 'supplier_company_profile' %}">
+    {% csrf_token %}
+    
+    <div class="form-card">
+        <h3 class="card-title">Basic Information</h3>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label" for="id_name">
+                    Company Name <span class="required">*</span>
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <div class="form-error">{{ form.name.errors }}</div>
+                {% endif %}
             </div>
             
-            <!-- Address Information -->
-            <div class="form-section">
-                <h3>Address Information</h3>
-                <div class="form-grid">
-                    <div class="form-group full-width">
-                        <label>Physical Address <span class="required">*</span></label>
-                        {{ form.physical_address }}
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label>Postal Address</label>
-                        {{ form.postal_address }}
-                    </div>
-                </div>
+            <div class="form-group">
+                <label class="form-label" for="id_registration_number">
+                    Registration Number <span class="required">*</span>
+                </label>
+                {{ form.registration_number }}
+                {% if form.registration_number.errors %}
+                <div class="form-error">{{ form.registration_number.errors }}</div>
+                {% endif %}
             </div>
             
-            <!-- Contact Person -->
-            <div class="form-section">
-                <h3>Contact Person</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Name <span class="required">*</span></label>
-                        {{ form.contact_person }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Phone Number <span class="required">*</span></label>
-                        {{ form.contact_person_phone }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Email <span class="required">*</span></label>
-                        {{ form.contact_person_email }}
-                    </div>
-                </div>
+            <div class="form-group">
+                <label class="form-label" for="id_tax_id">
+                    Tax ID/PIN Number
+                </label>
+                {{ form.tax_id }}
+                {% if form.tax_id.errors %}
+                <div class="form-error">{{ form.tax_id.errors }}</div>
+                {% endif %}
             </div>
             
-            <!-- Bank Details -->
-            <div class="form-section">
-                <h3>Bank Details</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Bank Name <span class="required">*</span></label>
-                        {{ form.bank_name }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Bank Branch <span class="required">*</span></label>
-                        {{ form.bank_branch }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Account Number <span class="required">*</span></label>
-                        {{ form.account_number }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Account Name <span class="required">*</span></label>
-                        {{ form.account_name }}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>SWIFT Code</label>
-                        {{ form.swift_code }}
-                    </div>
-                </div>
+            <div class="form-group">
+                <label class="form-label" for="id_website">
+                    Website
+                </label>
+                {{ form.website }}
+                {% if form.website.errors %}
+                <div class="form-error">{{ form.website.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-card">
+        <h3 class="card-title">Contact Information</h3>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label" for="id_email">
+                    Email Address <span class="required">*</span>
+                </label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <div class="form-error">{{ form.email.errors }}</div>
+                {% endif %}
             </div>
             
-            <!-- Compliance -->
-            <div class="form-section">
-                <h3>Compliance Information</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Tax Compliance Expiry</label>
-                        {{ form.tax_compliance_expiry }}
-                        {% if supplier.tax_compliance_expiry %}
-                            {% if supplier.tax_compliance_expiry < today %}
-                            <small class="text-danger">
-                                <i class="fas fa-exclamation-triangle"></i> Expired
-                            </small>
-                            {% elif supplier.tax_compliance_expiry < thirty_days_from_now %}
-                            <small class="text-warning">
-                                <i class="fas fa-exclamation-circle"></i> Expiring soon
-                            </small>
-                            {% endif %}
-                        {% endif %}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Registration Expiry</label>
-                        {{ form.registration_expiry }}
-                        {% if supplier.registration_expiry %}
-                            {% if supplier.registration_expiry < today %}
-                            <small class="text-danger">
-                                <i class="fas fa-exclamation-triangle"></i> Expired
-                            </small>
-                            {% elif supplier.registration_expiry < thirty_days_from_now %}
-                            <small class="text-warning">
-                                <i class="fas fa-exclamation-circle"></i> Expiring soon
-                            </small>
-                            {% endif %}
-                        {% endif %}
-                    </div>
-                </div>
+            <div class="form-group">
+                <label class="form-label" for="id_phone_number">
+                    Phone Number <span class="required">*</span>
+                </label>
+                {{ form.phone_number }}
+                {% if form.phone_number.errors %}
+                <div class="form-error">{{ form.phone_number.errors }}</div>
+                {% endif %}
             </div>
             
-            <!-- Notes -->
-            <div class="form-section">
-                <h3>Additional Notes</h3>
-                <div class="form-group full-width">
-                    <label>Notes</label>
-                    {{ form.notes }}
-                </div>
+            <div class="form-group full-width">
+                <label class="form-label" for="id_physical_address">
+                    Physical Address <span class="required">*</span>
+                </label>
+                {{ form.physical_address }}
+                {% if form.physical_address.errors %}
+                <div class="form-error">{{ form.physical_address.errors }}</div>
+                {% endif %}
             </div>
             
-            <!-- Form Actions -->
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Save Changes
-                </button>
-                <a href="{% url 'supplier_dashboard' %}" class="btn btn-secondary">
-                    <i class="fas fa-times"></i> Cancel
-                </a>
+            <div class="form-group full-width">
+                <label class="form-label" for="id_postal_address">
+                    Postal Address
+                </label>
+                {{ form.postal_address }}
+                {% if form.postal_address.errors %}
+                <div class="form-error">{{ form.postal_address.errors }}</div>
+                {% endif %}
             </div>
-        </form>
+        </div>
+    </div>
+    
+    <div class="form-card">
+        <h3 class="card-title">Contact Person</h3>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label" for="id_contact_person">
+                    Full Name <span class="required">*</span>
+                </label>
+                {{ form.contact_person }}
+                {% if form.contact_person.errors %}
+                <div class="form-error">{{ form.contact_person.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_contact_person_phone">
+                    Phone Number <span class="required">*</span>
+                </label>
+                {{ form.contact_person_phone }}
+                {% if form.contact_person_phone.errors %}
+                <div class="form-error">{{ form.contact_person_phone.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group full-width">
+                <label class="form-label" for="id_contact_person_email">
+                    Email Address <span class="required">*</span>
+                </label>
+                {{ form.contact_person_email }}
+                {% if form.contact_person_email.errors %}
+                <div class="form-error">{{ form.contact_person_email.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-card">
+        <h3 class="card-title">Banking Information</h3>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label" for="id_bank_name">
+                    Bank Name <span class="required">*</span>
+                </label>
+                {{ form.bank_name }}
+                {% if form.bank_name.errors %}
+                <div class="form-error">{{ form.bank_name.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_bank_branch">
+                    Branch <span class="required">*</span>
+                </label>
+                {{ form.bank_branch }}
+                {% if form.bank_branch.errors %}
+                <div class="form-error">{{ form.bank_branch.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_account_number">
+                    Account Number <span class="required">*</span>
+                </label>
+                {{ form.account_number }}
+                {% if form.account_number.errors %}
+                <div class="form-error">{{ form.account_number.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_account_name">
+                    Account Name <span class="required">*</span>
+                </label>
+                {{ form.account_name }}
+                {% if form.account_name.errors %}
+                <div class="form-error">{{ form.account_name.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_swift_code">
+                    Swift Code (for international transfers)
+                </label>
+                {{ form.swift_code }}
+                {% if form.swift_code.errors %}
+                <div class="form-error">{{ form.swift_code.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-card">
+        <h3 class="card-title">Categories & Compliance</h3>
+        
+        <div class="form-grid">
+            <div class="form-group full-width">
+                <label class="form-label" for="id_categories">
+                    Product/Service Categories <span class="required">*</span>
+                </label>
+                {{ form.categories }}
+                <small class="help-text">Select all categories that apply to your business</small>
+                {% if form.categories.errors %}
+                <div class="form-error">{{ form.categories.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_tax_compliance_expiry">
+                    Tax Compliance Expiry Date
+                </label>
+                {{ form.tax_compliance_expiry }}
+                {% if form.tax_compliance_expiry.errors %}
+                <div class="form-error">{{ form.tax_compliance_expiry.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="id_registration_expiry">
+                    Registration Certificate Expiry Date
+                </label>
+                {{ form.registration_expiry }}
+                {% if form.registration_expiry.errors %}
+                <div class="form-error">{{ form.registration_expiry.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-card">
+        <h3 class="card-title">Additional Notes</h3>
+        
+        <div class="form-group">
+            <label class="form-label" for="id_notes">
+                Notes
+            </label>
+            {{ form.notes }}
+            <small class="help-text">Any additional information about your company</small>
+            {% if form.notes.errors %}
+            <div class="form-error">{{ form.notes.errors }}</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="form-actions">
+        <a href="{% url 'supplier_dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i> Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> Save Changes
+        </button>
+    </div>
+</form>
+
+<!-- Current Information Display -->
+<div class="info-card">
+    <h3 class="card-title">Current Profile Status</h3>
+    <div class="info-rows">
+        <div class="info-row">
+            <span class="info-label">Supplier Number:</span>
+            <span class="info-value">{{ supplier.supplier_number }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Registration Date:</span>
+            <span class="info-value">{{ supplier.created_at|date:"M d, Y" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Last Updated:</span>
+            <span class="info-value">{{ supplier.updated_at|date:"M d, Y H:i" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Overall Rating:</span>
+            <span class="info-value">
+                {{ supplier.rating|floatformat:2 }}/5.00
+                <span class="rating-stars">
+                    {% for i in "12345" %}
+                    {% if forloop.counter <= supplier.rating %}
+                    <i class="bi bi-star-fill text-warning"></i>
+                    {% else %}
+                    <i class="bi bi-star text-muted"></i>
+                    {% endif %}
+                    {% endfor %}
+                </span>
+            </span>
+        </div>
+        {% if performance_stats.count > 0 %}
+        <div class="info-row">
+            <span class="info-label">Performance Reviews:</span>
+            <span class="info-value">{{ performance_stats.count }} review{{ performance_stats.count|pluralize }}</span>
+        </div>
+        {% endif %}
     </div>
 </div>
 
-<style>
-    .performance-card {
-        margin-bottom: 30px;
-    }
-
-    .performance-grid {
-        display: grid;
-        grid-template-columns: 200px repeat(4, 1fr);
-        gap: 30px;
-        align-items: center;
-    }
-
-    .performance-item {
-        text-align: center;
-    }
-
-    .rating-circle {
-        width: 150px;
-        height: 150px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 15px;
-        color: white;
-    }
-
-    .rating-value {
-        font-size: 48px;
-        font-weight: bold;
-    }
-
-    .rating-label {
-        font-size: 14px;
-        opacity: 0.9;
-    }
-
-    .rating-stars {
-        font-size: 20px;
-    }
-
-    .rating-stars .filled {
-        color: #fbbf24;
-    }
-
-    .rating-stars .far {
-        color: #e5e7eb;
-    }
-
-    .performance-item label {
-        display: block;
-        color: #64748b;
-        font-size: 14px;
-        margin-bottom: 10px;
-        font-weight: 500;
-    }
-
-    .progress-bar {
-        width: 100%;
-        height: 10px;
-        background: #e5e7eb;
-        border-radius: 5px;
-        overflow: hidden;
-        margin-bottom: 8px;
-    }
-
-    .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #10b981 0%, #059669 100%);
-        transition: width 0.3s;
-    }
-
-    .rating-score {
-        font-size: 14px;
-        color: #64748b;
-    }
-
-    .stat-value {
-        font-size: 32px;
-        font-weight: bold;
-        color: #1e293b;
-        margin-top: 10px;
-    }
-
-    .profile-form {
-        padding: 0;
-    }
-
-    .form-section {
-        margin-bottom: 40px;
-        padding-bottom: 30px;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    .form-section:last-of-type {
-        border-bottom: none;
-    }
-
-    .form-section h3 {
-        color: #1e293b;
-        font-size: 18px;
-        margin-bottom: 20px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #3b82f6;
-    }
-
-    .form-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-    }
-
-    .form-group.full-width {
-        grid-column: 1 / -1;
-    }
-
-    .form-group label {
-        display: block;
-        color: #1e293b;
-        font-weight: 500;
-        margin-bottom: 8px;
-        font-size: 14px;
-    }
-
-    .required {
-        color: #ef4444;
-    }
-
-    .status-display {
-        padding: 10px 0;
-    }
-
-    .form-actions {
-        display: flex;
-        gap: 15px;
-        justify-content: flex-end;
-        padding-top: 20px;
-        border-top: 1px solid #e5e7eb;
-    }
-
-    @media (max-width: 1200px) {
-        .performance-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    @media (max-width: 768px) {
-        .performance-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .form-actions {
-            flex-direction: column;
-        }
-    }
-</style>
 {% endblock %}

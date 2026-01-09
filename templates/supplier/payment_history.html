@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}Payment History - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Payment History</h1>
+        <p class="page-subtitle">Detailed payment transaction history</p>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'supplier_payments' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Payments
+        </a>
+        <button class="btn btn-primary" onclick="exportPayments()">
+            <i class="bi bi-download"></i> Export Report
+        </button>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+{% if totals.total %}
+<div class="summary-card">
+    <div class="summary-grid">
+        <div class="summary-item">
+            <span class="summary-label">Total Transactions</span>
+            <div class="summary-amount">{{ totals.count|intcomma }}</div>
+            <span class="summary-description">Payment records</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Total Amount</span>
+            <div class="summary-amount success">KSh {{ totals.total|floatformat:0|intcomma }}</div>
+            <span class="summary-description">In selected period</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get" action="{% url 'supplier_payment_history' %}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="bi bi-calendar"></i>
+                    Start Date
+                </label>
+                <input type="date" name="start_date" class="form-control" 
+                       value="{{ start_date }}" placeholder="Start Date">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="bi bi-calendar"></i>
+                    End Date
+                </label>
+                <input type="date" name="end_date" class="form-control" 
+                       value="{{ end_date }}" placeholder="End Date">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="bi bi-filter"></i>
+                    Payment Status
+                </label>
+                <select name="status" class="form-control">
+                    <option value="all" {% if current_status == 'all' %}selected{% endif %}>All Status</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <a href="{% url 'supplier_payment_history' %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i>
+                Reset Filters
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Payment History Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clock-history"></i>
+            Payment Transactions ({{ payments.paginator.count }})
+        </h2>
+    </div>
+    
+    <div class="table-body">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Payment Number</th>
+                        <th>Invoice Number</th>
+                        <th>PO Number</th>
+                        <th>Payment Date</th>
+                        <th>Amount</th>
+                        <th>Payment Method</th>
+                        <th>Reference Number</th>
+                        <th>Bank Details</th>
+                        <th>Status</th>
+                        <th>Processed By</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td>
+                            <span class="invoice-number">{{ payment.payment_number }}</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'supplier_invoice_detail' payment.invoice.id %}" class="link-primary">
+                                {{ payment.invoice.invoice_number }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if payment.invoice.purchase_order %}
+                            <span class="supplier-number">{{ payment.invoice.purchase_order.po_number }}</span>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="date-cell">{{ payment.payment_date|date:"M d, Y" }}</td>
+                        <td class="amount-cell">KSh {{ payment.payment_amount|floatformat:2|intcomma }}</td>
+                        <td>
+                            <span class="badge badge-info">
+                                {% if payment.payment_method == 'BANK_TRANSFER' %}
+                                <i class="bi bi-bank"></i>
+                                {% elif payment.payment_method == 'CHEQUE' %}
+                                <i class="bi bi-check2"></i>
+                                {% elif payment.payment_method == 'EFT' %}
+                                <i class="bi bi-arrow-left-right"></i>
+                                {% elif payment.payment_method == 'MOBILE_MONEY' %}
+                                <i class="bi bi-phone"></i>
+                                {% endif %}
+                                {{ payment.get_payment_method_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="supplier-number">{{ payment.payment_reference }}</span>
+                        </td>
+                        <td>
+                            {% if payment.bank_name %}
+                            <div class="bank-details">
+                                <div>{{ payment.bank_name }}</div>
+                                {% if payment.cheque_number %}
+                                <small class="text-muted">Cheque: {{ payment.cheque_number }}</small>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if payment.status == 'COMPLETED' %}
+                            <span class="badge badge-paid">
+                                <i class="bi bi-check-circle"></i>
+                                {{ payment.get_status_display }}
+                            </span>
+                            {% elif payment.status == 'PENDING' %}
+                            <span class="badge badge-submitted">
+                                <i class="bi bi-clock"></i>
+                                {{ payment.get_status_display }}
+                            </span>
+                            {% elif payment.status == 'PROCESSING' %}
+                            <span class="badge badge-verifying">
+                                <i class="bi bi-hourglass-split"></i>
+                                {{ payment.get_status_display }}
+                            </span>
+                            {% elif payment.status == 'FAILED' %}
+                            <span class="badge badge-disputed">
+                                <i class="bi bi-x-circle"></i>
+                                {{ payment.get_status_display }}
+                            </span>
+                            {% elif payment.status == 'CANCELLED' %}
+                            <span class="badge badge-draft">
+                                <i class="bi bi-slash-circle"></i>
+                                {{ payment.get_status_display }}
+                            </span>
+                            {% else %}
+                            <span class="badge badge-draft">{{ payment.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if payment.processed_by %}
+                            {{ payment.processed_by.get_full_name }}
+                            {% else %}
+                            <span class="text-muted">System</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{% url 'supplier_invoice_detail' payment.invoice.id %}" 
+                                   class="action-btn action-btn-primary" title="View Invoice">
+                                    <i class="bi bi-receipt"></i>
+                                    Invoice
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="11">
+                            <div class="empty-state">
+                                <i class="bi bi-clock-history"></i>
+                                <h4>No Payment History Found</h4>
+                                <p>No payments match your filter criteria</p>
+                                <a href="{% url 'supplier_payment_history' %}" class="btn btn-primary">
+                                    <i class="bi bi-arrow-clockwise"></i> Reset Filters
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if payments.has_other_pages %}
+    <div class="pagination">
+        {% if payments.has_previous %}
+        <a href="?page=1{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
+           class="page-link" title="First Page">
+            <i class="bi bi-chevron-double-left"></i>
+        </a>
+        <a href="?page={{ payments.previous_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
+           class="page-link" title="Previous Page">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        {% endif %}
+        
+        <span class="page-info">
+            Page {{ payments.number }} of {{ payments.paginator.num_pages }}
+        </span>
+        
+        {% if payments.has_next %}
+        <a href="?page={{ payments.next_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
+           class="page-link" title="Next Page">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+        <a href="?page={{ payments.paginator.num_pages }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
+           class="page-link" title="Last Page">
+            <i class="bi bi-chevron-double-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Payment Notes -->
+<div class="info-card">
+    <h3 class="card-title">Important Notes</h3>
+    <ul class="notes-list">
+        <li>
+            <i class="bi bi-info-circle"></i>
+            <strong>Processing Time:</strong> Payments are typically processed within 7-14 business days after invoice approval.
+        </li>
+        <li>
+            <i class="bi bi-clock"></i>
+            <strong>Payment Schedule:</strong> Bulk payments are usually made on the 15th and last day of each month.
+        </li>
+        <li>
+            <i class="bi bi-bank"></i>
+            <strong>Banking Details:</strong> Ensure your banking information is up to date to avoid payment delays.
+        </li>
+        <li>
+            <i class="bi bi-question-circle"></i>
+            <strong>Payment Queries:</strong> For any payment-related queries, please contact the finance department at finance@university.ac.ke
+        </li>
+    </ul>
+</div>
+
+<script>
+function exportPayments() {
+    // Build query parameters from current filters
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'csv');
+    
+    // Redirect to export endpoint
+    window.location.href = '{% url "supplier_payment_history" %}?' + params.toString();
+}
+</script>
+
+{% endblock %}
