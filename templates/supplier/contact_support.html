@@ -1,6 +1,470 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load humanize %}
+
 {% block title %}Contact Support - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .page-subtitle {
+        font-size: 1rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    /* Contact Options Grid */
+    .contact-options-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .contact-option-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .contact-option-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transform: translateY(-2px);
+    }
+
+    .contact-option-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .contact-option-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .contact-option-card p {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0 0 0.75rem 0;
+        line-height: 1.5;
+    }
+
+    .contact-link {
+        display: block;
+        color: var(--primary-color);
+        font-weight: 500;
+        text-decoration: none;
+        margin-bottom: 0.5rem;
+    }
+
+    .contact-link:hover {
+        text-decoration: underline;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .card-description {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0 0 2rem 0;
+        line-height: 1.5;
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .form-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .form-section-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #475569;
+        margin: 0 0 1.5rem 0;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .required {
+        color: var(--danger-color);
+    }
+
+    .form-control {
+        padding: 0.625rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    select.form-control {
+        padding: 0.625rem 2.5rem 0.625rem 1rem;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 120px;
+        font-family: inherit;
+    }
+
+    input[type="file"].form-control {
+        padding: 0.5rem;
+    }
+
+    .form-control[readonly] {
+        background-color: #F1F5F9;
+        color: #64748B;
+        cursor: not-allowed;
+    }
+
+    .help-text {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin: 0.5rem 0 0 0;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #475569;
+        cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        margin-top: 0.125rem;
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.5rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: var(--card-bg);
+        color: var(--secondary-color);
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: #F1F5F9;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Info Card */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .expectations-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .expectation-item {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .expectation-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.5rem;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .expectation-content h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+        margin: 0 0 0.5rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .expectation-content ul {
+        margin: 0.5rem 0 0 0;
+        padding-left: 1.25rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+    }
+
+    .expectation-content li {
+        margin-bottom: 0.25rem;
+    }
+
+    .expectation-content p {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Quick Solutions */
+    .quick-solutions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .solution-item {
+        background: #F1F5F9;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+    }
+
+    .solution-item h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .solution-item h4 i {
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+
+    .solution-item p {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Alert */
+    .alert {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 0.375rem;
+        margin-bottom: 2rem;
+        text-align: left;
+        align-items: flex-start;
+    }
+
+    .alert-info {
+        background: #EFF6FF;
+        border: 1px solid #BFDBFE;
+        color: #1E40AF;
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .alert strong {
+        font-weight: 600;
+    }
+
+    .alert p {
+        font-size: 0.875rem;
+        margin: 0.5rem 0 0 0;
+        line-height: 1.5;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .contact-options-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .quick-solutions {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-card,
+        .info-card {
+            padding: 1.5rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            gap: 1rem;
+        }
+        
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .expectation-item {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -35,7 +499,7 @@
         <a href="tel:+254XXXXXXXXX" class="contact-link">
             +254 XXX XXX XXX
         </a>
-        <small class="text-muted">Mon-Fri, 8:00 AM - 5:00 PM</small>
+        <p class="text-muted" style="margin: 0.5rem 0 0 0; font-size: 0.75rem;">Mon-Fri, 8:00 AM - 5:00 PM</p>
     </div>
     
     <div class="contact-option-card">
@@ -44,11 +508,11 @@
         </div>
         <h3>Visit Us</h3>
         <p>Come to our office for in-person assistance</p>
-        <p class="contact-link">
+        <div class="contact-link">
             Procurement Office<br>
             Main Campus Building<br>
             University Name
-        </p>
+        </div>
     </div>
 </div>
 
@@ -86,7 +550,7 @@
                         Phone Number
                     </label>
                     <input type="tel" id="phone" name="phone" class="form-control" 
-                           value="{{ request.user.supplier_profile.phone_number }}">
+                           value="{{ request.user.supplier_profile.phone_number|default:'' }}">
                 </div>
                 
                 <div class="form-group">
@@ -94,7 +558,7 @@
                         Company Name
                     </label>
                     <input type="text" id="company" name="company" class="form-control" 
-                           value="{{ request.user.supplier_profile.name }}" readonly>
+                           value="{{ request.user.supplier_profile.name|default:'' }}" readonly>
                 </div>
             </div>
         </div>
@@ -147,7 +611,7 @@
                 </label>
                 <textarea id="message" name="message" class="form-control" rows="8" 
                           placeholder="Please provide detailed information about your issue or question..." required></textarea>
-                <small class="help-text">Include any relevant details such as error messages, dates, reference numbers, etc.</small>
+                <p class="help-text">Include any relevant details such as error messages, dates, reference numbers, etc.</p>
             </div>
             
             <div class="form-group">
@@ -156,7 +620,7 @@
                 </label>
                 <input type="file" id="attachments" name="attachments" class="form-control" 
                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple>
-                <small class="help-text">You can attach screenshots or documents to help us understand your issue better (Max 5MB per file)</small>
+                <p class="help-text">You can attach screenshots or documents to help us understand your issue better (Max 5MB per file)</p>
             </div>
         </div>
         
@@ -274,9 +738,11 @@
         </div>
     </div>
     
-    <a href="{% url 'supplier_help_center' %}" class="btn btn-secondary">
-        <i class="bi bi-question-circle"></i> View More FAQs
-    </a>
+    <div style="text-align: center; margin-top: 1.5rem;">
+        <a href="{% url 'supplier_help_center' %}" class="btn btn-secondary">
+            <i class="bi bi-question-circle"></i> View More FAQs
+        </a>
+    </div>
 </div>
 
 <!-- Business Hours -->
@@ -311,6 +777,7 @@ if (messageField) {
             const counterEl = document.createElement('small');
             counterEl.id = 'charCounter';
             counterEl.className = 'help-text';
+            counterEl.style.marginTop = '0.5rem';
             this.parentElement.appendChild(counterEl);
         }
         document.getElementById('charCounter').textContent = `${length} characters`;

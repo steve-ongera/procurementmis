@@ -3,6 +3,527 @@
 {% load humanize %}
 {% block title %}My Payments - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .page-subtitle {
+        font-size: 1rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        margin-bottom: 0.75rem;
+        font-size: 1.25rem;
+    }
+
+    .stat-icon.green {
+        background: #F0FDF4;
+        color: var(--success-color);
+    }
+
+    .stat-icon.orange {
+        background: #FFFBEB;
+        color: var(--warning-color);
+    }
+
+    .stat-icon.blue {
+        background: #EFF6FF;
+        color: var(--primary-color);
+    }
+
+    .stat-icon.purple {
+        background: #FAF5FF;
+        color: #7C3AED;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-body {
+        padding: 0;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .invoice-number {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .link-primary {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .link-primary:hover {
+        text-decoration: underline;
+    }
+
+    .date-cell {
+        color: var(--secondary-color);
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .supplier-number {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        color: var(--secondary-color);
+    }
+
+    /* Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .badge i {
+        font-size: 0.625rem;
+    }
+
+    .badge-paid {
+        background: #D1FAE5;
+        color: #047857;
+        border-color: #A7F3D0;
+    }
+
+    .badge-submitted {
+        background: #DBEAFE;
+        color: #1E40AF;
+        border-color: #BFDBFE;
+    }
+
+    .badge-verifying {
+        background: #FEF3C7;
+        color: #92400E;
+        border-color: #FDE68A;
+    }
+
+    .badge-disputed {
+        background: #FEE2E2;
+        color: #991B1B;
+        border-color: #FECACA;
+    }
+
+    .badge-draft {
+        background: #F1F5F9;
+        color: #64748B;
+        border-color: #E2E8F0;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .action-btn-primary {
+        background: var(--primary-light);
+        color: var(--primary-color);
+        border-color: var(--primary-light);
+    }
+
+    .action-btn-primary:hover {
+        background: #DBEAFE;
+        border-color: var(--primary-color);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+        opacity: 0.5;
+    }
+
+    .empty-state h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--secondary-color);
+        margin: 0 0 0.25rem 0;
+    }
+
+    .empty-state p {
+        font-size: 0.75rem;
+        margin: 0;
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-decoration: none;
+        border: 1px solid var(--border-color);
+        transition: all 0.2s;
+    }
+
+    .page-link:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .page-link i {
+        font-size: 0.875rem;
+    }
+
+    .page-info {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0 1rem;
+    }
+
+    /* Info Card */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.5rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .info-rows {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .info-value {
+        font-size: 0.875rem;
+        color: #334155;
+        font-weight: 500;
+    }
+
+    /* Alert */
+    .alert {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 0.375rem;
+        text-align: left;
+        align-items: flex-start;
+    }
+
+    .alert-info {
+        background: #EFF6FF;
+        border: 1px solid #BFDBFE;
+        color: #1E40AF;
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .alert p {
+        font-size: 0.875rem;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.5rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .info-rows {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .table-card,
+        .info-card {
+            border: none;
+            background: transparent;
+            padding: 0;
+        }
+        
+        .table-header {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
@@ -20,7 +541,7 @@
         <div class="stat-icon green">
             <i class="bi bi-check-circle"></i>
         </div>
-        <div class="stat-value">KSh {{ stats.total_paid|floatformat:0|intcomma }}</div>
+        <div class="stat-value">KES {{ stats.total_paid|floatformat:0|intcomma }}</div>
         <div class="stat-label">Total Paid</div>
     </div>
     
@@ -28,7 +549,7 @@
         <div class="stat-icon orange">
             <i class="bi bi-hourglass-split"></i>
         </div>
-        <div class="stat-value">KSh {{ stats.pending|floatformat:0|intcomma }}</div>
+        <div class="stat-value">KES {{ stats.pending|floatformat:0|intcomma }}</div>
         <div class="stat-label">Pending Payments</div>
     </div>
     
@@ -36,7 +557,7 @@
         <div class="stat-icon blue">
             <i class="bi bi-calendar-month"></i>
         </div>
-        <div class="stat-value">KSh {{ stats.this_month|floatformat:0|intcomma }}</div>
+        <div class="stat-value">KES {{ stats.this_month|floatformat:0|intcomma }}</div>
         <div class="stat-label">This Month</div>
     </div>
     
@@ -85,10 +606,10 @@
                             </a>
                         </td>
                         <td class="date-cell">{{ payment.payment_date|date:"M d, Y" }}</td>
-                        <td class="amount-cell">KSh {{ payment.payment_amount|floatformat:2|intcomma }}</td>
+                        <td class="amount-cell">KES {{ payment.payment_amount|floatformat:2|intcomma }}</td>
                         <td>{{ payment.get_payment_method_display }}</td>
                         <td>
-                            <span class="supplier-number">{{ payment.payment_reference }}</span>
+                            <span class="supplier-number">{{ payment.payment_reference|default:"-" }}</span>
                         </td>
                         <td>
                             {% if payment.status == 'COMPLETED' %}
@@ -179,32 +700,34 @@
     <h3 class="card-title">Payment Information</h3>
     <div class="info-rows">
         <div class="info-row">
-            <span class="info-label">Bank Name:</span>
-            <span class="info-value">{{ request.user.supplier_profile.bank_name }}</span>
+            <div class="info-label">Bank Name:</div>
+            <div class="info-value">{{ request.user.supplier_profile.bank_name|default:"Not provided" }}</div>
         </div>
         <div class="info-row">
-            <span class="info-label">Bank Branch:</span>
-            <span class="info-value">{{ request.user.supplier_profile.bank_branch }}</span>
+            <div class="info-label">Bank Branch:</div>
+            <div class="info-value">{{ request.user.supplier_profile.bank_branch|default:"Not provided" }}</div>
         </div>
         <div class="info-row">
-            <span class="info-label">Account Number:</span>
-            <span class="info-value">{{ request.user.supplier_profile.account_number }}</span>
+            <div class="info-label">Account Number:</div>
+            <div class="info-value">{{ request.user.supplier_profile.account_number|default:"Not provided" }}</div>
         </div>
         <div class="info-row">
-            <span class="info-label">Account Name:</span>
-            <span class="info-value">{{ request.user.supplier_profile.account_name }}</span>
+            <div class="info-label">Account Name:</div>
+            <div class="info-value">{{ request.user.supplier_profile.account_name|default:"Not provided" }}</div>
         </div>
         {% if request.user.supplier_profile.swift_code %}
         <div class="info-row">
-            <span class="info-label">Swift Code:</span>
-            <span class="info-value">{{ request.user.supplier_profile.swift_code }}</span>
+            <div class="info-label">Swift Code:</div>
+            <div class="info-value">{{ request.user.supplier_profile.swift_code }}</div>
         </div>
         {% endif %}
     </div>
     <div class="alert alert-info">
         <i class="bi bi-info-circle"></i>
-        Payments are typically processed within 7-14 business days after invoice approval. 
-        If you need to update your banking details, please contact the procurement office.
+        <div>
+            Payments are typically processed within 7-14 business days after invoice approval. 
+            If you need to update your banking details, please contact the procurement office.
+        </div>
     </div>
 </div>
 

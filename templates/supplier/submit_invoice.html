@@ -3,6 +3,437 @@
 {% load humanize %}
 {% block title %}Submit Invoice - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .page-subtitle {
+        font-size: 1rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    /* Info Card */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.5rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .info-rows {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .info-value {
+        font-size: 0.875rem;
+        color: #334155;
+        font-weight: 500;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .card-header-with-action {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .required {
+        color: var(--danger-color);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    textarea,
+    select {
+        padding: 0.625rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        font-family: inherit;
+        background: var(--card-bg);
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    select {
+        padding: 0.625rem 2.5rem 0.625rem 1rem;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+
+    .form-error {
+        font-size: 0.75rem;
+        color: var(--danger-color);
+        margin-top: 0.25rem;
+    }
+
+    .help-text {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin: 0.5rem 0 0 0;
+    }
+
+    /* Items Table */
+    .table-responsive {
+        overflow-x: auto;
+        margin-bottom: 1.5rem;
+    }
+
+    .items-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .items-table th {
+        padding: 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        background: #F1F5F9;
+        white-space: nowrap;
+    }
+
+    .items-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    .items-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .items-table tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .items-table input[type="text"],
+    .items-table input[type="number"],
+    .items-table select {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .item-total {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.5rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: var(--card-bg);
+        color: var(--secondary-color);
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: #F1F5F9;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-icon.btn-danger {
+        background: #FEF2F2;
+        color: var(--danger-color);
+        border-color: #FECACA;
+    }
+
+    .btn-icon.btn-danger:hover {
+        background: #FECACA;
+    }
+
+    /* Totals Summary */
+    .totals-summary {
+        background: #F1F5F9;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .totals-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .totals-row:last-child {
+        border-bottom: none;
+    }
+
+    .totals-row.total {
+        font-weight: 600;
+        color: #1E293B;
+        padding-top: 1rem;
+        border-top: 2px solid var(--border-color);
+        font-size: 1.125rem;
+    }
+
+    .totals-label {
+        font-size: 0.875rem;
+        color: #475569;
+    }
+
+    .totals-value {
+        font-size: 0.875rem;
+        color: #1E293B;
+        font-weight: 600;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .totals-row.total .totals-value {
+        font-size: 1.125rem;
+        color: var(--primary-color);
+    }
+
+    /* Documents Upload */
+    .document-upload-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 1rem;
+        align-items: end;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+        background: #F8FAFC;
+    }
+
+    .document-upload-row:last-child {
+        margin-bottom: 0;
+    }
+
+    input[type="file"].form-control {
+        padding: 0.5rem;
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .card-header-with-action {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .info-rows {
+            grid-template-columns: 1fr;
+        }
+        
+        .document-upload-row {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        
+        .items-table th,
+        .items-table td {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .form-card {
+            padding: 1.5rem;
+        }
+        
+        .info-card {
+            padding: 1rem;
+        }
+        
+        .items-table {
+            display: block;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
@@ -22,20 +453,20 @@
     <h3 class="card-title">Purchase Order Information</h3>
     <div class="info-rows">
         <div class="info-row">
-            <span class="info-label">PO Number:</span>
-            <span class="info-value">{{ po.po_number }}</span>
+            <div class="info-label">PO Number:</div>
+            <div class="info-value">{{ po.po_number }}</div>
         </div>
         <div class="info-row">
-            <span class="info-label">PO Date:</span>
-            <span class="info-value">{{ po.po_date|date:"M d, Y" }}</span>
+            <div class="info-label">PO Date:</div>
+            <div class="info-value">{{ po.po_date|date:"M d, Y" }}</div>
         </div>
         <div class="info-row">
-            <span class="info-label">Department:</span>
-            <span class="info-value">{{ po.requisition.department.name }}</span>
+            <div class="info-label">Department:</div>
+            <div class="info-value">{{ po.requisition.department.name|truncatewords:3 }}</div>
         </div>
         <div class="info-row">
-            <span class="info-label">Total Amount:</span>
-            <span class="info-value">KSh {{ po.total_amount|floatformat:2|intcomma }}</span>
+            <div class="info-label">Total Amount:</div>
+            <div class="info-value">KES {{ po.total_amount|floatformat:2|intcomma }}</div>
         </div>
     </div>
 </div>
@@ -176,19 +607,19 @@
         <div class="totals-summary">
             <div class="totals-row">
                 <span class="totals-label">Subtotal:</span>
-                <span class="totals-value" id="subtotal">KSh 0.00</span>
+                <span class="totals-value" id="subtotal">KES 0.00</span>
             </div>
             <div class="totals-row">
                 <span class="totals-label">Tax:</span>
-                <span class="totals-value" id="tax-total">KSh 0.00</span>
+                <span class="totals-value" id="tax-total">KES 0.00</span>
             </div>
             <div class="totals-row">
                 <span class="totals-label">Other Charges:</span>
-                <span class="totals-value" id="other-charges">KSh 0.00</span>
+                <span class="totals-value" id="other-charges">KES 0.00</span>
             </div>
             <div class="totals-row total">
                 <span class="totals-label">Total Amount:</span>
-                <span class="totals-value" id="grand-total">KSh 0.00</span>
+                <span class="totals-value" id="grand-total">KES 0.00</span>
             </div>
         </div>
     </div>
@@ -231,6 +662,9 @@
 </form>
 
 <script>
+// Item counter for dynamic forms
+let itemCounter = {{ item_formset.total_form_count }};
+
 // Calculate item totals
 function calculateItemTotal(row) {
     const quantity = parseFloat(row.querySelector('[name*="quantity"]').value) || 0;
@@ -266,24 +700,39 @@ function calculateGrandTotal() {
     const otherCharges = parseFloat(document.querySelector('[name="other_charges"]').value) || 0;
     const grandTotal = subtotal + taxTotal + otherCharges;
     
-    document.getElementById('subtotal').textContent = 'KSh ' + subtotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    document.getElementById('tax-total').textContent = 'KSh ' + taxTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    document.getElementById('other-charges').textContent = 'KSh ' + otherCharges.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    document.getElementById('grand-total').textContent = 'KSh ' + grandTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('subtotal').textContent = 'KES ' + subtotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('tax-total').textContent = 'KES ' + taxTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('other-charges').textContent = 'KES ' + otherCharges.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('grand-total').textContent = 'KES ' + grandTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-// Add event listeners to all numeric inputs
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.item-row').forEach(row => {
-        row.querySelectorAll('input[type="number"]').forEach(input => {
-            input.addEventListener('input', () => calculateItemTotal(row));
-        });
+// Add item row
+function addItem() {
+    const tbody = document.getElementById('items-tbody');
+    const newRow = tbody.querySelector('.item-row').cloneNode(true);
+    
+    // Clear values
+    newRow.querySelectorAll('input, select').forEach(input => {
+        if (input.name.includes('__prefix__')) {
+            input.name = input.name.replace('__prefix__', itemCounter);
+        }
+        if (input.type !== 'hidden') {
+            input.value = '';
+        }
     });
     
-    document.querySelector('[name="other_charges"]').addEventListener('input', calculateGrandTotal);
+    // Update ID for new row
+    newRow.querySelector('.item-total').textContent = '0.00';
+    tbody.appendChild(newRow);
     
-    calculateGrandTotal();
-});
+    // Add event listeners
+    newRow.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('input', () => calculateItemTotal(newRow));
+    });
+    
+    itemCounter++;
+    document.querySelector('[name$="TOTAL_FORMS"]').value = itemCounter;
+}
 
 // Remove item row
 function removeItem(button) {
@@ -309,6 +758,19 @@ function removeDocument(button) {
         button.closest('.document-upload-row').remove();
     }
 }
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.item-row').forEach(row => {
+        row.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', () => calculateItemTotal(row));
+        });
+    });
+    
+    document.querySelector('[name="other_charges"]').addEventListener('input', calculateGrandTotal);
+    
+    calculateGrandTotal();
+});
 </script>
 
 {% endblock %}
