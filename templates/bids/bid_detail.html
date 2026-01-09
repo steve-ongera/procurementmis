@@ -3,12 +3,607 @@
 
 {% block title %}Bid {{ bid.bid_number }} - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+        white-space: nowrap;
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #0DA271;
+        border-color: #0DA271;
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+    }
+
+    /* Info Card */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .info-item label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .info-item value {
+        font-size: 0.875rem;
+        color: #334155;
+        font-weight: 500;
+    }
+
+    .amount-text {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    /* Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .badge i {
+        font-size: 0.625rem;
+    }
+
+    /* Status Badges */
+    .badge-submitted { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .badge-opened { 
+        background: #E0E7FF; 
+        color: #3730A3; 
+        border-color: #C7D2FE;
+    }
+    .badge-evaluating { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .badge-qualified { 
+        background: #D1FAE5; 
+        color: #047857; 
+        border-color: #A7F3D0;
+    }
+    .badge-disqualified { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+    .badge-awarded { 
+        background: #10B981; 
+        color: white; 
+        border-color: #10B981;
+    }
+    .badge-rejected { 
+        background: #EF4444; 
+        color: white; 
+        border-color: #EF4444;
+    }
+
+    .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .score-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .doc-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        background: #F1F5F9;
+        color: #475569;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-summary {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    tfoot tr {
+        background: var(--table-header);
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .text-muted {
+        color: #94A3B8;
+        font-size: 0.875rem;
+    }
+
+    .small {
+        font-size: 0.75rem;
+    }
+
+    .text-success {
+        color: var(--success-color);
+    }
+
+    .text-danger {
+        color: var(--danger-color);
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--primary-color);
+        background: var(--primary-light);
+        border: 1px solid var(--primary-light);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+        background: #DBEAFE;
+        border-color: var(--primary-color);
+    }
+
+    .action-btn i {
+        font-size: 0.875rem;
+    }
+
+    /* Alert */
+    .alert {
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-danger {
+        background: #FEF2F2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    .alert h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .alert p {
+        font-size: 0.875rem;
+        margin: 0;
+        color: #7F1D1D;
+    }
+
+    /* Evaluation Styles */
+    .evaluations-list {
+        margin-top: 2rem;
+    }
+
+    .evaluations-list h3 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 0 0 1rem 0;
+    }
+
+    .evaluation-item {
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        background: var(--card-bg);
+    }
+
+    .evaluation-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .evaluation-scores {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .score-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .score-item label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #64748B;
+    }
+
+    .score-item value {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .evaluation-detail {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .evaluation-detail strong {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .evaluation-detail p {
+        font-size: 0.875rem;
+        color: #334155;
+        margin: 0.5rem 0 0 0;
+        line-height: 1.5;
+    }
+
+    /* Stars Rating */
+    .stars {
+        display: inline-flex;
+        gap: 0.125rem;
+        margin-left: 0.5rem;
+    }
+
+    .stars i {
+        font-size: 0.75rem;
+        color: #F59E0B;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+            min-width: auto;
+        }
+        
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .evaluation-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .evaluation-scores {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Bid Details</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'bid_list' %}">Bids</a>
             <i class="bi bi-chevron-right"></i>
@@ -66,9 +661,42 @@
             <i class="bi bi-receipt"></i>
             Bid Information
         </h2>
-        <span class="status-badge status-{{ bid.status|lower }}">
-            {{ bid.get_status_display }}
+        {% if bid.status == 'SUBMITTED' %}
+        <span class="badge badge-submitted">
+            <i class="bi bi-send"></i>
+            Submitted
         </span>
+        {% elif bid.status == 'OPENED' %}
+        <span class="badge badge-opened">
+            <i class="bi bi-envelope-open"></i>
+            Opened
+        </span>
+        {% elif bid.status == 'EVALUATING' %}
+        <span class="badge badge-evaluating">
+            <i class="bi bi-clipboard-check"></i>
+            Evaluating
+        </span>
+        {% elif bid.status == 'QUALIFIED' %}
+        <span class="badge badge-qualified">
+            <i class="bi bi-check-circle"></i>
+            Qualified
+        </span>
+        {% elif bid.status == 'DISQUALIFIED' %}
+        <span class="badge badge-disqualified">
+            <i class="bi bi-x-circle"></i>
+            Disqualified
+        </span>
+        {% elif bid.status == 'AWARDED' %}
+        <span class="badge badge-awarded">
+            <i class="bi bi-trophy"></i>
+            Awarded
+        </span>
+        {% elif bid.status == 'REJECTED' %}
+        <span class="badge badge-rejected">
+            <i class="bi bi-x-square"></i>
+            Rejected
+        </span>
+        {% endif %}
     </div>
     <div class="card-body">
         <div class="info-grid">
@@ -145,7 +773,9 @@
             <div class="info-item">
                 <label>Tender Number</label>
                 <value>
-                    <a href="{% url 'tender_detail' bid.tender.id %}">{{ bid.tender.tender_number }}</a>
+                    <a href="{% url 'tender_detail' bid.tender.id %}" style="color: var(--primary-color); text-decoration: none;">
+                        {{ bid.tender.tender_number }}
+                    </a>
                 </value>
             </div>
             <div class="info-item">
@@ -181,7 +811,9 @@
                 <label>Supplier Name</label>
                 <value>
                     {% if user.role in 'PROCUREMENT,ADMIN' %}
-                    <a href="{% url 'supplier_detail' bid.supplier.id %}">{{ bid.supplier.name }}</a>
+                    <a href="{% url 'supplier_detail' bid.supplier.id %}" style="color: var(--primary-color); text-decoration: none;">
+                        {{ bid.supplier.name }}
+                    </a>
                     {% else %}
                     {{ bid.supplier.name }}
                     {% endif %}
@@ -351,7 +983,7 @@
             </div>
             <div class="info-item">
                 <label>Average Total Score</label>
-                <value class="score-value">{{ evaluation_summary.avg_total|floatformat:2 }}/100</value>
+                <value class="amount-text">{{ evaluation_summary.avg_total|floatformat:2 }}/100</value>
             </div>
         </div>
 

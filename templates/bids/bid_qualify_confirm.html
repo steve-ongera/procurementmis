@@ -3,12 +3,453 @@
 
 {% block title %}Qualify Bid - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Confirmation Card */
+    .confirmation-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 2rem;
+        max-width: 800px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    .confirmation-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 4rem;
+        height: 4rem;
+        border-radius: 50%;
+        margin-bottom: 1.5rem;
+        font-size: 2rem;
+    }
+
+    .confirmation-icon.success {
+        background: #F0FDF4;
+        color: var(--success-color);
+        border: 2px solid #BBF7D0;
+    }
+
+    .confirmation-card h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.75rem 0;
+    }
+
+    .confirmation-card p {
+        color: var(--secondary-color);
+        font-size: 0.875rem;
+        margin: 0 0 2rem 0;
+        line-height: 1.5;
+    }
+
+    /* Details Box */
+    .details-box {
+        background: #F1F5F9;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: left;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-row label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+        min-width: 160px;
+    }
+
+    .detail-row value {
+        font-size: 0.875rem;
+        color: #334155;
+        text-align: right;
+        flex: 1;
+    }
+
+    .amount-text {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    /* Evaluation Summary */
+    .evaluation-summary {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: left;
+    }
+
+    .evaluation-summary h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .evaluation-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        gap: 1rem;
+    }
+
+    .evaluation-row:last-child {
+        border-bottom: none;
+    }
+
+    .evaluator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #334155;
+        font-weight: 500;
+    }
+
+    .evaluator i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .scores {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .score-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+
+    .score-item label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .score-item value {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .score-item.total label {
+        color: var(--primary-color);
+    }
+
+    .score-item.total value {
+        color: var(--primary-color);
+    }
+
+    /* Average Scores */
+    .average-scores {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid var(--border-color);
+    }
+
+    .average-scores h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 0 0 1rem 0;
+    }
+
+    .average-scores .scores {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .score-box {
+        background: #F1F5F9;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    .score-box.primary {
+        background: var(--primary-light);
+        border-color: var(--primary-color);
+    }
+
+    .score-box label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .score-box value {
+        display: block;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .score-box.primary value {
+        color: var(--primary-color);
+    }
+
+    /* Alert */
+    .alert {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        text-align: left;
+        align-items: flex-start;
+    }
+
+    .alert-info {
+        background: #EFF6FF;
+        border: 1px solid #BFDBFE;
+        color: #1E40AF;
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .alert strong {
+        font-weight: 600;
+    }
+
+    .alert ul {
+        margin: 0.5rem 0 0 0;
+        padding-left: 1.25rem;
+    }
+
+    .alert li {
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.5rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: var(--card-bg);
+        color: var(--secondary-color);
+        border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: #F1F5F9;
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #0DA271;
+        border-color: #0DA271;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .confirmation-card {
+            padding: 1.5rem;
+        }
+        
+        .detail-row {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .detail-row label,
+        .detail-row value {
+            text-align: left;
+            width: 100%;
+        }
+        
+        .detail-row label {
+            min-width: auto;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .evaluation-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .scores {
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .score-item {
+            align-items: center;
+        }
+        
+        .average-scores .scores {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .confirmation-card {
+            padding: 1rem;
+            margin: 0;
+            border: none;
+            background: transparent;
+        }
+        
+        .scores {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Qualify Bid</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'bid_list' %}">Bids</a>
             <i class="bi bi-chevron-right"></i>
@@ -34,7 +475,7 @@
         </div>
         <div class="detail-row">
             <label>Tender:</label>
-            <value>{{ bid.tender.tender_number }} - {{ bid.tender.title }}</value>
+            <value>{{ bid.tender.tender_number }} - {{ bid.tender.title|truncatewords:5 }}</value>
         </div>
         <div class="detail-row">
             <label>Supplier:</label>
@@ -62,15 +503,18 @@
                 {{ evaluation.evaluator.get_full_name }}
             </div>
             <div class="scores">
-                <span class="score-item">
-                    <label>Technical:</label> {{ evaluation.technical_score }}
-                </span>
-                <span class="score-item">
-                    <label>Financial:</label> {{ evaluation.financial_score }}
-                </span>
-                <span class="score-item total">
-                    <label>Total:</label> {{ evaluation.total_score|floatformat:2 }}
-                </span>
+                <div class="score-item">
+                    <label>Technical:</label>
+                    <value>{{ evaluation.technical_score }}</value>
+                </div>
+                <div class="score-item">
+                    <label>Financial:</label>
+                    <value>{{ evaluation.financial_score }}</value>
+                </div>
+                <div class="score-item total">
+                    <label>Total:</label>
+                    <value>{{ evaluation.total_score|floatformat:2 }}</value>
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -80,15 +524,33 @@
             <div class="scores">
                 <div class="score-box">
                     <label>Technical</label>
-                    <value>{{ bid.evaluations.all|length|yesno:"calculated,0" }}</value>
+                    <value>
+                        {% if bid.evaluations.exists %}
+                        {{ bid.evaluations.all|dictsort:"technical_score"|slice:":-1"|first|add:bid.evaluations.all|dictsort:"technical_score"|slice:"-1:"|first|div:2|floatformat:2 }}
+                        {% else %}
+                        0.00
+                        {% endif %}
+                    </value>
                 </div>
                 <div class="score-box">
                     <label>Financial</label>
-                    <value>{{ bid.evaluations.all|length|yesno:"calculated,0" }}</value>
+                    <value>
+                        {% if bid.evaluations.exists %}
+                        {{ bid.evaluations.all|dictsort:"financial_score"|slice:":-1"|first|add:bid.evaluations.all|dictsort:"financial_score"|slice:"-1:"|first|div:2|floatformat:2 }}
+                        {% else %}
+                        0.00
+                        {% endif %}
+                    </value>
                 </div>
                 <div class="score-box primary">
                     <label>Final Score</label>
-                    <value>Will be calculated</value>
+                    <value>
+                        {% if bid.evaluations.exists %}
+                        {{ bid.evaluations.all|dictsort:"total_score"|slice:":-1"|first|add:bid.evaluations.all|dictsort:"total_score"|slice:"-1:"|first|div:2|floatformat:2 }}
+                        {% else %}
+                        0.00
+                        {% endif %}
+                    </value>
                 </div>
             </div>
         </div>
