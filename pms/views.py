@@ -10304,7 +10304,6 @@ def supplier_company_profile(request):
     
     return render(request, 'supplier/company_profile.html', context)
 
-
 @login_required
 def supplier_documents(request):
     """Manage supplier documents"""
@@ -10318,12 +10317,24 @@ def supplier_documents(request):
     
     # Check for expiring documents
     today = timezone.now().date()
+    expiring_threshold = today + timedelta(days=30)
+    
     expiring_soon = documents.filter(
-        expiry_date__lte=today + timedelta(days=30),
+        expiry_date__lte=expiring_threshold,
         expiry_date__gte=today
     )
     
     expired = documents.filter(expiry_date__lt=today)
+    
+    # Count verified documents
+    verified_count = documents.filter(is_verified=True).count()
+    
+    # Check which document types exist (for checklist)
+    has_registration = documents.filter(document_type='REGISTRATION').exists()
+    has_tax = documents.filter(document_type='TAX').exists()
+    has_bank = documents.filter(document_type='BANK').exists()
+    has_license = documents.filter(document_type='LICENSE').exists()
+    has_insurance = documents.filter(document_type='INSURANCE').exists()
     
     if request.method == 'POST':
         form = SupplierDocumentForm(request.POST, request.FILES)
@@ -10341,10 +10352,17 @@ def supplier_documents(request):
         'expiring_soon': expiring_soon,
         'expired': expired,
         'form': form,
+        'today': today,
+        'expiring_threshold': expiring_threshold,
+        'verified_count': verified_count,
+        'has_registration': has_registration,
+        'has_tax': has_tax,
+        'has_bank': has_bank,
+        'has_license': has_license,
+        'has_insurance': has_insurance,
     }
     
     return render(request, 'supplier/documents.html', context)
-
 
 @login_required
 def supplier_certifications(request):

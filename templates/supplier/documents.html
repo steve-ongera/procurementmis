@@ -3,10 +3,578 @@
 {% load humanize %}
 {% block title %}My Documents - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --info-color: #3B82F6;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    /* Statistics Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card.active {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+    }
+
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 0.375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .stat-icon.total {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .stat-icon.verified {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .stat-icon.expiring {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .stat-icon.expired {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1E293B;
+        line-height: 1;
+    }
+
+    /* Alerts */
+    .alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid transparent;
+    }
+
+    .alert-danger {
+        background: #FEF2F2;
+        border-color: var(--danger-color);
+        color: #991B1B;
+    }
+
+    .alert-warning {
+        background: #FFFBEB;
+        border-color: var(--warning-color);
+        color: #92400E;
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .alert div {
+        flex: 1;
+    }
+
+    .alert strong {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .alert p {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    /* Documents Table */
+    .documents-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .documents-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .documents-table thead th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border-color);
+        background: #F8FAFC;
+    }
+
+    .documents-table tbody td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    .documents-table tbody tr {
+        transition: background 0.2s;
+    }
+
+    .documents-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .documents-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Status Badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    .status-badge i {
+        font-size: 0.75rem;
+    }
+
+    .status-badge.status-valid {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .status-badge.status-expiring {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .status-badge.status-expired {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .status-badge.status-pending {
+        background: #E0E7FF;
+        color: #3730A3;
+    }
+
+    .status-badge.status-null {
+        background: #F1F5F9;
+        color: #64748B;
+    }
+
+    /* Document Type Badge */
+    .doc-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        background: #F1F5F9;
+        color: #475569;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: white;
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
+    }
+
+    /* Required Documents Card */
+    .required-docs-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+
+    .card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .checklist {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .checklist-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+        transition: background 0.2s;
+    }
+
+    .checklist-item:hover {
+        background: #F8FAFC;
+    }
+
+    .checklist-item input[type="checkbox"] {
+        margin-top: 0.25rem;
+    }
+
+    .checklist-item label {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .checklist-item strong {
+        font-weight: 500;
+        color: #1E293B;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .checklist-item small {
+        font-size: 0.75rem;
+        color: #64748B;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state h4 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #475569;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .empty-state p {
+        margin: 0 0 1.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 0.5rem;
+        width: 100%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.25rem;
+        color: #64748B;
+        cursor: pointer;
+        padding: 0.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        padding: 1.25rem 1.5rem;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.375rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid #D1D5DB;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .required {
+        color: #EF4444;
+    }
+
+    .help-text {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.75rem;
+        color: #6B7280;
+    }
+
+    .form-error {
+        margin-top: 0.25rem;
+        font-size: 0.75rem;
+        color: #EF4444;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .documents-table thead {
+            display: none;
+        }
+
+        .documents-table tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+        }
+
+        .documents-table tbody td {
+            display: block;
+            text-align: right;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .documents-table tbody td:last-child {
+            border-bottom: none;
+        }
+
+        .documents-table tbody td::before {
+            content: attr(data-label);
+            float: left;
+            font-weight: 600;
+            color: #64748B;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">Document Management</h1>
+        <h1 class="page-title">
+            <i class="bi bi-folder"></i>
+            Document Management
+        </h1>
         <p class="page-subtitle">Upload and manage your compliance documents</p>
     </div>
     <button class="btn btn-primary" onclick="document.getElementById('uploadModal').style.display='flex'">
@@ -37,226 +605,228 @@
 
 <!-- Document Statistics -->
 <div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon blue">
-            <i class="bi bi-file-earmark-text"></i>
+    <a href="#" class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Total Documents</span>
+            <div class="stat-icon total">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
         </div>
         <div class="stat-value">{{ documents.count }}</div>
-        <div class="stat-label">Total Documents</div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-icon green">
-            <i class="bi bi-check-circle"></i>
+    </a>
+
+    <a href="#" class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Verified</span>
+            <div class="stat-icon verified">
+                <i class="bi bi-check-circle"></i>
+            </div>
         </div>
-        <div class="stat-value">{{ documents|selectattr:"is_verified"|list|length }}</div>
-        <div class="stat-label">Verified</div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-icon orange">
-            <i class="bi bi-clock"></i>
+        <div class="stat-value">{{ verified_count }}</div>
+    </a>
+
+    <a href="#" class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Expiring Soon</span>
+            <div class="stat-icon expiring">
+                <i class="bi bi-clock"></i>
+            </div>
         </div>
         <div class="stat-value">{{ expiring_soon.count }}</div>
-        <div class="stat-label">Expiring Soon</div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-icon red">
-            <i class="bi bi-exclamation-triangle"></i>
+    </a>
+
+    <a href="#" class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Expired</span>
+            <div class="stat-icon expired">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
         </div>
         <div class="stat-value">{{ expired.count }}</div>
-        <div class="stat-label">Expired</div>
-    </div>
+    </a>
 </div>
 
 <!-- Documents Table -->
-<div class="table-card">
-    <div class="table-header">
-        <h2 class="table-title">
-            <i class="bi bi-folder"></i>
-            My Documents
-        </h2>
+<div class="documents-card">
+    {% if documents %}
+    <table class="documents-table">
+        <thead>
+            <tr>
+                <th>Document Type</th>
+                <th>Document Name</th>
+                <th>Issue Date</th>
+                <th>Expiry Date</th>
+                <th>Status</th>
+                <th>Verification</th>
+                <th>Uploaded</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for document in documents %}
+            <tr>
+                <td data-label="Document Type">
+                    <span class="doc-type-badge">
+                        {% if document.document_type == 'REGISTRATION' %}
+                        <i class="bi bi-building"></i>
+                        {% elif document.document_type == 'TAX' %}
+                        <i class="bi bi-file-text"></i>
+                        {% elif document.document_type == 'BANK' %}
+                        <i class="bi bi-bank"></i>
+                        {% elif document.document_type == 'LICENSE' %}
+                        <i class="bi bi-award"></i>
+                        {% elif document.document_type == 'INSURANCE' %}
+                        <i class="bi bi-shield-check"></i>
+                        {% else %}
+                        <i class="bi bi-file"></i>
+                        {% endif %}
+                        {{ document.get_document_type_display }}
+                    </span>
+                </td>
+                <td data-label="Document Name">{{ document.document_name }}</td>
+                <td data-label="Issue Date" class="date-cell">
+                    {% if document.issue_date %}
+                    {{ document.issue_date|date:"M d, Y" }}
+                    {% else %}
+                    <span style="color: #CBD5E1;">N/A</span>
+                    {% endif %}
+                </td>
+                <td data-label="Expiry Date" class="date-cell">
+                    {% if document.expiry_date %}
+                    {{ document.expiry_date|date:"M d, Y" }}
+                    {% else %}
+                    <span style="color: #CBD5E1;">N/A</span>
+                    {% endif %}
+                </td>
+                <td data-label="Status">
+                    {% if document.expiry_date %}
+                        {% if document.expiry_date < today %}
+                        <span class="status-badge status-expired">
+                            <i class="bi bi-x-circle"></i>
+                            Expired
+                        </span>
+                        {% elif document.expiry_date <= expiring_threshold %}
+                        <span class="status-badge status-expiring">
+                            <i class="bi bi-clock"></i>
+                            Expiring
+                        </span>
+                        {% else %}
+                        <span class="status-badge status-valid">
+                            <i class="bi bi-check-circle"></i>
+                            Valid
+                        </span>
+                        {% endif %}
+                    {% else %}
+                    <span class="status-badge status-null">
+                        <i class="bi bi-infinity"></i>
+                        No Expiry
+                    </span>
+                    {% endif %}
+                </td>
+                <td data-label="Verification">
+                    {% if document.is_verified %}
+                    <span class="status-badge status-valid">
+                        <i class="bi bi-check-circle"></i>
+                        Verified
+                    </span>
+                    {% if document.verified_by %}
+                    <small style="color: #94A3B8; display: block; font-size: 0.75rem; margin-top: 0.25rem;">
+                        by {{ document.verified_by.get_full_name }}
+                    </small>
+                    {% endif %}
+                    {% else %}
+                    <span class="status-badge status-pending">
+                        <i class="bi bi-clock"></i>
+                        Pending
+                    </span>
+                    {% endif %}
+                </td>
+                <td data-label="Uploaded" class="date-cell">{{ document.uploaded_at|date:"M d, Y" }}</td>
+                <td data-label="Actions">
+                    <div class="action-buttons">
+                        <a href="{{ document.file.url }}" class="btn btn-sm btn-primary" 
+                           target="_blank" title="View Document">
+                            <i class="bi bi-eye"></i>
+                            View
+                        </a>
+                        <a href="{{ document.file.url }}" class="btn btn-sm" 
+                           download title="Download">
+                            <i class="bi bi-download"></i>
+                            Download
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <i class="bi bi-folder-x"></i>
+        <h4>No Documents Found</h4>
+        <p>You haven't uploaded any documents yet</p>
+        <button class="btn btn-primary" onclick="document.getElementById('uploadModal').style.display='flex'">
+            <i class="bi bi-cloud-upload"></i> Upload Your First Document
+        </button>
     </div>
-    
-    <div class="table-body">
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Document Type</th>
-                        <th>Document Name</th>
-                        <th>Issue Date</th>
-                        <th>Expiry Date</th>
-                        <th>Status</th>
-                        <th>Verification</th>
-                        <th>Uploaded</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for document in documents %}
-                    <tr>
-                        <td>
-                            <span class="badge badge-info">
-                                {% if document.document_type == 'REGISTRATION' %}
-                                <i class="bi bi-building"></i>
-                                {% elif document.document_type == 'TAX' %}
-                                <i class="bi bi-file-text"></i>
-                                {% elif document.document_type == 'BANK' %}
-                                <i class="bi bi-bank"></i>
-                                {% elif document.document_type == 'LICENSE' %}
-                                <i class="bi bi-award"></i>
-                                {% elif document.document_type == 'INSURANCE' %}
-                                <i class="bi bi-shield-check"></i>
-                                {% else %}
-                                <i class="bi bi-file"></i>
-                                {% endif %}
-                                {{ document.get_document_type_display }}
-                            </span>
-                        </td>
-                        <td>{{ document.document_name }}</td>
-                        <td>
-                            {% if document.issue_date %}
-                            {{ document.issue_date|date:"M d, Y" }}
-                            {% else %}
-                            <span class="text-muted">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if document.expiry_date %}
-                            {{ document.expiry_date|date:"M d, Y" }}
-                            {% if document.expiry_date < today %}
-                            <span class="badge badge-disputed">Expired</span>
-                            {% elif document.expiry_date <= expiring_threshold %}
-                            <span class="badge badge-warning">Expiring Soon</span>
-                            {% endif %}
-                            {% else %}
-                            <span class="text-muted">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if document.expiry_date %}
-                                {% if document.expiry_date < today %}
-                                <span class="badge badge-disputed">
-                                    <i class="bi bi-x-circle"></i>
-                                    Expired
-                                </span>
-                                {% elif document.expiry_date <= expiring_threshold %}
-                                <span class="badge badge-warning">
-                                    <i class="bi bi-clock"></i>
-                                    Expiring
-                                </span>
-                                {% else %}
-                                <span class="badge badge-paid">
-                                    <i class="bi bi-check-circle"></i>
-                                    Valid
-                                </span>
-                                {% endif %}
-                            {% else %}
-                            <span class="badge badge-draft">No Expiry</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if document.is_verified %}
-                            <span class="badge badge-paid">
-                                <i class="bi bi-check-circle"></i>
-                                Verified
-                            </span>
-                            {% if document.verified_by %}
-                            <small class="text-muted d-block">
-                                by {{ document.verified_by.get_full_name }}
-                            </small>
-                            {% endif %}
-                            {% else %}
-                            <span class="badge badge-submitted">
-                                <i class="bi bi-clock"></i>
-                                Pending
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td class="date-cell">{{ document.uploaded_at|date:"M d, Y" }}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <a href="{{ document.file.url }}" class="action-btn action-btn-primary" 
-                                   target="_blank" title="View Document">
-                                    <i class="bi bi-eye"></i>
-                                    View
-                                </a>
-                                <a href="{{ document.file.url }}" class="action-btn action-btn-info" 
-                                   download title="Download">
-                                    <i class="bi bi-download"></i>
-                                    Download
-                                </a>
-                                <button class="action-btn action-btn-danger" 
-                                        onclick="deleteDocument('{{ document.id }}')" title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                    Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="8">
-                            <div class="empty-state">
-                                <i class="bi bi-folder-x"></i>
-                                <h4>No Documents Found</h4>
-                                <p>You haven't uploaded any documents yet</p>
-                                <button class="btn btn-primary" onclick="document.getElementById('uploadModal').style.display='flex'">
-                                    <i class="bi bi-cloud-upload"></i> Upload Your First Document
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+    {% endif %}
 </div>
 
 <!-- Required Documents Checklist -->
-<div class="info-card">
-    <h3 class="card-title">Required Documents Checklist</h3>
+<div class="required-docs-card">
+    <h3 class="card-title">
+        <i class="bi bi-check-circle"></i>
+        Required Documents Checklist
+    </h3>
     <div class="checklist">
         <div class="checklist-item">
-            <input type="checkbox" {% if documents|selectattr:"document_type","equalto","REGISTRATION"|list %}checked{% endif %} disabled>
+            <input type="checkbox" {% if has_registration %}checked{% endif %} disabled>
             <label>
-                <i class="bi bi-building"></i>
-                <strong>Business Registration Certificate</strong>
+                <strong>
+                    <i class="bi bi-building"></i>
+                    Business Registration Certificate
+                </strong>
                 <small>Valid company registration document</small>
             </label>
         </div>
         <div class="checklist-item">
-            <input type="checkbox" {% if documents|selectattr:"document_type","equalto","TAX"|list %}checked{% endif %} disabled>
+            <input type="checkbox" {% if has_tax %}checked{% endif %} disabled>
             <label>
-                <i class="bi bi-file-text"></i>
-                <strong>Tax Compliance Certificate</strong>
+                <strong>
+                    <i class="bi bi-file-text"></i>
+                    Tax Compliance Certificate
+                </strong>
                 <small>Current tax clearance from KRA</small>
             </label>
         </div>
         <div class="checklist-item">
-            <input type="checkbox" {% if documents|selectattr:"document_type","equalto","BANK"|list %}checked{% endif %} disabled>
+            <input type="checkbox" {% if has_bank %}checked{% endif %} disabled>
             <label>
-                <i class="bi bi-bank"></i>
-                <strong>Bank Statement</strong>
+                <strong>
+                    <i class="bi bi-bank"></i>
+                    Bank Statement
+                </strong>
                 <small>Recent bank statement (last 3 months)</small>
             </label>
         </div>
         <div class="checklist-item">
-            <input type="checkbox" {% if documents|selectattr:"document_type","equalto","LICENSE"|list %}checked{% endif %} disabled>
+            <input type="checkbox" {% if has_license %}checked{% endif %} disabled>
             <label>
-                <i class="bi bi-award"></i>
-                <strong>Professional License</strong>
+                <strong>
+                    <i class="bi bi-award"></i>
+                    Professional License
+                </strong>
                 <small>Relevant professional licenses/permits</small>
             </label>
         </div>
         <div class="checklist-item">
-            <input type="checkbox" {% if documents|selectattr:"document_type","equalto","INSURANCE"|list %}checked{% endif %} disabled>
+            <input type="checkbox" {% if has_insurance %}checked{% endif %} disabled>
             <label>
-                <i class="bi bi-shield-check"></i>
-                <strong>Insurance Certificate</strong>
+                <strong>
+                    <i class="bi bi-shield-check"></i>
+                    Insurance Certificate
+                </strong>
                 <small>Public liability or professional indemnity insurance</small>
             </label>
         </div>
@@ -281,7 +851,12 @@
                     <label class="form-label" for="id_document_type">
                         Document Type <span class="required">*</span>
                     </label>
-                    {{ form.document_type }}
+                    <select name="document_type" id="id_document_type" class="form-control" required>
+                        <option value="">Select document type</option>
+                        {% for value, label in form.document_type.field.choices %}
+                            <option value="{{ value }}" {% if form.document_type.value == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
                     {% if form.document_type.errors %}
                     <div class="form-error">{{ form.document_type.errors }}</div>
                     {% endif %}
@@ -291,7 +866,8 @@
                     <label class="form-label" for="id_document_name">
                         Document Name <span class="required">*</span>
                     </label>
-                    {{ form.document_name }}
+                    <input type="text" name="document_name" id="id_document_name" class="form-control" 
+                           value="{{ form.document_name.value|default:'' }}" required>
                     {% if form.document_name.errors %}
                     <div class="form-error">{{ form.document_name.errors }}</div>
                     {% endif %}
@@ -301,19 +877,20 @@
                     <label class="form-label" for="id_file">
                         Choose File <span class="required">*</span>
                     </label>
-                    {{ form.file }}
+                    <input type="file" name="file" id="id_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
                     <small class="help-text">Accepted formats: PDF, JPG, PNG (Max 5MB)</small>
                     {% if form.file.errors %}
                     <div class="form-error">{{ form.file.errors }}</div>
                     {% endif %}
                 </div>
                 
-                <div class="form-grid">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
                         <label class="form-label" for="id_issue_date">
                             Issue Date
                         </label>
-                        {{ form.issue_date }}
+                        <input type="date" name="issue_date" id="id_issue_date" class="form-control" 
+                               value="{{ form.issue_date.value|default:'' }}">
                         {% if form.issue_date.errors %}
                         <div class="form-error">{{ form.issue_date.errors }}</div>
                         {% endif %}
@@ -323,7 +900,8 @@
                         <label class="form-label" for="id_expiry_date">
                             Expiry Date
                         </label>
-                        {{ form.expiry_date }}
+                        <input type="date" name="expiry_date" id="id_expiry_date" class="form-control" 
+                               value="{{ form.expiry_date.value|default:'' }}">
                         {% if form.expiry_date.errors %}
                         <div class="form-error">{{ form.expiry_date.errors }}</div>
                         {% endif %}
@@ -332,7 +910,7 @@
             </div>
             
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" 
+                <button type="button" class="btn" 
                         onclick="document.getElementById('uploadModal').style.display='none'">
                     <i class="bi bi-x-circle"></i> Cancel
                 </button>
@@ -360,6 +938,17 @@ window.onclick = function(event) {
         modal.style.display = 'none';
     }
 }
+
+// File size validation
+document.getElementById('id_file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    if (file && file.size > maxSize) {
+        alert('File size must be less than 5MB');
+        e.target.value = '';
+    }
+});
 </script>
 
 {% endblock %}
