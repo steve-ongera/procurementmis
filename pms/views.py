@@ -10372,22 +10372,34 @@ def supplier_certifications(request):
     
     # Get certification documents
     certifications = SupplierDocument.objects.filter(
-        supplier=supplier,document_type__in=['REGISTRATION', 'LICENSE', 'INSURANCE']
+        supplier=supplier,
+        document_type__in=['REGISTRATION', 'LICENSE', 'INSURANCE']
     ).order_by('-uploaded_at')
 
-    # Compliance status
+    # Calculate dates
     today = timezone.now().date()
+    expiring_threshold = today + timedelta(days=30)
+    
+    # Compliance status
     compliance = {
         'tax_compliant': supplier.tax_compliance_expiry and supplier.tax_compliance_expiry >= today,
         'registration_valid': supplier.registration_expiry and supplier.registration_expiry >= today,
         'documents_verified': certifications.filter(is_verified=True).count(),
         'total_documents': certifications.count(),
     }
+    
+    # Check which certificate types exist
+    has_license = certifications.filter(document_type='LICENSE').exists()
+    has_insurance = certifications.filter(document_type='INSURANCE').exists()
 
     context = {
         'certifications': certifications,
         'compliance': compliance,
         'supplier': supplier,
+        'today': today,
+        'expiring_threshold': expiring_threshold,
+        'has_license': has_license,
+        'has_insurance': has_insurance,
     }
 
     return render(request, 'supplier/certifications.html', context)
