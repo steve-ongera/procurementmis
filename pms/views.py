@@ -99,7 +99,7 @@ def dashboard_view(request):
     elif role == 'PROCUREMENT':
         return procurement_dashboard(request)
     elif role == 'FINANCE':
-        return finance_dashboard(request)
+        return finance_dashboard_view(request)
     elif role == 'STORES':
         return stores_dashboard(request)
     elif role == 'SUPPLIER':
@@ -12522,7 +12522,7 @@ def finance_dashboard_view(request):
         'department_utilization': department_utilization,
     }
     
-    return render(request, 'finance/dashboard.html', context)
+    return render(request, 'finance/finance_module/dashboard.html', context)
 
 
 @login_required
@@ -12590,7 +12590,7 @@ def finance_analytics_view(request):
         'payment_by_method': list(payment_by_method),
     }
     
-    return render(request, 'finance/analytics.html', context)
+    return render(request, 'finance/finance_module/analytics.html', context)
 
 
 # ============================================================================
@@ -12650,7 +12650,7 @@ def finance_budgets_list_view(request):
         'total_count': budgets.count(),
     }
     
-    return render(request, 'finance/budgets_list.html', context)
+    return render(request, 'finance/finance_module/budgets_list.html', context)
 
 
 @login_required
@@ -12688,7 +12688,7 @@ def finance_budget_detail_view(request, pk):
         'reallocations_to': reallocations_to,
     }
     
-    return render(request, 'finance/budget_detail.html', context)
+    return render(request, 'finance/finance_module/budget_detail.html', context)
 
 
 @login_required
@@ -12715,7 +12715,7 @@ def finance_budget_create_view(request):
         'form': form,
     }
     
-    return render(request, 'finance/budget_form.html', context)
+    return render(request, 'finance/finance_module/budget_form.html', context)
 
 
 @login_required
@@ -12743,7 +12743,7 @@ def finance_budget_edit_view(request, pk):
         'budget': budget,
     }
     
-    return render(request, 'finance/budget_form.html', context)
+    return render(request, 'finance/finance_module/budget_form.html', context)
 
 
 @login_required
@@ -12778,7 +12778,7 @@ def finance_budget_allocation_view(request):
         'dept_summary': dept_summary,
     }
     
-    return render(request, 'finance/budget_allocation.html', context)
+    return render(request, 'finance/finance_module/budget_allocation.html', context)
 
 
 @login_required
@@ -12841,7 +12841,7 @@ def finance_budget_tracking_view(request):
         'category_summary': category_summary,
     }
     
-    return render(request, 'finance/budget_tracking.html', context)
+    return render(request, 'finance/finance_module/budget_tracking.html', context)
 
 
 @login_required
@@ -12883,7 +12883,7 @@ def finance_budget_reallocate_view(request):
         'form': form,
     }
     
-    return render(request, 'finance/budget_reallocate.html', context)
+    return render(request, 'finance/finance_module/budget_reallocate.html', context)
 
 
 # ============================================================================
@@ -12939,7 +12939,7 @@ def finance_invoices_list_view(request):
         'total_value': total_value,
     }
     
-    return render(request, 'finance/invoices_list.html', context)
+    return render(request, 'finance/finance_module/invoices_list.html', context)
 
 
 @login_required
@@ -12975,7 +12975,7 @@ def finance_invoice_detail_view(request, pk):
         'payments': payments,
     }
     
-    return render(request, 'finance/invoice_detail.html', context)
+    return render(request, 'finance/finance_module/invoice_detail.html', context)
 
 
 @login_required
@@ -13028,7 +13028,7 @@ def finance_invoice_verify_view(request, pk):
         'grn': grn,
     }
     
-    return render(request, 'finance/invoice_verify.html', context)
+    return render(request, 'finance/finance_module/invoice_verify.html', context)
 
 
 @login_required
@@ -13064,7 +13064,7 @@ def finance_invoice_approve_view(request, pk):
         'invoice': invoice,
     }
     
-    return render(request, 'finance/invoice_approve.html', context)
+    return render(request, 'finance/finance_module/invoice_approve.html', context)
 
 
 @login_required
@@ -13090,7 +13090,7 @@ def finance_pending_invoices_view(request):
         'total_value': total_value,
     }
     
-    return render(request, 'finance/pending_invoices.html', context)
+    return render(request, 'finance/finance_module/pending_invoices.html', context)
 
 
 @login_required
@@ -13116,7 +13116,7 @@ def finance_paid_invoices_view(request):
         'total_paid': total_paid,
     }
     
-    return render(request, 'finance/paid_invoices.html', context)
+    return render(request, 'finance/finance_module/paid_invoices.html', context)
 
 
 @login_required
@@ -13145,7 +13145,7 @@ def finance_overdue_invoices_view(request):
         'total_overdue': total_overdue,
     }
     
-    return render(request, 'finance/overdue_invoices.html', context)
+    return render(request, 'finance/finance_module/overdue_invoices.html', context)
 
 
 # ============================================================================
@@ -13198,7 +13198,7 @@ def finance_payments_list_view(request):
         'total_amount': total_amount,
     }
     
-    return render(request, 'finance/payments_list.html', context)
+    return render(request, 'finance/finance_module/payments_list.html', context)
 
 
 @login_required
@@ -13220,7 +13220,7 @@ def finance_payment_detail_view(request, pk):
         'payment': payment,
     }
     
-    return render(request, 'finance/payment_detail.html', context)
+    return render(request, 'finance/finance_module/payment_detail.html', context)
 
 
 @login_required
@@ -13266,7 +13266,7 @@ def finance_process_payment_view(request, invoice_id):
         'invoice': invoice,
     }
     
-    return render(request, 'finance/process_payment.html', context)
+    return render(request, 'finance/finance_module/process_payment.html', context)
 
 
 @login_required
@@ -13310,7 +13310,7 @@ def finance_approve_payment_view(request, pk):
         'payment': payment,
     }
     
-    return render(request, 'finance/approve_payment.html', context)
+    return render(request, 'finance/finance_module/approve_payment.html', context)
 
 
 @login_required
@@ -13337,7 +13337,7 @@ def finance_payment_schedule_view(request):
         'total_scheduled': total_scheduled,
     }
     
-    return render(request, 'finance/payment_schedule.html', context)
+    return render(request, 'finance/finance_module/payment_schedule.html', context)
 
 
 @login_required
@@ -13365,7 +13365,7 @@ def finance_payment_history_view(request):
         'total_paid': total_paid,
     }
     
-    return render(request, 'finance/payment_history.html', context)
+    return render(request, 'finance/finance_module/payment_history.html', context)
 
 
 # ============================================================================
@@ -13395,7 +13395,7 @@ def finance_pending_approvals_view(request):
         'total_count': approvals.count(),
     }
     
-    return render(request, 'finance/pending_approvals.html', context)
+    return render(request, 'finance/finance_module/pending_approvals.html', context)
 
 
 @login_required
@@ -13458,7 +13458,7 @@ def finance_approve_requisition_view(request, requisition_id):
         'approval': approval,
     }
     
-    return render(request, 'finance/approve_requisition.html', context)
+    return render(request, 'finance/finance_module/approve_requisition.html', context)
 
 
 @login_required
@@ -13481,7 +13481,7 @@ def finance_approved_requisitions_view(request):
         'total_count': requisitions.count(),
     }
     
-    return render(request, 'finance/approved_requisitions.html', context)
+    return render(request, 'finance/finance_module/approved_requisitions.html', context)
 
 
 @login_required
@@ -13504,7 +13504,7 @@ def finance_rejected_requisitions_view(request):
         'total_count': requisitions.count(),
     }
     
-    return render(request, 'finance/rejected_requisitions.html', context)
+    return render(request, 'finance/finance_module/rejected_requisitions.html', context)
 
 
 # ============================================================================
@@ -13562,7 +13562,7 @@ def finance_expenditure_report_view(request):
         'departments': departments,
     }
     
-    return render(request, 'finance/expenditure_report.html', context)
+    return render(request, 'finance/finance_module/expenditure_report.html', context)
 
 
 @login_required
@@ -13591,7 +13591,7 @@ def finance_budget_vs_actual_view(request):
         'budgets': budgets,
     }
     
-    return render(request, 'finance/budget_vs_actual.html', context)
+    return render(request, 'finance/finance_module/budget_vs_actual.html', context)
 
 
 @login_required
@@ -13620,7 +13620,7 @@ def finance_financial_statements_view(request):
         'outstanding_invoices': outstanding_invoices,
     }
     
-    return render(request, 'finance/financial_statements.html', context)
+    return render(request, 'finance/finance_module/financial_statements.html', context)
 
 
 @login_required
@@ -13651,7 +13651,7 @@ def finance_transaction_report_view(request):
         'total_amount': total_amount,
     }
     
-    return render(request, 'finance/transaction_report.html', context)
+    return render(request, 'finance/finance_module/transaction_report.html', context)
 
 
 @login_required
@@ -13705,4 +13705,4 @@ def finance_help_view(request):
         return redirect('dashboard')
     
     context = {}
-    return render(request, 'finance/help.html', context)
+    return render(request, 'finance/finance_module/help.html', context)
