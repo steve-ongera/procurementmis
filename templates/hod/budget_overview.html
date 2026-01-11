@@ -1,6 +1,586 @@
+{% extends 'base.html' %}
 {% load humanize %}
-
+{% load math_filters %}
 {% block title %}Budget Overview - HOD Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.6875rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.375rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #1E293B;
+        background: var(--card-bg);
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Summary Stats */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .summary-label {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Detail Card */
+    .detail-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .budget-progress {
+        margin-top: 0.5rem;
+    }
+
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .progress-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .progress-percentage {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .progress-bar {
+        height: 0.5rem;
+        background: var(--hover-bg);
+        border-radius: 0.25rem;
+        overflow: hidden;
+    }
+
+    .progress-bar.large {
+        height: 0.75rem;
+    }
+
+    .progress-bar.mini {
+        height: 0.375rem;
+        width: 60px;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 0.5rem;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--primary-color);
+        border-radius: 0.25rem;
+        transition: width 0.3s ease;
+    }
+
+    .progress-legend {
+        display: flex;
+        gap: 1.5rem;
+        margin-top: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+    }
+
+    .legend-color {
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 0.125rem;
+    }
+
+    .legend-color.committed {
+        background: #3B82F6;
+    }
+
+    .legend-color.spent {
+        background: #10B981;
+    }
+
+    .legend-color.available {
+        background: #64748B;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .table-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 0.75rem 1.25rem;
+        text-align: left;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.8125rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .info-sub {
+        font-size: 0.6875rem;
+        color: var(--secondary-color);
+        margin-top: 0.125rem;
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.8125rem;
+    }
+
+    .utilization-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .percentage {
+        font-size: 0.8125rem;
+        color: #1E293B;
+        font-weight: 500;
+        min-width: 45px;
+    }
+
+    /* Status Badges */
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: #64748B;
+        background: #F1F5F9;
+        border-radius: 0.25rem;
+        border: 1px solid #E2E8F0;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.3125rem 0.625rem;
+        border-radius: 1rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .status-badge i {
+        font-size: 0.5625rem;
+    }
+
+    .status-active { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    
+    .status-warning { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    
+    .status-danger { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+
+    .text-danger {
+        color: var(--danger-color) !important;
+    }
+
+    /* Total Row */
+    .total-row {
+        background: var(--table-header);
+        font-weight: 600;
+    }
+
+    .total-row td {
+        color: #1E293B;
+        border-bottom: none;
+    }
+
+    /* Alert Card */
+    .alert-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .alert-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .alert-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .alert-title i {
+        color: var(--warning-color);
+        font-size: 1rem;
+    }
+
+    .alerts-list {
+        padding: 1rem;
+    }
+
+    .alert-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+        margin-bottom: 0.5rem;
+        transition: background-color 0.2s;
+    }
+
+    .alert-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .alert-item:hover {
+        background: var(--hover-bg);
+    }
+
+    .alert-item.danger {
+        border-left: 3px solid var(--danger-color);
+    }
+
+    .alert-item.warning {
+        border-left: 3px solid var(--warning-color);
+    }
+
+    .alert-item i {
+        font-size: 1rem;
+        margin-top: 0.125rem;
+    }
+
+    .alert-item.danger i {
+        color: var(--danger-color);
+    }
+
+    .alert-item.warning i {
+        color: var(--warning-color);
+    }
+
+    .alert-content {
+        flex: 1;
+    }
+
+    .alert-message {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.125rem;
+    }
+
+    .alert-detail {
+        font-size: 0.6875rem;
+        color: var(--secondary-color);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 0.875rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.8125rem;
+        margin: 0 0 1.25rem 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .progress-legend {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.875rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-card,
+        .detail-card,
+        .table-card,
+        .alert-card {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -141,7 +721,7 @@
                         {% endwith %}
                     </td>
                     <td>
-                        {% with utilization=budget.actual_spent|floatformat:0|add:"0"|divide:budget.allocated_amount|floatformat:0|add:"0"|multiply:"100" %}
+                        {% with utilization=budget.actual_spent|floatformat:0|add:"0"|div:budget.allocated_amount|floatformat:0|add:"0"|mul:"100" %}
                         <div class="utilization-cell">
                             <div class="progress-bar mini">
                                 <div class="progress-fill" style="width: {{ utilization }}%"></div>
@@ -157,7 +737,7 @@
                             <i class="bi bi-exclamation-triangle"></i>
                             Exhausted
                         </span>
-                        {% elif available < budget.allocated_amount|multiply:0.1 %}
+                        {% elif available < budget.allocated_amount|mul:0.1 %}
                         <span class="status-badge status-warning">
                             <i class="bi bi-exclamation-circle"></i>
                             Low
@@ -213,7 +793,7 @@
                 <div class="alert-detail">Available balance is KES {{ available|floatformat:0|intcomma }}</div>
             </div>
         </div>
-        {% elif available < budget.allocated_amount|multiply:0.1 %}
+        {% elif available < budget.allocated_amount|mul:0.1 %}
         <div class="alert-item warning">
             <i class="bi bi-exclamation-triangle-fill"></i>
             <div class="alert-content">
@@ -226,5 +806,4 @@
         {% endfor %}
     </div>
 </div>
-
 {% endblock %}

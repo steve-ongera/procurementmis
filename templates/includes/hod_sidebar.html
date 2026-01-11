@@ -3,17 +3,19 @@
         <div class="logo">
             <i class="fas fa-shopping-cart"></i>
         </div>
-        <span class="logo-text">Procument MIS</span>
+        <span class="logo-text">Procurement MIS</span>
     </div>
 
     <!-- Main Section -->
     <div class="menu-section">
         <div class="menu-title">MAIN</div>
+
         <a href="{% url 'dashboard' %}" class="menu-item active">
             <i class="fas fa-home"></i>
             <span>Dashboard</span>
         </a>
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_analytics' %}" class="menu-item">
             <i class="fas fa-chart-line"></i>
             <span>Department Analytics</span>
         </a>
@@ -22,18 +24,18 @@
     <!-- Requisitions Section -->
     <div class="menu-section">
         <div class="menu-title">REQUISITIONS</div>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_my_requisitions' %}" class="menu-item">
             <i class="fas fa-file-alt"></i>
             <span>My Requisitions</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_new_requisition' %}" class="menu-item">
             <i class="fas fa-plus-circle"></i>
             <span>New Requisition</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_department_requests' %}" class="menu-item">
             <i class="fas fa-users"></i>
             <span>Department Requests</span>
         </a>
@@ -42,24 +44,25 @@
     <!-- Approvals Section -->
     <div class="menu-section">
         <div class="menu-title">APPROVALS</div>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_pending_approvals' %}" class="menu-item">
             <i class="fas fa-check-circle"></i>
             <span>Pending Approvals</span>
-            <span class="badge">5</span>
+            <!-- optional dynamic badge -->
+            {# <span class="badge">{{ pending_count }}</span> #}
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_approved_requisitions' %}" class="menu-item">
             <i class="fas fa-check-double"></i>
             <span>Approved</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_rejected_requisitions' %}" class="menu-item">
             <i class="fas fa-times-circle"></i>
             <span>Rejected</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_approval_history' %}" class="menu-item">
             <i class="fas fa-history"></i>
             <span>Approval History</span>
         </a>
@@ -68,18 +71,18 @@
     <!-- Department Management -->
     <div class="menu-section">
         <div class="menu-title">DEPARTMENT</div>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_budget_overview' %}" class="menu-item">
             <i class="fas fa-money-check-alt"></i>
             <span>Budget Overview</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_expenditure_reports' %}" class="menu-item">
             <i class="fas fa-file-invoice"></i>
             <span>Expenditure Reports</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_staff_management' %}" class="menu-item">
             <i class="fas fa-users-cog"></i>
             <span>Staff Management</span>
         </a>
@@ -88,16 +91,15 @@
     <!-- Help & Support -->
     <div class="menu-section">
         <div class="menu-title">SUPPORT</div>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_help_center' %}" class="menu-item">
             <i class="fas fa-life-ring"></i>
             <span>Help Center</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'hod_guidelines' %}" class="menu-item">
             <i class="fas fa-book"></i>
             <span>Guidelines</span>
         </a>
     </div>
-
 </div>

@@ -11207,7 +11207,7 @@ def hod_dashboard(request):
         'current_budget_year': current_budget_year,
     }
     
-    return render(request, 'hod/dashboard.html', context)
+    return render(request, 'hod/dashboard.html', context) 
 
 
 @login_required
