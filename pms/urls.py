@@ -234,5 +234,25 @@ urlpatterns = [
     path('supplier/help/', views.supplier_help_center, name='supplier_help_center'),
     path('supplier/contact-support/', views.supplier_contact_support, name='supplier_contact_support'),
     
+    # staff Dashboard
+    path('staff/dashboard/', views.staff_dashboard, name='staff_dashboard'),
+    
+    # Requisitions Management
+    path('staff/requisitions/', views.staff_requisitions_list, name='staff_requisitions_list'),
+    path('staff/requisitions/new/', views.staff_requisition_create, name='staff_requisition_create'),
+    path('staff/requisitions/<uuid:pk>/', views.staff_requisition_detail, name='staff_requisition_detail'),
+    path('staff/requisitions/<uuid:pk>/edit/', views.staff_requisition_edit, name='staff_requisition_edit'),
+    path('staff/requisitions/<uuid:pk>/submit/', views.staff_requisition_submit, name='staff_requisition_submit'),
+    path('staff/requisitions/<uuid:pk>/cancel/', views.staff_requisition_cancel, name='staff_requisition_cancel'),
+    
+    # Requisition Status Views
+    path('staff/requisitions/pending/', views.staff_requisitions_pending, name='staff_requisitions_pending'),
+    path('staff/requisitions/approved/', views.staff_requisitions_approved, name='staff_requisitions_approved'),
+    path('staff/requisitions/rejected/', views.staff_requisitions_rejected, name='staff_requisitions_rejected'),
+    
+    # Help & Support
+    path('staff/help/', views.staff_help_center, name='staff_help_center'),
+    path('staff/guidelines/', views.staff_guidelines, name='staff_guidelines'),
+    
     
 ]
