@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ requisition.requisition_number }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ requisition.requisition_number }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'staff_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'staff_requisitions_list' %}">My Requisitions</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ requisition.requisition_number }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'staff_requisitions_list' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to List
+        </a>
+        {% if can_edit %}
+        <a href="{% url 'staff_requisition_edit' requisition.id %}" class="btn">
+            <i class="bi bi-pencil"></i>
+            Edit
+        </a>
+        {% endif %}
+        {% if can_submit %}
+        <a href="{% url 'staff_requisition_submit' requisition.id %}" class="btn btn-primary">
+            <i class="bi bi-send"></i>
+            Submit for Approval
+        </a>
+        {% endif %}
+        {% if can_cancel %}
+        <a href="{% url 'staff_requisition_cancel' requisition.id %}" class="btn" style="border-color: var(--danger-color); color: var(--danger-color);">
+            <i class="bi bi-x-circle"></i>
+            Cancel
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Status and Summary -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-label">Status</div>
+        <div class="summary-value">
+            <span class="status-badge status-{{ requisition.status|lower }}">
+                {{ requisition.get_status_display }}
+            </span>
+        </div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label">Priority</div>
+        <div class="summary-value">
+            <span class="status-badge status-{{ requisition.priority|lower }}">
+                {{ requisition.get_priority_display }}
+            </span>
+        </div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label">Estimated Amount</div>
+        <div class="summary-value" style="font-size: 1.25rem;">KES {{ requisition.estimated_amount|floatformat:0|intcomma }}</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label">Total Items</div>
+        <div class="summary-value">{{ total_items }}</div>
+    </div>
+</div>
+
+<!-- Basic Information -->
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-info-circle"></i>
+            Requisition Details
+        </h2>
+    </div>
+    <div style="padding: 1.5rem;">
+        <div class="filter-grid">
+            <div>
+                <div class="summary-label">Title</div>
+                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.title }}</div>
+            </div>
+            <div>
+                <div class="summary-label">Department</div>
+                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.department.name }}</div>
+            </div>
+            <div>
+                <div class="summary-label">Budget</div>
+                <div style="font-weight: 600; margin-top: 0.25rem;">
+                    {% if requisition.budget %}
+                        {{ requisition.budget }}
+                    {% else %}
+                        <span style="color: var(--secondary-color);">Not assigned</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                <div class="summary-label">Required Date</div>
+                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.required_date|date:"M d, Y" }}</div>
+            </div>
+            <div>
+                <div class="summary-label">Requested By</div>
+                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.requested_by.get_full_name }}</div>
+            </div>
+            <div>
+                <div class="summary-label">Created Date</div>
+                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.created_at|date:"M d, Y H:i" }}</div>
+            </div>
+            {% if requisition.submitted_at %}
+            <div>
+                <div class="summary-label">Submitted Date</div>
+                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.submitted_at|date:"M d, Y H:i" }}</div>
+            </div>
+            {% endif %}
+            {% if requisition.is_emergency %}
+            <div>
+                <div class="summary-label">Emergency</div>
+                <div style="font-weight: 600; margin-top: 0.25rem; color: var(--danger-color);">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Yes - Emergency Requisition
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+            <div class="summary-label">Justification</div>
+            <div style="margin-top: 0.5rem; line-height: 1.6;">{{ requisition.justification }}</div>
+        </div>
+
+        {% if requisition.is_emergency and requisition.emergency_justification %}
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <div class="summary-label">Emergency Justification</div>
+            <div style="margin-top: 0.5rem; line-height: 1.6;">{{ requisition.emergency_justification }}</div>
+        </div>
+        {% endif %}
+
+        {% if requisition.notes %}
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <div class="summary-label">Additional Notes</div>
+            <div style="margin-top: 0.5rem; line-height: 1.6;">{{ requisition.notes }}</div>
+        </div>
+        {% endif %}
+
+        {% if requisition.rejection_reason %}
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); background: #FEE2E2; padding: 1rem; border-radius: 0.375rem;">
+            <div class="summary-label" style="color: var(--danger-color);">
+                <i class="bi bi-exclamation-circle"></i>
+                Rejection Reason
+            </div>
+            <div style="margin-top: 0.5rem; line-height: 1.6; color: #991B1B;">{{ requisition.rejection_reason }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Requisition Items -->
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-list-ul"></i>
+            Requisition Items ({{ total_items }})
+        </h2>
+    </div>
+
+    {% if items %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Item Description</th>
+                    <th>Specifications</th>
+                    <th>Quantity</th>
+                    <th>Unit</th>
+                    <th>Unit Price</th>
+                    <th>Total Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.item_description }}</td>
+                    <td style="max-width: 300px; white-space: normal;">{{ item.specifications|truncatewords:20 }}</td>
+                    <td class="amount-cell">{{ item.quantity|floatformat:2 }}</td>
+                    <td>{{ item.unit_of_measure }}</td>
+                    <td class="amount-cell">KES {{ item.estimated_unit_price|floatformat:2|intcomma }}</td>
+                    <td class="amount-cell">KES {{ item.estimated_total|floatformat:2|intcomma }}</td>
+                </tr>
+                {% endfor %}
+                <tr style="font-weight: 600; background: var(--table-header);">
+                    <td colspan="6" style="text-align: right;">Total Estimated Amount:</td>
+                    <td class="amount-cell">KES {{ requisition.estimated_amount|floatformat:2|intcomma }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-list-ul"></i>
+        <p>No items added yet</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Attachments -->
+{% if attachments %}
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-paperclip"></i>
+            Supporting Documents ({{ attachments.count }})
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Document Type</th>
+                    <th>File Name</th>
+                    <th>Description</th>
+                    <th>Uploaded</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attachment in attachments %}
+                <tr>
+                    <td>
+                        <span class="status-badge status-draft">
+                            {{ attachment.get_attachment_type_display }}
+                        </span>
+                    </td>
+                    <td>{{ attachment.file_name }}</td>
+                    <td>{{ attachment.description|truncatewords:15 }}</td>
+                    <td class="date-cell">{{ attachment.uploaded_at|date:"M d, Y H:i" }}</td>
+                    <td>
+                        <a href="{{ attachment.file.url }}" class="action-btn" title="Download" download>
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <a href="{{ attachment.file.url }}" class="action-btn" title="View" target="_blank">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Approval History -->
+{% if approvals %}
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clock-history"></i>
+            Approval History
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Stage</th>
+                    <th>Approver</th>
+                    <th>Status</th>
+                    <th>Comments</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for approval in approvals %}
+                <tr>
+                    <td>{{ approval.get_approval_stage_display }}</td>
+                    <td>
+                        {% if approval.approver %}
+                            {{ approval.approver.get_full_name }}
+                        {% else %}
+                            <span style="color: var(--secondary-color);">Pending assignment</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ approval.status|lower }}">
+                            {{ approval.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ approval.comments|default:"—" }}</td>
+                    <td class="date-cell">
+                        {% if approval.approval_date %}
+                            {{ approval.approval_date|date:"M d, Y H:i" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

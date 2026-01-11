@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Cancel Requisition - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Cancel Requisition</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'staff_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'staff_requisitions_list' %}">My Requisitions</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'staff_requisition_detail' requisition.id %}">{{ requisition.requisition_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Cancel</span>
+        </div>
+    </div>
+</div>
+
+<div class="table-card" style="max-width: 600px; margin: 2rem auto;">
+    <div class="table-header" style="background: #FEE2E2; border-bottom-color: #FECACA;">
+        <h2 class="table-title" style="color: #991B1B;">
+            <i class="bi bi-exclamation-triangle"></i>
+            Confirm Cancellation
+        </h2>
+    </div>
+    <div style="padding: 2rem;">
+        <p style="font-size: 1rem; margin-bottom: 1.5rem; line-height: 1.6;">
+            Are you sure you want to cancel this requisition?
+        </p>
+
+        <div style="background: var(--hover-bg); padding: 1rem; border-radius: 0.375rem; margin-bottom: 1.5rem;">
+            <div style="display: grid; gap: 0.75rem;">
+                <div>
+                    <div class="summary-label">Requisition Number</div>
+                    <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.requisition_number }}</div>
+                </div>
+                <div>
+                    <div class="summary-label">Title</div>
+                    <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.title }}</div>
+                </div>
+                <div>
+                    <div class="summary-label">Status</div>
+                    <div style="margin-top: 0.25rem;">
+                        <span class="status-badge status-{{ requisition.status|lower }}">
+                            {{ requisition.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                <div>
+                    <div class="summary-label">Estimated Amount</div>
+                    <div style="font-weight: 600; margin-top: 0.25rem;">KES {{ requisition.estimated_amount|floatformat:0|intcomma }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: #FEF3C7; border: 1px solid #FDE68A; padding: 1rem; border-radius: 0.375rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; gap: 0.75rem; align-items: start;">
+                <i class="bi bi-info-circle" style="color: #92400E; font-size: 1.25rem; flex-shrink: 0;"></i>
+                <div style="color: #92400E; font-size: 0.875rem; line-height: 1.6;">
+                    <strong>Warning:</strong> This action cannot be undone. Once cancelled, you will need to create a new requisition if you still need these items.
+                </div>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <a href="{% url 'staff_requisition_detail' requisition.id %}" class="btn">
+                    <i class="bi bi-arrow-left"></i>
+                    No, Go Back
+                </a>
+                <button type="submit" class="btn btn-primary" style="background: var(--danger-color); border-color: var(--danger-color);">
+                    <i class="bi bi-x-circle"></i>
+                    Yes, Cancel Requisition
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

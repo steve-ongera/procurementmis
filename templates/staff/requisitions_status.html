@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ page_title }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'staff_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'staff_requisitions_list' %}">My Requisitions</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ page_title }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'staff_dashboard' %}" class="btn">
+            <i class="bi bi-graph-up"></i>
+            Dashboard
+        </a>
+        <a href="{% url 'staff_requisitions_list' %}" class="btn">
+            <i class="bi bi-list"></i>
+            All Requisitions
+        </a>
+        <a href="{% url 'staff_requisition_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            New Requisition
+        </a>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ count|intcomma }}</div>
+        <div class="summary-label">{{ page_title }}</div>
+    </div>
+</div>
+
+<!-- Requisitions Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-file-earmark-text"></i>
+            {{ page_title }} ({{ count }})
+        </h2>
+    </div>
+
+    {% if requisitions %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requisition Number</th>
+                    <th>Title</th>
+                    <th>Department</th>
+                    <th>Created Date</th>
+                    <th>Required Date</th>
+                    <th>Estimated Amount</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for requisition in requisitions %}
+                <tr>
+                    <td>
+                        <a href="{% url 'staff_requisition_detail' requisition.id %}" class="invoice-number">
+                            {{ requisition.requisition_number }}
+                            <i class="bi bi-arrow-up-right" style="font-size: 0.75rem; margin-left: 0.25rem;"></i>
+                        </a>
+                    </td>
+                    <td>{{ requisition.title|truncatewords:10 }}</td>
+                    <td>{{ requisition.department.name }}</td>
+                    <td class="date-cell">{{ requisition.created_at|date:"M d, Y" }}</td>
+                    <td class="date-cell">{{ requisition.required_date|date:"M d, Y" }}</td>
+                    <td class="amount-cell">KES {{ requisition.estimated_amount|floatformat:0|intcomma }}</td>
+                    <td>
+                        <span class="status-badge status-{{ requisition.priority|lower }}">
+                            {{ requisition.get_priority_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ requisition.status|lower }}">
+                            {{ requisition.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'staff_requisition_detail' requisition.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if requisitions.has_other_pages %}
+    <div class="pagination" style="padding: 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: center; gap: 0.5rem;">
+        {% if requisitions.has_previous %}
+        <a href="?page={{ requisitions.previous_page_number }}" class="btn">
+            <i class="bi bi-chevron-left"></i>
+            Previous
+        </a>
+        {% endif %}
+
+        <span class="btn" style="pointer-events: none;">
+            Page {{ requisitions.number }} of {{ requisitions.paginator.num_pages }}
+        </span>
+
+        {% if requisitions.has_next %}
+        <a href="?page={{ requisitions.next_page_number }}" class="btn">
+            Next
+            <i class="bi bi-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-file-earmark-text"></i>
+        <p>No {{ page_title|lower }} found</p>
+        <a href="{% url 'staff_requisition_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create New Requisition
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

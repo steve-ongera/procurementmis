@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">My Dashboard</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'staff_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Dashboard</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'staff_requisition_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            New Requisition
+        </a>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ total_requisitions|intcomma }}</div>
+        <div class="summary-label">Total Requisitions</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ draft_count|intcomma }}</div>
+        <div class="summary-label">Drafts</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ pending_count|intcomma }}</div>
+        <div class="summary-label">Pending Approval</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ approved_count|intcomma }}</div>
+        <div class="summary-label">Approved</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ monthly_requisitions|intcomma }}</div>
+        <div class="summary-label">This Month</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ total_approved_amount|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Approved Amount (YTD)</div>
+    </div>
+</div>
+
+<!-- Recent Requisitions -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-file-earmark-text"></i>
+            Recent Requisitions
+        </h2>
+    </div>
+
+    {% if recent_requisitions %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requisition Number</th>
+                    <th>Title</th>
+                    <th>Department</th>
+                    <th>Created Date</th>
+                    <th>Estimated Amount</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for requisition in recent_requisitions %}
+                <tr>
+                    <td>
+                        <a href="{% url 'staff_requisition_detail' requisition.id %}" class="invoice-number">
+                            {{ requisition.requisition_number }}
+                            <i class="bi bi-arrow-up-right" style="font-size: 0.75rem; margin-left: 0.25rem;"></i>
+                        </a>
+                    </td>
+                    <td>{{ requisition.title|truncatewords:10 }}</td>
+                    <td>{{ requisition.department.name }}</td>
+                    <td class="date-cell">{{ requisition.created_at|date:"M d, Y" }}</td>
+                    <td class="amount-cell">KES {{ requisition.estimated_amount|floatformat:0|intcomma }}</td>
+                    <td>
+                        <span class="status-badge status-{{ requisition.priority|lower }}">
+                            {{ requisition.get_priority_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ requisition.status|lower }}">
+                            {{ requisition.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'staff_requisition_detail' requisition.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if requisition.status == 'DRAFT' %}
+                        <a href="{% url 'staff_requisition_edit' requisition.id %}" class="action-btn" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-file-earmark-text"></i>
+        <p>No requisitions yet</p>
+        <a href="{% url 'staff_requisition_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create Your First Requisition
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="summary-grid" style="margin-top: 1.5rem;">
+    <div class="summary-card" style="cursor: pointer;" onclick="window.location.href='{% url 'staff_requisitions_list' %}?status=DRAFT'">
+        <div class="summary-value">{{ draft_count }}</div>
+        <div class="summary-label">
+            <i class="bi bi-pencil"></i>
+            Draft Requisitions
+        </div>
+    </div>
+    <div class="summary-card" style="cursor: pointer;" onclick="window.location.href='{% url 'staff_requisitions_pending' %}'">
+        <div class="summary-value">{{ pending_count }}</div>
+        <div class="summary-label">
+            <i class="bi bi-clock"></i>
+            Pending Approval
+        </div>
+    </div>
+    <div class="summary-card" style="cursor: pointer;" onclick="window.location.href='{% url 'staff_requisitions_approved' %}'">
+        <div class="summary-value">{{ approved_count }}</div>
+        <div class="summary-label">
+            <i class="bi bi-check-circle"></i>
+            Approved
+        </div>
+    </div>
+    <div class="summary-card" style="cursor: pointer;" onclick="window.location.href='{% url 'staff_requisitions_rejected' %}'">
+        <div class="summary-value">{{ rejected_count }}</div>
+        <div class="summary-label">
+            <i class="bi bi-x-circle"></i>
+            Rejected
+        </div>
+    </div>
+</div>
+{% endblock %}

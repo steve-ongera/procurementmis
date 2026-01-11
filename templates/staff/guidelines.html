@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Procurement Guidelines - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Procurement Guidelines</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'staff_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Guidelines</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'staff_help_center' %}" class="btn">
+            <i class="bi bi-life-ring"></i>
+            Help Center
+        </a>
+        <a href="{% url 'staff_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Introduction -->
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-header" style="background: var(--primary-light);">
+        <h2 class="table-title" style="color: var(--primary-color);">
+            <i class="bi bi-info-circle"></i>
+            About Procurement Guidelines
+        </h2>
+    </div>
+    <div style="padding: 1.5rem;">
+        <p style="line-height: 1.6; margin-bottom: 1rem;">
+            These guidelines are designed to help you navigate the procurement process efficiently and in compliance with university policies and government regulations. Please read through these guidelines carefully before submitting requisitions.
+        </p>
+        <p style="line-height: 1.6; margin: 0; color: var(--secondary-color); font-size: 0.875rem;">
+            Last Updated: {{ last_updated }}
+        </p>
+    </div>
+</div>
+
+<!-- Guidelines Sections -->
+{% for guideline in guidelines %}
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="{{ guideline.icon }}"></i>
+            {{ guideline.title }}
+        </h2>
+    </div>
+    <div style="padding: 1.5rem;">
+        <ul style="list-style: none; padding: 0; margin: 0;">
+            {% for item in guideline.items %}
+            <li style="display: flex; gap: 1rem; padding: 0.75rem; margin-bottom: 0.5rem; background: var(--hover-bg); border-radius: 0.375rem; line-height: 1.6;">
+                <i class="bi bi-check-circle" style="color: var(--success-color); flex-shrink: 0; margin-top: 0.125rem; font-size: 1.125rem;"></i>
+                <span>{{ item }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Important Notes -->
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-header" style="background: #FEF3C7; border-bottom-color: #FDE68A;">
+        <h2 class="table-title" style="color: #92400E;">
+            <i class="bi bi-exclamation-triangle"></i>
+            Important Notes
+        </h2>
+    </div>
+    <div style="padding: 1.5rem;">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; gap: 0.75rem; align-items: start;">
+                <i class="bi bi-shield-exclamation" style="color: #D97706; flex-shrink: 0; margin-top: 0.125rem; font-size: 1.25rem;"></i>
+                <div>
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">Compliance is Mandatory</div>
+                    <div style="color: var(--secondary-color); line-height: 1.6; font-size: 0.875rem;">
+                        All procurement activities must comply with university policies and government regulations. Non-compliance may result in delays or rejection of requisitions.
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: start;">
+                <i class="bi bi-clock-history" style="color: #D97706; flex-shrink: 0; margin-top: 0.125rem; font-size: 1.25rem;"></i>
+                <div>
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">Plan Ahead</div>
+                    <div style="color: var(--secondary-color); line-height: 1.6; font-size: 0.875rem;">
+                        Submit requisitions well in advance of when items are needed. The procurement process takes time, especially for high-value purchases requiring competitive tendering.
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: start;">
+                <i class="bi bi-file-earmark-check" style="color: #D97706; flex-shrink: 0; margin-top: 0.125rem; font-size: 1.25rem;"></i>
+                <div>
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">Complete Documentation</div>
+                    <div style="color: var(--secondary-color); line-height: 1.6; font-size: 0.875rem;">
+                        Ensure all required documents and information are provided upfront. Incomplete requisitions will be returned for additional information.
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: start;">
+                <i class="bi bi-people" style="color: #D97706; flex-shrink: 0; margin-top: 0.125rem; font-size: 1.25rem;"></i>
+                <div>
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">Transparency & Fairness</div>
+                    <div style="color: var(--secondary-color); line-height: 1.6; font-size: 0.875rem;">
+                        The procurement process is designed to ensure fair competition among suppliers and value for money. All suppliers are treated equally and objectively.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Resources -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-folder"></i>
+            Additional Resources
+        </h2>
+    </div>
+    <div style="padding: 1.5rem;">
+        <div class="filter-grid">
+            <a href="{{ policy_document_url }}" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 0.375rem; text-decoration: none; color: inherit; transition: all 0.2s;">
+                <i class="bi bi-file-pdf" style="font-size: 1.5rem; color: var(--danger-color);"></i>
+                <div>
+                    <div style="font-weight: 600;">Procurement Policy</div>
+                    <div class="summary-label">Download full policy document</div>
+                </div>
+            </a>
+            <a href="{% url 'staff_help_center' %}" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 0.375rem; text-decoration: none; color: inherit; transition: all 0.2s;">
+                <i class="bi bi-question-circle" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                <div>
+                    <div style="font-weight: 600;">FAQs</div>
+                    <div class="summary-label">Frequently asked questions</div>
+                </div>
+            </a>
+            <a href="mailto:procurement@university.ac.ke" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 0.375rem; text-decoration: none; color: inherit; transition: all 0.2s;">
+                <i class="bi bi-envelope" style="font-size: 1.5rem; color: var(--success-color);"></i>
+                <div>
+                    <div style="font-weight: 600;">Contact Support</div>
+                    <div class="summary-label">Get help from procurement team</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

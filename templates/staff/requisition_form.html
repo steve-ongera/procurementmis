@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ page_title }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'staff_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'staff_requisitions_list' %}">My Requisitions</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ page_title }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'staff_requisitions_list' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to List
+        </a>
+    </div>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <!-- Basic Information -->
+    <div class="table-card" style="margin-bottom: 1.5rem;">
+        <div class="table-header">
+            <h2 class="table-title">
+                <i class="bi bi-info-circle"></i>
+                Basic Information
+            </h2>
+        </div>
+        <div style="padding: 1.5rem;">
+            <div class="filter-grid">
+                <div class="form-group">
+                    <label class="form-label">{{ form.title.label }} <span style="color: var(--danger-color);">*</span></label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                    <div style="color: var(--danger-color); font-size: 0.875rem; margin-top: 0.25rem;">
+                        {{ form.title.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.budget.label }} <span style="color: var(--danger-color);">*</span></label>
+                    {{ form.budget }}
+                    {% if form.budget.errors %}
+                    <div style="color: var(--danger-color); font-size: 0.875rem; margin-top: 0.25rem;">
+                        {{ form.budget.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.priority.label }} <span style="color: var(--danger-color);">*</span></label>
+                    {{ form.priority }}
+                    {% if form.priority.errors %}
+                    <div style="color: var(--danger-color); font-size: 0.875rem; margin-top: 0.25rem;">
+                        {{ form.priority.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.required_date.label }} <span style="color: var(--danger-color);">*</span></label>
+                    {{ form.required_date }}
+                    {% if form.required_date.errors %}
+                    <div style="color: var(--danger-color); font-size: 0.875rem; margin-top: 0.25rem;">
+                        {{ form.required_date.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">{{ form.justification.label }} <span style="color: var(--danger-color);">*</span></label>
+                {{ form.justification }}
+                {% if form.justification.errors %}
+                <div style="color: var(--danger-color); font-size: 0.875rem; margin-top: 0.25rem;">
+                    {{ form.justification.errors }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    {{ form.is_emergency }}
+                    <span class="form-label" style="margin: 0;">{{ form.is_emergency.label }}</span>
+                </label>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;" id="emergency-justification-group" style="display: none;">
+                <label class="form-label">{{ form.emergency_justification.label }}</label>
+                {{ form.emergency_justification }}
+                {% if form.emergency_justification.errors %}
+                <div style="color: var(--danger-color); font-size: 0.875rem; margin-top: 0.25rem;">
+                    {{ form.emergency_justification.errors }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">{{ form.notes.label }}</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                <div style="color: var(--danger-color); font-size: 0.875rem; margin-top: 0.25rem;">
+                    {{ form.notes.errors }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Requisition Items -->
+    <div class="table-card" style="margin-bottom: 1.5rem;">
+        <div class="table-header">
+            <h2 class="table-title">
+                <i class="bi bi-list-ul"></i>
+                Requisition Items <span style="color: var(--danger-color);">*</span>
+            </h2>
+        </div>
+        <div style="padding: 1.5rem;">
+            {{ formset.management_form }}
+            
+            <div id="items-container">
+                {% for item_form in formset %}
+                <div class="item-form" style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 style="margin: 0; font-size: 0.875rem; font-weight: 600;">Item #{{ forloop.counter }}</h4>
+                        <button type="button" class="btn" onclick="this.closest('.item-form').remove();">
+                            <i class="bi bi-trash"></i>
+                            Remove
+                        </button>
+                    </div>
+
+                    {{ item_form.id }}
+                    {{ item_form.DELETE }}
+
+                    <div class="filter-grid">
+                        <div class="form-group">
+                            <label class="form-label">{{ item_form.item.label }}</label>
+                            {{ item_form.item }}
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">{{ item_form.unit_of_measure.label }}</label>
+                            {{ item_form.unit_of_measure }}
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">{{ item_form.quantity.label }}</label>
+                            {{ item_form.quantity }}
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">{{ item_form.estimated_unit_price.label }}</label>
+                            {{ item_form.estimated_unit_price }}
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label">{{ item_form.item_description.label }}</label>
+                        {{ item_form.item_description }}
+                    </div>
+
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label">{{ item_form.specifications.label }}</label>
+                        {{ item_form.specifications }}
+                    </div>
+
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label">{{ item_form.notes.label }}</label>
+                        {{ item_form.notes }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" class="btn btn-primary" id="add-item-btn">
+                <i class="bi bi-plus-circle"></i>
+                Add Another Item
+            </button>
+        </div>
+    </div>
+
+    <!-- Attachments -->
+    <div class="table-card" style="margin-bottom: 1.5rem;">
+        <div class="table-header">
+            <h2 class="table-title">
+                <i class="bi bi-paperclip"></i>
+                Supporting Documents (Optional)
+            </h2>
+        </div>
+        <div style="padding: 1.5rem;">
+            {{ attachment_formset.management_form }}
+            
+            <div id="attachments-container">
+                {% for attachment_form in attachment_formset %}
+                <div class="attachment-form" style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
+                    {{ attachment_form.id }}
+                    {{ attachment_form.DELETE }}
+
+                    <div class="filter-grid">
+                        <div class="form-group">
+                            <label class="form-label">{{ attachment_form.attachment_type.label }}</label>
+                            {{ attachment_form.attachment_type }}
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">{{ attachment_form.file_name.label }}</label>
+                            {{ attachment_form.file_name }}
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">{{ attachment_form.file.label }}</label>
+                            {{ attachment_form.file }}
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label">{{ attachment_form.description.label }}</label>
+                        {{ attachment_form.description }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" class="btn btn-primary" id="add-attachment-btn">
+                <i class="bi bi-plus-circle"></i>
+                Add Another Document
+            </button>
+        </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-bottom: 2rem;">
+        <a href="{% url 'staff_requisitions_list' %}" class="btn">
+            <i class="bi bi-x-circle"></i>
+            Cancel
+        </a>
+        <button type="submit" name="save_draft" class="btn">
+            <i class="bi bi-save"></i>
+            Save as Draft
+        </button>
+        <button type="submit" name="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i>
+            {% if requisition %}Update{% else %}Create{% endif %} Requisition
+        </button>
+    </div>
+</form>
+
+<script>
+// Toggle emergency justification field
+document.getElementById('id_is_emergency').addEventListener('change', function() {
+    const emergencyGroup = document.getElementById('emergency-justification-group');
+    emergencyGroup.style.display = this.checked ? 'block' : 'none';
+});
+
+// Initialize on page load
+if (document.getElementById('id_is_emergency').checked) {
+    document.getElementById('emergency-justification-group').style.display = 'block';
+}
+</script>
+{% endblock %}

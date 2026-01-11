@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Help Center - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Help Center</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'staff_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Help Center</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'staff_guidelines' %}" class="btn">
+            <i class="bi bi-book"></i>
+            Guidelines
+        </a>
+        <a href="{% url 'staff_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Contact Information -->
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-headset"></i>
+            Contact Support
+        </h2>
+    </div>
+    <div style="padding: 1.5rem;">
+        <div class="filter-grid">
+            <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 0.375rem;">
+                <i class="bi bi-envelope" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                <div>
+                    <div class="summary-label">Email</div>
+                    <div style="font-weight: 600; margin-top: 0.25rem;">{{ support_email }}</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 0.375rem;">
+                <i class="bi bi-telephone" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                <div>
+                    <div class="summary-label">Phone</div>
+                    <div style="font-weight: 600; margin-top: 0.25rem;">{{ support_phone }}</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 0.375rem;">
+                <i class="bi bi-clock" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                <div>
+                    <div class="summary-label">Office Hours</div>
+                    <div style="font-weight: 600; margin-top: 0.25rem;">{{ office_hours }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FAQs -->
+{% for category_data in faqs %}
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-question-circle"></i>
+            {{ category_data.category }}
+        </h2>
+    </div>
+    <div style="padding: 1.5rem;">
+        {% for faq in category_data.questions %}
+        <div style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; {% if not forloop.last %}border-bottom: 1px solid var(--border-color);{% endif %}">
+            <div style="font-weight: 600; color: #1E293B; margin-bottom: 0.75rem; display: flex; align-items: start; gap: 0.5rem;">
+                <i class="bi bi-patch-question" style="color: var(--primary-color); flex-shrink: 0; margin-top: 0.125rem;"></i>
+                <span>{{ faq.question }}</span>
+            </div>
+            <div style="color: var(--secondary-color); line-height: 1.6; padding-left: 1.75rem;">
+                {{ faq.answer }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+<!-- Quick Links -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-link-45deg"></i>
+            Quick Links
+        </h2>
+    </div>
+    <div style="padding: 1.5rem;">
+        <div class="filter-grid">
+            <a href="{% url 'staff_requisition_create' %}" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 0.375rem; text-decoration: none; color: inherit; transition: all 0.2s;">
+                <i class="bi bi-plus-circle" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                <div>
+                    <div style="font-weight: 600;">Create New Requisition</div>
+                    <div class="summary-label">Start a new purchase request</div>
+                </div>
+            </a>
+            <a href="{% url 'staff_requisitions_list' %}" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 0.375rem; text-decoration: none; color: inherit; transition: all 0.2s;">
+                <i class="bi bi-list-ul" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                <div>
+                    <div style="font-weight: 600;">My Requisitions</div>
+                    <div class="summary-label">View all your requisitions</div>
+                </div>
+            </a>
+            <a href="{% url 'staff_guidelines' %}" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 0.375rem; text-decoration: none; color: inherit; transition: all 0.2s;">
+                <i class="bi bi-book" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                <div>
+                    <div style="font-weight: 600;">Procurement Guidelines</div>
+                    <div class="summary-label">View policies and procedures</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
