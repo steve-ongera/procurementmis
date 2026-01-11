@@ -257,8 +257,8 @@ urlpatterns = [
     # ============================================================================
     # DASHBOARD & ANALYTICS
     # ============================================================================
-    path('hod/dashboard/', views.hod_dashboard_view, name='hod_dashboard'),
-    path('hod/analytics/', views.hod_analytics_view, name='hod_analytics'),
+    path('hod/dashboard/', views.hod_dashboard, name='hod_dashboard'),
+    path('hod/analytics/', views.hod_analytics_view, name='hod_analytics'), 
     
     # ============================================================================
     # REQUISITIONS

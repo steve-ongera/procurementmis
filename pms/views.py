@@ -494,34 +494,6 @@ def admin_dashboard(request):
 
 
 
-def hod_dashboard(request):
-    """Head of Department Dashboard"""
-    user = request.user
-    department = user.department
-    
-    pending_approvals = Requisition.objects.filter(
-        department=department,
-        status='SUBMITTED'
-    ).order_by('-created_at')
-    
-    context = {
-        'department': department,
-        'pending_approvals': pending_approvals,
-        'pending_count': pending_approvals.count(),
-        'department_requisitions': Requisition.objects.filter(
-            department=department
-        ).order_by('-created_at')[:10],
-        'department_budget': Budget.objects.filter(
-            department=department,
-            budget_year__is_active=True
-        ).aggregate(
-            total_allocated=Sum('allocated_amount'),
-            total_spent=Sum('actual_spent')
-        ),
-        'monthly_spend': get_monthly_spend(department),
-    }
-    return render(request, 'dashboards/hod_dashboard.html', context)
-
 
 def procurement_dashboard(request):
     """Procurement Officer Dashboard"""
@@ -11102,7 +11074,7 @@ def log_action(user, action, model_name, object_id, object_repr, changes=None, r
 # ============================================================================
 
 @login_required
-def hod_dashboard_view(request):
+def hod_dashboard(request):
     """HOD Dashboard with department overview"""
     if not check_hod_permission(request.user):
         messages.error(request, 'You do not have HOD permissions.')
