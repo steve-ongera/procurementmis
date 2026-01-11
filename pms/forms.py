@@ -1024,3 +1024,444 @@ class QuickRequisitionForm(forms.Form):
             'type': 'date'
         })
     )
+    
+    
+
+"""
+Finance Forms
+Forms for finance officer functionality
+"""
+
+from django import forms
+from django.core.exceptions import ValidationError
+from decimal import Decimal
+from .models import (
+    Payment, Budget, BudgetReallocation, Invoice,
+    BudgetYear, Department, BudgetCategory
+)
+
+
+class PaymentForm(forms.ModelForm):
+    """Form for processing payments"""
+    
+    class Meta:
+        model = Payment
+        fields = [
+            'payment_date',
+            'payment_amount',
+            'payment_method',
+            'payment_reference',
+            'bank_name',
+            'cheque_number',
+            'notes'
+        ]
+        widgets = {
+            'payment_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+            'payment_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01'
+            }),
+            'payment_method': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'payment_reference': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter payment reference number'
+            }),
+            'bank_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter bank name (if applicable)'
+            }),
+            'cheque_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter cheque number (if applicable)'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Additional notes (optional)'
+            })
+        }
+    
+    def clean_payment_amount(self):
+        """Validate payment amount"""
+        amount = self.cleaned_data.get('payment_amount')
+        if amount <= 0:
+            raise ValidationError('Payment amount must be greater than zero.')
+        return amount
+    
+    def clean(self):
+        """Additional validation"""
+        cleaned_data = super().clean()
+        payment_method = cleaned_data.get('payment_method')
+        cheque_number = cleaned_data.get('cheque_number')
+        bank_name = cleaned_data.get('bank_name')
+        
+        # Validate cheque details if payment method is cheque
+        if payment_method == 'CHEQUE':
+            if not cheque_number:
+                raise ValidationError({
+                    'cheque_number': 'Cheque number is required for cheque payments.'
+                })
+            if not bank_name:
+                raise ValidationError({
+                    'bank_name': 'Bank name is required for cheque payments.'
+                })
+        
+        return cleaned_data
+
+
+class BudgetForm(forms.ModelForm):
+    """Form for creating/editing budgets"""
+    
+    class Meta:
+        model = Budget
+        fields = [
+            'budget_year',
+            'department',
+            'category',
+            'budget_type',
+            'allocated_amount',
+            'reference_number',
+            'description'
+        ]
+        widgets = {
+            'budget_year': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'department': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'budget_type': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'allocated_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+                'placeholder': 'Enter allocated amount'
+            }),
+            'reference_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter reference number (optional)'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Enter budget description'
+            })
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter active budget years
+        self.fields['budget_year'].queryset = BudgetYear.objects.all().order_by('-start_date')
+        # Filter active departments
+        self.fields['department'].queryset = Department.objects.filter(is_active=True).order_by('name')
+        # Filter active categories
+        self.fields['category'].queryset = BudgetCategory.objects.filter(is_active=True).order_by('code')
+    
+    def clean_allocated_amount(self):
+        """Validate allocated amount"""
+        amount = self.cleaned_data.get('allocated_amount')
+        if amount <= 0:
+            raise ValidationError('Allocated amount must be greater than zero.')
+        return amount
+    
+    def clean(self):
+        """Validate unique constraint"""
+        cleaned_data = super().clean()
+        budget_year = cleaned_data.get('budget_year')
+        department = cleaned_data.get('department')
+        category = cleaned_data.get('category')
+        reference_number = cleaned_data.get('reference_number')
+        
+        if budget_year and department and category:
+            # Check for duplicate budget
+            query = Budget.objects.filter(
+                budget_year=budget_year,
+                department=department,
+                category=category,
+                reference_number=reference_number
+            )
+            
+            # Exclude current instance if editing
+            if self.instance.pk:
+                query = query.exclude(pk=self.instance.pk)
+            
+            if query.exists():
+                raise ValidationError(
+                    'A budget already exists for this combination of year, department, category, and reference number.'
+                )
+        
+        return cleaned_data
+
+
+class BudgetReallocationForm(forms.ModelForm):
+    """Form for budget reallocation/virement"""
+    
+    class Meta:
+        model = BudgetReallocation
+        fields = [
+            'from_budget',
+            'to_budget',
+            'amount',
+            'justification'
+        ]
+        widgets = {
+            'from_budget': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'to_budget': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+                'placeholder': 'Enter reallocation amount'
+            }),
+            'justification': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Provide justification for this reallocation'
+            })
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Get current active budget year
+        current_year = BudgetYear.objects.filter(is_active=True).first()
+        if current_year:
+            # Filter budgets for current year only
+            active_budgets = Budget.objects.filter(
+                budget_year=current_year,
+                is_active=True
+            ).select_related('department', 'category').order_by('department__name', 'category__name')
+            
+            self.fields['from_budget'].queryset = active_budgets
+            self.fields['to_budget'].queryset = active_budgets
+    
+    def clean_amount(self):
+        """Validate reallocation amount"""
+        amount = self.cleaned_data.get('amount')
+        if amount <= 0:
+            raise ValidationError('Reallocation amount must be greater than zero.')
+        return amount
+    
+    def clean(self):
+        """Additional validation"""
+        cleaned_data = super().clean()
+        from_budget = cleaned_data.get('from_budget')
+        to_budget = cleaned_data.get('to_budget')
+        amount = cleaned_data.get('amount')
+        
+        if from_budget and to_budget:
+            # Check if same budget
+            if from_budget == to_budget:
+                raise ValidationError('Cannot reallocate to the same budget.')
+            
+            # Check if sufficient balance
+            if from_budget.available_balance < amount:
+                raise ValidationError({
+                    'amount': f'Insufficient available balance in source budget. Available: {from_budget.available_balance}'
+                })
+        
+        return cleaned_data
+
+
+class InvoiceFilterForm(forms.Form):
+    """Form for filtering invoices"""
+    
+    status = forms.ChoiceField(
+        choices=[('', 'All Statuses')] + Invoice.STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    supplier = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        empty_label='All Suppliers',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control'
+        })
+    )
+    
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control'
+        })
+    )
+    
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search invoice number or supplier...'
+        })
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import Supplier
+        self.fields['supplier'].queryset = Supplier.objects.filter(
+            status='APPROVED'
+        ).order_by('name')
+
+
+class PaymentFilterForm(forms.Form):
+    """Form for filtering payments"""
+    
+    status = forms.ChoiceField(
+        choices=[('', 'All Statuses')] + Payment.PAYMENT_STATUS,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    payment_method = forms.ChoiceField(
+        choices=[('', 'All Methods')] + Payment.PAYMENT_METHODS,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control'
+        })
+    )
+    
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control'
+        })
+    )
+    
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search payment number or reference...'
+        })
+    )
+
+
+class BudgetFilterForm(forms.Form):
+    """Form for filtering budgets"""
+    
+    year = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        empty_label='All Years',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    department = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        empty_label='All Departments',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    category = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        empty_label='All Categories',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    budget_type = forms.ChoiceField(
+        choices=[('', 'All Types')] + Budget.BUDGET_TYPE,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search department, category, or reference...'
+        })
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['year'].queryset = BudgetYear.objects.all().order_by('-start_date')
+        self.fields['department'].queryset = Department.objects.filter(is_active=True).order_by('name')
+        self.fields['category'].queryset = BudgetCategory.objects.filter(is_active=True).order_by('code')
+
+
+class ReportFilterForm(forms.Form):
+    """Form for report filtering"""
+    
+    date_from = forms.DateField(
+        required=True,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control'
+        }),
+        label='From Date'
+    )
+    
+    date_to = forms.DateField(
+        required=True,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control'
+        }),
+        label='To Date'
+    )
+    
+    department = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        empty_label='All Departments',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    export_format = forms.ChoiceField(
+        choices=[
+            ('csv', 'CSV'),
+            ('pdf', 'PDF'),
+            ('excel', 'Excel')
+        ],
+        required=False,
+        initial='csv',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['department'].queryset = Department.objects.filter(is_active=True).order_by('name')
+    
+    def clean(self):
+        """Validate date range"""
+        cleaned_data = super().clean()
+        date_from = cleaned_data.get('date_from')
+        date_to = cleaned_data.get('date_to')
+        
+        if date_from and date_to:
+            if date_from > date_to:
+                raise ValidationError('From date must be before to date.')
+        
+        return cleaned_data
+    

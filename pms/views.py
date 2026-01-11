@@ -12371,3 +12371,1338 @@ def hod_export_budget_pdf(request):
     # Placeholder for now
     messages.info(request, 'PDF export feature coming soon.')
     return redirect('hod_budget_overview')
+
+
+"""
+Finance Officer Views - Complete Implementation
+All views for Finance role functionality
+"""
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q, Sum, Count, Avg, F
+from django.core.paginator import Paginator
+from django.utils import timezone
+from django.http import JsonResponse, HttpResponse
+from decimal import Decimal
+from datetime import datetime, timedelta
+import csv
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+
+from .models import (
+    User, Budget, BudgetYear, BudgetCategory, BudgetReallocation,
+    Invoice, InvoiceItem, InvoiceDocument, Payment,
+    Requisition, RequisitionApproval, PurchaseOrder,
+    Department, Supplier
+)
+from .forms import PaymentForm, BudgetForm, BudgetReallocationForm
+
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def check_finance_permission(user):
+    """Check if user has finance officer permissions"""
+    return user.role == 'FINANCE' or user.is_superuser
+
+
+# ============================================================================
+# DASHBOARD & ANALYTICS
+# ============================================================================
+
+@login_required
+def finance_dashboard_view(request):
+    """Finance Officer Dashboard"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    # Get current budget year
+    current_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    # Budget Statistics
+    if current_year:
+        budgets = Budget.objects.filter(
+            budget_year=current_year,
+            is_active=True
+        )
+        
+        total_allocated = budgets.aggregate(Sum('allocated_amount'))['allocated_amount__sum'] or 0
+        total_committed = budgets.aggregate(Sum('committed_amount'))['committed_amount__sum'] or 0
+        total_spent = budgets.aggregate(Sum('actual_spent'))['actual_spent__sum'] or 0
+        available_balance = total_allocated - total_committed - total_spent
+    else:
+        total_allocated = total_committed = total_spent = available_balance = 0
+    
+    # Invoice Statistics
+    pending_invoices_count = Invoice.objects.filter(
+        status__in=['SUBMITTED', 'VERIFYING']
+    ).count()
+    
+    pending_invoices_value = Invoice.objects.filter(
+        status__in=['SUBMITTED', 'VERIFYING']
+    ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    
+    approved_invoices_count = Invoice.objects.filter(
+        status='APPROVED'
+    ).count()
+    
+    approved_invoices_value = Invoice.objects.filter(
+        status='APPROVED'
+    ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    
+    # Payment Statistics
+    pending_payments = Payment.objects.filter(
+        status='PENDING'
+    ).count()
+    
+    completed_payments = Payment.objects.filter(
+        status='COMPLETED',
+        created_at__gte=timezone.now() - timedelta(days=30)
+    ).count()
+    
+    total_paid_this_month = Payment.objects.filter(
+        status='COMPLETED',
+        payment_date__gte=timezone.now().replace(day=1)
+    ).aggregate(Sum('payment_amount'))['payment_amount__sum'] or 0
+    
+    # Pending Approvals (Budget Check Stage)
+    pending_approvals = RequisitionApproval.objects.filter(
+        approval_stage='BUDGET',
+        status='PENDING'
+    ).select_related('requisition', 'requisition__department')[:5]
+    
+    # Recent Activities
+    recent_invoices = Invoice.objects.filter(
+        status__in=['SUBMITTED', 'VERIFYING', 'APPROVED']
+    ).select_related('supplier', 'purchase_order').order_by('-created_at')[:5]
+    
+    recent_payments = Payment.objects.filter(
+        status__in=['PENDING', 'PROCESSING', 'COMPLETED']
+    ).select_related('invoice', 'invoice__supplier').order_by('-created_at')[:5]
+    
+    # Budget Utilization by Department
+    department_utilization = Budget.objects.filter(
+        budget_year=current_year,
+        is_active=True
+    ).values(
+        'department__name', 'department__code'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        spent=Sum('actual_spent'),
+        committed=Sum('committed_amount')
+    ).order_by('-allocated')[:10]
+    
+    context = {
+        'current_year': current_year,
+        'total_allocated': total_allocated,
+        'total_committed': total_committed,
+        'total_spent': total_spent,
+        'available_balance': available_balance,
+        'budget_utilization_percentage': (total_spent / total_allocated * 100) if total_allocated > 0 else 0,
+        
+        'pending_invoices_count': pending_invoices_count,
+        'pending_invoices_value': pending_invoices_value,
+        'approved_invoices_count': approved_invoices_count,
+        'approved_invoices_value': approved_invoices_value,
+        
+        'pending_payments': pending_payments,
+        'completed_payments': completed_payments,
+        'total_paid_this_month': total_paid_this_month,
+        
+        'pending_approvals': pending_approvals,
+        'recent_invoices': recent_invoices,
+        'recent_payments': recent_payments,
+        'department_utilization': department_utilization,
+    }
+    
+    return render(request, 'finance/dashboard.html', context)
+
+
+@login_required
+def finance_analytics_view(request):
+    """Finance Analytics Dashboard"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    current_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    # Monthly spending trend (last 12 months)
+    twelve_months_ago = timezone.now() - timedelta(days=365)
+    monthly_spending = Payment.objects.filter(
+        status='COMPLETED',
+        payment_date__gte=twelve_months_ago
+    ).extra(
+        select={'month': "EXTRACT(month FROM payment_date)", 'year': "EXTRACT(year FROM payment_date)"}
+    ).values('month', 'year').annotate(
+        total=Sum('payment_amount')
+    ).order_by('year', 'month')
+    
+    # Category-wise spending
+    category_spending = Budget.objects.filter(
+        budget_year=current_year,
+        is_active=True
+    ).values('category__name').annotate(
+        allocated=Sum('allocated_amount'),
+        spent=Sum('actual_spent')
+    ).order_by('-spent')[:10]
+    
+    # Department-wise spending
+    department_spending = Budget.objects.filter(
+        budget_year=current_year,
+        is_active=True
+    ).values('department__name').annotate(
+        allocated=Sum('allocated_amount'),
+        spent=Sum('actual_spent')
+    ).order_by('-spent')[:10]
+    
+    # Top suppliers by payment value
+    top_suppliers = Payment.objects.filter(
+        status='COMPLETED',
+        payment_date__year=timezone.now().year
+    ).values('invoice__supplier__name').annotate(
+        total_paid=Sum('payment_amount'),
+        payment_count=Count('id')
+    ).order_by('-total_paid')[:10]
+    
+    # Payment trends
+    payment_by_method = Payment.objects.filter(
+        status='COMPLETED',
+        payment_date__year=timezone.now().year
+    ).values('payment_method').annotate(
+        total=Sum('payment_amount'),
+        count=Count('id')
+    ).order_by('-total')
+    
+    context = {
+        'current_year': current_year,
+        'monthly_spending': list(monthly_spending),
+        'category_spending': list(category_spending),
+        'department_spending': list(department_spending),
+        'top_suppliers': list(top_suppliers),
+        'payment_by_method': list(payment_by_method),
+    }
+    
+    return render(request, 'finance/analytics.html', context)
+
+
+# ============================================================================
+# BUDGET MANAGEMENT
+# ============================================================================
+
+@login_required
+def finance_budgets_list_view(request):
+    """List all budgets"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    # Filters
+    year_id = request.GET.get('year')
+    department_id = request.GET.get('department')
+    category_id = request.GET.get('category')
+    budget_type = request.GET.get('budget_type')
+    search = request.GET.get('search', '')
+    
+    budgets = Budget.objects.select_related(
+        'budget_year', 'department', 'category', 'created_by'
+    ).all()
+    
+    if year_id:
+        budgets = budgets.filter(budget_year_id=year_id)
+    if department_id:
+        budgets = budgets.filter(department_id=department_id)
+    if category_id:
+        budgets = budgets.filter(category_id=category_id)
+    if budget_type:
+        budgets = budgets.filter(budget_type=budget_type)
+    if search:
+        budgets = budgets.filter(
+            Q(department__name__icontains=search) |
+            Q(category__name__icontains=search) |
+            Q(reference_number__icontains=search)
+        )
+    
+    budgets = budgets.order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(budgets, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    # For filters
+    budget_years = BudgetYear.objects.all().order_by('-start_date')
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    categories = BudgetCategory.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'page_obj': page_obj,
+        'budget_years': budget_years,
+        'departments': departments,
+        'categories': categories,
+        'total_count': budgets.count(),
+    }
+    
+    return render(request, 'finance/budgets_list.html', context)
+
+
+@login_required
+def finance_budget_detail_view(request, pk):
+    """Budget detail view"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    budget = get_object_or_404(
+        Budget.objects.select_related(
+            'budget_year', 'department', 'category', 'created_by'
+        ),
+        pk=pk
+    )
+    
+    # Get requisitions linked to this budget
+    requisitions = Requisition.objects.filter(
+        budget=budget
+    ).select_related('requested_by', 'department').order_by('-created_at')
+    
+    # Budget reallocations
+    reallocations_from = BudgetReallocation.objects.filter(
+        from_budget=budget
+    ).select_related('to_budget', 'requested_by', 'approved_by')
+    
+    reallocations_to = BudgetReallocation.objects.filter(
+        to_budget=budget
+    ).select_related('from_budget', 'requested_by', 'approved_by')
+    
+    context = {
+        'budget': budget,
+        'requisitions': requisitions,
+        'reallocations_from': reallocations_from,
+        'reallocations_to': reallocations_to,
+    }
+    
+    return render(request, 'finance/budget_detail.html', context)
+
+
+@login_required
+def finance_budget_create_view(request):
+    """Create new budget"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        form = BudgetForm(request.POST)
+        if form.is_valid():
+            budget = form.save(commit=False)
+            budget.created_by = request.user
+            budget.save()
+            
+            log_action(request.user, 'CREATE', 'Budget', budget.id, str(budget), request=request)
+            messages.success(request, f'Budget created successfully for {budget.department.name}.')
+            return redirect('finance_budget_detail', pk=budget.pk)
+    else:
+        form = BudgetForm()
+    
+    context = {
+        'form': form,
+    }
+    
+    return render(request, 'finance/budget_form.html', context)
+
+
+@login_required
+def finance_budget_edit_view(request, pk):
+    """Edit existing budget"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    budget = get_object_or_404(Budget, pk=pk)
+    
+    if request.method == 'POST':
+        form = BudgetForm(request.POST, instance=budget)
+        if form.is_valid():
+            budget = form.save()
+            
+            log_action(request.user, 'UPDATE', 'Budget', budget.id, str(budget), request=request)
+            messages.success(request, f'Budget updated successfully.')
+            return redirect('finance_budget_detail', pk=budget.pk)
+    else:
+        form = BudgetForm(instance=budget)
+    
+    context = {
+        'form': form,
+        'budget': budget,
+    }
+    
+    return render(request, 'finance/budget_form.html', context)
+
+
+@login_required
+def finance_budget_allocation_view(request):
+    """View and manage budget allocations"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    current_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    if not current_year:
+        messages.warning(request, 'No active budget year found.')
+        return redirect('finance_dashboard')
+    
+    # Get all budgets for current year
+    budgets = Budget.objects.filter(
+        budget_year=current_year,
+        is_active=True
+    ).select_related('department', 'category').order_by('department__name', 'category__name')
+    
+    # Summary by department
+    dept_summary = budgets.values('department__name').annotate(
+        total_allocated=Sum('allocated_amount'),
+        total_spent=Sum('actual_spent'),
+        total_committed=Sum('committed_amount')
+    ).order_by('department__name')
+    
+    context = {
+        'current_year': current_year,
+        'budgets': budgets,
+        'dept_summary': dept_summary,
+    }
+    
+    return render(request, 'finance/budget_allocation.html', context)
+
+
+@login_required
+def finance_budget_tracking_view(request):
+    """Budget tracking and utilization"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    current_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    if not current_year:
+        messages.warning(request, 'No active budget year found.')
+        return redirect('finance_dashboard')
+    
+    # Department-wise budget summary
+    department_summary = Budget.objects.filter(
+        budget_year=current_year,
+        is_active=True
+    ).values(
+        'department__id',
+        'department__name',
+        'department__code'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        committed=Sum('committed_amount'),
+        spent=Sum('actual_spent')
+    ).order_by('department__name')
+    
+    # Calculate available balance for each
+    for dept in department_summary:
+        dept['available'] = dept['allocated'] - dept['committed'] - dept['spent']
+        dept['utilization_percentage'] = (
+            (dept['spent'] / dept['allocated'] * 100) if dept['allocated'] > 0 else 0
+        )
+    
+    # Category-wise budget summary
+    category_summary = Budget.objects.filter(
+        budget_year=current_year,
+        is_active=True
+    ).values(
+        'category__id',
+        'category__name',
+        'category__code'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        committed=Sum('committed_amount'),
+        spent=Sum('actual_spent')
+    ).order_by('category__name')
+    
+    for cat in category_summary:
+        cat['available'] = cat['allocated'] - cat['committed'] - cat['spent']
+        cat['utilization_percentage'] = (
+            (cat['spent'] / cat['allocated'] * 100) if cat['allocated'] > 0 else 0
+        )
+    
+    context = {
+        'current_year': current_year,
+        'department_summary': department_summary,
+        'category_summary': category_summary,
+    }
+    
+    return render(request, 'finance/budget_tracking.html', context)
+
+
+@login_required
+def finance_budget_reallocate_view(request):
+    """Budget reallocation/virement"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        form = BudgetReallocationForm(request.POST)
+        if form.is_valid():
+            reallocation = form.save(commit=False)
+            reallocation.requested_by = request.user
+            reallocation.approved_by = request.user
+            reallocation.approved_at = timezone.now()
+            reallocation.status = 'APPROVED'
+            
+            # Update budgets
+            from_budget = reallocation.from_budget
+            to_budget = reallocation.to_budget
+            amount = reallocation.amount
+            
+            from_budget.allocated_amount -= amount
+            from_budget.save()
+            
+            to_budget.allocated_amount += amount
+            to_budget.save()
+            
+            reallocation.save()
+            
+            log_action(request.user, 'CREATE', 'BudgetReallocation', reallocation.id, str(reallocation), request=request)
+            messages.success(request, f'Budget reallocation of {amount} completed successfully.')
+            return redirect('finance_budget_tracking')
+    else:
+        form = BudgetReallocationForm()
+    
+    context = {
+        'form': form,
+    }
+    
+    return render(request, 'finance/budget_reallocate.html', context)
+
+
+# ============================================================================
+# INVOICE MANAGEMENT
+# ============================================================================
+
+@login_required
+def finance_invoices_list_view(request):
+    """List all invoices"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    # Filters
+    status = request.GET.get('status')
+    supplier_id = request.GET.get('supplier')
+    search = request.GET.get('search', '')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    invoices = Invoice.objects.select_related(
+        'supplier', 'purchase_order', 'grn', 'verified_by', 'approved_by'
+    ).all()
+    
+    if status:
+        invoices = invoices.filter(status=status)
+    if supplier_id:
+        invoices = invoices.filter(supplier_id=supplier_id)
+    if search:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=search) |
+            Q(supplier_invoice_number__icontains=search) |
+            Q(supplier__name__icontains=search)
+        )
+    if date_from:
+        invoices = invoices.filter(invoice_date__gte=date_from)
+    if date_to:
+        invoices = invoices.filter(invoice_date__lte=date_to)
+    
+    invoices = invoices.order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(invoices, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    # Statistics
+    total_value = invoices.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': invoices.count(),
+        'total_value': total_value,
+    }
+    
+    return render(request, 'finance/invoices_list.html', context)
+
+
+@login_required
+def finance_invoice_detail_view(request, pk):
+    """Invoice detail view"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    invoice = get_object_or_404(
+        Invoice.objects.select_related(
+            'supplier', 'purchase_order', 'grn',
+            'verified_by', 'approved_by', 'submitted_by'
+        ),
+        pk=pk
+    )
+    
+    # Get invoice items
+    items = invoice.items.select_related('po_item').all()
+    
+    # Get invoice documents
+    documents = invoice.documents.all()
+    
+    # Get payments for this invoice
+    payments = invoice.payments.select_related(
+        'processed_by', 'approved_by'
+    ).order_by('-created_at')
+    
+    context = {
+        'invoice': invoice,
+        'items': items,
+        'documents': documents,
+        'payments': payments,
+    }
+    
+    return render(request, 'finance/invoice_detail.html', context)
+
+
+@login_required
+def finance_invoice_verify_view(request, pk):
+    """Verify invoice (3-way matching)"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    invoice = get_object_or_404(Invoice, pk=pk)
+    
+    if invoice.status not in ['SUBMITTED', 'VERIFYING']:
+        messages.warning(request, 'This invoice cannot be verified.')
+        return redirect('finance_invoice_detail', pk=pk)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        comments = request.POST.get('comments', '')
+        
+        if action == 'approve':
+            invoice.status = 'MATCHED'
+            invoice.verified_by = request.user
+            invoice.verified_at = timezone.now()
+            invoice.matching_notes = comments
+            invoice.is_three_way_matched = True
+            invoice.save()
+            
+            log_action(request.user, 'APPROVE', 'Invoice', invoice.id, str(invoice), request=request)
+            messages.success(request, f'Invoice {invoice.invoice_number} verified successfully.')
+            
+        elif action == 'dispute':
+            invoice.status = 'DISPUTED'
+            invoice.dispute_reason = comments
+            invoice.verified_by = request.user
+            invoice.verified_at = timezone.now()
+            invoice.save()
+            
+            log_action(request.user, 'REJECT', 'Invoice', invoice.id, str(invoice), request=request)
+            messages.info(request, f'Invoice {invoice.invoice_number} marked as disputed.')
+        
+        return redirect('finance_invoice_detail', pk=pk)
+    
+    # Get PO and GRN for comparison
+    po = invoice.purchase_order
+    grn = invoice.grn
+    
+    context = {
+        'invoice': invoice,
+        'po': po,
+        'grn': grn,
+    }
+    
+    return render(request, 'finance/invoice_verify.html', context)
+
+
+@login_required
+def finance_invoice_approve_view(request, pk):
+    """Approve invoice for payment"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    invoice = get_object_or_404(Invoice, pk=pk)
+    
+    if invoice.status != 'MATCHED':
+        messages.warning(request, 'Invoice must be verified before approval.')
+        return redirect('finance_invoice_detail', pk=pk)
+    
+    if request.method == 'POST':
+        comments = request.POST.get('comments', '')
+        
+        invoice.status = 'APPROVED'
+        invoice.approved_by = request.user
+        invoice.approved_at = timezone.now()
+        invoice.balance_due = invoice.total_amount  # Set initial balance
+        if comments:
+            invoice.notes = f"{invoice.notes}\n\nApproval Notes: {comments}" if invoice.notes else f"Approval Notes: {comments}"
+        invoice.save()
+        
+        log_action(request.user, 'APPROVE', 'Invoice', invoice.id, str(invoice), request=request)
+        messages.success(request, f'Invoice {invoice.invoice_number} approved for payment.')
+        
+        return redirect('finance_invoice_detail', pk=pk)
+    
+    context = {
+        'invoice': invoice,
+    }
+    
+    return render(request, 'finance/invoice_approve.html', context)
+
+
+@login_required
+def finance_pending_invoices_view(request):
+    """List pending invoices"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    invoices = Invoice.objects.filter(
+        status__in=['SUBMITTED', 'VERIFYING']
+    ).select_related('supplier', 'purchase_order').order_by('-created_at')
+    
+    paginator = Paginator(invoices, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    total_value = invoices.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': invoices.count(),
+        'total_value': total_value,
+    }
+    
+    return render(request, 'finance/pending_invoices.html', context)
+
+
+@login_required
+def finance_paid_invoices_view(request):
+    """List paid invoices"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    invoices = Invoice.objects.filter(
+        status='PAID'
+    ).select_related('supplier', 'purchase_order').order_by('-payment_date')
+    
+    paginator = Paginator(invoices, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    total_paid = invoices.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': invoices.count(),
+        'total_paid': total_paid,
+    }
+    
+    return render(request, 'finance/paid_invoices.html', context)
+
+
+@login_required
+def finance_overdue_invoices_view(request):
+    """List overdue invoices"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    today = timezone.now().date()
+    
+    invoices = Invoice.objects.filter(
+        status__in=['APPROVED', 'MATCHED'],
+        due_date__lt=today
+    ).select_related('supplier', 'purchase_order').order_by('due_date')
+    
+    paginator = Paginator(invoices, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    total_overdue = invoices.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': invoices.count(),
+        'total_overdue': total_overdue,
+    }
+    
+    return render(request, 'finance/overdue_invoices.html', context)
+
+
+# ============================================================================
+# PAYMENT MANAGEMENT
+# ============================================================================
+
+@login_required
+def finance_payments_list_view(request):
+    """List all payments"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    # Filters
+    status = request.GET.get('status')
+    search = request.GET.get('search', '')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    payments = Payment.objects.select_related(
+        'invoice', 'invoice__supplier', 'processed_by', 'approved_by'
+    ).all()
+    
+    if status:
+        payments = payments.filter(status=status)
+    if search:
+        payments = payments.filter(
+            Q(payment_number__icontains=search) |
+            Q(payment_reference__icontains=search) |
+            Q(invoice__invoice_number__icontains=search) |
+            Q(invoice__supplier__name__icontains=search)
+        )
+    if date_from:
+        payments = payments.filter(payment_date__gte=date_from)
+    if date_to:
+        payments = payments.filter(payment_date__lte=date_to)
+    
+    payments = payments.order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(payments, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    total_amount = payments.aggregate(Sum('payment_amount'))['payment_amount__sum'] or 0
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': payments.count(),
+        'total_amount': total_amount,
+    }
+    
+    return render(request, 'finance/payments_list.html', context)
+
+
+@login_required
+def finance_payment_detail_view(request, pk):
+    """Payment detail view"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    payment = get_object_or_404(
+        Payment.objects.select_related(
+            'invoice', 'invoice__supplier', 'invoice__purchase_order',
+            'processed_by', 'approved_by'
+        ),
+        pk=pk
+    )
+    
+    context = {
+        'payment': payment,
+    }
+    
+    return render(request, 'finance/payment_detail.html', context)
+
+
+@login_required
+def finance_process_payment_view(request, invoice_id):
+    """Process payment for an invoice"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    invoice = get_object_or_404(
+        Invoice.objects.select_related('supplier', 'purchase_order'),
+        pk=invoice_id
+    )
+    
+    if invoice.status != 'APPROVED':
+        messages.error(request, 'Invoice must be approved before payment.')
+        return redirect('finance_invoice_detail', pk=invoice_id)
+    
+    if request.method == 'POST':
+        form = PaymentForm(request.POST)
+        if form.is_valid():
+            payment = form.save(commit=False)
+            payment.invoice = invoice
+            payment.processed_by = request.user
+            payment.status = 'PENDING'
+            payment.save()
+            
+            # Update invoice
+            invoice.update_payment_status()
+            
+            log_action(request.user, 'CREATE', 'Payment', payment.id, str(payment), request=request)
+            messages.success(request, f'Payment {payment.payment_number} created successfully.')
+            
+            return redirect('finance_payment_detail', pk=payment.pk)
+    else:
+        form = PaymentForm(initial={
+            'payment_date': timezone.now().date(),
+            'payment_amount': invoice.balance_due,
+        })
+    
+    context = {
+        'form': form,
+        'invoice': invoice,
+    }
+    
+    return render(request, 'finance/process_payment.html', context)
+
+
+@login_required
+def finance_approve_payment_view(request, pk):
+    """Approve a payment"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    payment = get_object_or_404(Payment, pk=pk)
+    
+    if payment.status != 'PENDING':
+        messages.warning(request, 'Payment is not pending approval.')
+        return redirect('finance_payment_detail', pk=pk)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'approve':
+            payment.status = 'COMPLETED'
+            payment.approved_by = request.user
+            payment.save()
+            
+            # Update invoice payment status
+            payment.invoice.update_payment_status()
+            
+            log_action(request.user, 'APPROVE', 'Payment', payment.id, str(payment), request=request)
+            messages.success(request, f'Payment {payment.payment_number} approved.')
+            
+        elif action == 'reject':
+            payment.status = 'CANCELLED'
+            payment.notes = request.POST.get('notes', 'Rejected by finance')
+            payment.save()
+            
+            log_action(request.user, 'REJECT', 'Payment', payment.id, str(payment), request=request)
+            messages.info(request, f'Payment {payment.payment_number} rejected.')
+        
+        return redirect('finance_payment_detail', pk=pk)
+    
+    context = {
+        'payment': payment,
+    }
+    
+    return render(request, 'finance/approve_payment.html', context)
+
+
+@login_required
+def finance_payment_schedule_view(request):
+    """Payment schedule view"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    # Get approved invoices awaiting payment
+    upcoming_payments = Invoice.objects.filter(
+        status='APPROVED'
+    ).select_related('supplier', 'purchase_order').order_by('due_date')
+    
+    paginator = Paginator(upcoming_payments, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    total_scheduled = upcoming_payments.aggregate(Sum('balance_due'))['balance_due__sum'] or 0
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': upcoming_payments.count(),
+        'total_scheduled': total_scheduled,
+    }
+    
+    return render(request, 'finance/payment_schedule.html', context)
+
+
+@login_required
+def finance_payment_history_view(request):
+    """Payment history"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    payments = Payment.objects.filter(
+        status='COMPLETED'
+    ).select_related(
+        'invoice', 'invoice__supplier', 'processed_by', 'approved_by'
+    ).order_by('-payment_date')
+    
+    paginator = Paginator(payments, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    total_paid = payments.aggregate(Sum('payment_amount'))['payment_amount__sum'] or 0
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': payments.count(),
+        'total_paid': total_paid,
+    }
+    
+    return render(request, 'finance/payment_history.html', context)
+
+
+# ============================================================================
+# APPROVALS
+# ============================================================================
+
+@login_required
+def finance_pending_approvals_view(request):
+    """Pending budget approvals"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    approvals = RequisitionApproval.objects.filter(
+        approval_stage='BUDGET',
+        status='PENDING'
+    ).select_related(
+        'requisition', 'requisition__department', 'requisition__requested_by'
+    ).order_by('-created_at')
+    
+    paginator = Paginator(approvals, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': approvals.count(),
+    }
+    
+    return render(request, 'finance/pending_approvals.html', context)
+
+
+@login_required
+def finance_approve_requisition_view(request, requisition_id):
+    """Approve or reject requisition (budget check)"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    requisition = get_object_or_404(
+        Requisition.objects.select_related('department', 'budget', 'requested_by'),
+        pk=requisition_id
+    )
+    
+    approval = RequisitionApproval.objects.filter(
+        requisition=requisition,
+        approval_stage='BUDGET',
+        status='PENDING'
+    ).first()
+    
+    if not approval:
+        messages.error(request, 'Budget approval not found or already processed.')
+        return redirect('finance_pending_approvals')
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        comments = request.POST.get('comments', '')
+        
+        if action == 'approve':
+            approval.status = 'APPROVED'
+            approval.approver = request.user
+            approval.approval_date = timezone.now()
+            approval.comments = comments
+            approval.save()
+            
+            requisition.status = 'BUDGET_APPROVED'
+            requisition.save()
+            
+            log_action(request.user, 'APPROVE', 'Requisition', requisition.id, str(requisition), request=request)
+            messages.success(request, f'Requisition {requisition.requisition_number} approved.')
+            
+        elif action == 'reject':
+            approval.status = 'REJECTED'
+            approval.approver = request.user
+            approval.approval_date = timezone.now()
+            approval.comments = comments
+            approval.save()
+            
+            requisition.status = 'REJECTED'
+            requisition.rejection_reason = comments
+            requisition.save()
+            
+            log_action(request.user, 'REJECT', 'Requisition', requisition.id, str(requisition), request=request)
+            messages.info(request, f'Requisition {requisition.requisition_number} rejected.')
+        
+        return redirect('finance_pending_approvals')
+    
+    context = {
+        'requisition': requisition,
+        'approval': approval,
+    }
+    
+    return render(request, 'finance/approve_requisition.html', context)
+
+
+@login_required
+def finance_approved_requisitions_view(request):
+    """List approved requisitions"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    requisitions = Requisition.objects.filter(
+        status__in=['BUDGET_APPROVED', 'APPROVED']
+    ).select_related('department', 'requested_by', 'budget').order_by('-updated_at')
+    
+    paginator = Paginator(requisitions, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': requisitions.count(),
+    }
+    
+    return render(request, 'finance/approved_requisitions.html', context)
+
+
+@login_required
+def finance_rejected_requisitions_view(request):
+    """List rejected requisitions"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    requisitions = Requisition.objects.filter(
+        status='REJECTED'
+    ).select_related('department', 'requested_by', 'budget').order_by('-updated_at')
+    
+    paginator = Paginator(requisitions, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': requisitions.count(),
+    }
+    
+    return render(request, 'finance/rejected_requisitions.html', context)
+
+
+# ============================================================================
+# REPORTS
+# ============================================================================
+
+@login_required
+def finance_expenditure_report_view(request):
+    """Expenditure report"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    # Get filter parameters
+    date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+    department_id = request.GET.get('department')
+    
+    payments = Payment.objects.filter(
+        status='COMPLETED',
+        payment_date__gte=date_from,
+        payment_date__lte=date_to
+    ).select_related('invoice', 'invoice__supplier', 'invoice__purchase_order__requisition__department')
+    
+    if department_id:
+        payments = payments.filter(invoice__purchase_order__requisition__department_id=department_id)
+    
+    # Summary by department
+    dept_expenditure = payments.values(
+        'invoice__purchase_order__requisition__department__name'
+    ).annotate(
+        total=Sum('payment_amount'),
+        count=Count('id')
+    ).order_by('-total')
+    
+    # Summary by supplier
+    supplier_expenditure = payments.values(
+        'invoice__supplier__name'
+    ).annotate(
+        total=Sum('payment_amount'),
+        count=Count('id')
+    ).order_by('-total')[:10]
+    
+    total_expenditure = payments.aggregate(Sum('payment_amount'))['payment_amount__sum'] or 0
+    
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'date_from': date_from,
+        'date_to': date_to,
+        'payments': payments[:50],  # Limit display
+        'dept_expenditure': dept_expenditure,
+        'supplier_expenditure': supplier_expenditure,
+        'total_expenditure': total_expenditure,
+        'departments': departments,
+    }
+    
+    return render(request, 'finance/expenditure_report.html', context)
+
+
+@login_required
+def finance_budget_vs_actual_view(request):
+    """Budget vs Actual report"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    current_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    if not current_year:
+        messages.warning(request, 'No active budget year found.')
+        return redirect('finance_dashboard')
+    
+    budgets = Budget.objects.filter(
+        budget_year=current_year,
+        is_active=True
+    ).select_related('department', 'category').annotate(
+        variance=F('allocated_amount') - F('actual_spent'),
+        variance_percentage=(F('actual_spent') / F('allocated_amount') * 100)
+    ).order_by('department__name', 'category__name')
+    
+    context = {
+        'current_year': current_year,
+        'budgets': budgets,
+    }
+    
+    return render(request, 'finance/budget_vs_actual.html', context)
+
+
+@login_required
+def finance_financial_statements_view(request):
+    """Financial statements"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    current_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    # Income statement components
+    total_payments = Payment.objects.filter(
+        status='COMPLETED',
+        payment_date__year=timezone.now().year
+    ).aggregate(Sum('payment_amount'))['payment_amount__sum'] or 0
+    
+    # Balance sheet components
+    outstanding_invoices = Invoice.objects.filter(
+        status='APPROVED'
+    ).aggregate(Sum('balance_due'))['balance_due__sum'] or 0
+    
+    context = {
+        'current_year': current_year,
+        'total_payments': total_payments,
+        'outstanding_invoices': outstanding_invoices,
+    }
+    
+    return render(request, 'finance/financial_statements.html', context)
+
+
+@login_required
+def finance_transaction_report_view(request):
+    """Transaction report"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+    
+    payments = Payment.objects.filter(
+        payment_date__gte=date_from,
+        payment_date__lte=date_to
+    ).select_related('invoice', 'invoice__supplier').order_by('-payment_date')
+    
+    paginator = Paginator(payments, 50)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    total_amount = payments.aggregate(Sum('payment_amount'))['payment_amount__sum'] or 0
+    
+    context = {
+        'date_from': date_from,
+        'date_to': date_to,
+        'page_obj': page_obj,
+        'total_amount': total_amount,
+    }
+    
+    return render(request, 'finance/transaction_report.html', context)
+
+
+@login_required
+def finance_export_report_view(request):
+    """Export reports to CSV/PDF"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    report_type = request.GET.get('type', 'payments')
+    export_format = request.GET.get('format', 'csv')
+    date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+    
+    if report_type == 'payments':
+        data = Payment.objects.filter(
+            status='COMPLETED',
+            payment_date__gte=date_from,
+            payment_date__lte=date_to
+        ).select_related('invoice', 'invoice__supplier')
+        
+        if export_format == 'csv':
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="payments_{timezone.now().strftime("%Y%m%d")}.csv"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['Payment Number', 'Date', 'Supplier', 'Invoice Number', 'Amount', 'Method', 'Reference'])
+            
+            for payment in data:
+                writer.writerow([
+                    payment.payment_number,
+                    payment.payment_date,
+                    payment.invoice.supplier.name,
+                    payment.invoice.invoice_number,
+                    payment.payment_amount,
+                    payment.get_payment_method_display(),
+                    payment.payment_reference
+                ])
+            
+            return response
+    
+    messages.warning(request, 'Export format not implemented yet.')
+    return redirect('finance_dashboard')
+
+
+@login_required
+def finance_help_view(request):
+    """Finance help and documentation"""
+    if not check_finance_permission(request.user):
+        messages.error(request, 'You do not have finance officer permissions.')
+        return redirect('dashboard')
+    
+    context = {}
+    return render(request, 'finance/help.html', context)
