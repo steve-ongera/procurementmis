@@ -254,5 +254,60 @@ urlpatterns = [
     path('staff/help/', views.staff_help_center, name='staff_help_center'),
     path('staff/guidelines/', views.staff_guidelines, name='staff_guidelines'),
     
+    # ============================================================================
+    # DASHBOARD & ANALYTICS
+    # ============================================================================
+    path('hod/dashboard/', views.hod_dashboard_view, name='hod_dashboard'),
+    path('hod/analytics/', views.hod_analytics_view, name='hod_analytics'),
+    
+    # ============================================================================
+    # REQUISITIONS
+    # ============================================================================
+    path('hod/requisitions/my/', views.hod_my_requisitions_view, name='hod_my_requisitions'),
+    path('hod/requisitions/new/', views.hod_new_requisition_view, name='hod_new_requisition'),
+    path('hod/requisitions/department/', views.hod_department_requests_view, name='hod_department_requests'),
+    path('hod/requisitions/<uuid:pk>/', views.hod_requisition_detail_view, name='hod_requisition_detail'),
+    
+    # ============================================================================
+    # APPROVALS
+    # ============================================================================
+    path('hod/approvals/pending/', views.hod_pending_approvals_view, name='hod_pending_approvals'),
+    path('hod/approvals/approved/', views.hod_approved_requisitions_view, name='hod_approved_requisitions'),
+    path('hod/approvals/rejected/', views.hod_rejected_requisitions_view, name='hod_rejected_requisitions'),
+    path('hod/approvals/history/', views.hod_approval_history_view, name='hod_approval_history'),
+    
+    # Approval actions
+    path('hod/requisitions/<uuid:pk>/approve/', views.hod_approve_requisition_view, name='hod_approve_requisition'),
+    path('hod/requisitions/<uuid:pk>/reject/', views.hod_reject_requisition_view, name='hod_reject_requisition'),
+    
+    # ============================================================================
+    # DEPARTMENT MANAGEMENT
+    # ============================================================================
+    path('hod/budget/overview/', views.hod_budget_overview_view, name='hod_budget_overview'),
+    path('hod/budget/expenditure/', views.hod_expenditure_reports_view, name='hod_expenditure_reports'),
+    path('hod/staff/', views.hod_staff_management_view, name='hod_staff_management'),
+    path('hod/staff/<uuid:user_id>/', views.hod_staff_detail_view, name='hod_staff_detail'),
+    
+    # ============================================================================
+    # SUPPORT & HELP
+    # ============================================================================
+    path('hod/help/', views.hod_help_center_view, name='hod_help_center'),
+    path('hod/guidelines/', views.hod_guidelines_view, name='hod_guidelines'),
+    
+    # ============================================================================
+    # API ENDPOINTS
+    # ============================================================================
+    path('hod/api/quick-stats/', views.hod_quick_stats_api, name='hod_quick_stats_api'),
+    path('hod/api/budget-check/', views.hod_budget_check_api, name='hod_budget_check_api'),
+    path('hod/api/notifications/', views.hod_notifications_api, name='hod_notifications_api'),
+    path('hod/api/notifications/<uuid:notification_id>/read/', views.hod_mark_notification_read_api, name='hod_mark_notification_read'),
+    
+    # ============================================================================
+    # EXPORT/DOWNLOAD
+    # ============================================================================
+    path('hod/export/requisitions/csv/', views.hod_export_requisitions_csv, name='hod_export_requisitions_csv'),
+    path('hod/export/budget/pdf/', views.hod_export_budget_pdf, name='hod_export_budget_pdf'),
+
+    
     
 ]

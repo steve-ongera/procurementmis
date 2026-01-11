@@ -11044,3 +11044,1358 @@ def staff_guidelines(request):
     }
     
     return render(request, 'staff/guidelines.html', context)
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q, Sum, Count, Avg, F
+from django.utils import timezone
+from django.http import JsonResponse, HttpResponse
+from django.core.paginator import Paginator
+from datetime import datetime, timedelta
+from decimal import Decimal
+
+from .models import (
+    User, Department, Requisition, RequisitionItem, RequisitionApproval,
+    Budget, BudgetYear, PurchaseOrder, Invoice, Asset, AuditLog,
+    Notification, ProcurementPolicy
+)
+from .forms import (
+    RequisitionForm, RequisitionItemFormSet, RequisitionAttachmentFormSet,
+    RequisitionFilterForm
+)
+
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def check_hod_permission(user):
+    """Check if user is HOD"""
+    return user.role == 'HOD' and hasattr(user, 'head_of') and user.head_of.exists()
+
+
+def log_action(user, action, model_name, object_id, object_repr, changes=None, request=None):
+    """Helper function to log audit trail"""
+    ip_address = None
+    user_agent = ''
+    
+    if request:
+        ip_address = request.META.get('REMOTE_ADDR')
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+    
+    AuditLog.objects.create(
+        user=user,
+        action=action,
+        model_name=model_name,
+        object_id=str(object_id),
+        object_repr=object_repr,
+        changes=changes,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+
+
+# ============================================================================
+# DASHBOARD & ANALYTICS
+# ============================================================================
+
+@login_required
+def hod_dashboard_view(request):
+    """HOD Dashboard with department overview"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    # Get HOD's department
+    department = request.user.head_of.first()
+    
+    # Current budget year
+    current_budget_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    # Dashboard statistics
+    stats = {
+        'pending_approvals': Requisition.objects.filter(
+            department=department,
+            status='SUBMITTED'
+        ).count(),
+        
+        'total_requisitions_month': Requisition.objects.filter(
+            department=department,
+            created_at__month=timezone.now().month,
+            created_at__year=timezone.now().year
+        ).count(),
+        
+        'approved_this_month': Requisition.objects.filter(
+            department=department,
+            status__in=['HOD_APPROVED', 'FACULTY_APPROVED', 'BUDGET_APPROVED', 'APPROVED'],
+            approvals__approval_stage='HOD',
+            approvals__approval_date__month=timezone.now().month,
+            approvals__approval_date__year=timezone.now().year
+        ).distinct().count(),
+        
+        'department_staff': User.objects.filter(
+            department=department,
+            is_active_user=True
+        ).count(),
+    }
+    
+    # Budget overview
+    budget_overview = None
+    if current_budget_year:
+        budgets = Budget.objects.filter(
+            department=department,
+            budget_year=current_budget_year,
+            is_active=True
+        ).aggregate(
+            total_allocated=Sum('allocated_amount'),
+            total_committed=Sum('committed_amount'),
+            total_spent=Sum('actual_spent')
+        )
+        
+        total_allocated = budgets['total_allocated'] or Decimal('0')
+        total_committed = budgets['total_committed'] or Decimal('0')
+        total_spent = budgets['total_spent'] or Decimal('0')
+        
+        budget_overview = {
+            'allocated': total_allocated,
+            'committed': total_committed,
+            'spent': total_spent,
+            'available': total_allocated - total_committed - total_spent,
+            'utilization_percentage': (
+                (total_spent / total_allocated * 100) if total_allocated > 0 else 0
+            )
+        }
+    
+    # Recent requisitions
+    recent_requisitions = Requisition.objects.filter(
+        department=department
+    ).select_related('requested_by', 'budget').order_by('-created_at')[:10]
+    
+    # Pending approvals
+    pending_approvals = Requisition.objects.filter(
+        department=department,
+        status='SUBMITTED'
+    ).select_related('requested_by', 'budget').order_by('-submitted_at')[:5]
+    
+    # Monthly requisition trend (last 6 months)
+    six_months_ago = timezone.now() - timedelta(days=180)
+    monthly_trend = []
+    for i in range(6):
+        month_start = timezone.now() - timedelta(days=30 * i)
+        count = Requisition.objects.filter(
+            department=department,
+            created_at__month=month_start.month,
+            created_at__year=month_start.year
+        ).count()
+        monthly_trend.append({
+            'month': month_start.strftime('%b %Y'),
+            'count': count
+        })
+    monthly_trend.reverse()
+    
+    # Department performance metrics
+    performance = {
+        'avg_approval_time': RequisitionApproval.objects.filter(
+            requisition__department=department,
+            approval_stage='HOD',
+            status='APPROVED'
+        ).aggregate(
+            avg_time=Avg(F('approval_date') - F('created_at'))
+        )['avg_time'],
+        
+        'approval_rate': 0,
+        'rejection_rate': 0,
+    }
+    
+    total_processed = RequisitionApproval.objects.filter(
+        requisition__department=department,
+        approval_stage='HOD',
+        status__in=['APPROVED', 'REJECTED']
+    ).count()
+    
+    if total_processed > 0:
+        approved = RequisitionApproval.objects.filter(
+            requisition__department=department,
+            approval_stage='HOD',
+            status='APPROVED'
+        ).count()
+        performance['approval_rate'] = (approved / total_processed) * 100
+        performance['rejection_rate'] = 100 - performance['approval_rate']
+    
+    context = {
+        'department': department,
+        'stats': stats,
+        'budget_overview': budget_overview,
+        'recent_requisitions': recent_requisitions,
+        'pending_approvals': pending_approvals,
+        'monthly_trend': monthly_trend,
+        'performance': performance,
+        'current_budget_year': current_budget_year,
+    }
+    
+    return render(request, 'hod/dashboard.html', context)
+
+
+@login_required
+def hod_analytics_view(request):
+    """Department analytics and reports"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    
+    # Date range filter
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    # Default to current year
+    if not date_from:
+        date_from = timezone.now().replace(month=1, day=1).date()
+    else:
+        date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+    
+    if not date_to:
+        date_to = timezone.now().date()
+    else:
+        date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+    
+    # Requisition analytics
+    requisitions = Requisition.objects.filter(
+        department=department,
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to
+    )
+    
+    requisition_stats = {
+        'total': requisitions.count(),
+        'by_status': requisitions.values('status').annotate(count=Count('id')),
+        'by_priority': requisitions.values('priority').annotate(count=Count('id')),
+        'total_value': requisitions.aggregate(total=Sum('estimated_amount'))['total'] or Decimal('0'),
+        'avg_value': requisitions.aggregate(avg=Avg('estimated_amount'))['avg'] or Decimal('0'),
+    }
+    
+    # Budget utilization by category
+    budget_utilization = Budget.objects.filter(
+        department=department,
+        is_active=True
+    ).select_related('category').values(
+        'category__name', 'category__code'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        spent=Sum('actual_spent'),
+        committed=Sum('committed_amount')
+    )
+    
+    # Top requesters
+    top_requesters = User.objects.filter(
+        requisitions_created__department=department,
+        requisitions_created__created_at__date__gte=date_from,
+        requisitions_created__created_at__date__lte=date_to
+    ).annotate(
+        req_count=Count('requisitions_created'),
+        total_value=Sum('requisitions_created__estimated_amount')
+    ).order_by('-req_count')[:10]
+    
+    # Purchase order analytics
+    po_stats = PurchaseOrder.objects.filter(
+        requisition__department=department,
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to
+    ).aggregate(
+        total_pos=Count('id'),
+        total_value=Sum('total_amount'),
+        avg_value=Avg('total_amount')
+    )
+    
+    # Supplier distribution
+    supplier_distribution = PurchaseOrder.objects.filter(
+        requisition__department=department,
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to
+    ).values('supplier__name').annotate(
+        po_count=Count('id'),
+        total_value=Sum('total_amount')
+    ).order_by('-total_value')[:10]
+    
+    context = {
+        'department': department,
+        'date_from': date_from,
+        'date_to': date_to,
+        'requisition_stats': requisition_stats,
+        'budget_utilization': budget_utilization,
+        'top_requesters': top_requesters,
+        'po_stats': po_stats,
+        'supplier_distribution': supplier_distribution,
+    }
+    
+    return render(request, 'hod/analytics.html', context)
+
+
+# ============================================================================
+# REQUISITION MANAGEMENT
+# ============================================================================
+
+@login_required
+def hod_my_requisitions_view(request):
+    """HOD's own requisitions"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    # Filter form
+    filter_form = RequisitionFilterForm(request.GET)
+    
+    # Base queryset
+    requisitions = Requisition.objects.filter(
+        requested_by=request.user
+    ).select_related('department', 'budget').order_by('-created_at')
+    
+    # Apply filters
+    if filter_form.is_valid():
+        if filter_form.cleaned_data.get('status'):
+            requisitions = requisitions.filter(status=filter_form.cleaned_data['status'])
+        
+        if filter_form.cleaned_data.get('priority'):
+            requisitions = requisitions.filter(priority=filter_form.cleaned_data['priority'])
+        
+        if filter_form.cleaned_data.get('search'):
+            search = filter_form.cleaned_data['search']
+            requisitions = requisitions.filter(
+                Q(requisition_number__icontains=search) |
+                Q(title__icontains=search)
+            )
+        
+        if filter_form.cleaned_data.get('date_from'):
+            requisitions = requisitions.filter(created_at__date__gte=filter_form.cleaned_data['date_from'])
+        
+        if filter_form.cleaned_data.get('date_to'):
+            requisitions = requisitions.filter(created_at__date__lte=filter_form.cleaned_data['date_to'])
+    
+    # Pagination
+    paginator = Paginator(requisitions, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'filter_form': filter_form,
+        'total_count': requisitions.count(),
+    }
+    
+    return render(request, 'hod/my_requisitions.html', context)
+
+
+@login_required
+def hod_new_requisition_view(request):
+    """Create new requisition"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    
+    if request.method == 'POST':
+        form = RequisitionForm(request.POST, user=request.user)
+        item_formset = RequisitionItemFormSet(request.POST, prefix='items')
+        attachment_formset = RequisitionAttachmentFormSet(request.POST, request.FILES, prefix='attachments')
+        
+        if form.is_valid() and item_formset.is_valid() and attachment_formset.is_valid():
+            # Create requisition
+            requisition = form.save(commit=False)
+            requisition.requested_by = request.user
+            requisition.department = department
+            requisition.status = 'DRAFT'
+            
+            # Calculate estimated amount from items
+            total_amount = Decimal('0')
+            for item_form in item_formset:
+                if item_form.cleaned_data and not item_form.cleaned_data.get('DELETE'):
+                    qty = item_form.cleaned_data.get('quantity', 0)
+                    price = item_form.cleaned_data.get('estimated_unit_price', 0)
+                    total_amount += qty * price
+            
+            requisition.estimated_amount = total_amount
+            requisition.save()
+            
+            # Save items
+            items = item_formset.save(commit=False)
+            for item in items:
+                item.requisition = requisition
+                item.save()
+            
+            # Save attachments
+            attachments = attachment_formset.save(commit=False)
+            for attachment in attachments:
+                attachment.requisition = requisition
+                attachment.uploaded_by = request.user
+                attachment.save()
+            
+            # Log action
+            log_action(
+                request.user, 'CREATE', 'Requisition',
+                requisition.id, str(requisition),
+                request=request
+            )
+            
+            messages.success(request, f'Requisition {requisition.requisition_number} created successfully!')
+            return redirect('hod_requisition_detail', pk=requisition.pk)
+    else:
+        form = RequisitionForm(user=request.user)
+        item_formset = RequisitionItemFormSet(prefix='items')
+        attachment_formset = RequisitionAttachmentFormSet(prefix='attachments')
+    
+    context = {
+        'form': form,
+        'item_formset': item_formset,
+        'attachment_formset': attachment_formset,
+        'department': department,
+    }
+    
+    return render(request, 'hod/new_requisition.html', context)
+
+
+@login_required
+def hod_department_requests_view(request):
+    """View all department requisitions"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    
+    # Filter form
+    filter_form = RequisitionFilterForm(request.GET)
+    
+    # Base queryset - all department requisitions
+    requisitions = Requisition.objects.filter(
+        department=department
+    ).select_related('requested_by', 'budget').order_by('-created_at')
+    
+    # Apply filters
+    if filter_form.is_valid():
+        if filter_form.cleaned_data.get('status'):
+            requisitions = requisitions.filter(status=filter_form.cleaned_data['status'])
+        
+        if filter_form.cleaned_data.get('priority'):
+            requisitions = requisitions.filter(priority=filter_form.cleaned_data['priority'])
+        
+        if filter_form.cleaned_data.get('search'):
+            search = filter_form.cleaned_data['search']
+            requisitions = requisitions.filter(
+                Q(requisition_number__icontains=search) |
+                Q(title__icontains=search) |
+                Q(requested_by__first_name__icontains=search) |
+                Q(requested_by__last_name__icontains=search)
+            )
+        
+        if filter_form.cleaned_data.get('date_from'):
+            requisitions = requisitions.filter(created_at__date__gte=filter_form.cleaned_data['date_from'])
+        
+        if filter_form.cleaned_data.get('date_to'):
+            requisitions = requisitions.filter(created_at__date__lte=filter_form.cleaned_data['date_to'])
+    
+    # Pagination
+    paginator = Paginator(requisitions, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Summary statistics
+    stats = {
+        'total': requisitions.count(),
+        'pending': requisitions.filter(status='SUBMITTED').count(),
+        'approved': requisitions.filter(status__in=['HOD_APPROVED', 'APPROVED']).count(),
+        'rejected': requisitions.filter(status='REJECTED').count(),
+    }
+    
+    context = {
+        'page_obj': page_obj,
+        'filter_form': filter_form,
+        'stats': stats,
+        'department': department,
+    }
+    
+    return render(request, 'hod/department_requests.html', context)
+
+
+@login_required
+def hod_requisition_detail_view(request, pk):
+    """View requisition details"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    requisition = get_object_or_404(
+        Requisition.objects.select_related('requested_by', 'department', 'budget'),
+        pk=pk,
+        department=department
+    )
+    
+    # Get items and attachments
+    items = requisition.items.all()
+    attachments = requisition.attachments.all()
+    
+    # Get approval history
+    approvals = requisition.approvals.select_related('approver').order_by('sequence')
+    
+    # Check if HOD can approve
+    can_approve = (
+        requisition.status == 'SUBMITTED' and
+        request.user == department.hod
+    )
+    
+    context = {
+        'requisition': requisition,
+        'items': items,
+        'attachments': attachments,
+        'approvals': approvals,
+        'can_approve': can_approve,
+    }
+    
+    return render(request, 'hod/requisition_detail.html', context)
+
+
+# ============================================================================
+# APPROVALS
+# ============================================================================
+
+@login_required
+def hod_pending_approvals_view(request):
+    """View pending requisitions for HOD approval"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    
+    # Get pending requisitions
+    pending = Requisition.objects.filter(
+        department=department,
+        status='SUBMITTED'
+    ).select_related('requested_by', 'budget').order_by('-submitted_at')
+    
+    # Pagination
+    paginator = Paginator(pending, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_pending': pending.count(),
+    }
+    
+    return render(request, 'hod/pending_approvals.html', context)
+
+
+@login_required
+def hod_approve_requisition_view(request, pk):
+    """Approve a requisition"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    requisition = get_object_or_404(
+        Requisition,
+        pk=pk,
+        department=department,
+        status='SUBMITTED'
+    )
+    
+    if request.method == 'POST':
+        comments = request.POST.get('comments', '')
+        
+        # Create or update approval record
+        approval, created = RequisitionApproval.objects.get_or_create(
+            requisition=requisition,
+            approval_stage='HOD',
+            defaults={
+                'approver': request.user,
+                'sequence': 1
+            }
+        )
+        
+        approval.status = 'APPROVED'
+        approval.comments = comments
+        approval.approval_date = timezone.now()
+        approval.approver = request.user
+        approval.save()
+        
+        # Update requisition status
+        requisition.status = 'HOD_APPROVED'
+        requisition.save()
+        
+        # Log action
+        log_action(
+            request.user, 'APPROVE', 'Requisition',
+            requisition.id, str(requisition),
+            changes={'status': 'HOD_APPROVED', 'comments': comments},
+            request=request
+        )
+        
+        # Create notification for requester
+        Notification.objects.create(
+            user=requisition.requested_by,
+            notification_type='APPROVAL',
+            priority='MEDIUM',
+            title='Requisition Approved by HOD',
+            message=f'Your requisition {requisition.requisition_number} has been approved by HOD.',
+            link_url=f'/requisitions/{requisition.pk}/'
+        )
+        
+        messages.success(request, f'Requisition {requisition.requisition_number} approved successfully!')
+        return redirect('hod_pending_approvals')
+    
+    return redirect('hod_requisition_detail', pk=pk)
+
+
+@login_required
+def hod_reject_requisition_view(request, pk):
+    """Reject a requisition"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    requisition = get_object_or_404(
+        Requisition,
+        pk=pk,
+        department=department,
+        status='SUBMITTED'
+    )
+    
+    if request.method == 'POST':
+        rejection_reason = request.POST.get('rejection_reason', '')
+        
+        if not rejection_reason:
+            messages.error(request, 'Please provide a reason for rejection.')
+            return redirect('hod_requisition_detail', pk=pk)
+        
+        # Create or update approval record
+        approval, created = RequisitionApproval.objects.get_or_create(
+            requisition=requisition,
+            approval_stage='HOD',
+            defaults={
+                'approver': request.user,
+                'sequence': 1
+            }
+        )
+        
+        approval.status = 'REJECTED'
+        approval.comments = rejection_reason
+        approval.approval_date = timezone.now()
+        approval.approver = request.user
+        approval.save()
+        
+        # Update requisition
+        requisition.status = 'REJECTED'
+        requisition.rejection_reason = rejection_reason
+        requisition.save()
+        
+        # Log action
+        log_action(
+            request.user, 'REJECT', 'Requisition',
+            requisition.id, str(requisition),
+            changes={'status': 'REJECTED', 'reason': rejection_reason},
+            request=request
+        )
+        
+        # Notify requester
+        Notification.objects.create(
+            user=requisition.requested_by,
+            notification_type='APPROVAL',
+            priority='HIGH',
+            title='Requisition Rejected by HOD',
+            message=f'Your requisition {requisition.requisition_number} has been rejected. Reason: {rejection_reason}',
+            link_url=f'/requisitions/{requisition.pk}/'
+        )
+        
+        messages.success(request, f'Requisition {requisition.requisition_number} rejected.')
+        return redirect('hod_pending_approvals')
+    
+    return redirect('hod_requisition_detail', pk=pk)
+
+
+@login_required
+def hod_approved_requisitions_view(request):
+    """View approved requisitions"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    
+    # Get approved requisitions
+    approved = Requisition.objects.filter(
+        department=department,
+        status__in=['HOD_APPROVED', 'FACULTY_APPROVED', 'BUDGET_APPROVED', 'APPROVED']
+    ).select_related('requested_by', 'budget').order_by('-updated_at')
+    
+    # Pagination
+    paginator = Paginator(approved, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_approved': approved.count(),
+    }
+    
+    return render(request, 'hod/approved_requisitions.html', context)
+
+
+@login_required
+def hod_rejected_requisitions_view(request):
+    """View rejected requisitions"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    
+    # Get rejected requisitions
+    rejected = Requisition.objects.filter(
+        department=department,
+        status='REJECTED'
+    ).select_related('requested_by', 'budget').order_by('-updated_at')
+    
+    # Pagination
+    paginator = Paginator(rejected, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_rejected': rejected.count(),
+    }
+    
+    return render(request, 'hod/rejected_requisitions.html', context)
+
+
+@login_required
+def hod_approval_history_view(request):
+    """View approval history"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    
+    # Get all approvals made by this HOD
+    approvals = RequisitionApproval.objects.filter(
+        approver=request.user,
+        approval_stage='HOD'
+    ).select_related('requisition', 'requisition__requested_by').order_by('-approval_date')
+    
+    # Pagination
+    paginator = Paginator(approvals, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Statistics
+    stats = {
+        'total': approvals.count(),
+        'approved': approvals.filter(status='APPROVED').count(),
+        'rejected': approvals.filter(status='REJECTED').count(),
+    }
+    
+    context = {
+        'page_obj': page_obj,
+        'stats': stats,
+    }
+    
+    return render(request, 'hod/approval_history.html', context)
+
+
+# ============================================================================
+# BUDGET MANAGEMENT
+# ============================================================================
+
+@login_required
+def hod_budget_overview_view(request):
+    """Department budget overview"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    
+    # Get current budget year
+    current_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    # Get all budget years for selection
+    budget_years = BudgetYear.objects.all().order_by('-start_date')
+    
+    # Selected year from query params
+    selected_year_id = request.GET.get('year')
+    if selected_year_id:
+        selected_year = get_object_or_404(BudgetYear, pk=selected_year_id)
+    else:
+        selected_year = current_year
+    
+    # Get budgets for selected year
+    budgets = None
+    budget_summary = None
+    
+    if selected_year:
+        budgets = Budget.objects.filter(
+            department=department,
+            budget_year=selected_year,
+            is_active=True
+        ).select_related('category').order_by('category__code')
+        
+        # Calculate summary
+        summary = budgets.aggregate(
+            total_allocated=Sum('allocated_amount'),
+            total_committed=Sum('committed_amount'),
+            total_spent=Sum('actual_spent')
+        )
+        
+        total_allocated = summary['total_allocated'] or Decimal('0')
+        total_committed = summary['total_committed'] or Decimal('0')
+        total_spent = summary['total_spent'] or Decimal('0')
+        
+        budget_summary = {
+            'allocated': total_allocated,
+            'committed': total_committed,
+            'spent': total_spent,
+            'available': total_allocated - total_committed - total_spent,
+            'utilization': (total_spent / total_allocated * 100) if total_allocated > 0 else 0,
+        }
+    
+    context = {
+        'department': department,
+        'budget_years': budget_years,
+        'selected_year': selected_year,
+        'budgets': budgets,
+        'budget_summary': budget_summary,
+    }
+    
+    return render(request, 'hod/budget_overview.html', context)
+
+
+@login_required
+def hod_expenditure_reports_view(request):
+    """Department expenditure reports"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    
+    # Date range
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    if not date_from:
+        date_from = timezone.now().replace(month=1, day=1).date()
+    else:
+        date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+    
+    if not date_to:
+        date_to = timezone.now().date()
+    else:
+        date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+    
+    # Requisitions expenditure
+    requisitions = Requisition.objects.filter(
+        department=department,
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to
+    ).aggregate(
+        total_requested=Sum('estimated_amount'),
+        count=Count('id')
+    )
+    
+    # Purchase orders
+    purchase_orders = PurchaseOrder.objects.filter(
+        requisition__department=department,
+        po_date__gte=date_from,
+        po_date__lte=date_to
+    ).aggregate(
+        total_po_value=Sum('total_amount'),
+        count=Count('id')
+    )
+    
+    # Invoices and payments
+    invoices = Invoice.objects.filter(
+        purchase_order__requisition__department=department,
+        invoice_date__gte=date_from,
+        invoice_date__lte=date_to
+    ).aggregate(
+        total_invoiced=Sum('total_amount'),
+        total_paid=Sum('amount_paid'),
+        count=Count('id')
+    )
+    
+    # Expenditure by budget category
+    category_expenditure = Budget.objects.filter(
+        department=department,
+        is_active=True
+    ).select_related('category').values(
+        'category__name',
+        'category__code'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        spent=Sum('actual_spent'),
+        committed=Sum('committed_amount')
+    ).order_by('-spent')
+    
+    # Monthly expenditure trend
+    monthly_expenditure = []
+    current = date_from
+    while current <= date_to:
+        month_end = (current.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        if month_end > date_to:
+            month_end = date_to
+        
+        month_data = PurchaseOrder.objects.filter(
+            requisition__department=department,
+            po_date__gte=current,
+            po_date__lte=month_end
+        ).aggregate(
+            total=Sum('total_amount')
+        )
+        
+        monthly_expenditure.append({
+            'month': current.strftime('%b %Y'),
+            'amount': month_data['total'] or Decimal('0')
+        })
+        
+        current = (month_end + timedelta(days=1)).replace(day=1)
+    
+    # Top suppliers by expenditure
+    top_suppliers = PurchaseOrder.objects.filter(
+        requisition__department=department,
+        po_date__gte=date_from,
+        po_date__lte=date_to
+    ).values('supplier__name').annotate(
+        total_value=Sum('total_amount'),
+        po_count=Count('id')
+    ).order_by('-total_value')[:10]
+    
+    # Assets acquired
+    assets = Asset.objects.filter(
+        department=department,
+        acquisition_date__gte=date_from,
+        acquisition_date__lte=date_to
+    ).aggregate(
+        total_value=Sum('acquisition_cost'),
+        count=Count('id')
+    )
+    
+    context = {
+        'department': department,
+        'date_from': date_from,
+        'date_to': date_to,
+        'requisitions': requisitions,
+        'purchase_orders': purchase_orders,
+        'invoices': invoices,
+        'category_expenditure': category_expenditure,
+        'monthly_expenditure': monthly_expenditure,
+        'top_suppliers': top_suppliers,
+        'assets': assets,
+    }
+    
+    return render(request, 'hod/expenditure_reports.html', context)
+
+
+@login_required
+def hod_staff_management_view(request):
+    """Manage department staff"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    
+    # Get all department staff
+    staff = User.objects.filter(
+        department=department,
+        is_active_user=True
+    ).exclude(
+        role='SUPPLIER'
+    ).order_by('first_name', 'last_name')
+    
+    # Staff statistics
+    stats = {
+        'total_staff': staff.count(),
+        'by_role': staff.values('role').annotate(count=Count('id')),
+    }
+    
+    # Staff requisition activity
+    staff_activity = []
+    for user in staff:
+        activity = {
+            'user': user,
+            'requisitions_count': Requisition.objects.filter(
+                requested_by=user,
+                created_at__year=timezone.now().year
+            ).count(),
+            'total_value': Requisition.objects.filter(
+                requested_by=user,
+                created_at__year=timezone.now().year
+            ).aggregate(total=Sum('estimated_amount'))['total'] or Decimal('0'),
+            'pending': Requisition.objects.filter(
+                requested_by=user,
+                status__in=['DRAFT', 'SUBMITTED']
+            ).count()
+        }
+        staff_activity.append(activity)
+    
+    # Sort by requisitions count
+    staff_activity.sort(key=lambda x: x['requisitions_count'], reverse=True)
+    
+    # Pagination
+    paginator = Paginator(staff_activity, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'department': department,
+        'stats': stats,
+        'page_obj': page_obj,
+        'total_staff': staff.count(),
+    }
+    
+    return render(request, 'hod/staff_management.html', context)
+
+
+@login_required
+def hod_staff_detail_view(request, user_id):
+    """View staff member details and activity"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    department = request.user.head_of.first()
+    
+    staff_member = get_object_or_404(
+        User,
+        id=user_id,
+        department=department,
+        is_active_user=True
+    )
+    
+    # Staff requisitions
+    requisitions = Requisition.objects.filter(
+        requested_by=staff_member
+    ).select_related('budget').order_by('-created_at')[:20]
+    
+    # Activity summary
+    activity = {
+        'total_requisitions': Requisition.objects.filter(
+            requested_by=staff_member
+        ).count(),
+        'this_year': Requisition.objects.filter(
+            requested_by=staff_member,
+            created_at__year=timezone.now().year
+        ).count(),
+        'total_value': Requisition.objects.filter(
+            requested_by=staff_member
+        ).aggregate(total=Sum('estimated_amount'))['total'] or Decimal('0'),
+        'approved': Requisition.objects.filter(
+            requested_by=staff_member,
+            status__in=['APPROVED', 'HOD_APPROVED', 'FACULTY_APPROVED']
+        ).count(),
+        'rejected': Requisition.objects.filter(
+            requested_by=staff_member,
+            status='REJECTED'
+        ).count(),
+    }
+    
+    context = {
+        'staff_member': staff_member,
+        'requisitions': requisitions,
+        'activity': activity,
+        'department': department,
+    }
+    
+    return render(request, 'hod/staff_detail.html', context)
+
+
+# ============================================================================
+# SUPPORT & HELP
+# ============================================================================
+
+@login_required
+def hod_help_center_view(request):
+    """Help center for HODs"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    # FAQ categories
+    faqs = [
+        {
+            'category': 'Requisition Approval',
+            'questions': [
+                {
+                    'question': 'How long do I have to approve a requisition?',
+                    'answer': 'You should approve or reject requisitions within 3 working days of submission. Urgent requisitions should be processed within 24 hours.'
+                },
+                {
+                    'question': 'What should I check before approving a requisition?',
+                    'answer': 'Verify: 1) Budget availability, 2) Justification validity, 3) Item specifications, 4) Estimated costs are reasonable, 5) Compliance with procurement policies.'
+                },
+                {
+                    'question': 'Can I approve a requisition that exceeds my department budget?',
+                    'answer': 'No. Requisitions must be charged to an active budget line with sufficient funds. If needed, request budget reallocation first.'
+                },
+            ]
+        },
+        {
+            'category': 'Budget Management',
+            'questions': [
+                {
+                    'question': 'How do I check my department\'s budget balance?',
+                    'answer': 'Go to Department > Budget Overview to see real-time budget balances, commitments, and expenditure for all budget lines.'
+                },
+                {
+                    'question': 'What is the difference between committed and spent amounts?',
+                    'answer': 'Committed = funds reserved for approved requisitions. Spent = actual payments made. Available = Allocated - Committed - Spent.'
+                },
+            ]
+        },
+        {
+            'category': 'Reporting',
+            'questions': [
+                {
+                    'question': 'How do I generate expenditure reports?',
+                    'answer': 'Navigate to Department > Expenditure Reports, select date range, and view or export detailed spending analysis.'
+                },
+            ]
+        },
+    ]
+    
+    # Quick links
+    quick_links = [
+        {
+            'title': 'Procurement Guidelines',
+            'icon': 'book',
+            'url': 'hod_guidelines',
+            'description': 'Complete procurement policies and procedures'
+        },
+        {
+            'title': 'Video Tutorials',
+            'icon': 'video',
+            'url': '#',
+            'description': 'Step-by-step video guides'
+        },
+        {
+            'title': 'Contact Support',
+            'icon': 'envelope',
+            'url': '#',
+            'description': 'Email: procurement@university.ac.ke'
+        },
+    ]
+    
+    context = {
+        'faqs': faqs,
+        'quick_links': quick_links,
+    }
+    
+    return render(request, 'hod/help_center.html', context)
+
+
+@login_required
+def hod_guidelines_view(request):
+    """View procurement guidelines and policies"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    # Get active policies
+    policies = ProcurementPolicy.objects.filter(
+        is_active=True
+    ).order_by('-effective_date')
+    
+    # Get approval thresholds
+    from .models import ApprovalThreshold
+    thresholds = ApprovalThreshold.objects.filter(
+        is_active=True
+    ).order_by('min_amount')
+    
+    context = {
+        'policies': policies,
+        'thresholds': thresholds,
+    }
+    
+    return render(request, 'hod/guidelines.html', context)
+
+
+# ============================================================================
+# AJAX/API ENDPOINTS
+# ============================================================================
+
+@login_required
+def hod_quick_stats_api(request):
+    """API endpoint for dashboard quick stats"""
+    if not check_hod_permission(request.user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    department = request.user.head_of.first()
+    
+    stats = {
+        'pending_approvals': Requisition.objects.filter(
+            department=department,
+            status='SUBMITTED'
+        ).count(),
+        'approved_today': RequisitionApproval.objects.filter(
+            requisition__department=department,
+            approval_stage='HOD',
+            status='APPROVED',
+            approval_date__date=timezone.now().date()
+        ).count(),
+        'total_staff': User.objects.filter(
+            department=department,
+            is_active_user=True
+        ).count(),
+    }
+    
+    return JsonResponse(stats)
+
+
+@login_required
+def hod_budget_check_api(request):
+    """API to check budget availability"""
+    if not check_hod_permission(request.user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    budget_id = request.GET.get('budget_id')
+    amount = request.GET.get('amount')
+    
+    if not budget_id or not amount:
+        return JsonResponse({'error': 'Missing parameters'}, status=400)
+    
+    try:
+        budget = Budget.objects.get(pk=budget_id)
+        amount = Decimal(amount)
+        
+        available = budget.available_balance
+        is_sufficient = available >= amount
+        
+        return JsonResponse({
+            'budget': {
+                'name': str(budget),
+                'allocated': float(budget.allocated_amount),
+                'committed': float(budget.committed_amount),
+                'spent': float(budget.actual_spent),
+                'available': float(available),
+            },
+            'requested_amount': float(amount),
+            'is_sufficient': is_sufficient,
+            'shortage': float(amount - available) if not is_sufficient else 0,
+        })
+    except Budget.DoesNotExist:
+        return JsonResponse({'error': 'Budget not found'}, status=404)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid amount'}, status=400)
+
+
+@login_required
+def hod_notifications_api(request):
+    """API to get recent notifications"""
+    if not check_hod_permission(request.user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    notifications = Notification.objects.filter(
+        user=request.user,
+        is_read=False
+    ).order_by('-created_at')[:10]
+    
+    data = [{
+        'id': str(n.id),
+        'title': n.title,
+        'message': n.message,
+        'type': n.notification_type,
+        'priority': n.priority,
+        'created_at': n.created_at.isoformat(),
+        'link_url': n.link_url,
+    } for n in notifications]
+    
+    return JsonResponse({'notifications': data, 'count': len(data)})
+
+
+@login_required
+def hod_mark_notification_read_api(request, notification_id):
+    """Mark notification as read"""
+    if not check_hod_permission(request.user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    try:
+        notification = Notification.objects.get(
+            id=notification_id,
+            user=request.user
+        )
+        notification.is_read = True
+        notification.read_at = timezone.now()
+        notification.save()
+        
+        return JsonResponse({'success': True})
+    except Notification.DoesNotExist:
+        return JsonResponse({'error': 'Notification not found'}, status=404)
+
+
+# ============================================================================
+# EXPORT/DOWNLOAD FUNCTIONS
+# ============================================================================
+
+@login_required
+def hod_export_requisitions_csv(request):
+    """Export requisitions to CSV"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    import csv
+    from django.utils.text import slugify
+    
+    department = request.user.head_of.first()
+    
+    # Get requisitions
+    requisitions = Requisition.objects.filter(
+        department=department
+    ).select_related('requested_by', 'budget').order_by('-created_at')
+    
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="requisitions_{slugify(department.name)}_{timezone.now().strftime("%Y%m%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'Requisition Number', 'Title', 'Requested By', 'Status',
+        'Priority', 'Estimated Amount', 'Required Date',
+        'Submitted Date', 'Budget Line'
+    ])
+    
+    for req in requisitions:
+        writer.writerow([
+            req.requisition_number,
+            req.title,
+            req.requested_by.get_full_name(),
+            req.get_status_display(),
+            req.get_priority_display(),
+            req.estimated_amount,
+            req.required_date,
+            req.submitted_at.strftime('%Y-%m-%d %H:%M') if req.submitted_at else '',
+            str(req.budget) if req.budget else '',
+        ])
+    
+    return response
+
+
+@login_required
+def hod_export_budget_pdf(request):
+    """Export budget overview to PDF"""
+    if not check_hod_permission(request.user):
+        messages.error(request, 'You do not have HOD permissions.')
+        return redirect('dashboard')
+    
+    # This would require a PDF library like reportlab or weasyprint
+    # Placeholder for now
+    messages.info(request, 'PDF export feature coming soon.')
+    return redirect('hod_budget_overview')
