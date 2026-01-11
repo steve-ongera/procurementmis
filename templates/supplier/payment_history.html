@@ -3,13 +3,579 @@
 {% load humanize %}
 {% block title %}Payment History - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --info-color: #3B82F6;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    /* Summary Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 0.375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .stat-icon.transactions {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .stat-icon.total-amount {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1E293B;
+        line-height: 1;
+    }
+
+    .stat-description {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-top: 0.25rem;
+    }
+
+    .stat-description.success {
+        color: var(--success-color);
+    }
+
+    /* Filters Section */
+    .filters-section {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filters-row {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .filter-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .filter-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Payments Table */
+    .payments-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .payments-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .payments-table thead th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border-color);
+        background: #F8FAFC;
+    }
+
+    .payments-table tbody td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    .payments-table tbody tr {
+        transition: background 0.2s;
+    }
+
+    .payments-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .payments-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Status Badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    .status-badge i {
+        font-size: 0.75rem;
+    }
+
+    .status-badge.status-completed {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .status-badge.status-pending {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .status-badge.status-processing {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .status-badge.status-failed {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .status-badge.status-cancelled {
+        background: #F1F5F9;
+        color: #64748B;
+    }
+
+    /* Payment Method Badge */
+    .payment-method-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        background: #F1F5F9;
+        color: #475569;
+    }
+
+    /* Bank Details */
+    .bank-details {
+        font-size: 0.8125rem;
+        line-height: 1.4;
+    }
+
+    .bank-details small {
+        color: #94A3B8;
+        display: block;
+        margin-top: 0.125rem;
+    }
+
+    /* Payment Number */
+    .payment-number {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Amount Display */
+    .amount-cell {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .date-cell {
+        font-size: 0.8125rem;
+        color: #64748B;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: white;
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-secondary {
+        background: #F1F5F9;
+        color: #475569;
+        border-color: #E2E8F0;
+    }
+
+    .btn-secondary:hover {
+        background: #E2E8F0;
+        border-color: #CBD5E1;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
+    }
+
+    /* Info Card */
+    .info-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .notes-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .notes-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+        color: #475569;
+        line-height: 1.5;
+    }
+
+    .notes-list i {
+        color: var(--info-color);
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .notes-list strong {
+        color: #1E293B;
+        font-weight: 500;
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .pagination a,
+    .pagination span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .pagination a {
+        color: var(--secondary-color);
+        border: 1px solid var(--border-color);
+        background: white;
+    }
+
+    .pagination a:hover {
+        background: var(--hover-bg);
+        border-color: var(--primary-color);
+    }
+
+    .pagination .current {
+        background: var(--primary-color);
+        color: white;
+        border: 1px solid var(--primary-color);
+        font-weight: 600;
+    }
+
+    .pagination .disabled {
+        color: #CBD5E1;
+        cursor: not-allowed;
+        border: 1px solid #E2E8F0;
+    }
+
+    .page-info {
+        color: var(--secondary-color);
+        font-size: 0.875rem;
+        padding: 0 1rem;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state h4 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #475569;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .empty-state p {
+        margin: 0 0 1.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    /* Link Style */
+    .link-primary {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s;
+    }
+
+    .link-primary:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .filters-row {
+            flex-direction: column;
+        }
+
+        .filter-group {
+            width: 100%;
+            min-width: auto;
+        }
+
+        .payments-table thead {
+            display: none;
+        }
+
+        .payments-table tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+        }
+
+        .payments-table tbody td {
+            display: block;
+            text-align: right;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .payments-table tbody td:last-child {
+            border-bottom: none;
+        }
+
+        .payments-table tbody td::before {
+            content: attr(data-label);
+            float: left;
+            font-weight: 600;
+            color: #64748B;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .payments-table tbody td {
+            font-size: 0.8125rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">Payment History</h1>
+        <h1 class="page-title">
+            <i class="bi bi-clock-history"></i>
+            Payment History
+        </h1>
         <p class="page-subtitle">Detailed payment transaction history</p>
     </div>
-    <div class="header-actions">
+    <div style="display: flex; gap: 0.5rem;">
         <a href="{% url 'supplier_payments' %}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Back to Payments
         </a>
@@ -20,51 +586,64 @@
 </div>
 
 <!-- Summary Cards -->
-{% if totals.total %}
-<div class="summary-card">
-    <div class="summary-grid">
-        <div class="summary-item">
-            <span class="summary-label">Total Transactions</span>
-            <div class="summary-amount">{{ totals.count|intcomma }}</div>
-            <span class="summary-description">Payment records</span>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Total Transactions</span>
+            <div class="stat-icon transactions">
+                <i class="bi bi-list-check"></i>
+            </div>
         </div>
-        <div class="summary-item">
-            <span class="summary-label">Total Amount</span>
-            <div class="summary-amount success">KSh {{ totals.total|floatformat:0|intcomma }}</div>
-            <span class="summary-description">In selected period</span>
+        <div class="stat-value">{{ totals.count|intcomma }}</div>
+        <div class="stat-description">Payment records</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Total Amount</span>
+            <div class="stat-icon total-amount">
+                <i class="bi bi-cash-stack"></i>
+            </div>
         </div>
+        <div class="stat-value">KES {{ totals.total|floatformat:0|intcomma }}</div>
+        <div class="stat-description success">In selected period</div>
     </div>
 </div>
-{% endif %}
 
-<!-- Filters -->
-<div class="filter-card">
-    <form method="get" action="{% url 'supplier_payment_history' %}">
-        <div class="filter-grid">
-            <div class="form-group">
-                <label class="form-label">
+<!-- Filters Section -->
+<div class="filters-section">
+    <form method="get" id="filterForm">
+        <div class="filters-row">
+            <div class="filter-group">
+                <label for="start_date" class="filter-label">
                     <i class="bi bi-calendar"></i>
                     Start Date
                 </label>
-                <input type="date" name="start_date" class="form-control" 
-                       value="{{ start_date }}" placeholder="Start Date">
+                <input type="date" 
+                       name="start_date" 
+                       id="start_date" 
+                       class="filter-control"
+                       value="{{ start_date }}">
             </div>
             
-            <div class="form-group">
-                <label class="form-label">
+            <div class="filter-group">
+                <label for="end_date" class="filter-label">
                     <i class="bi bi-calendar"></i>
                     End Date
                 </label>
-                <input type="date" name="end_date" class="form-control" 
-                       value="{{ end_date }}" placeholder="End Date">
+                <input type="date" 
+                       name="end_date" 
+                       id="end_date" 
+                       class="filter-control"
+                       value="{{ end_date }}">
             </div>
             
-            <div class="form-group">
-                <label class="form-label">
+            <div class="filter-group">
+                <label for="status" class="filter-label">
                     <i class="bi bi-filter"></i>
                     Payment Status
                 </label>
-                <select name="status" class="form-control">
+                <select name="status" id="status" class="filter-control" onchange="document.getElementById('filterForm').submit()">
                     <option value="all" {% if current_status == 'all' %}selected{% endif %}>All Status</option>
                     {% for value, label in status_choices %}
                     <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
@@ -73,198 +652,210 @@
                     {% endfor %}
                 </select>
             </div>
-        </div>
-        
-        <div class="filter-actions">
-            <a href="{% url 'supplier_payment_history' %}" class="btn btn-secondary">
-                <i class="bi bi-x-circle"></i>
-                Reset Filters
-            </a>
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-search"></i>
-                Apply Filters
-            </button>
+
+            <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                <a href="{% url 'supplier_payment_history' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i>
+                    Reset
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i>
+                    Apply Filters
+                </button>
+            </div>
         </div>
     </form>
 </div>
 
-<!-- Payment History Table -->
-<div class="table-card">
-    <div class="table-header">
-        <h2 class="table-title">
-            <i class="bi bi-clock-history"></i>
-            Payment Transactions ({{ payments.paginator.count }})
-        </h2>
-    </div>
-    
-    <div class="table-body">
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Payment Number</th>
-                        <th>Invoice Number</th>
-                        <th>PO Number</th>
-                        <th>Payment Date</th>
-                        <th>Amount</th>
-                        <th>Payment Method</th>
-                        <th>Reference Number</th>
-                        <th>Bank Details</th>
-                        <th>Status</th>
-                        <th>Processed By</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for payment in payments %}
-                    <tr>
-                        <td>
-                            <span class="invoice-number">{{ payment.payment_number }}</span>
-                        </td>
-                        <td>
-                            <a href="{% url 'supplier_invoice_detail' payment.invoice.id %}" class="link-primary">
-                                {{ payment.invoice.invoice_number }}
-                            </a>
-                        </td>
-                        <td>
-                            {% if payment.invoice.purchase_order %}
-                            <span class="supplier-number">{{ payment.invoice.purchase_order.po_number }}</span>
-                            {% else %}
-                            <span class="text-muted">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td class="date-cell">{{ payment.payment_date|date:"M d, Y" }}</td>
-                        <td class="amount-cell">KSh {{ payment.payment_amount|floatformat:2|intcomma }}</td>
-                        <td>
-                            <span class="badge badge-info">
-                                {% if payment.payment_method == 'BANK_TRANSFER' %}
-                                <i class="bi bi-bank"></i>
-                                {% elif payment.payment_method == 'CHEQUE' %}
-                                <i class="bi bi-check2"></i>
-                                {% elif payment.payment_method == 'EFT' %}
-                                <i class="bi bi-arrow-left-right"></i>
-                                {% elif payment.payment_method == 'MOBILE_MONEY' %}
-                                <i class="bi bi-phone"></i>
-                                {% endif %}
-                                {{ payment.get_payment_method_display }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="supplier-number">{{ payment.payment_reference }}</span>
-                        </td>
-                        <td>
-                            {% if payment.bank_name %}
-                            <div class="bank-details">
-                                <div>{{ payment.bank_name }}</div>
-                                {% if payment.cheque_number %}
-                                <small class="text-muted">Cheque: {{ payment.cheque_number }}</small>
-                                {% endif %}
-                            </div>
-                            {% else %}
-                            <span class="text-muted">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if payment.status == 'COMPLETED' %}
-                            <span class="badge badge-paid">
-                                <i class="bi bi-check-circle"></i>
-                                {{ payment.get_status_display }}
-                            </span>
-                            {% elif payment.status == 'PENDING' %}
-                            <span class="badge badge-submitted">
-                                <i class="bi bi-clock"></i>
-                                {{ payment.get_status_display }}
-                            </span>
-                            {% elif payment.status == 'PROCESSING' %}
-                            <span class="badge badge-verifying">
-                                <i class="bi bi-hourglass-split"></i>
-                                {{ payment.get_status_display }}
-                            </span>
-                            {% elif payment.status == 'FAILED' %}
-                            <span class="badge badge-disputed">
-                                <i class="bi bi-x-circle"></i>
-                                {{ payment.get_status_display }}
-                            </span>
-                            {% elif payment.status == 'CANCELLED' %}
-                            <span class="badge badge-draft">
-                                <i class="bi bi-slash-circle"></i>
-                                {{ payment.get_status_display }}
-                            </span>
-                            {% else %}
-                            <span class="badge badge-draft">{{ payment.get_status_display }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if payment.processed_by %}
-                            {{ payment.processed_by.get_full_name }}
-                            {% else %}
-                            <span class="text-muted">System</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <a href="{% url 'supplier_invoice_detail' payment.invoice.id %}" 
-                                   class="action-btn action-btn-primary" title="View Invoice">
-                                    <i class="bi bi-receipt"></i>
-                                    Invoice
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="11">
-                            <div class="empty-state">
-                                <i class="bi bi-clock-history"></i>
-                                <h4>No Payment History Found</h4>
-                                <p>No payments match your filter criteria</p>
-                                <a href="{% url 'supplier_payment_history' %}" class="btn btn-primary">
-                                    <i class="bi bi-arrow-clockwise"></i> Reset Filters
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
+<!-- Payments Table -->
+<div class="payments-card">
+    {% if payments %}
+    <table class="payments-table">
+        <thead>
+            <tr>
+                <th>Payment Number</th>
+                <th>Invoice Number</th>
+                <th>PO Number</th>
+                <th>Payment Date</th>
+                <th>Amount</th>
+                <th>Payment Method</th>
+                <th>Reference Number</th>
+                <th>Bank Details</th>
+                <th>Status</th>
+                <th>Processed By</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for payment in payments %}
+            <tr>
+                <td data-label="Payment Number">
+                    <span class="payment-number">{{ payment.payment_number }}</span>
+                </td>
+                <td data-label="Invoice Number">
+                    <a href="{% url 'supplier_invoice_detail' payment.invoice.id %}" class="link-primary">
+                        {{ payment.invoice.invoice_number }}
+                    </a>
+                </td>
+                <td data-label="PO Number">
+                    {% if payment.invoice.purchase_order %}
+                    <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.8125rem;">
+                        {{ payment.invoice.purchase_order.po_number }}
+                    </span>
+                    {% else %}
+                    <span style="color: #CBD5E1; font-size: 0.75rem;">N/A</span>
+                    {% endif %}
+                </td>
+                <td data-label="Payment Date" class="date-cell">
+                    {{ payment.payment_date|date:"M d, Y" }}
+                </td>
+                <td data-label="Amount" class="amount-cell">
+                    KES {{ payment.payment_amount|floatformat:2|intcomma }}
+                </td>
+                <td data-label="Payment Method">
+                    <span class="payment-method-badge">
+                        {% if payment.payment_method == 'BANK_TRANSFER' %}
+                        <i class="bi bi-bank"></i>
+                        {% elif payment.payment_method == 'CHEQUE' %}
+                        <i class="bi bi-check2"></i>
+                        {% elif payment.payment_method == 'EFT' %}
+                        <i class="bi bi-arrow-left-right"></i>
+                        {% elif payment.payment_method == 'MOBILE_MONEY' %}
+                        <i class="bi bi-phone"></i>
+                        {% endif %}
+                        {{ payment.get_payment_method_display }}
+                    </span>
+                </td>
+                <td data-label="Reference Number">
+                    <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.8125rem;">
+                        {{ payment.payment_reference }}
+                    </span>
+                </td>
+                <td data-label="Bank Details">
+                    {% if payment.bank_name %}
+                    <div class="bank-details">
+                        <div>{{ payment.bank_name }}</div>
+                        {% if payment.cheque_number %}
+                        <small>Cheque: {{ payment.cheque_number }}</small>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <span style="color: #CBD5E1; font-size: 0.75rem;">N/A</span>
+                    {% endif %}
+                </td>
+                <td data-label="Status">
+                    {% if payment.status == 'COMPLETED' %}
+                    <span class="status-badge status-completed">
+                        <i class="bi bi-check-circle"></i>
+                        Completed
+                    </span>
+                    {% elif payment.status == 'PENDING' %}
+                    <span class="status-badge status-pending">
+                        <i class="bi bi-clock"></i>
+                        Pending
+                    </span>
+                    {% elif payment.status == 'PROCESSING' %}
+                    <span class="status-badge status-processing">
+                        <i class="bi bi-hourglass-split"></i>
+                        Processing
+                    </span>
+                    {% elif payment.status == 'FAILED' %}
+                    <span class="status-badge status-failed">
+                        <i class="bi bi-x-circle"></i>
+                        Failed
+                    </span>
+                    {% elif payment.status == 'CANCELLED' %}
+                    <span class="status-badge status-cancelled">
+                        <i class="bi bi-slash-circle"></i>
+                        Cancelled
+                    </span>
+                    {% else %}
+                    <span class="status-badge status-pending">{{ payment.get_status_display }}</span>
+                    {% endif %}
+                </td>
+                <td data-label="Processed By">
+                    {% if payment.processed_by %}
+                    <div style="font-size: 0.8125rem;">
+                        {{ payment.processed_by.get_full_name|truncatechars:20 }}
+                    </div>
+                    {% else %}
+                    <span style="color: #CBD5E1; font-size: 0.75rem;">System</span>
+                    {% endif %}
+                </td>
+                <td data-label="Actions">
+                    <div class="action-buttons">
+                        <a href="{% url 'supplier_invoice_detail' payment.invoice.id %}" 
+                           class="btn btn-sm btn-primary" 
+                           title="View Invoice">
+                            <i class="bi bi-receipt"></i>
+                            Invoice
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
     <!-- Pagination -->
     {% if payments.has_other_pages %}
     <div class="pagination">
         {% if payments.has_previous %}
-        <a href="?page=1{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
-           class="page-link" title="First Page">
+        <a href="?page=1{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}">
             <i class="bi bi-chevron-double-left"></i>
         </a>
-        <a href="?page={{ payments.previous_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
-           class="page-link" title="Previous Page">
+        <a href="?page={{ payments.previous_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}">
             <i class="bi bi-chevron-left"></i>
         </a>
+        {% else %}
+        <span class="disabled">
+            <i class="bi bi-chevron-double-left"></i>
+        </span>
+        <span class="disabled">
+            <i class="bi bi-chevron-left"></i>
+        </span>
         {% endif %}
-        
+
         <span class="page-info">
             Page {{ payments.number }} of {{ payments.paginator.num_pages }}
         </span>
-        
+
         {% if payments.has_next %}
-        <a href="?page={{ payments.next_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
-           class="page-link" title="Next Page">
+        <a href="?page={{ payments.next_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}">
             <i class="bi bi-chevron-right"></i>
         </a>
-        <a href="?page={{ payments.paginator.num_pages }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}" 
-           class="page-link" title="Last Page">
+        <a href="?page={{ payments.paginator.num_pages }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_status != 'all' %}&status={{ current_status }}{% endif %}">
             <i class="bi bi-chevron-double-right"></i>
         </a>
+        {% else %}
+        <span class="disabled">
+            <i class="bi bi-chevron-right"></i>
+        </span>
+        <span class="disabled">
+            <i class="bi bi-chevron-double-right"></i>
+        </span>
         {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <i class="bi bi-clock-history"></i>
+        <h4>No Payment History Found</h4>
+        <p>No payments match your filter criteria</p>
+        <a href="{% url 'supplier_payment_history' %}" class="btn btn-primary">
+            <i class="bi bi-arrow-clockwise"></i> Reset Filters
+        </a>
     </div>
     {% endif %}
 </div>
 
-<!-- Payment Notes -->
+<!-- Important Notes -->
 <div class="info-card">
-    <h3 class="card-title">Important Notes</h3>
+    <h3 class="card-title">
+        <i class="bi bi-info-circle"></i>
+        Important Notes
+    </h3>
     <ul class="notes-list">
         <li>
             <i class="bi bi-info-circle"></i>

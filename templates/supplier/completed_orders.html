@@ -3,281 +3,928 @@
 {% load humanize %}
 {% block title %}Completed Orders - Supplier Portal{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --info-color: #3B82F6;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    /* Statistics Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 0.375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .stat-icon.completed {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .stat-icon.total-value {
+        background: #E0E7FF;
+        color: #3730A3;
+    }
+
+    .stat-icon.this-year {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1E293B;
+        line-height: 1;
+    }
+
+    .stat-subtitle {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-top: 0.25rem;
+    }
+
+    /* Filters Section */
+    .filters-section {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filters-row {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .filter-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.5rem;
+    }
+
+    .filter-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .filter-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .search-group {
+        position: relative;
+        flex: 1;
+        min-width: 250px;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94A3B8;
+        pointer-events: none;
+    }
+
+    .search-group .filter-control {
+        padding-left: 2.5rem;
+    }
+
+    /* Orders Table */
+    .orders-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .orders-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .orders-table thead th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border-color);
+        background: #F8FAFC;
+    }
+
+    .orders-table tbody td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    .orders-table tbody tr {
+        transition: background 0.2s;
+    }
+
+    .orders-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .orders-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Status Badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    .status-badge i {
+        font-size: 0.75rem;
+    }
+
+    .status-badge.status-delivered {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .status-badge.status-closed {
+        background: #F1F5F9;
+        color: #64748B;
+    }
+
+    .status-badge.status-completed {
+        background: #E0E7FF;
+        color: #3730A3;
+    }
+
+    /* Invoice Badges */
+    .invoice-badges {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .invoice-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        white-space: nowrap;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .invoice-badge.paid {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .invoice-badge.approved {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .invoice-badge.pending {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    /* Items Badge */
+    .items-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        background: #F1F5F9;
+        color: #475569;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: white;
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
+    }
+
+    /* Amount Display */
+    .amount-cell {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .date-cell {
+        font-size: 0.8125rem;
+        color: #64748B;
+    }
+
+    /* Performance Summary */
+    .performance-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .performance-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: #F8FAFC;
+    }
+
+    .performance-header h5 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .performance-body {
+        padding: 1.5rem;
+    }
+
+    .performance-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1.5rem;
+        text-align: center;
+    }
+
+    .performance-item h3 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0 0 0.25rem 0;
+        line-height: 1;
+    }
+
+    .performance-item p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #64748B;
+    }
+
+    .performance-item .text-success {
+        color: var(--success-color);
+    }
+
+    .performance-item .text-primary {
+        color: var(--primary-color);
+    }
+
+    .performance-item .text-info {
+        color: var(--info-color);
+    }
+
+    .performance-item .text-warning {
+        color: var(--warning-color);
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .pagination a,
+    .pagination span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .pagination a {
+        color: var(--secondary-color);
+        border: 1px solid var(--border-color);
+        background: white;
+    }
+
+    .pagination a:hover {
+        background: var(--hover-bg);
+        border-color: var(--primary-color);
+    }
+
+    .pagination .current {
+        background: var(--primary-color);
+        color: white;
+        border: 1px solid var(--primary-color);
+        font-weight: 600;
+    }
+
+    .pagination .disabled {
+        color: #CBD5E1;
+        cursor: not-allowed;
+        border: 1px solid #E2E8F0;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state h5 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #475569;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .empty-state p {
+        margin: 0 0 1.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .filters-row {
+            flex-direction: column;
+        }
+
+        .filter-group,
+        .search-group {
+            width: 100%;
+            min-width: auto;
+        }
+
+        .orders-table thead {
+            display: none;
+        }
+
+        .orders-table tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+        }
+
+        .orders-table tbody td {
+            display: block;
+            text-align: right;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .orders-table tbody td:last-child {
+            border-bottom: none;
+        }
+
+        .orders-table tbody td::before {
+            content: attr(data-label);
+            float: left;
+            font-weight: 600;
+            color: #64748B;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .performance-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .performance-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2 class="mb-0">Completed Orders</h2>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="{% url 'supplier_dashboard' %}">Dashboard</a></li>
-                        <li class="breadcrumb-item active">Completed Orders</li>
-                    </ol>
-                </nav>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-check-circle"></i>
+            Completed Orders
+        </h1>
+        <p class="page-subtitle">Your fulfilled and delivered purchase orders</p>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Total Completed</span>
+            <div class="stat-icon completed">
+                <i class="bi bi-check-circle"></i>
             </div>
         </div>
+        <div class="stat-value">{{ pos.paginator.count }}</div>
+        <div class="stat-subtitle">Purchase Orders</div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card bg-success text-white shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-title">Total Completed</h6>
-                    <h3 class="mb-0">{{ pos.paginator.count }}</h3>
-                    <small>Purchase Orders</small>
-                </div>
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Total Value</span>
+            <div class="stat-icon total-value">
+                <i class="bi bi-cash-stack"></i>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-primary text-white shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-title">Total Value</h6>
-                    <h3 class="mb-0">
-                        KES {% with total=0 %}
-                            {% for po in pos %}
-                                {% widthratio po.total_amount 1 1 as amount %}
-                            {% endfor %}
-                        {% endwith %}
-                        {{ pos.0.total_amount|default:0|floatformat:2|intcomma }}
-                    </h3>
-                    <small>Completed Orders</small>
-                </div>
-            </div>
+        <div class="stat-value">
+            {% with total=0 %}
+                {% for po in pos %}
+                    {% with total=total|add:po.total_amount %}{% endwith %}
+                {% endfor %}
+                KES {{ total|default:0|floatformat:2|intcomma }}
+            {% endwith %}
         </div>
-        <div class="col-md-4">
-            <div class="card bg-info text-white shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-title">This Year</h6>
-                    <h3 class="mb-0">
-                        {% with current_year=0 %}
-                            {% for po in pos %}
-                                {% if po.po_date.year == today.year %}{{ current_year|add:1 }}{% endif %}
-                            {% endfor %}
-                        {% endwith %}
-                    </h3>
-                    <small>Orders in {{ today.year }}</small>
-                </div>
-            </div>
-        </div>
+        <div class="stat-subtitle">Completed Orders</div>
     </div>
 
-    <!-- Filters -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <form method="get" class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Search PO Number</label>
-                            <input type="text" class="form-control" name="search" 
-                                   placeholder="PO-2024-000001" value="{{ request.GET.search }}">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">From Date</label>
-                            <input type="date" class="form-control" name="from_date" value="{{ request.GET.from_date }}">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">To Date</label>
-                            <input type="date" class="form-control" name="to_date" value="{{ request.GET.to_date }}">
-                        </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary me-2">
-                                <i class="bi bi-search"></i> Filter
-                            </button>
-                            <a href="{% url 'supplier_completed_orders' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-x-circle"></i> Clear
-                            </a>
-                        </div>
-                    </form>
-                </div>
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">This Year</span>
+            <div class="stat-icon this-year">
+                <i class="bi bi-calendar-check"></i>
             </div>
         </div>
-    </div>
-
-    <!-- Orders List -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    {% if pos %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>PO Number</th>
-                                    <th>PO Date</th>
-                                    <th>Delivery Date</th>
-                                    <th>Completed Date</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Items</th>
-                                    <th>Payment</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for po in pos %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ po.po_number }}</strong><br>
-                                        <small class="text-muted">Req: {{ po.requisition.requisition_number }}</small>
-                                    </td>
-                                    <td>{{ po.po_date|date:"d M, Y" }}</td>
-                                    <td>{{ po.delivery_date|date:"d M, Y" }}</td>
-                                    <td>
-                                        {% if po.status == 'DELIVERED' or po.status == 'CLOSED' %}
-                                            {{ po.updated_at|date:"d M, Y" }}
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <strong class="text-success">KES {{ po.total_amount|floatformat:2|intcomma }}</strong>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{% if po.status == 'DELIVERED' %}success{% elif po.status == 'CLOSED' %}secondary{% else %}primary{% endif %}">
-                                            {{ po.get_status_display }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{ po.items.count }} items</span>
-                                    </td>
-                                    <td>
-                                        {% with invoices=po.invoices.all %}
-                                            {% if invoices %}
-                                                {% for invoice in invoices %}
-                                                    <span class="badge bg-{% if invoice.status == 'PAID' %}success{% elif invoice.status == 'APPROVED' %}info{% else %}warning{% endif %} mb-1">
-                                                        {{ invoice.invoice_number }}
-                                                    </span><br>
-                                                {% endfor %}
-                                            {% else %}
-                                                <span class="text-muted">No invoice</span>
-                                            {% endif %}
-                                        {% endwith %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{% url 'supplier_purchase_order_detail' po.id %}" 
-                                               class="btn btn-outline-primary" 
-                                               title="View Details">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                            <button type="button" class="btn btn-outline-secondary" 
-                                                    onclick="window.print()" 
-                                                    title="Print">
-                                                <i class="bi bi-printer"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    {% if pos.has_other_pages %}
-                    <nav aria-label="Page navigation" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            {% if pos.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ pos.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}">
-                                        Previous
-                                    </a>
-                                </li>
-                            {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Previous</span>
-                                </li>
-                            {% endif %}
-
-                            {% for num in pos.paginator.page_range %}
-                                {% if pos.number == num %}
-                                    <li class="page-item active">
-                                        <span class="page-link">{{ num }}</span>
-                                    </li>
-                                {% elif num > pos.number|add:'-3' and num < pos.number|add:'3' %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}">
-                                            {{ num }}
-                                        </a>
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-
-                            {% if pos.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ pos.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}">
-                                        Next
-                                    </a>
-                                </li>
-                            {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Next</span>
-                                </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
+        <div class="stat-value">
+            {% with current_year=0 %}
+                {% for po in pos %}
+                    {% if po.po_date.year == today.year %}
+                        {% with current_year=current_year|add:1 %}{% endwith %}
                     {% endif %}
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="bi bi-check-circle" style="font-size: 3rem; color: #ccc;"></i>
-                        <h5 class="mt-3 text-muted">No Completed Orders</h5>
-                        <p class="text-muted">Your completed orders will appear here once deliveries are fulfilled.</p>
-                        <a href="{% url 'supplier_pending_orders' %}" class="btn btn-primary mt-3">
-                            <i class="bi bi-clock"></i> View Pending Orders
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
+                {% endfor %}
+                {{ current_year|default:0 }}
+            {% endwith %}
+        </div>
+        <div class="stat-subtitle">Orders in {{ today.year }}</div>
+    </div>
+</div>
+
+<!-- Filters Section -->
+<div class="filters-section">
+    <form method="get" id="filterForm">
+        <div class="filters-row">
+            <div class="search-group">
+                <label for="search" class="filter-label">
+                    <i class="bi bi-search"></i>
+                    Search PO Number
+                </label>
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" 
+                       name="search" 
+                       id="search" 
+                       class="filter-control" 
+                       placeholder="PO-2024-000001"
+                       value="{{ request.GET.search }}">
+            </div>
+
+            <div class="filter-group">
+                <label for="from_date" class="filter-label">From Date</label>
+                <input type="date" 
+                       name="from_date" 
+                       id="from_date" 
+                       class="filter-control"
+                       value="{{ request.GET.from_date }}">
+            </div>
+
+            <div class="filter-group">
+                <label for="to_date" class="filter-label">To Date</label>
+                <input type="date" 
+                       name="to_date" 
+                       id="to_date" 
+                       class="filter-control"
+                       value="{{ request.GET.to_date }}">
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i>
+                    Filter
+                </button>
+                {% if request.GET.search or request.GET.from_date or request.GET.to_date %}
+                <a href="{% url 'supplier_completed_orders' %}" class="btn">
+                    <i class="bi bi-x-circle"></i>
+                    Clear
+                </a>
+                {% endif %}
             </div>
         </div>
-    </div>
+    </form>
+</div>
 
-    <!-- Performance Summary (if completed orders exist) -->
+<!-- Orders Table -->
+<div class="orders-card">
     {% if pos %}
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Order Performance Summary</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-3">
-                            <h3 class="text-success">{{ pos.paginator.count }}</h3>
-                            <p class="text-muted mb-0">Total Completed</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h3 class="text-primary">
-                                {% widthratio pos.paginator.count 1 pos.paginator.count as avg_time %}
-                                {{ avg_time|default:0 }}
-                            </h3>
-                            <p class="text-muted mb-0">Avg. Delivery (days)</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h3 class="text-info">
-                                {% widthratio pos.paginator.count pos.paginator.count 100 %}%
-                            </h3>
-                            <p class="text-muted mb-0">On-Time Delivery</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h3 class="text-warning">4.5/5</h3>
-                            <p class="text-muted mb-0">Avg. Rating</p>
-                        </div>
+    <table class="orders-table">
+        <thead>
+            <tr>
+                <th>PO Number</th>
+                <th>PO Date</th>
+                <th>Delivery Date</th>
+                <th>Completed Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Items</th>
+                <th>Payment</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for po in pos %}
+            <tr>
+                <td data-label="PO Number">
+                    <strong>{{ po.po_number }}</strong>
+                    <div class="date-cell">Req: {{ po.requisition.requisition_number }}</div>
+                </td>
+                <td data-label="PO Date" class="date-cell">
+                    {{ po.po_date|date:"M d, Y" }}
+                </td>
+                <td data-label="Delivery Date" class="date-cell">
+                    {{ po.delivery_date|date:"M d, Y" }}
+                </td>
+                <td data-label="Completed Date" class="date-cell">
+                    {% if po.status == 'DELIVERED' or po.status == 'CLOSED' %}
+                        {{ po.updated_at|date:"M d, Y" }}
+                    {% else %}
+                        <span style="color: #CBD5E1;">-</span>
+                    {% endif %}
+                </td>
+                <td data-label="Amount" class="amount-cell">
+                    KES {{ po.total_amount|floatformat:2|intcomma }}
+                </td>
+                <td data-label="Status">
+                    {% if po.status == 'DELIVERED' %}
+                    <span class="status-badge status-delivered">
+                        <i class="bi bi-truck"></i>
+                        Delivered
+                    </span>
+                    {% elif po.status == 'CLOSED' %}
+                    <span class="status-badge status-closed">
+                        <i class="bi bi-check-all"></i>
+                        Closed
+                    </span>
+                    {% else %}
+                    <span class="status-badge status-completed">
+                        <i class="bi bi-check-circle"></i>
+                        {{ po.get_status_display }}
+                    </span>
+                    {% endif %}
+                </td>
+                <td data-label="Items">
+                    <span class="items-badge">
+                        <i class="bi bi-box"></i>
+                        {{ po.items.count }} items
+                    </span>
+                </td>
+                <td data-label="Payment">
+                    <div class="invoice-badges">
+                        {% with invoices=po.invoices.all %}
+                            {% if invoices %}
+                                {% for invoice in invoices %}
+                                    <span class="invoice-badge {% if invoice.status == 'PAID' %}paid{% elif invoice.status == 'APPROVED' %}approved{% else %}pending{% endif %}">
+                                        <i class="bi bi-{% if invoice.status == 'PAID' %}check-circle{% elif invoice.status == 'APPROVED' %}check{% else %}clock{% endif %}"></i>
+                                        {{ invoice.invoice_number }}
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <span style="color: #CBD5E1; font-size: 0.75rem;">No invoice</span>
+                            {% endif %}
+                        {% endwith %}
                     </div>
-                </div>
-            </div>
-        </div>
+                </td>
+                <td data-label="Actions">
+                    <div class="action-buttons">
+                        <a href="{% url 'supplier_purchase_order_detail' po.id %}" 
+                           class="btn btn-sm btn-primary" 
+                           title="View Details">
+                            <i class="bi bi-eye"></i>
+                            View
+                        </a>
+                        <button type="button" class="btn btn-sm" 
+                                onclick="window.print()" 
+                                title="Print">
+                            <i class="bi bi-printer"></i>
+                            Print
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    {% if pos.has_other_pages %}
+    <div class="pagination">
+        {% if pos.has_previous %}
+        <a href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}">
+            <i class="bi bi-chevron-double-left"></i>
+        </a>
+        <a href="?page={{ pos.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        {% else %}
+        <span class="disabled">
+            <i class="bi bi-chevron-double-left"></i>
+        </span>
+        <span class="disabled">
+            <i class="bi bi-chevron-left"></i>
+        </span>
+        {% endif %}
+
+        <span style="color: var(--secondary-color); font-size: 0.875rem; padding: 0 1rem;">
+            Page {{ pos.number }} of {{ pos.paginator.num_pages }}
+        </span>
+
+        {% if pos.has_next %}
+        <a href="?page={{ pos.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+        <a href="?page={{ pos.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}">
+            <i class="bi bi-chevron-double-right"></i>
+        </a>
+        {% else %}
+        <span class="disabled">
+            <i class="bi bi-chevron-right"></i>
+        </span>
+        <span class="disabled">
+            <i class="bi bi-chevron-double-right"></i>
+        </span>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <h5>No Completed Orders</h5>
+        <p>Your completed orders will appear here once deliveries are fulfilled.</p>
+        <a href="{% url 'supplier_pending_orders' %}" class="btn btn-primary">
+            <i class="bi bi-clock"></i> View Pending Orders
+        </a>
     </div>
     {% endif %}
 </div>
 
-<style>
-.table tbody tr:hover {
-    background-color: #f8f9fa;
-}
-</style>
+<!-- Performance Summary -->
+{% if pos %}
+<div class="performance-card">
+    <div class="performance-header">
+        <h5>
+            <i class="bi bi-bar-chart"></i>
+            Order Performance Summary
+        </h5>
+    </div>
+    <div class="performance-body">
+        <div class="performance-grid">
+            <div class="performance-item">
+                <h3 class="text-success">{{ pos.paginator.count }}</h3>
+                <p>Total Completed</p>
+            </div>
+            <div class="performance-item">
+                <h3 class="text-primary">
+                    {% with avg_time=0 %}
+                        {% for po in pos %}
+                            {% with avg_time=avg_time|add:1 %}{% endwith %}
+                        {% endfor %}
+                        {{ avg_time|default:0 }}
+                    {% endwith %}
+                </h3>
+                <p>Avg. Delivery (days)</p>
+            </div>
+            <div class="performance-item">
+                <h3 class="text-info">
+                    {% with pos_count=pos.paginator.count %}
+                        {% if pos_count > 0 %}
+                            {{ pos_count }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    {% endwith %}
+                </h3>
+                <p>On-Time Delivery</p>
+            </div>
+            <div class="performance-item">
+                <h3 class="text-warning">4.5/5</h3>
+                <p>Avg. Rating</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+// Auto-submit search on Enter key
+document.getElementById('search').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('filterForm').submit();
+    }
+});
+
+// Highlight search terms in table
+{% if request.GET.search %}
+document.addEventListener('DOMContentLoaded', function() {
+    const searchTerm = "{{ request.GET.search }}".toLowerCase();
+    const cells = document.querySelectorAll('.orders-table tbody td strong:first-child');
+    
+    cells.forEach(cell => {
+        const text = cell.textContent;
+        const lowerText = text.toLowerCase();
+        
+        if (lowerText.includes(searchTerm)) {
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            cell.innerHTML = text.replace(regex, '<mark style="background: #FEF3C7; padding: 0.125rem 0.25rem; border-radius: 0.125rem;">$1</mark>');
+        }
+    });
+});
+{% endif %}
+</script>
+
 {% endblock %}
