@@ -3,6 +3,381 @@
 
 {% block title %}{{ requisition.requisition_number }} - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem; /* Reduced from 1.75rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.6875rem; /* Reduced from 0.75rem */
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem; /* Reduced from 0.625rem 1rem */
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Summary Stats */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem; /* Reduced from 1.25rem */
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-value {
+        font-size: 1.25rem; /* Reduced from 1.5rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1rem 1.25rem; /* Reduced from 1.25rem 1.5rem */
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 0.9375rem; /* Reduced from 1rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1rem; /* Reduced from 1.125rem */
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 0.75rem 1.25rem; /* Reduced from 1rem 1.5rem */
+        text-align: left;
+        font-size: 0.6875rem; /* Reduced from 0.75rem */
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.75rem 1.25rem; /* Reduced from 1rem 1.5rem */
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+        color: #334155;
+        white-space: normal;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+    }
+
+    .date-cell {
+        color: var(--secondary-color);
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.3125rem 0.625rem; /* Reduced from 0.375rem 0.75rem */
+        border-radius: 1rem;
+        font-size: 0.6875rem; /* Reduced from 0.75rem */
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .status-badge i {
+        font-size: 0.5625rem; /* Reduced from 0.625rem */
+    }
+
+    .status-draft { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+    .status-pending { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-submitted { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-verifying { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .status-approved { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-rejected { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+    .status-cancelled { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+    
+    /* Priority badges */
+    .status-low { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-medium { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-high { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.875rem; /* Reduced from 2rem */
+        height: 1.875rem; /* Reduced from 2rem */
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .action-btn i {
+        font-size: 0.875rem; /* Reduced from 1rem */
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem; /* Reduced from 4rem 2rem */
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem; /* Reduced from 3rem */
+        margin-bottom: 0.875rem; /* Reduced from 1rem */
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+        margin: 0 0 1.25rem 0; /* Reduced from 0 0 1.5rem 0 */
+    }
+
+    /* Details Grid */
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.625rem 0.875rem; /* Reduced from 0.75rem 1rem */
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.875rem; /* Reduced from 1rem */
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
@@ -64,7 +439,7 @@
     </div>
     <div class="summary-card">
         <div class="summary-label">Estimated Amount</div>
-        <div class="summary-value" style="font-size: 1.25rem;">KES {{ requisition.estimated_amount|floatformat:0|intcomma }}</div>
+        <div class="summary-value" style="font-size: 1.125rem;">KES {{ requisition.estimated_amount|floatformat:0|intcomma }}</div>
     </div>
     <div class="summary-card">
         <div class="summary-label">Total Items</div>
@@ -80,48 +455,48 @@
             Requisition Details
         </h2>
     </div>
-    <div style="padding: 1.5rem;">
+    <div style="padding: 1.25rem;"> <!-- Reduced from 1.5rem -->
         <div class="filter-grid">
             <div>
                 <div class="summary-label">Title</div>
-                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.title }}</div>
+                <div style="font-weight: 600; margin-top: 0.25rem; font-size: 0.9375rem;">{{ requisition.title }}</div>
             </div>
             <div>
                 <div class="summary-label">Department</div>
-                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.department.name }}</div>
+                <div style="font-weight: 600; margin-top: 0.25rem; font-size: 0.9375rem;">{{ requisition.department.name }}</div>
             </div>
             <div>
                 <div class="summary-label">Budget</div>
-                <div style="font-weight: 600; margin-top: 0.25rem;">
+                <div style="font-weight: 600; margin-top: 0.25rem; font-size: 0.9375rem;">
                     {% if requisition.budget %}
                         {{ requisition.budget }}
                     {% else %}
-                        <span style="color: var(--secondary-color);">Not assigned</span>
+                        <span style="color: var(--secondary-color); font-size: 0.9375rem;">Not assigned</span>
                     {% endif %}
                 </div>
             </div>
             <div>
                 <div class="summary-label">Required Date</div>
-                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.required_date|date:"M d, Y" }}</div>
+                <div style="font-weight: 600; margin-top: 0.25rem; font-size: 0.9375rem;">{{ requisition.required_date|date:"M d, Y" }}</div>
             </div>
             <div>
                 <div class="summary-label">Requested By</div>
-                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.requested_by.get_full_name }}</div>
+                <div style="font-weight: 600; margin-top: 0.25rem; font-size: 0.9375rem;">{{ requisition.requested_by.get_full_name }}</div>
             </div>
             <div>
                 <div class="summary-label">Created Date</div>
-                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.created_at|date:"M d, Y H:i" }}</div>
+                <div style="font-weight: 600; margin-top: 0.25rem; font-size: 0.9375rem;">{{ requisition.created_at|date:"M d, Y H:i" }}</div>
             </div>
             {% if requisition.submitted_at %}
             <div>
                 <div class="summary-label">Submitted Date</div>
-                <div style="font-weight: 600; margin-top: 0.25rem;">{{ requisition.submitted_at|date:"M d, Y H:i" }}</div>
+                <div style="font-weight: 600; margin-top: 0.25rem; font-size: 0.9375rem;">{{ requisition.submitted_at|date:"M d, Y H:i" }}</div>
             </div>
             {% endif %}
             {% if requisition.is_emergency %}
             <div>
                 <div class="summary-label">Emergency</div>
-                <div style="font-weight: 600; margin-top: 0.25rem; color: var(--danger-color);">
+                <div style="font-weight: 600; margin-top: 0.25rem; color: var(--danger-color); font-size: 0.9375rem;">
                     <i class="bi bi-exclamation-triangle"></i>
                     Yes - Emergency Requisition
                 </div>
@@ -129,32 +504,32 @@
             {% endif %}
         </div>
 
-        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+        <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color);">
             <div class="summary-label">Justification</div>
-            <div style="margin-top: 0.5rem; line-height: 1.6;">{{ requisition.justification }}</div>
+            <div style="margin-top: 0.5rem; line-height: 1.6; font-size: 0.9375rem;">{{ requisition.justification }}</div>
         </div>
 
         {% if requisition.is_emergency and requisition.emergency_justification %}
         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
             <div class="summary-label">Emergency Justification</div>
-            <div style="margin-top: 0.5rem; line-height: 1.6;">{{ requisition.emergency_justification }}</div>
+            <div style="margin-top: 0.5rem; line-height: 1.6; font-size: 0.9375rem;">{{ requisition.emergency_justification }}</div>
         </div>
         {% endif %}
 
         {% if requisition.notes %}
         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
             <div class="summary-label">Additional Notes</div>
-            <div style="margin-top: 0.5rem; line-height: 1.6;">{{ requisition.notes }}</div>
+            <div style="margin-top: 0.5rem; line-height: 1.6; font-size: 0.9375rem;">{{ requisition.notes }}</div>
         </div>
         {% endif %}
 
         {% if requisition.rejection_reason %}
-        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); background: #FEE2E2; padding: 1rem; border-radius: 0.375rem;">
-            <div class="summary-label" style="color: var(--danger-color);">
+        <div style="margin-top: 1rem; padding: 0.875rem; border-radius: 0.375rem; background: #FEE2E2; border: 1px solid #FECACA;">
+            <div class="summary-label" style="color: var(--danger-color); font-size: 0.9375rem;">
                 <i class="bi bi-exclamation-circle"></i>
                 Rejection Reason
             </div>
-            <div style="margin-top: 0.5rem; line-height: 1.6; color: #991B1B;">{{ requisition.rejection_reason }}</div>
+            <div style="margin-top: 0.5rem; line-height: 1.6; color: #991B1B; font-size: 0.9375rem;">{{ requisition.rejection_reason }}</div>
         </div>
         {% endif %}
     </div>
@@ -186,18 +561,18 @@
             <tbody>
                 {% for item in items %}
                 <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ item.item_description }}</td>
-                    <td style="max-width: 300px; white-space: normal;">{{ item.specifications|truncatewords:20 }}</td>
+                    <td style="font-size: 0.8125rem;">{{ forloop.counter }}</td>
+                    <td style="font-size: 0.8125rem;">{{ item.item_description }}</td>
+                    <td style="max-width: 300px; white-space: normal; font-size: 0.8125rem;">{{ item.specifications|truncatewords:20 }}</td>
                     <td class="amount-cell">{{ item.quantity|floatformat:2 }}</td>
-                    <td>{{ item.unit_of_measure }}</td>
+                    <td style="font-size: 0.8125rem;">{{ item.unit_of_measure }}</td>
                     <td class="amount-cell">KES {{ item.estimated_unit_price|floatformat:2|intcomma }}</td>
                     <td class="amount-cell">KES {{ item.estimated_total|floatformat:2|intcomma }}</td>
                 </tr>
                 {% endfor %}
                 <tr style="font-weight: 600; background: var(--table-header);">
-                    <td colspan="6" style="text-align: right;">Total Estimated Amount:</td>
-                    <td class="amount-cell">KES {{ requisition.estimated_amount|floatformat:2|intcomma }}</td>
+                    <td colspan="6" style="text-align: right; font-size: 0.9375rem;">Total Estimated Amount:</td>
+                    <td class="amount-cell" style="font-size: 0.9375rem;">KES {{ requisition.estimated_amount|floatformat:2|intcomma }}</td>
                 </tr>
             </tbody>
         </table>
@@ -238,8 +613,8 @@
                             {{ attachment.get_attachment_type_display }}
                         </span>
                     </td>
-                    <td>{{ attachment.file_name }}</td>
-                    <td>{{ attachment.description|truncatewords:15 }}</td>
+                    <td style="font-size: 0.8125rem;">{{ attachment.file_name }}</td>
+                    <td style="font-size: 0.8125rem;">{{ attachment.description|truncatewords:15 }}</td>
                     <td class="date-cell">{{ attachment.uploaded_at|date:"M d, Y H:i" }}</td>
                     <td>
                         <a href="{{ attachment.file.url }}" class="action-btn" title="Download" download>
@@ -280,8 +655,8 @@
             <tbody>
                 {% for approval in approvals %}
                 <tr>
-                    <td>{{ approval.get_approval_stage_display }}</td>
-                    <td>
+                    <td style="font-size: 0.8125rem;">{{ approval.get_approval_stage_display }}</td>
+                    <td style="font-size: 0.8125rem;">
                         {% if approval.approver %}
                             {{ approval.approver.get_full_name }}
                         {% else %}
@@ -293,7 +668,7 @@
                             {{ approval.get_status_display }}
                         </span>
                     </td>
-                    <td>{{ approval.comments|default:"—" }}</td>
+                    <td style="font-size: 0.8125rem;">{{ approval.comments|default:"—" }}</td>
                     <td class="date-cell">
                         {% if approval.approval_date %}
                             {{ approval.approval_date|date:"M d, Y H:i" }}

@@ -3,13 +3,13 @@
         <div class="logo">
             <i class="fas fa-shopping-cart"></i>
         </div>
-        <span class="logo-text">Procument MIS</span>
+        <span class="logo-text">Procurement MIS</span>
     </div>
 
     <!-- Main Section -->
     <div class="menu-section">
         <div class="menu-title">MAIN</div>
-        <a href="{% url 'dashboard' %}" class="menu-item active">
+        <a href="{% url 'staff_dashboard' %}" class="menu-item">
             <i class="fas fa-home"></i>
             <span>Dashboard</span>
         </a>
@@ -19,28 +19,29 @@
     <div class="menu-section">
         <div class="menu-title">REQUISITIONS</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'staff_requisitions_list' %}" class="menu-item">
             <i class="fas fa-file-alt"></i>
             <span>My Requisitions</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'staff_requisition_create' %}" class="menu-item">
             <i class="fas fa-plus-circle"></i>
             <span>New Requisition</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'staff_requisitions_pending' %}" class="menu-item">
             <i class="fas fa-clock"></i>
             <span>Pending</span>
-            <span class="badge">3</span>
+            {# Optional dynamic badge later #}
+            {# <span class="badge">{{ pending_count }}</span> #}
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'staff_requisitions_approved' %}" class="menu-item">
             <i class="fas fa-check"></i>
             <span>Approved</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'staff_requisitions_rejected' %}" class="menu-item">
             <i class="fas fa-times"></i>
             <span>Rejected</span>
         </a>
@@ -50,15 +51,14 @@
     <div class="menu-section">
         <div class="menu-title">SUPPORT</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'staff_help_center' %}" class="menu-item">
             <i class="fas fa-life-ring"></i>
             <span>Help Center</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'staff_guidelines' %}" class="menu-item">
             <i class="fas fa-book"></i>
             <span>Guidelines</span>
         </a>
     </div>
-
 </div>
