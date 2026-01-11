@@ -1,0 +1,142 @@
+<!-- ========================================== -->
+<!-- finance/budget_tracking.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Budget Tracking - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Budget Tracking & Utilization</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Budget Tracking</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_budgets_list' %}" class="btn">
+            <i class="bi bi-wallet2"></i>
+            All Budgets
+        </a>
+        <a href="{% url 'finance_budget_reallocate' %}" class="btn btn-primary">
+            <i class="bi bi-arrow-left-right"></i>
+            Reallocate Budget
+        </a>
+    </div>
+</div>
+
+<!-- Current Year Info -->
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    Showing budget data for: <strong>{{ current_year.name }}</strong>
+    ({{ current_year.start_date|date:"M d, Y" }} - {{ current_year.end_date|date:"M d, Y" }})
+</div>
+
+<!-- Department Budget Summary -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-building"></i>
+            Department-wise Budget Utilization
+        </h2>
+    </div>
+    {% if department_summary %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Allocated</th>
+                    <th>Committed</th>
+                    <th>Spent</th>
+                    <th>Available</th>
+                    <th>Utilization %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in department_summary %}
+                <tr>
+                    <td>
+                        <strong>{{ dept.department__name }}</strong>
+                        <div class="text-muted">{{ dept.department__code }}</div>
+                    </td>
+                    <td class="amount-cell">KES {{ dept.allocated|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ dept.committed|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ dept.spent|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ dept.available|floatformat:0|intcomma }}</td>
+                    <td>
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: {{ dept.utilization_percentage }}%"></div>
+                            <span class="progress-text">{{ dept.utilization_percentage|floatformat:1 }}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-building"></i>
+        <p>No budget data available</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Category Budget Summary -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-tag"></i>
+            Category-wise Budget Utilization
+        </h2>
+    </div>
+    {% if category_summary %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Allocated</th>
+                    <th>Committed</th>
+                    <th>Spent</th>
+                    <th>Available</th>
+                    <th>Utilization %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in category_summary %}
+                <tr>
+                    <td>
+                        <strong>{{ cat.category__name }}</strong>
+                        <div class="text-muted">{{ cat.category__code }}</div>
+                    </td>
+                    <td class="amount-cell">KES {{ cat.allocated|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ cat.committed|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ cat.spent|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ cat.available|floatformat:0|intcomma }}</td>
+                    <td>
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: {{ cat.utilization_percentage }}%"></div>
+                            <span class="progress-text">{{ cat.utilization_percentage|floatformat:1 }}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-tag"></i>
+        <p>No budget data available</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,246 @@
+<!-- ========================================== -->
+<!-- finance/invoice_detail.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Invoice {{ invoice.invoice_number }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Invoice {{ invoice.invoice_number }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_invoices_list' %}">Invoices</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ invoice.invoice_number }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_invoices_list' %}" class="btn">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+        {% if invoice.status in 'SUBMITTED,VERIFYING' %}
+        <a href="{% url 'finance_invoice_verify' invoice.id %}" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> Verify Invoice
+        </a>
+        {% elif invoice.status == 'MATCHED' %}
+        <a href="{% url 'finance_invoice_approve' invoice.id %}" class="btn btn-primary">
+            <i class="bi bi-check2-circle"></i> Approve for Payment
+        </a>
+        {% elif invoice.status == 'APPROVED' %}
+        <a href="{% url 'finance_process_payment' invoice.id %}" class="btn btn-primary">
+            <i class="bi bi-credit-card"></i> Process Payment
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Invoice Status -->
+<div class="alert alert-{{ invoice.status|lower }}">
+    <i class="bi bi-info-circle"></i>
+    Status: <strong>{{ invoice.get_status_display }}</strong>
+    {% if invoice.is_three_way_matched %}
+    <span class="badge badge-success">3-Way Matched</span>
+    {% endif %}
+</div>
+
+<!-- Invoice Info -->
+<div class="info-card">
+    <div class="info-grid">
+        <div class="info-item">
+            <label class="info-label">Invoice Number</label>
+            <div class="info-value">{{ invoice.invoice_number }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Supplier Invoice Number</label>
+            <div class="info-value">{{ invoice.supplier_invoice_number }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Supplier</label>
+            <div class="info-value">
+                <strong>{{ invoice.supplier.name }}</strong>
+                <div class="text-muted">{{ invoice.supplier.supplier_number }}</div>
+            </div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Purchase Order</label>
+            <div class="info-value">
+                <a href="{% url 'po_detail' invoice.purchase_order.id %}" class="link">
+                    {{ invoice.purchase_order.po_number }}
+                </a>
+            </div>
+        </div>
+        {% if invoice.grn %}
+        <div class="info-item">
+            <label class="info-label">GRN</label>
+            <div class="info-value">
+                <a href="{% url 'grn_detail' invoice.grn.id %}" class="link">
+                    {{ invoice.grn.grn_number }}
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        <div class="info-item">
+            <label class="info-label">Invoice Date</label>
+            <div class="info-value">{{ invoice.invoice_date|date:"M d, Y" }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Due Date</label>
+            <div class="info-value">{{ invoice.due_date|date:"M d, Y" }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Submitted By</label>
+            <div class="info-value">
+                {{ invoice.submitted_by.get_full_name }}
+                <div class="text-muted">{{ invoice.created_at|date:"M d, Y" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Amount Summary -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-label">Subtotal</div>
+        <div class="summary-value">KES {{ invoice.subtotal|floatformat:0|intcomma }}</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label">Tax</div>
+        <div class="summary-value">KES {{ invoice.tax_amount|floatformat:0|intcomma }}</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label">Other Charges</div>
+        <div class="summary-value">KES {{ invoice.other_charges|floatformat:0|intcomma }}</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label">Total Amount</div>
+        <div class="summary-value">KES {{ invoice.total_amount|floatformat:0|intcomma }}</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label">Amount Paid</div>
+        <div class="summary-value">KES {{ invoice.amount_paid|floatformat:0|intcomma }}</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label">Balance Due</div>
+        <div class="summary-value">KES {{ invoice.balance_due|floatformat:0|intcomma }}</div>
+    </div>
+</div>
+
+<!-- Invoice Items -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-list-ul"></i>
+            Invoice Items
+        </h2>
+    </div>
+    {% if items %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Tax</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.description }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td class="amount-cell">KES {{ item.unit_price|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ item.tax_amount|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ item.total_price|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Payments -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-credit-card"></i>
+            Payments
+        </h2>
+    </div>
+    {% if payments %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Payment Number</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>
+                        <a href="{% url 'finance_payment_detail' payment.id %}" class="link">
+                            {{ payment.payment_number }}
+                        </a>
+                    </td>
+                    <td class="date-cell">{{ payment.payment_date|date:"M d, Y" }}</td>
+                    <td class="amount-cell">KES {{ payment.payment_amount|floatformat:0|intcomma }}</td>
+                    <td>{{ payment.get_payment_method_display }}</td>
+                    <td>{{ payment.payment_reference }}</td>
+                    <td>
+                        <span class="status-badge status-{{ payment.status|lower }}">
+                            {{ payment.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-credit-card"></i>
+        <p>No payments made yet</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Documents -->
+{% if documents %}
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-paperclip"></i>
+            Attached Documents
+        </h2>
+    </div>
+    <div class="document-list">
+        {% for doc in documents %}
+        <div class="document-item">
+            <i class="bi bi-file-earmark-pdf"></i>
+            <div class="document-info">
+                <strong>{{ doc.document_name }}</strong>
+                <div class="text-muted">{{ doc.uploaded_at|date:"M d, Y H:i" }}</div>
+            </div>
+            <a href="{{ doc.file.url }}" class="btn btn-sm" download>
+                <i class="bi bi-download"></i>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

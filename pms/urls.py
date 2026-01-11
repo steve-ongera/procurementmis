@@ -309,50 +309,50 @@ urlpatterns = [
     path('hod/export/budget/pdf/', views.hod_export_budget_pdf, name='hod_export_budget_pdf'),
     
     # Dashboard
-    path('finance/dashboard/', views.finance_dashboard_view, name='finance_dashboard'),
-    path('finance/analytics/', views.finance_analytics_view, name='finance_analytics'),
+    path('finance-module/dashboard/', views.finance_dashboard_view, name='finance_dashboard'),
+    path('finance-module/analytics/', views.finance_analytics_view, name='finance_analytics'),
     
     # Budget Management
-    path('finance/budgets/', views.finance_budgets_list_view, name='finance_budgets_list'),
-    path('finance/budgets/<uuid:pk>/', views.finance_budget_detail_view, name='finance_budget_detail'),
-    path('finance/budgets/create/', views.finance_budget_create_view, name='finance_budget_create'),
-    path('finance/budgets/<uuid:pk>/edit/', views.finance_budget_edit_view, name='finance_budget_edit'),
-    path('finance/budgets/allocation/', views.finance_budget_allocation_view, name='finance_budget_allocation'),
-    path('finance/budgets/tracking/', views.finance_budget_tracking_view, name='finance_budget_tracking'),
-    path('finance/budgets/reallocate/', views.finance_budget_reallocate_view, name='finance_budget_reallocate'),
+    path('finance-module/budgets/', views.finance_budgets_list_view, name='finance_budgets_list'),
+    path('finance-module/budgets/<uuid:pk>/', views.finance_budget_detail_view, name='finance_budget_detail'),
+    path('finance-module/budgets/create/', views.finance_budget_create_view, name='finance_budget_create'),
+    path('finance-module/budgets/<uuid:pk>/edit/', views.finance_budget_edit_view, name='finance_budget_edit'),
+    path('finance-module/budgets/allocation/', views.finance_budget_allocation_view, name='finance_budget_allocation'),
+    path('finance-module/budgets/tracking/', views.finance_budget_tracking_view, name='finance_budget_tracking'),
+    path('finance-module/budgets/reallocate/', views.finance_budget_reallocate_view, name='finance_budget_reallocate'),
     
     # Invoice Management
-    path('finance/invoices/', views.finance_invoices_list_view, name='finance_invoices_list'),
-    path('finance/invoices/<uuid:pk>/', views.finance_invoice_detail_view, name='finance_invoice_detail'),
-    path('finance/invoices/<uuid:pk>/verify/', views.finance_invoice_verify_view, name='finance_invoice_verify'),
-    path('finance/invoices/<uuid:pk>/approve/', views.finance_invoice_approve_view, name='finance_invoice_approve'),
-    path('finance/invoices/pending/', views.finance_pending_invoices_view, name='finance_pending_invoices'),
-    path('finance/invoices/paid/', views.finance_paid_invoices_view, name='finance_paid_invoices'),
-    path('finance/invoices/overdue/', views.finance_overdue_invoices_view, name='finance_overdue_invoices'),
+    path('finance-module/invoices/', views.finance_invoices_list_view, name='finance_invoices_list'),
+    path('finance-module/invoices/<uuid:pk>/', views.finance_invoice_detail_view, name='finance_invoice_detail'),
+    path('finance-module/invoices/<uuid:pk>/verify/', views.finance_invoice_verify_view, name='finance_invoice_verify'),
+    path('finance-module/invoices/<uuid:pk>/approve/', views.finance_invoice_approve_view, name='finance_invoice_approve'),
+    path('finance-module/invoices/pending/', views.finance_pending_invoices_view, name='finance_pending_invoices'),
+    path('finance-module/invoices/paid/', views.finance_paid_invoices_view, name='finance_paid_invoices'),
+    path('finance-module/invoices/overdue/', views.finance_overdue_invoices_view, name='finance_overdue_invoices'),
     
     # Payment Management
-    path('finance/payments/', views.finance_payments_list_view, name='finance_payments_list'),
-    path('finance/payments/<uuid:pk>/', views.finance_payment_detail_view, name='finance_payment_detail'),
-    path('finance/payments/process/<uuid:invoice_id>/', views.finance_process_payment_view, name='finance_process_payment'),
-    path('finance/payments/<uuid:pk>/approve/', views.finance_approve_payment_view, name='finance_approve_payment'),
-    path('finance/payments/schedule/', views.finance_payment_schedule_view, name='finance_payment_schedule'),
-    path('finance/payments/history/', views.finance_payment_history_view, name='finance_payment_history'),
+    path('finance-module/payments/', views.finance_payments_list_view, name='finance_payments_list'),
+    path('finance-module/payments/<uuid:pk>/', views.finance_payment_detail_view, name='finance_payment_detail'),
+    path('finance-module/payments/process/<uuid:invoice_id>/', views.finance_process_payment_view, name='finance_process_payment'),
+    path('finance-module/payments/<uuid:pk>/approve/', views.finance_approve_payment_view, name='finance_approve_payment'),
+    path('finance-module/payments/schedule/', views.finance_payment_schedule_view, name='finance_payment_schedule'),
+    path('finance-module/payments/history/', views.finance_payment_history_view, name='finance_payment_history'),
     
     # Approvals
-    path('finance/approvals/pending/', views.finance_pending_approvals_view, name='finance_pending_approvals'),
-    path('finance/approvals/requisition/<uuid:requisition_id>/', views.finance_approve_requisition_view, name='finance_approve_requisition'),
-    path('finance/approvals/approved/', views.finance_approved_requisitions_view, name='finance_approved_requisitions'),
-    path('finance/approvals/rejected/', views.finance_rejected_requisitions_view, name='finance_rejected_requisitions'),
+    path('finance-module/approvals/pending/', views.finance_pending_approvals_view, name='finance_pending_approvals'),
+    path('finance-module/approvals/requisition/<uuid:requisition_id>/', views.finance_approve_requisition_view, name='finance_approve_requisition'),
+    path('finance-module/approvals/approved/', views.finance_approved_requisitions_view, name='finance_approved_requisitions'),
+    path('finance-module/approvals/rejected/', views.finance_rejected_requisitions_view, name='finance_rejected_requisitions'),
     
     # Reports
-    path('finance/reports/expenditure/', views.finance_expenditure_report_view, name='finance_expenditure_report'),
-    path('finance/reports/budget-vs-actual/', views.finance_budget_vs_actual_view, name='finance_budget_vs_actual'),
-    path('finance/reports/financial-statements/', views.finance_financial_statements_view, name='finance_financial_statements'),
-    path('finance/reports/transactions/', views.finance_transaction_report_view, name='finance_transaction_report'),
-    path('finance/reports/export/', views.finance_export_report_view, name='finance_export_report'),
+    path('finance-module/reports/expenditure/', views.finance_expenditure_report_view, name='finance_expenditure_report'),
+    path('finance-module/reports/budget-vs-actual/', views.finance_budget_vs_actual_view, name='finance_budget_vs_actual'),
+    path('finance-module/reports/financial-statements/', views.finance_financial_statements_view, name='finance_financial_statements'),
+    path('finance-module/reports/transactions/', views.finance_transaction_report_view, name='finance_transaction_report'),
+    path('finance-module/reports/export/', views.finance_export_report_view, name='finance_export_report'),
     
     # Help & Support
-    path('finance/help/', views.finance_help_view, name='finance_help'),
+    path('finance-module/help/', views.finance_help_view, name='finance_help'),
 
     
     

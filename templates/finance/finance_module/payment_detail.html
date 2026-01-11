@@ -1,0 +1,426 @@
+<!-- finance/payment_detail.html -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Payment {{ payment.payment_number }} - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.6875rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Status Alert */
+    .alert {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+    }
+
+    .alert i {
+        font-size: 1.125rem;
+    }
+
+    .alert-pending {
+        background: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE68A;
+    }
+
+    .alert-processing {
+        background: #DBEAFE;
+        color: #1E40AF;
+        border: 1px solid #BFDBFE;
+    }
+
+    .alert-completed {
+        background: #D1FAE5;
+        color: #065F46;
+        border: 1px solid #A7F3D0;
+    }
+
+    .alert-failed,
+    .alert-cancelled {
+        background: #FEE2E2;
+        color: #991B1B;
+        border: 1px solid #FECACA;
+    }
+
+    /* Info Card */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    /* Info Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .info-label {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .info-value {
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: #1E293B;
+    }
+
+    .info-value .link {
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .info-value .link:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .text-muted {
+        font-size: 0.75rem;
+        color: #94A3B8 !important;
+        margin-top: 0.125rem;
+    }
+
+    .amount-large {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Info Description */
+    .info-description {
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .info-description label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        margin-bottom: 0.5rem;
+    }
+
+    .info-description p {
+        font-size: 0.875rem;
+        color: #334155;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0.75rem;
+        background: var(--hover-bg);
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.875rem;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .info-card {
+            padding: 1.25rem;
+        }
+        
+        .alert {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .info-card {
+            padding: 1rem;
+        }
+        
+        .info-card h3 {
+            font-size: 1rem;
+        }
+        
+        .amount-large {
+            font-size: 1.125rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Payment {{ payment.payment_number }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_payments_list' %}">Payments</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ payment.payment_number }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_payments_list' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back
+        </a>
+        {% if payment.status == 'PENDING' %}
+        <a href="{% url 'finance_approve_payment' payment.id %}" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i>
+            Approve Payment
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Status Alert -->
+<div class="alert alert-{{ payment.status|lower }}">
+    <i class="bi bi-info-circle"></i>
+    Status: <strong>{{ payment.get_status_display }}</strong>
+</div>
+
+<!-- Payment Info -->
+<div class="info-card">
+    <h3>Payment Information</h3>
+    <div class="info-grid">
+        <div class="info-item">
+            <label class="info-label">Payment Number</label>
+            <div class="info-value">{{ payment.payment_number }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Invoice</label>
+            <div class="info-value">
+                <a href="{% url 'finance_invoice_detail' payment.invoice.id %}" class="link">
+                    {{ payment.invoice.invoice_number }}
+                </a>
+            </div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Supplier</label>
+            <div class="info-value">
+                <strong>{{ payment.invoice.supplier.name }}</strong>
+                <div class="text-muted">{{ payment.invoice.supplier.supplier_number }}</div>
+            </div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Payment Date</label>
+            <div class="info-value">{{ payment.payment_date|date:"M d, Y" }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Payment Amount</label>
+            <div class="info-value amount-large">KES {{ payment.payment_amount|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Payment Method</label>
+            <div class="info-value">{{ payment.get_payment_method_display }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Payment Reference</label>
+            <div class="info-value">{{ payment.payment_reference }}</div>
+        </div>
+        {% if payment.bank_name %}
+        <div class="info-item">
+            <label class="info-label">Bank Name</label>
+            <div class="info-value">{{ payment.bank_name }}</div>
+        </div>
+        {% endif %}
+        {% if payment.cheque_number %}
+        <div class="info-item">
+            <label class="info-label">Cheque Number</label>
+            <div class="info-value">{{ payment.cheque_number }}</div>
+        </div>
+        {% endif %}
+        <div class="info-item">
+            <label class="info-label">Processed By</label>
+            <div class="info-value">
+                {{ payment.processed_by.get_full_name }}
+                <div class="text-muted">{{ payment.created_at|date:"M d, Y H:i" }}</div>
+            </div>
+        </div>
+        {% if payment.approved_by %}
+        <div class="info-item">
+            <label class="info-label">Approved By</label>
+            <div class="info-value">
+                {{ payment.approved_by.get_full_name }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% if payment.notes %}
+    <div class="info-description">
+        <label class="info-label">Notes</label>
+        <p>{{ payment.notes }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Invoice Summary -->
+<div class="info-card">
+    <h3>Invoice Summary</h3>
+    <div class="info-grid">
+        <div class="info-item">
+            <label class="info-label">Invoice Total</label>
+            <div class="info-value amount-large">KES {{ payment.invoice.total_amount|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Total Paid</label>
+            <div class="info-value amount-large">KES {{ payment.invoice.amount_paid|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Balance Due</label>
+            <div class="info-value amount-large">KES {{ payment.invoice.balance_due|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

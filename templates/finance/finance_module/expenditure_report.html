@@ -1,0 +1,130 @@
+
+<!-- ========================================== -->
+<!-- finance/expenditure_report.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Expenditure Report - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Expenditure Report</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Expenditure Report</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_export_report' %}?type=expenditure&format=csv" class="btn">
+            <i class="bi bi-download"></i>
+            Export CSV
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <select name="department" class="form-control">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i> Generate Report
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Summary -->
+<div class="summary-card">
+    <div class="summary-value">KES {{ total_expenditure|floatformat:0|intcomma }}</div>
+    <div class="summary-label">Total Expenditure</div>
+    <div class="summary-meta">{{ date_from }} to {{ date_to }}</div>
+</div>
+
+<!-- Department Expenditure -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-building"></i>
+            Expenditure by Department
+        </h2>
+    </div>
+    {% if dept_expenditure %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Transactions</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in dept_expenditure %}
+                <tr>
+                    <td>{{ dept.invoice__purchase_order__requisition__department__name }}</td>
+                    <td>{{ dept.count }}</td>
+                    <td class="amount-cell">KES {{ dept.total|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Supplier Expenditure -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-shop"></i>
+            Top 10 Suppliers by Expenditure
+        </h2>
+    </div>
+    {% if supplier_expenditure %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Supplier</th>
+                    <th>Transactions</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for supplier in supplier_expenditure %}
+                <tr>
+                    <td>{{ supplier.invoice__supplier__name }}</td>
+                    <td>{{ supplier.count }}</td>
+                    <td class="amount-cell">KES {{ supplier.total|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

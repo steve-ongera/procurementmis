@@ -1,0 +1,159 @@
+<!-- finance/invoices_list.html -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Invoice Management - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Invoice Management</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Invoices</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_pending_invoices' %}" class="btn">
+            <i class="bi bi-hourglass-split"></i>
+            Pending
+        </a>
+        <a href="{% url 'finance_overdue_invoices' %}" class="btn">
+            <i class="bi bi-exclamation-triangle"></i>
+            Overdue
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Invoice number, supplier..." value="{{ request.GET.search }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    <option value="DRAFT">Draft</option>
+                    <option value="SUBMITTED">Submitted</option>
+                    <option value="VERIFYING">Verifying</option>
+                    <option value="MATCHED">Matched</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="PAID">Paid</option>
+                    <option value="DISPUTED">Disputed</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date Range</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+                    <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+                </div>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <a href="{% url 'finance_invoices_list' %}" class="btn">
+                <i class="bi bi-x-circle"></i> Clear
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i> Apply
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Summary -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ total_count }}</div>
+        <div class="summary-label">Total Invoices</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ total_value|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Value</div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-receipt"></i>
+            Invoices ({{ total_count }})
+        </h2>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Invoice Number</th>
+                    <th>Supplier</th>
+                    <th>Invoice Date</th>
+                    <th>Due Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in page_obj %}
+                <tr>
+                    <td>
+                        <a href="{% url 'finance_invoice_detail' invoice.id %}" class="link">
+                            {{ invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td>{{ invoice.supplier.name }}</td>
+                    <td class="date-cell">{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                    <td class="date-cell">{{ invoice.due_date|date:"M d, Y" }}</td>
+                    <td class="amount-cell">KES {{ invoice.total_amount|floatformat:0|intcomma }}</td>
+                    <td>
+                        <span class="status-badge status-{{ invoice.status|lower }}">
+                            {{ invoice.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'finance_invoice_detail' invoice.id %}" class="action-btn" title="View">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if invoice.status in 'SUBMITTED,VERIFYING' %}
+                        <a href="{% url 'finance_invoice_verify' invoice.id %}" class="action-btn" title="Verify">
+                            <i class="bi bi-check-circle"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        {% endif %}
+        <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-receipt"></i>
+        <p>No invoices found</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

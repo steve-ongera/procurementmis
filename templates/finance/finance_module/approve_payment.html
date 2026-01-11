@@ -1,0 +1,104 @@
+<!-- ========================================== -->
+<!-- finance/approve_payment.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Approve Payment - {{ payment.payment_number }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Approve Payment</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_payment_detail' payment.id %}">{{ payment.payment_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Approve</span>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Summary -->
+<div class="info-card">
+    <h3>Payment Details</h3>
+    <div class="info-grid">
+        <div class="info-item">
+            <label class="info-label">Payment Number</label>
+            <div class="info-value">{{ payment.payment_number }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Invoice</label>
+            <div class="info-value">{{ payment.invoice.invoice_number }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Supplier</label>
+            <div class="info-value">{{ payment.invoice.supplier.name }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Payment Amount</label>
+            <div class="info-value amount-large">KES {{ payment.payment_amount|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Payment Method</label>
+            <div class="info-value">{{ payment.get_payment_method_display }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Reference</label>
+            <div class="info-value">{{ payment.payment_reference }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Bank Details -->
+<div class="info-card">
+    <h3>Supplier Bank Details</h3>
+    <div class="info-grid">
+        <div class="info-item">
+            <label class="info-label">Bank Name</label>
+            <div class="info-value">{{ payment.invoice.supplier.bank_name }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Branch</label>
+            <div class="info-value">{{ payment.invoice.supplier.bank_branch }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Account Number</label>
+            <div class="info-value">{{ payment.invoice.supplier.account_number }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Account Name</label>
+            <div class="info-value">{{ payment.invoice.supplier.account_name }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Approval Form -->
+<div class="form-card">
+    <h3>Approve or Reject Payment</h3>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">Notes (for rejection)</label>
+            <textarea name="notes" class="form-control" rows="4" placeholder="Enter reason if rejecting..."></textarea>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'finance_payment_detail' payment.id %}" class="btn">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+            <button type="submit" name="action" value="reject" class="btn btn-danger">
+                <i class="bi bi-x-circle"></i> Reject Payment
+            </button>
+            <button type="submit" name="action" value="approve" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> Approve Payment
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

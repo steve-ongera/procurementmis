@@ -1,0 +1,158 @@
+<!-- ========================================== -->
+<!-- finance/process_payment.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Process Payment - {{ invoice.invoice_number }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Process Payment</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_invoice_detail' invoice.id %}">{{ invoice.invoice_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Process Payment</span>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Summary -->
+<div class="info-card">
+    <h3>Invoice Details</h3>
+    <div class="info-grid">
+        <div class="info-item">
+            <label class="info-label">Invoice Number</label>
+            <div class="info-value">{{ invoice.invoice_number }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Supplier</label>
+            <div class="info-value">{{ invoice.supplier.name }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Total Amount</label>
+            <div class="info-value">KES {{ invoice.total_amount|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Amount Paid</label>
+            <div class="info-value">KES {{ invoice.amount_paid|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Balance Due</label>
+            <div class="info-value">KES {{ invoice.balance_due|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Bank Details -->
+<div class="info-card">
+    <h3>Supplier Bank Details</h3>
+    <div class="info-grid">
+        <div class="info-item">
+            <label class="info-label">Bank Name</label>
+            <div class="info-value">{{ invoice.supplier.bank_name }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Branch</label>
+            <div class="info-value">{{ invoice.supplier.bank_branch }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Account Number</label>
+            <div class="info-value">{{ invoice.supplier.account_number }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Account Name</label>
+            <div class="info-value">{{ invoice.supplier.account_name }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Form -->
+<div class="form-card">
+    <h3>Payment Information</h3>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Payment Date *</label>
+                {{ form.payment_date }}
+                {% if form.payment_date.errors %}
+                <div class="error-message">{{ form.payment_date.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Payment Amount *</label>
+                {{ form.payment_amount }}
+                {% if form.payment_amount.errors %}
+                <div class="error-message">{{ form.payment_amount.errors }}</div>
+                {% endif %}
+                <small class="form-help">Maximum: KES {{ invoice.balance_due|floatformat:2|intcomma }}</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Payment Method *</label>
+                {{ form.payment_method }}
+                {% if form.payment_method.errors %}
+                <div class="error-message">{{ form.payment_method.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Payment Reference *</label>
+                {{ form.payment_reference }}
+                {% if form.payment_reference.errors %}
+                <div class="error-message">{{ form.payment_reference.errors }}</div>
+                {% endif %}
+                <small class="form-help">Transaction reference/confirmation number</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Bank Name</label>
+                {{ form.bank_name }}
+                {% if form.bank_name.errors %}
+                <div class="error-message">{{ form.bank_name.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Cheque Number</label>
+                {{ form.cheque_number }}
+                {% if form.cheque_number.errors %}
+                <div class="error-message">{{ form.cheque_number.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Notes</label>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+            <div class="error-message">{{ form.notes.errors }}</div>
+            {% endif %}
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="form-actions">
+            <a href="{% url 'finance_invoice_detail' invoice.id %}" class="btn">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> Create Payment
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

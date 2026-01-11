@@ -1,0 +1,188 @@
+<!-- ========================================== -->
+<!-- finance/budgets_list.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Budget Management - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Budget Management</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Budgets</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_budget_tracking' %}" class="btn">
+            <i class="bi bi-graph-up-arrow"></i>
+            Budget Tracking
+        </a>
+        <a href="{% url 'finance_budget_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create Budget
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get" action="{% url 'finance_budgets_list' %}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Department, category, reference..." value="{{ request.GET.search }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Budget Year</label>
+                <select name="year" class="form-control">
+                    <option value="">All Years</option>
+                    {% for year in budget_years %}
+                    <option value="{{ year.id }}" {% if request.GET.year == year.id|stringformat:"s" %}selected{% endif %}>
+                        {{ year.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <select name="department" class="form-control">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if request.GET.department == dept.id|stringformat:"s" %}selected{% endif %}>
+                        {{ dept.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-control">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"s" %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Budget Type</label>
+                <select name="budget_type" class="form-control">
+                    <option value="">All Types</option>
+                    <option value="DEPARTMENTAL" {% if request.GET.budget_type == "DEPARTMENTAL" %}selected{% endif %}>Departmental</option>
+                    <option value="PROJECT" {% if request.GET.budget_type == "PROJECT" %}selected{% endif %}>Project</option>
+                    <option value="GRANT" {% if request.GET.budget_type == "GRANT" %}selected{% endif %}>Grant</option>
+                    <option value="CAPITAL" {% if request.GET.budget_type == "CAPITAL" %}selected{% endif %}>Capital</option>
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <a href="{% url 'finance_budgets_list' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Budgets Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-wallet2"></i>
+            Budgets ({{ total_count }})
+        </h2>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Category</th>
+                    <th>Budget Year</th>
+                    <th>Type</th>
+                    <th>Allocated</th>
+                    <th>Committed</th>
+                    <th>Spent</th>
+                    <th>Available</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for budget in page_obj %}
+                <tr>
+                    <td>
+                        <strong>{{ budget.department.name }}</strong>
+                        <div class="text-muted">{{ budget.department.code }}</div>
+                    </td>
+                    <td>
+                        <strong>{{ budget.category.name }}</strong>
+                        <div class="text-muted">{{ budget.category.code }}</div>
+                    </td>
+                    <td>{{ budget.budget_year.name }}</td>
+                    <td>
+                        <span class="badge">{{ budget.get_budget_type_display }}</span>
+                    </td>
+                    <td class="amount-cell">KES {{ budget.allocated_amount|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ budget.committed_amount|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ budget.actual_spent|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ budget.available_balance|floatformat:0|intcomma }}</td>
+                    <td>
+                        <a href="{% url 'finance_budget_detail' budget.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'finance_budget_edit' budget.id %}" class="action-btn" title="Edit Budget">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page=1" class="page-link">First</a>
+        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        {% endif %}
+        
+        <span class="page-info">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">Last</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-wallet2"></i>
+        <p>No budgets found</p>
+        <a href="{% url 'finance_budget_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create First Budget
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

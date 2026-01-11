@@ -1,0 +1,127 @@
+<!-- ========================================== -->
+<!-- finance/approve_requisition.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Approve Requisition - {{ requisition.requisition_number }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Budget Approval - {{ requisition.requisition_number }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_pending_approvals' %}">Pending Approvals</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ requisition.requisition_number }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Requisition Info -->
+<div class="info-card">
+    <h3>Requisition Details</h3>
+    <div class="info-grid">
+        <div class="info-item">
+            <label class="info-label">Requisition Number</label>
+            <div class="info-value">{{ requisition.requisition_number }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Title</label>
+            <div class="info-value">{{ requisition.title }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Department</label>
+            <div class="info-value">{{ requisition.department.name }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Requested By</label>
+            <div class="info-value">
+                {{ requisition.requested_by.get_full_name }}
+                <div class="text-muted">{{ requisition.created_at|date:"M d, Y" }}</div>
+            </div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Estimated Amount</label>
+            <div class="info-value amount-large">KES {{ requisition.estimated_amount|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Required Date</label>
+            <div class="info-value">{{ requisition.required_date|date:"M d, Y" }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Priority</label>
+            <div class="info-value">
+                <span class="badge badge-{{ requisition.priority|lower }}">
+                    {{ requisition.get_priority_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="info-description">
+        <label class="info-label">Justification</label>
+        <p>{{ requisition.justification }}</p>
+    </div>
+</div>
+
+<!-- Budget Info -->
+{% if requisition.budget %}
+<div class="info-card">
+    <h3>Budget Information</h3>
+    <div class="info-grid">
+        <div class="info-item">
+            <label class="info-label">Budget Category</label>
+            <div class="info-value">{{ requisition.budget.category.name }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Allocated Amount</label>
+            <div class="info-value">KES {{ requisition.budget.allocated_amount|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Available Balance</label>
+            <div class="info-value">KES {{ requisition.budget.available_balance|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Budget Status</label>
+            <div class="info-value">
+                {% if requisition.budget.available_balance >= requisition.estimated_amount %}
+                <span class="badge badge-success">Sufficient Funds</span>
+                {% else %}
+                <span class="badge badge-danger">Insufficient Funds</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Approval Form -->
+<div class="form-card">
+    <h3>Budget Approval Decision</h3>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">Comments</label>
+            <textarea name="comments" class="form-control" rows="4" placeholder="Enter your comments..." required></textarea>
+            <small class="form-help">Provide reasons for your decision</small>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'finance_pending_approvals' %}" class="btn">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+            <button type="submit" name="action" value="reject" class="btn btn-danger">
+                <i class="bi bi-x-circle"></i> Reject
+            </button>
+            <button type="submit" name="action" value="approve" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> Approve
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

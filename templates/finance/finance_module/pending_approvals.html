@@ -1,0 +1,109 @@
+<!-- ========================================== -->
+<!-- finance/pending_approvals.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Pending Budget Approvals - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Pending Budget Approvals</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Pending Approvals</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_approved_requisitions' %}" class="btn">
+            <i class="bi bi-check-circle"></i>
+            Approved
+        </a>
+        <a href="{% url 'finance_rejected_requisitions' %}" class="btn">
+            <i class="bi bi-x-circle"></i>
+            Rejected
+        </a>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="summary-card">
+    <div class="summary-value">{{ total_count }}</div>
+    <div class="summary-label">Pending Approvals</div>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clipboard-check"></i>
+            Requisitions Pending Budget Approval ({{ total_count }})
+        </h2>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requisition Number</th>
+                    <th>Title</th>
+                    <th>Department</th>
+                    <th>Requested By</th>
+                    <th>Amount</th>
+                    <th>Required Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for approval in page_obj %}
+                <tr>
+                    <td>
+                        <a href="{% url 'requisition_detail' approval.requisition.id %}" class="link">
+                            {{ approval.requisition.requisition_number }}
+                        </a>
+                    </td>
+                    <td>{{ approval.requisition.title|truncatewords:5 }}</td>
+                    <td>{{ approval.requisition.department.name }}</td>
+                    <td>{{ approval.requisition.requested_by.get_full_name }}</td>
+                    <td class="amount-cell">KES {{ approval.requisition.estimated_amount|floatformat:0|intcomma }}</td>
+                    <td class="date-cell">{{ approval.requisition.required_date|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'requisition_detail' approval.requisition.id %}" class="action-btn" title="View">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'finance_approve_requisition' approval.requisition.id %}" class="action-btn" title="Review">
+                            <i class="bi bi-clipboard-check"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        {% endif %}
+        <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-clipboard-check"></i>
+        <p>No pending approvals</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

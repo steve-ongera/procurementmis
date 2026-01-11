@@ -1,0 +1,647 @@
+<!-- ========================================== -->
+<!-- finance/payments_list.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Payment Management - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.6875rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.375rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #1E293B;
+        background: var(--card-bg);
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    /* Summary Stats */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .summary-label {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .table-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 0.75rem 1.25rem;
+        text-align: left;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.8125rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .link {
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 0.8125rem;
+    }
+
+    .link:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .date-cell {
+        color: var(--secondary-color);
+        font-size: 0.8125rem;
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.8125rem;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.3125rem 0.625rem;
+        border-radius: 1rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .status-badge i {
+        font-size: 0.5625rem;
+    }
+
+    .status-pending { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-processing { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .status-completed { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-failed,
+    .status-cancelled { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.875rem;
+        height: 1.875rem;
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .action-btn i {
+        font-size: 0.875rem;
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--table-header);
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .page-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-decoration: none;
+        background: var(--card-bg);
+        transition: all 0.2s;
+    }
+
+    .page-link:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+    }
+
+    .page-info {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 0.875rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.8125rem;
+        margin: 0 0 1.25rem 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .filter-actions .btn {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.875rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        th, td {
+            padding: 0.625rem 0.875rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .table-responsive {
+            margin: 0 -1rem;
+        }
+        
+        .pagination {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .action-btn {
+            width: 2rem;
+            height: 2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Payment Management</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Payments</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_payment_schedule' %}" class="btn">
+            <i class="bi bi-calendar-check"></i>
+            Payment Schedule
+        </a>
+        <a href="{% url 'finance_payment_history' %}" class="btn">
+            <i class="bi bi-clock-history"></i>
+            History
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Payment number, reference..." value="{{ request.GET.search }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    <option value="PENDING" {% if request.GET.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                    <option value="PROCESSING" {% if request.GET.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                    <option value="COMPLETED" {% if request.GET.status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                    <option value="FAILED" {% if request.GET.status == 'FAILED' %}selected{% endif %}>Failed</option>
+                    <option value="CANCELLED" {% if request.GET.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date Range</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+                    <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+                </div>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <a href="{% url 'finance_payments_list' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Apply
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Summary -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ total_count|intcomma }}</div>
+        <div class="summary-label">Total Payments</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ total_amount|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Amount</div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-credit-card"></i>
+            Payments ({{ total_count }})
+        </h2>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Payment Number</th>
+                    <th>Invoice</th>
+                    <th>Supplier</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in page_obj %}
+                <tr>
+                    <td>
+                        <a href="{% url 'finance_payment_detail' payment.id %}" class="link">
+                            {{ payment.payment_number }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{% url 'finance_invoice_detail' payment.invoice.id %}" class="link">
+                            {{ payment.invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td>{{ payment.invoice.supplier.name }}</td>
+                    <td class="date-cell">{{ payment.payment_date|date:"M d, Y" }}</td>
+                    <td class="amount-cell">KES {{ payment.payment_amount|floatformat:0|intcomma }}</td>
+                    <td>{{ payment.get_payment_method_display }}</td>
+                    <td>
+                        <span class="status-badge status-{{ payment.status|lower }}">
+                            {{ payment.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'finance_payment_detail' payment.id %}" class="action-btn" title="View">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if payment.status == 'PENDING' %}
+                        <a href="{% url 'finance_approve_payment' payment.id %}" class="action-btn" title="Approve">
+                            <i class="bi bi-check-circle"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">
+            <i class="bi bi-chevron-left"></i>
+            Previous
+        </a>
+        {% endif %}
+        <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">
+            Next
+            <i class="bi bi-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-credit-card"></i>
+        <p>No payments found</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
