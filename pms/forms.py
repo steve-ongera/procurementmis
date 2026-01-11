@@ -717,3 +717,310 @@ class InvoiceDocumentForm(forms.ModelForm):
                 'placeholder': 'Brief description...'
             }),
         }
+        
+        
+        
+
+from django import forms
+from django.forms import inlineformset_factory
+from .models import (
+    Requisition, RequisitionItem, RequisitionAttachment,
+    Budget, BudgetCategory, ItemCategory, Item
+)
+
+
+class RequisitionForm(forms.ModelForm):
+    """Form for creating/editing requisitions"""
+    
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filter budgets for user's department if available
+        if self.user and hasattr(self.user, 'department') and self.user.department:
+            self.fields['budget'].queryset = Budget.objects.filter(
+                department=self.user.department,
+                is_active=True
+            )
+    
+    class Meta:
+        model = Requisition
+        fields = [
+            'title',
+            'budget',
+            'priority',
+            'required_date',
+            'justification',
+            'is_emergency',
+            'emergency_justification',
+            'notes',
+        ]
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter a clear, descriptive title for this requisition'
+            }),
+            'budget': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'priority': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'required_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'justification': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Provide detailed justification for this purchase requisition'
+            }),
+            'is_emergency': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'emergency_justification': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Explain why this is an emergency requisition'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Any additional notes or special instructions'
+            }),
+        }
+        labels = {
+            'title': 'Requisition Title',
+            'budget': 'Budget Allocation',
+            'priority': 'Priority Level',
+            'required_date': 'Required By Date',
+            'justification': 'Justification',
+            'is_emergency': 'Emergency Requisition?',
+            'emergency_justification': 'Emergency Justification',
+            'notes': 'Additional Notes',
+        }
+        help_texts = {
+            'title': 'Brief but descriptive title of what you are requesting',
+            'budget': 'Select the budget line this will be charged to',
+            'required_date': 'Date by which you need these items',
+            'justification': 'Explain why this purchase is necessary',
+            'is_emergency': 'Check if this is an urgent/emergency purchase',
+        }
+
+
+class RequisitionItemForm(forms.ModelForm):
+    """Form for individual requisition items"""
+    
+    class Meta:
+        model = RequisitionItem
+        fields = [
+            'item',
+            'item_description',
+            'specifications',
+            'quantity',
+            'unit_of_measure',
+            'estimated_unit_price',
+            'notes',
+        ]
+        widgets = {
+            'item': forms.Select(attrs={
+                'class': 'form-control item-select',
+                'placeholder': 'Select from catalog (optional)'
+            }),
+            'item_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Describe the item you need'
+            }),
+            'specifications': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Detailed technical specifications, requirements, or standards'
+            }),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control quantity-input',
+                'min': '0.01',
+                'step': '0.01',
+                'placeholder': 'Qty'
+            }),
+            'unit_of_measure': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Pieces, Boxes, Liters'
+            }),
+            'estimated_unit_price': forms.NumberInput(attrs={
+                'class': 'form-control price-input',
+                'min': '0',
+                'step': '0.01',
+                'placeholder': 'Unit Price'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Any special requirements or notes for this item'
+            }),
+        }
+        labels = {
+            'item': 'Catalog Item (Optional)',
+            'item_description': 'Item Description',
+            'specifications': 'Specifications',
+            'quantity': 'Quantity',
+            'unit_of_measure': 'Unit of Measure',
+            'estimated_unit_price': 'Estimated Unit Price (KES)',
+            'notes': 'Notes',
+        }
+
+
+# Formset for handling multiple requisition items
+RequisitionItemFormSet = inlineformset_factory(
+    Requisition,
+    RequisitionItem,
+    form=RequisitionItemForm,
+    extra=3,  # Show 3 empty forms initially
+    can_delete=True,
+    min_num=1,  # At least one item required
+    validate_min=True,
+)
+
+
+class RequisitionAttachmentForm(forms.ModelForm):
+    """Form for requisition attachments"""
+    
+    class Meta:
+        model = RequisitionAttachment
+        fields = [
+            'attachment_type',
+            'file_name',
+            'file',
+            'description',
+        ]
+        widgets = {
+            'attachment_type': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'file_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Document name'
+            }),
+            'file': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Brief description of this document'
+            }),
+        }
+        labels = {
+            'attachment_type': 'Document Type',
+            'file_name': 'Document Name',
+            'file': 'Upload File',
+            'description': 'Description',
+        }
+
+
+# Formset for handling multiple attachments
+RequisitionAttachmentFormSet = inlineformset_factory(
+    Requisition,
+    RequisitionAttachment,
+    form=RequisitionAttachmentForm,
+    extra=2,  # Show 2 empty forms initially
+    can_delete=True,
+    min_num=0,  # Attachments are optional
+    validate_min=False,
+)
+
+
+class RequisitionFilterForm(forms.Form):
+    """Form for filtering requisitions"""
+    
+    STATUS_CHOICES = [
+        ('', 'All Statuses'),
+        ('DRAFT', 'Draft'),
+        ('SUBMITTED', 'Submitted'),
+        ('HOD_APPROVED', 'HOD Approved'),
+        ('FACULTY_APPROVED', 'Faculty Approved'),
+        ('BUDGET_APPROVED', 'Budget Approved'),
+        ('PROCUREMENT_APPROVED', 'Procurement Approved'),
+        ('APPROVED', 'Fully Approved'),
+        ('REJECTED', 'Rejected'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    
+    PRIORITY_CHOICES = [
+        ('', 'All Priorities'),
+        ('LOW', 'Low'),
+        ('MEDIUM', 'Medium'),
+        ('HIGH', 'High'),
+        ('URGENT', 'Urgent'),
+    ]
+    
+    status = forms.ChoiceField(
+        choices=STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    priority = forms.ChoiceField(
+        choices=PRIORITY_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search by requisition number, title...'
+        })
+    )
+    
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='From Date'
+    )
+    
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='To Date'
+    )
+
+
+class QuickRequisitionForm(forms.Form):
+    """Simplified form for quick requisition creation"""
+    
+    title = forms.CharField(
+        max_length=300,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'What do you need?'
+        })
+    )
+    
+    description = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Describe your requirement...'
+        })
+    )
+    
+    priority = forms.ChoiceField(
+        choices=Requisition.PRIORITY_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    required_date = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )

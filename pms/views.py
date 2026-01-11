@@ -491,30 +491,7 @@ def admin_dashboard(request):
     return render(request, 'dashboards/admin_dashboard.html', context)
 
 
-def staff_dashboard(request):
-    """Staff Dashboard"""
-    user = request.user
-    
-    context = {
-        'my_requisitions': Requisition.objects.filter(requested_by=user).order_by('-created_at')[:10],
-        'pending_requisitions': Requisition.objects.filter(
-            requested_by=user,
-            status__in=['DRAFT', 'SUBMITTED']
-        ).count(),
-        'approved_requisitions': Requisition.objects.filter(
-            requested_by=user,
-            status='APPROVED'
-        ).count(),
-        'rejected_requisitions': Requisition.objects.filter(
-            requested_by=user,
-            status='REJECTED'
-        ).count(),
-        'recent_notifications': Notification.objects.filter(
-            user=user,
-            is_read=False
-        ).order_by('-created_at')[:5],
-    }
-    return render(request, 'dashboards/staff_dashboard.html', context)
+
 
 
 def hod_dashboard(request):
@@ -10443,3 +10420,627 @@ def supplier_contact_support(request):
 
     return render(request, 'supplier/contact_support.html')
 
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q, Count, Sum, F
+from django.utils import timezone
+from datetime import timedelta
+from django.http import JsonResponse
+from django.core.paginator import Paginator
+from decimal import Decimal
+
+from .models import (
+    Requisition, RequisitionItem, RequisitionAttachment,
+    RequisitionApproval, Department, ItemCategory, Item,
+    Budget, BudgetYear, User
+)
+from .forms import (
+    RequisitionForm, RequisitionItemFormSet, 
+    RequisitionAttachmentFormSet, RequisitionFilterForm
+)
+
+
+@login_required
+def staff_dashboard(request):
+    """Staff dashboard with overview of requisitions and statistics"""
+    
+    user = request.user
+    
+    # Get requisitions created by this user
+    user_requisitions = Requisition.objects.filter(requested_by=user)
+    
+    # Calculate statistics
+    total_requisitions = user_requisitions.count()
+    draft_count = user_requisitions.filter(status='DRAFT').count()
+    submitted_count = user_requisitions.filter(status='SUBMITTED').count()
+    pending_count = user_requisitions.filter(
+        status__in=['SUBMITTED', 'HOD_APPROVED', 'FACULTY_APPROVED', 'BUDGET_APPROVED', 'PROCUREMENT_APPROVED']
+    ).count()
+    approved_count = user_requisitions.filter(status='APPROVED').count()
+    rejected_count = user_requisitions.filter(status='REJECTED').count()
+    
+    # Recent requisitions
+    recent_requisitions = user_requisitions.order_by('-created_at')[:5]
+    
+    # Monthly statistics
+    today = timezone.now().date()
+    current_month_start = today.replace(day=1)
+    
+    monthly_requisitions = user_requisitions.filter(
+        created_at__gte=current_month_start
+    ).count()
+    
+    # Total estimated amount for approved requisitions this year
+    total_approved_amount = user_requisitions.filter(
+        status='APPROVED',
+        created_at__year=today.year
+    ).aggregate(
+        total=Sum('estimated_amount')
+    )['total'] or Decimal('0')
+    
+    # Requisitions by priority
+    urgent_count = user_requisitions.filter(
+        priority='URGENT',
+        status__in=['SUBMITTED', 'HOD_APPROVED', 'FACULTY_APPROVED', 'BUDGET_APPROVED', 'PROCUREMENT_APPROVED']
+    ).count()
+    
+    context = {
+        'total_requisitions': total_requisitions,
+        'draft_count': draft_count,
+        'submitted_count': submitted_count,
+        'pending_count': pending_count,
+        'approved_count': approved_count,
+        'rejected_count': rejected_count,
+        'recent_requisitions': recent_requisitions,
+        'monthly_requisitions': monthly_requisitions,
+        'total_approved_amount': total_approved_amount,
+        'urgent_count': urgent_count,
+        'user': user,
+    }
+    
+    return render(request, 'staff/dashboard.html', context)
+
+
+@login_required
+def staff_requisitions_list(request):
+    """List all requisitions for the staff member"""
+    
+    user = request.user
+    
+    # Get requisitions created by this user
+    requisitions = Requisition.objects.filter(requested_by=user)
+    
+    # Apply filters from GET parameters
+    status_filter = request.GET.get('status')
+    if status_filter:
+        requisitions = requisitions.filter(status=status_filter)
+    
+    priority_filter = request.GET.get('priority')
+    if priority_filter:
+        requisitions = requisitions.filter(priority=priority_filter)
+    
+    search_query = request.GET.get('search')
+    if search_query:
+        requisitions = requisitions.filter(
+            Q(requisition_number__icontains=search_query) |
+            Q(title__icontains=search_query) |
+            Q(justification__icontains=search_query)
+        )
+    
+    # Date filters
+    date_from = request.GET.get('date_from')
+    if date_from:
+        requisitions = requisitions.filter(created_at__gte=date_from)
+    
+    date_to = request.GET.get('date_to')
+    if date_to:
+        requisitions = requisitions.filter(created_at__lte=date_to)
+    
+    # Order by most recent
+    requisitions = requisitions.select_related(
+        'department', 'budget'
+    ).order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(requisitions, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get filter form
+    filter_form = RequisitionFilterForm(request.GET)
+    
+    context = {
+        'requisitions': page_obj,
+        'filter_form': filter_form,
+        'status_filter': status_filter,
+        'priority_filter': priority_filter,
+        'search_query': search_query,
+        'total_count': requisitions.count(),
+    }
+    
+    return render(request, 'staff/requisitions_list.html', context)
+
+
+@login_required
+def staff_requisition_create(request):
+    """Create a new requisition"""
+    
+    if request.method == 'POST':
+        form = RequisitionForm(request.POST, user=request.user)
+        formset = RequisitionItemFormSet(request.POST)
+        attachment_formset = RequisitionAttachmentFormSet(request.POST, request.FILES)
+        
+        if form.is_valid() and formset.is_valid() and attachment_formset.is_valid():
+            requisition = form.save(commit=False)
+            requisition.requested_by = request.user
+            
+            # Set department from user's department
+            if request.user.department:
+                requisition.department = request.user.department
+            
+            requisition.status = 'DRAFT'
+            requisition.save()
+            
+            # Save requisition items
+            items = formset.save(commit=False)
+            total_estimated = Decimal('0')
+            
+            for item in items:
+                item.requisition = requisition
+                item.save()
+                total_estimated += item.estimated_total
+            
+            # Update estimated amount
+            requisition.estimated_amount = total_estimated
+            requisition.save()
+            
+            # Save attachments
+            attachments = attachment_formset.save(commit=False)
+            for attachment in attachments:
+                attachment.requisition = requisition
+                attachment.uploaded_by = request.user
+                attachment.save()
+            
+            messages.success(request, f'Requisition {requisition.requisition_number} created successfully!')
+            return redirect('staff_requisition_detail', pk=requisition.pk)
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = RequisitionForm(user=request.user)
+        formset = RequisitionItemFormSet()
+        attachment_formset = RequisitionAttachmentFormSet()
+    
+    context = {
+        'form': form,
+        'formset': formset,
+        'attachment_formset': attachment_formset,
+        'page_title': 'Create New Requisition',
+    }
+    
+    return render(request, 'staff/requisition_form.html', context)
+
+
+@login_required
+def staff_requisition_detail(request, pk):
+    """View requisition details"""
+    
+    requisition = get_object_or_404(
+        Requisition.objects.select_related(
+            'department', 'budget', 'requested_by'
+        ).prefetch_related('items', 'attachments', 'approvals'),
+        pk=pk
+    )
+    
+    # Check permissions - only creator can view their own requisitions
+    if requisition.requested_by != request.user:
+        messages.error(request, 'You do not have permission to view this requisition.')
+        return redirect('staff_requisitions_list')
+    
+    # Get items and attachments
+    items = requisition.items.all()
+    attachments = requisition.attachments.all()
+    
+    # Get approval history
+    approvals = requisition.approvals.select_related('approver').order_by('sequence')
+    
+    # Calculate totals
+    total_items = items.count()
+    
+    context = {
+        'requisition': requisition,
+        'items': items,
+        'attachments': attachments,
+        'approvals': approvals,
+        'total_items': total_items,
+        'can_edit': requisition.status == 'DRAFT',
+        'can_submit': requisition.status == 'DRAFT' and items.exists(),
+        'can_cancel': requisition.status in ['DRAFT', 'SUBMITTED'],
+    }
+    
+    return render(request, 'staff/requisition_detail.html', context)
+
+
+@login_required
+def staff_requisition_edit(request, pk):
+    """Edit a requisition (only if in DRAFT status)"""
+    
+    requisition = get_object_or_404(Requisition, pk=pk)
+    
+    # Check permissions
+    if requisition.requested_by != request.user:
+        messages.error(request, 'You can only edit your own requisitions.')
+        return redirect('staff_requisitions_list')
+    
+    if requisition.status != 'DRAFT':
+        messages.error(request, 'You can only edit draft requisitions.')
+        return redirect('staff_requisition_detail', pk=pk)
+    
+    if request.method == 'POST':
+        form = RequisitionForm(request.POST, instance=requisition, user=request.user)
+        formset = RequisitionItemFormSet(request.POST, instance=requisition)
+        attachment_formset = RequisitionAttachmentFormSet(
+            request.POST, 
+            request.FILES, 
+            instance=requisition
+        )
+        
+        if form.is_valid() and formset.is_valid() and attachment_formset.is_valid():
+            requisition = form.save()
+            
+            # Save items and recalculate total
+            items = formset.save()
+            total_estimated = sum(item.estimated_total for item in requisition.items.all())
+            requisition.estimated_amount = total_estimated
+            requisition.save()
+            
+            # Save attachments
+            attachments = attachment_formset.save(commit=False)
+            for attachment in attachments:
+                if not attachment.uploaded_by:
+                    attachment.uploaded_by = request.user
+                attachment.save()
+            
+            messages.success(request, 'Requisition updated successfully!')
+            return redirect('staff_requisition_detail', pk=pk)
+    else:
+        form = RequisitionForm(instance=requisition, user=request.user)
+        formset = RequisitionItemFormSet(instance=requisition)
+        attachment_formset = RequisitionAttachmentFormSet(instance=requisition)
+    
+    context = {
+        'form': form,
+        'formset': formset,
+        'attachment_formset': attachment_formset,
+        'requisition': requisition,
+        'page_title': f'Edit Requisition {requisition.requisition_number}',
+    }
+    
+    return render(request, 'staff/requisition_form.html', context)
+
+
+@login_required
+def staff_requisition_submit(request, pk):
+    """Submit a requisition for approval"""
+    
+    requisition = get_object_or_404(Requisition, pk=pk)
+    
+    # Check permissions
+    if requisition.requested_by != request.user:
+        messages.error(request, 'You can only submit your own requisitions.')
+        return redirect('staff_requisitions_list')
+    
+    if requisition.status != 'DRAFT':
+        messages.error(request, 'This requisition has already been submitted.')
+        return redirect('staff_requisition_detail', pk=pk)
+    
+    # Validate that requisition has items
+    if not requisition.items.exists():
+        messages.error(request, 'Cannot submit a requisition without items.')
+        return redirect('staff_requisition_edit', pk=pk)
+    
+    # Check if budget is allocated
+    if not requisition.budget:
+        messages.error(request, 'Please select a budget before submitting.')
+        return redirect('staff_requisition_edit', pk=pk)
+    
+    # Change status to submitted
+    requisition.status = 'SUBMITTED'
+    requisition.submitted_at = timezone.now()
+    requisition.save()
+    
+    # Create approval workflow (HOD approval first)
+    RequisitionApproval.objects.create(
+        requisition=requisition,
+        approval_stage='HOD',
+        sequence=1,
+        status='PENDING'
+    )
+    
+    messages.success(
+        request, 
+        f'Requisition {requisition.requisition_number} submitted for approval!'
+    )
+    
+    return redirect('staff_requisition_detail', pk=pk)
+
+
+@login_required
+def staff_requisition_cancel(request, pk):
+    """Cancel a requisition"""
+    
+    requisition = get_object_or_404(Requisition, pk=pk)
+    
+    # Check permissions
+    if requisition.requested_by != request.user:
+        messages.error(request, 'You can only cancel your own requisitions.')
+        return redirect('staff_requisitions_list')
+    
+    if requisition.status not in ['DRAFT', 'SUBMITTED']:
+        messages.error(request, 'Cannot cancel this requisition at its current stage.')
+        return redirect('staff_requisition_detail', pk=pk)
+    
+    if request.method == 'POST':
+        requisition.status = 'CANCELLED'
+        requisition.save()
+        messages.success(request, 'Requisition cancelled successfully.')
+        return redirect('staff_requisitions_list')
+    
+    context = {
+        'requisition': requisition,
+    }
+    
+    return render(request, 'staff/requisition_cancel_confirm.html', context)
+
+
+@login_required
+def staff_requisitions_pending(request):
+    """List all pending requisitions"""
+    
+    user = request.user
+    
+    # Get pending requisitions (all statuses except DRAFT, APPROVED, REJECTED, CANCELLED)
+    requisitions = Requisition.objects.filter(
+        requested_by=user,
+        status__in=['SUBMITTED', 'HOD_APPROVED', 'FACULTY_APPROVED', 'BUDGET_APPROVED', 'PROCUREMENT_APPROVED']
+    ).select_related('department', 'budget').order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(requisitions, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'requisitions': page_obj,
+        'count': requisitions.count(),
+        'page_title': 'Pending Requisitions',
+    }
+    
+    return render(request, 'staff/requisitions_status.html', context)
+
+
+@login_required
+def staff_requisitions_approved(request):
+    """List all approved requisitions"""
+    
+    user = request.user
+    
+    requisitions = Requisition.objects.filter(
+        requested_by=user,
+        status='APPROVED'
+    ).select_related('department', 'budget').order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(requisitions, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'requisitions': page_obj,
+        'count': requisitions.count(),
+        'page_title': 'Approved Requisitions',
+    }
+    
+    return render(request, 'staff/requisitions_status.html', context)
+
+
+@login_required
+def staff_requisitions_rejected(request):
+    """List all rejected requisitions"""
+    
+    user = request.user
+    
+    requisitions = Requisition.objects.filter(
+        requested_by=user,
+        status='REJECTED'
+    ).select_related('department', 'budget').order_by('-updated_at')
+    
+    # Pagination
+    paginator = Paginator(requisitions, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'requisitions': page_obj,
+        'count': requisitions.count(),
+        'page_title': 'Rejected Requisitions',
+    }
+    
+    return render(request, 'staff/requisitions_status.html', context)
+
+
+@login_required
+def staff_help_center(request):
+    """Help center with FAQs and support information"""
+    
+    faqs = [
+        {
+            'category': 'Getting Started',
+            'questions': [
+                {
+                    'question': 'How do I create a new requisition?',
+                    'answer': 'Click on "New Requisition" from the sidebar, fill in the required details including title, justification, and required date. Then add items with specifications and quantities. You can also attach supporting documents. Save as draft or submit directly for approval.'
+                },
+                {
+                    'question': 'What information do I need to provide?',
+                    'answer': 'You need to provide: requisition title, justification, required date, budget allocation, and detailed item descriptions with specifications, quantities, and estimated prices. Supporting documents like quotations or specifications are recommended.'
+                },
+            ]
+        },
+        {
+            'category': 'Approval Process',
+            'questions': [
+                {
+                    'question': 'How long does approval take?',
+                    'answer': 'Approval typically takes 3-7 business days depending on the amount and complexity. The requisition goes through multiple approval stages: HOD, Faculty (for amounts above threshold), Budget/Finance, and Procurement.'
+                },
+                {
+                    'question': 'Can I track my requisition status?',
+                    'answer': 'Yes! Go to "My Requisitions" and click on any requisition to view its detailed status, approval history, and comments from approvers.'
+                },
+                {
+                    'question': 'What if my requisition is rejected?',
+                    'answer': 'Check the rejection reason provided by the approver. You can create a new requisition addressing the concerns raised. Contact the approver if you need clarification.'
+                },
+            ]
+        },
+        {
+            'category': 'Editing & Cancellation',
+            'questions': [
+                {
+                    'question': 'Can I edit a submitted requisition?',
+                    'answer': 'No, once submitted you cannot edit. However, you can cancel it (if not yet approved) and create a new one with the correct information.'
+                },
+                {
+                    'question': 'How do I cancel a requisition?',
+                    'answer': 'Open the requisition detail page and click the "Cancel" button. You can only cancel requisitions in DRAFT or SUBMITTED status.'
+                },
+            ]
+        },
+        {
+            'category': 'Budget & Amounts',
+            'questions': [
+                {
+                    'question': 'How do I know my department\'s budget?',
+                    'answer': 'Contact your Head of Department or the Finance office for information about available budget allocations and codes.'
+                },
+                {
+                    'question': 'What happens after approval?',
+                    'answer': 'Once fully approved, the procurement team will initiate the tendering or quotation process, issue purchase orders, and process your request according to procurement guidelines.'
+                },
+            ]
+        },
+    ]
+    
+    context = {
+        'faqs': faqs,
+        'support_email': 'procurement@university.ac.ke',
+        'support_phone': '+254 XXX XXX XXX',
+        'office_hours': 'Monday - Friday, 8:00 AM - 5:00 PM',
+    }
+    
+    return render(request, 'staff/help_center.html', context)
+
+
+@login_required
+def staff_guidelines(request):
+    """Procurement guidelines and policies"""
+    
+    guidelines = [
+        {
+            'title': 'Requisition Submission Guidelines',
+            'icon': 'bi-file-earmark-text',
+            'items': [
+                'Submit requisitions at least 3 weeks before the required date to allow for processing time.',
+                'Provide detailed specifications to ensure accurate procurement.',
+                'Include market research or quotations to support estimated costs.',
+                'Ensure all mandatory fields are completed before submission.',
+                'Attach relevant supporting documents (specifications, quotations, TOR).',
+            ]
+        },
+        {
+            'title': 'Budget & Financial Guidelines',
+            'icon': 'bi-cash-stack',
+            'items': [
+                'All requisitions must be charged to an approved budget line.',
+                'Ensure sufficient budget balance before submitting requisitions.',
+                'Departmental budget limits apply - seek HOD approval for large amounts.',
+                'Emergency purchases require special justification and additional approvals.',
+                'Budget reallocations must be approved by Finance before requisition submission.',
+            ]
+        },
+        {
+            'title': 'Approval Thresholds',
+            'icon': 'bi-diagram-3',
+            'items': [
+                'Up to KES 50,000: HOD and Procurement approval required.',
+                'KES 50,001 - 500,000: Requires Faculty and Finance approval.',
+                'Above KES 500,000: Additional Director approval and competitive tendering required.',
+                'Emergency purchases follow expedited approval process with proper justification.',
+            ]
+        },
+        {
+            'title': 'Item Specifications',
+            'icon': 'bi-list-check',
+            'items': [
+                'Provide clear, detailed technical specifications for all items.',
+                'Avoid specifying brand names unless justified (use "or equivalent").',
+                'Include quantity, unit of measure, and quality standards.',
+                'For technical items, attach manufacturer specifications or datasheets.',
+                'Specify any special delivery or installation requirements.',
+            ]
+        },
+        {
+            'title': 'Supplier Selection',
+            'icon': 'bi-people',
+            'items': [
+                'Procurement team handles supplier selection based on value for money.',
+                'Three quotations required for purchases above KES 50,000.',
+                'Competitive tendering mandatory for purchases above KES 500,000.',
+                'Supplier must be registered and compliant with tax requirements.',
+                'You may suggest preferred suppliers but final selection rests with procurement.',
+            ]
+        },
+        {
+            'title': 'Documentation Requirements',
+            'icon': 'bi-folder',
+            'items': [
+                'Attach justification documents explaining need and urgency.',
+                'Include quotations or price estimates from potential suppliers.',
+                'Provide technical specifications or terms of reference.',
+                'For specialized items, attach supporting research or documentation.',
+                'Ensure all attachments are clearly labeled and readable.',
+            ]
+        },
+        {
+            'title': 'Compliance & Ethics',
+            'icon': 'bi-shield-check',
+            'items': [
+                'All procurement must follow university policies and government regulations.',
+                'Declare any conflict of interest with suppliers or vendors.',
+                'Do not split requisitions to circumvent approval thresholds.',
+                'Report any suspected fraud or misconduct to the appropriate office.',
+                'Maintain confidentiality of procurement information.',
+            ]
+        },
+        {
+            'title': 'Delivery & Receipt',
+            'icon': 'bi-truck',
+            'items': [
+                'Specify accurate delivery location and contact person.',
+                'Be available to inspect and receive goods when delivered.',
+                'Report any discrepancies or damages immediately to Stores.',
+                'Sign Goods Received Notes only after thorough inspection.',
+                'Follow up with procurement team if delivery is delayed beyond agreed date.',
+            ]
+        },
+    ]
+    
+    context = {
+        'guidelines': guidelines,
+        'policy_document_url': '#',  # Link to full procurement policy document
+        'last_updated': '2024',
+    }
+    
+    return render(request, 'staff/guidelines.html', context)
