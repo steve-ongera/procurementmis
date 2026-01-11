@@ -1,0 +1,139 @@
+{% load humanize %}
+
+{% block title %}Staff Management - HOD Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Department Staff Management</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_dashboard' %}">HOD Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Staff Management</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'hod_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back
+        </a>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ total_staff|intcomma }}</div>
+        <div class="summary-label">Total Staff</div>
+    </div>
+    {% for role in stats.by_role %}
+    <div class="summary-card">
+        <div class="summary-value">{{ role.count }}</div>
+        <div class="summary-label">{{ role.role }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Staff Activity Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-people"></i>
+            Staff Activity & Performance
+        </h2>
+    </div>
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Employee ID</th>
+                    <th>Requisitions (This Year)</th>
+                    <th>Total Value</th>
+                    <th>Pending</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in page_obj %}
+                <tr>
+                    <td>
+                        <div class="user-info">
+                            <div class="user-name">{{ item.user.get_full_name }}</div>
+                            <div class="user-status">
+                                {% if item.user.is_active_user %}
+                                <span class="badge-active">Active</span>
+                                {% else %}
+                                <span class="badge-inactive">Inactive</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ item.user.email }}</td>
+                    <td>
+                        <span class="badge">{{ item.user.get_role_display }}</span>
+                    </td>
+                    <td>{{ item.user.employee_id|default:"-" }}</td>
+                    <td class="amount-cell">{{ item.requisitions_count }}</td>
+                    <td class="amount-cell">KES {{ item.total_value|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% if item.pending > 0 %}
+                        <span class="badge-warning">{{ item.pending }}</span>
+                        {% else %}
+                        <span class="text-muted">0</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'hod_staff_detail' item.user.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        <div class="pagination-info">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+        </div>
+        <div class="pagination-controls">
+            {% if page_obj.has_previous %}
+            <a href="?page=1" class="page-link">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            {% endif %}
+
+            <span class="page-current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-link">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">Last</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-people"></i>
+        <p>No staff members found</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

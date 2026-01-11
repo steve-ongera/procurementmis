@@ -1,0 +1,112 @@
+<!-- ====================================================================== -->
+<!-- REJECTED REQUISITIONS TEMPLATE -->
+<!-- ====================================================================== -->
+
+{% load humanize %}
+
+{% block title %}Rejected Requisitions - HOD Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Rejected Requisitions</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_dashboard' %}">HOD Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Rejected</span>
+        </div>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="summary-card">
+    <div class="summary-value">{{ total_rejected|intcomma }}</div>
+    <div class="summary-label">Total Rejected Requisitions</div>
+</div>
+
+<!-- Rejected Requisitions Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-x-circle"></i>
+            Rejected Requisitions ({{ page_obj.paginator.count }})
+        </h2>
+    </div>
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requisition No.</th>
+                    <th>Requested By</th>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Rejection Reason</th>
+                    <th>Rejected Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in page_obj %}
+                <tr>
+                    <td>
+                        <a href="{% url 'hod_requisition_detail' req.id %}" class="invoice-number">
+                            {{ req.requisition_number }}
+                            <i class="bi bi-arrow-up-right"></i>
+                        </a>
+                    </td>
+                    <td>{{ req.requested_by.get_full_name }}</td>
+                    <td>{{ req.title|truncatewords:10 }}</td>
+                    <td class="amount-cell">KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
+                    <td>{{ req.rejection_reason|truncatewords:15 }}</td>
+                    <td class="date-cell">{{ req.updated_at|date:"M d, Y H:i" }}</td>
+                    <td>
+                        <a href="{% url 'hod_requisition_detail' req.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        <div class="pagination-info">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+        </div>
+        <div class="pagination-controls">
+            {% if page_obj.has_previous %}
+            <a href="?page=1" class="page-link">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            {% endif %}
+
+            <span class="page-current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-link">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">Last</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-x-circle"></i>
+        <p>No rejected requisitions</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

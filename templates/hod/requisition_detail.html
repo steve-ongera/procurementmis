@@ -1,0 +1,389 @@
+{% load humanize %}
+
+{% block title %}Requisition {{ requisition.requisition_number }} - HOD Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Requisition Details</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_dashboard' %}">HOD Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_department_requests' %}">Requisitions</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ requisition.requisition_number }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        {% if can_approve %}
+        <button type="button" class="btn" onclick="openRejectionModal()">
+            <i class="bi bi-x-circle"></i>
+            Reject
+        </button>
+        <button type="button" class="btn btn-primary" onclick="openApprovalModal()">
+            <i class="bi bi-check-circle"></i>
+            Approve
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Requisition Header Card -->
+<div class="detail-card">
+    <div class="detail-header">
+        <div class="detail-title-section">
+            <h2 class="detail-title">{{ requisition.requisition_number }}</h2>
+            <span class="status-badge status-{{ requisition.status|lower }}">
+                {% if requisition.status == 'DRAFT' %}<i class="bi bi-pencil"></i>{% endif %}
+                {% if requisition.status == 'SUBMITTED' %}<i class="bi bi-upload"></i>{% endif %}
+                {% if requisition.status == 'HOD_APPROVED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                {% if requisition.status == 'APPROVED' %}<i class="bi bi-check2-all"></i>{% endif %}
+                {% if requisition.status == 'REJECTED' %}<i class="bi bi-x-circle"></i>{% endif %}
+                {{ requisition.get_status_display }}
+            </span>
+            {% if requisition.is_emergency %}
+            <span class="badge-urgent">
+                <i class="bi bi-exclamation-triangle"></i>
+                EMERGENCY
+            </span>
+            {% endif %}
+        </div>
+        <div class="detail-amount">
+            <div class="amount-label">Total Estimated Amount</div>
+            <div class="amount-value">KES {{ requisition.estimated_amount|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+
+    <div class="detail-info-grid">
+        <div class="info-item">
+            <div class="info-label">Title</div>
+            <div class="info-value">{{ requisition.title }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Requested By</div>
+            <div class="info-value">
+                {{ requisition.requested_by.get_full_name }}
+                <div class="info-sub">{{ requisition.requested_by.email }}</div>
+            </div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Department</div>
+            <div class="info-value">{{ requisition.department.name }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Budget Line</div>
+            <div class="info-value">
+                {% if requisition.budget %}
+                {{ requisition.budget.category.name }}
+                <div class="info-sub">{{ requisition.budget.category.code }}</div>
+                {% else %}
+                <span class="text-muted">Not assigned</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Priority</div>
+            <div class="info-value">
+                <span class="status-badge status-{{ requisition.priority|lower }}">
+                    {{ requisition.get_priority_display }}
+                </span>
+            </div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Required By</div>
+            <div class="info-value">{{ requisition.required_date|date:"F d, Y" }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Created Date</div>
+            <div class="info-value">{{ requisition.created_at|date:"F d, Y H:i" }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Submitted Date</div>
+            <div class="info-value">
+                {% if requisition.submitted_at %}
+                {{ requisition.submitted_at|date:"F d, Y H:i" }}
+                {% else %}
+                <span class="text-muted">Not submitted</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <h3 class="section-title">Justification</h3>
+        <p class="section-content">{{ requisition.justification }}</p>
+    </div>
+
+    {% if requisition.is_emergency %}
+    <div class="detail-section emergency">
+        <h3 class="section-title">
+            <i class="bi bi-exclamation-triangle"></i>
+            Emergency Justification
+        </h3>
+        <p class="section-content">{{ requisition.emergency_justification }}</p>
+    </div>
+    {% endif %}
+
+    {% if requisition.notes %}
+    <div class="detail-section">
+        <h3 class="section-title">Additional Notes</h3>
+        <p class="section-content">{{ requisition.notes }}</p>
+    </div>
+    {% endif %}
+
+    {% if requisition.rejection_reason %}
+    <div class="detail-section rejected">
+        <h3 class="section-title">
+            <i class="bi bi-x-circle"></i>
+            Rejection Reason
+        </h3>
+        <p class="section-content">{{ requisition.rejection_reason }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Requisition Items -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-list-ul"></i>
+            Requisition Items ({{ items.count }})
+        </h2>
+    </div>
+    {% if items %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Item Description</th>
+                    <th>Specifications</th>
+                    <th>Quantity</th>
+                    <th>Unit</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.item_description }}</td>
+                    <td>{{ item.specifications|truncatewords:15 }}</td>
+                    <td class="amount-cell">{{ item.quantity }}</td>
+                    <td>{{ item.unit_of_measure }}</td>
+                    <td class="amount-cell">KES {{ item.estimated_unit_price|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ item.estimated_total|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="6" class="text-right"><strong>Total Estimated Amount</strong></td>
+                    <td class="amount-cell"><strong>KES {{ requisition.estimated_amount|floatformat:0|intcomma }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p>No items in this requisition</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Attachments -->
+{% if attachments %}
+<div class="detail-card">
+    <div class="detail-header">
+        <h2 class="card-title">
+            <i class="bi bi-paperclip"></i>
+            Attachments ({{ attachments.count }})
+        </h2>
+    </div>
+    <div class="attachments-grid">
+        {% for attachment in attachments %}
+        <div class="attachment-item">
+            <div class="attachment-icon">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div class="attachment-info">
+                <div class="attachment-name">{{ attachment.file_name }}</div>
+                <div class="attachment-meta">
+                    <span class="badge">{{ attachment.get_attachment_type_display }}</span>
+                    <span>Uploaded {{ attachment.uploaded_at|date:"M d, Y" }}</span>
+                </div>
+            </div>
+            <a href="{{ attachment.file.url }}" target="_blank" class="attachment-download" title="Download">
+                <i class="bi bi-download"></i>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Approval History -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clock-history"></i>
+            Approval History
+        </h2>
+    </div>
+    {% if approvals %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Stage</th>
+                    <th>Approver</th>
+                    <th>Status</th>
+                    <th>Comments</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for approval in approvals %}
+                <tr>
+                    <td>
+                        <strong>{{ approval.get_approval_stage_display }}</strong>
+                        <div class="stage-sequence">Stage {{ approval.sequence }}</div>
+                    </td>
+                    <td>
+                        {% if approval.approver %}
+                        {{ approval.approver.get_full_name }}
+                        <div class="info-sub">{{ approval.approver.get_role_display }}</div>
+                        {% else %}
+                        <span class="text-muted">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ approval.status|lower }}">
+                            {% if approval.status == 'PENDING' %}<i class="bi bi-clock"></i>{% endif %}
+                            {% if approval.status == 'APPROVED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                            {% if approval.status == 'REJECTED' %}<i class="bi bi-x-circle"></i>{% endif %}
+                            {{ approval.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ approval.comments|default:"-" }}</td>
+                    <td class="date-cell">
+                        {% if approval.approval_date %}
+                        {{ approval.approval_date|date:"M d, Y H:i" }}
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-clock"></i>
+        <p>No approval history yet</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Approval Modal -->
+<div id="approvalModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Approve Requisition</h3>
+            <button type="button" class="modal-close" onclick="closeApprovalModal()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <form method="post" action="{% url 'hod_approve_requisition' requisition.id %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p>You are about to approve requisition <strong>{{ requisition.requisition_number }}</strong></p>
+                <div class="approval-summary">
+                    <div class="summary-item">
+                        <span>Amount:</span>
+                        <strong>KES {{ requisition.estimated_amount|floatformat:0|intcomma }}</strong>
+                    </div>
+                    <div class="summary-item">
+                        <span>Requested By:</span>
+                        <strong>{{ requisition.requested_by.get_full_name }}</strong>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Comments (Optional)</label>
+                    <textarea name="comments" class="form-control" rows="4" placeholder="Add any comments or conditions for approval..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeApprovalModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i>
+                    Approve Requisition
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div id="rejectionModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Reject Requisition</h3>
+            <button type="button" class="modal-close" onclick="closeRejectionModal()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <form method="post" action="{% url 'hod_reject_requisition' requisition.id %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p>You are about to reject requisition <strong>{{ requisition.requisition_number }}</strong></p>
+                <div class="form-group">
+                    <label class="form-label">Reason for Rejection <span class="required">*</span></label>
+                    <textarea name="rejection_reason" class="form-control" rows="4" placeholder="Please provide a clear reason for rejection..." required></textarea>
+                    <div class="form-help">This reason will be visible to the requester.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeRejectionModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-x-circle"></i>
+                    Reject Requisition
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openApprovalModal() {
+    document.getElementById('approvalModal').style.display = 'flex';
+}
+
+function closeApprovalModal() {
+    document.getElementById('approvalModal').style.display = 'none';
+}
+
+function openRejectionModal() {
+    document.getElementById('rejectionModal').style.display = 'flex';
+}
+
+function closeRejectionModal() {
+    document.getElementById('rejectionModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

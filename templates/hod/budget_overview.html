@@ -1,0 +1,230 @@
+{% load humanize %}
+
+{% block title %}Budget Overview - HOD Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Budget Overview</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_dashboard' %}">HOD Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Budget Overview</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'hod_expenditure_reports' %}" class="btn">
+            <i class="bi bi-file-bar-graph"></i>
+            View Reports
+        </a>
+    </div>
+</div>
+
+<!-- Budget Year Selector -->
+<div class="filter-card">
+    <form method="get" action="">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Select Budget Year</label>
+                <select name="year" class="form-control" onchange="this.form.submit()">
+                    {% for year in budget_years %}
+                    <option value="{{ year.id }}" {% if selected_year.id == year.id %}selected{% endif %}>
+                        {{ year.name }}
+                        {% if year.is_active %} (Current){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Budget Summary -->
+{% if budget_summary %}
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">KES {{ budget_summary.allocated|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Allocated</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ budget_summary.committed|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Committed</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ budget_summary.spent|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Spent</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ budget_summary.available|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Available Balance</div>
+    </div>
+</div>
+
+<!-- Overall Utilization -->
+<div class="detail-card">
+    <div class="budget-progress">
+        <div class="progress-header">
+            <h3 class="progress-title">Overall Budget Utilization</h3>
+            <span class="progress-percentage">{{ budget_summary.utilization|floatformat:1 }}%</span>
+        </div>
+        <div class="progress-bar large">
+            <div class="progress-fill" style="width: {{ budget_summary.utilization }}%"></div>
+        </div>
+        <div class="progress-legend">
+            <div class="legend-item">
+                <span class="legend-color committed"></span>
+                <span>Committed: {{ budget_summary.committed|floatformat:0|intcomma }}</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color spent"></span>
+                <span>Spent: {{ budget_summary.spent|floatformat:0|intcomma }}</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color available"></span>
+                <span>Available: {{ budget_summary.available|floatformat:0|intcomma }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Budget Lines -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-wallet2"></i>
+            Budget Lines by Category
+        </h2>
+    </div>
+    {% if budgets %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Budget Category</th>
+                    <th>Code</th>
+                    <th>Type</th>
+                    <th>Allocated</th>
+                    <th>Committed</th>
+                    <th>Spent</th>
+                    <th>Available</th>
+                    <th>Utilization</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for budget in budgets %}
+                <tr>
+                    <td>
+                        <strong>{{ budget.category.name }}</strong>
+                        {% if budget.reference_number %}
+                        <div class="info-sub">Ref: {{ budget.reference_number }}</div>
+                        {% endif %}
+                    </td>
+                    <td>{{ budget.category.code }}</td>
+                    <td>
+                        <span class="badge">{{ budget.get_budget_type_display }}</span>
+                    </td>
+                    <td class="amount-cell">KES {{ budget.allocated_amount|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ budget.committed_amount|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ budget.actual_spent|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">
+                        {% with available=budget.available_balance %}
+                        <span class="{% if available < 0 %}text-danger{% endif %}">
+                            KES {{ available|floatformat:0|intcomma }}
+                        </span>
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {% with utilization=budget.actual_spent|floatformat:0|add:"0"|divide:budget.allocated_amount|floatformat:0|add:"0"|multiply:"100" %}
+                        <div class="utilization-cell">
+                            <div class="progress-bar mini">
+                                <div class="progress-fill" style="width: {{ utilization }}%"></div>
+                            </div>
+                            <span class="percentage">{{ utilization|floatformat:1 }}%</span>
+                        </div>
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {% with available=budget.available_balance %}
+                        {% if available <= 0 %}
+                        <span class="status-badge status-danger">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Exhausted
+                        </span>
+                        {% elif available < budget.allocated_amount|multiply:0.1 %}
+                        <span class="status-badge status-warning">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Low
+                        </span>
+                        {% else %}
+                        <span class="status-badge status-active">
+                            <i class="bi bi-check-circle"></i>
+                            Active
+                        </span>
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="3"><strong>TOTAL</strong></td>
+                    <td class="amount-cell"><strong>KES {{ budget_summary.allocated|floatformat:0|intcomma }}</strong></td>
+                    <td class="amount-cell"><strong>KES {{ budget_summary.committed|floatformat:0|intcomma }}</strong></td>
+                    <td class="amount-cell"><strong>KES {{ budget_summary.spent|floatformat:0|intcomma }}</strong></td>
+                    <td class="amount-cell"><strong>KES {{ budget_summary.available|floatformat:0|intcomma }}</strong></td>
+                    <td><strong>{{ budget_summary.utilization|floatformat:1 }}%</strong></td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-wallet2"></i>
+        <p>No budget allocations found for {{ selected_year.name }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Budget Alerts -->
+<div class="alert-card">
+    <div class="alert-header">
+        <h3 class="alert-title">
+            <i class="bi bi-exclamation-triangle"></i>
+            Budget Alerts
+        </h3>
+    </div>
+    <div class="alerts-list">
+        {% for budget in budgets %}
+        {% with available=budget.available_balance %}
+        {% if available <= 0 %}
+        <div class="alert-item danger">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <div class="alert-content">
+                <div class="alert-message">Budget Exhausted: {{ budget.category.name }}</div>
+                <div class="alert-detail">Available balance is KES {{ available|floatformat:0|intcomma }}</div>
+            </div>
+        </div>
+        {% elif available < budget.allocated_amount|multiply:0.1 %}
+        <div class="alert-item warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div class="alert-content">
+                <div class="alert-message">Low Budget: {{ budget.category.name }}</div>
+                <div class="alert-detail">Only KES {{ available|floatformat:0|intcomma }} remaining</div>
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

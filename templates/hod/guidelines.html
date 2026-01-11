@@ -1,0 +1,303 @@
+{% load humanize %}
+
+{% block title %}Procurement Guidelines - HOD Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Procurement Guidelines & Policies</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_dashboard' %}">HOD Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_help_center' %}">Help Center</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Guidelines</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'hod_help_center' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Help
+        </a>
+    </div>
+</div>
+
+<!-- Approval Thresholds -->
+<div class="guidelines-section">
+    <h2 class="section-title">
+        <i class="bi bi-cash-stack"></i>
+        Approval Thresholds
+    </h2>
+    <p class="section-description">
+        Understanding approval requirements based on requisition amounts
+    </p>
+    
+    <div class="table-card">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Amount Range</th>
+                        <th>HOD Approval</th>
+                        <th>Faculty Approval</th>
+                        <th>Procurement Approval</th>
+                        <th>Finance Approval</th>
+                        <th>Tender Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for threshold in thresholds %}
+                    <tr>
+                        <td class="amount-cell">
+                            KES {{ threshold.min_amount|floatformat:0|intcomma }}
+                            {% if threshold.max_amount %}
+                            - {{ threshold.max_amount|floatformat:0|intcomma }}
+                            {% else %}
+                            and above
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if threshold.requires_hod_approval %}
+                            <i class="bi bi-check-circle text-success"></i>
+                            {% else %}
+                            <i class="bi bi-x-circle text-muted"></i>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if threshold.requires_faculty_approval %}
+                            <i class="bi bi-check-circle text-success"></i>
+                            {% else %}
+                            <i class="bi bi-x-circle text-muted"></i>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if threshold.requires_procurement_approval %}
+                            <i class="bi bi-check-circle text-success"></i>
+                            {% else %}
+                            <i class="bi bi-x-circle text-muted"></i>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if threshold.requires_finance_approval %}
+                            <i class="bi bi-check-circle text-success"></i>
+                            {% else %}
+                            <i class="bi bi-x-circle text-muted"></i>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if threshold.requires_tender %}
+                            <span class="badge-required">Required</span>
+                            {% else %}
+                            <span class="badge-optional">Not Required</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Procurement Policies -->
+<div class="guidelines-section">
+    <h2 class="section-title">
+        <i class="bi bi-file-text"></i>
+        Procurement Policies
+    </h2>
+    <p class="section-description">
+        Active policies and guidelines governing procurement processes
+    </p>
+    
+    <div class="policies-grid">
+        {% for policy in policies %}
+        <div class="policy-card">
+            <div class="policy-header">
+                <div class="policy-number">{{ policy.policy_number }}</div>
+                <span class="status-badge status-active">
+                    <i class="bi bi-check-circle"></i>
+                    Active
+                </span>
+            </div>
+            
+            <h3 class="policy-title">{{ policy.title }}</h3>
+            <p class="policy-description">{{ policy.description|truncatewords:30 }}</p>
+            
+            <div class="policy-meta">
+                <div class="meta-item">
+                    <i class="bi bi-calendar-check"></i>
+                    <span>Effective: {{ policy.effective_date|date:"M d, Y" }}</span>
+                </div>
+                {% if policy.expiry_date %}
+                <div class="meta-item">
+                    <i class="bi bi-calendar-x"></i>
+                    <span>Expires: {{ policy.expiry_date|date:"M d, Y" }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="policy-actions">
+                {% if policy.document %}
+                <a href="{{ policy.document.url }}" target="_blank" class="btn btn-primary">
+                    <i class="bi bi-download"></i>
+                    Download PDF
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Process Guidelines -->
+<div class="guidelines-section">
+    <h2 class="section-title">
+        <i class="bi bi-diagram-3"></i>
+        Requisition Process Flow
+    </h2>
+    
+    <div class="process-flow">
+        <div class="process-step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h4 class="step-title">Create Requisition</h4>
+                <p class="step-description">
+                    Staff member creates a requisition with detailed specifications and justification
+                </p>
+            </div>
+        </div>
+        
+        <div class="process-arrow">
+            <i class="bi bi-arrow-down"></i>
+        </div>
+        
+        <div class="process-step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h4 class="step-title">HOD Review & Approval</h4>
+                <p class="step-description">
+                    Head of Department reviews and approves/rejects within 3 working days
+                </p>
+            </div>
+        </div>
+        
+        <div class="process-arrow">
+            <i class="bi bi-arrow-down"></i>
+        </div>
+        
+        <div class="process-step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h4 class="step-title">Budget Verification</h4>
+                <p class="step-description">
+                    Finance verifies budget availability and compliance
+                </p>
+            </div>
+        </div>
+        
+        <div class="process-arrow">
+            <i class="bi bi-arrow-down"></i>
+        </div>
+        
+        <div class="process-step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+                <h4 class="step-title">Procurement Processing</h4>
+                <p class="step-description">
+                    Procurement office processes according to thresholds
+                </p>
+            </div>
+        </div>
+        
+        <div class="process-arrow">
+            <i class="bi bi-arrow-down"></i>
+        </div>
+        
+        <div class="process-step">
+            <div class="step-number">5</div>
+            <div class="step-content">
+                <h4 class="step-title">Purchase Order</h4>
+                <p class="step-description">
+                    PO issued to selected supplier and delivery tracked
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Best Practices -->
+<div class="guidelines-section">
+    <h2 class="section-title">
+        <i class="bi bi-lightbulb"></i>
+        Best Practices for HODs
+    </h2>
+    
+    <div class="best-practices-grid">
+        <div class="practice-card">
+            <div class="practice-icon">
+                <i class="bi bi-clock"></i>
+            </div>
+            <h4 class="practice-title">Timely Review</h4>
+            <p class="practice-description">
+                Review and process requisitions within 3 working days to avoid delays
+            </p>
+        </div>
+        
+        <div class="practice-card">
+            <div class="practice-icon">
+                <i class="bi bi-wallet2"></i>
+            </div>
+            <h4 class="practice-title">Budget Awareness</h4>
+            <p class="practice-description">
+                Always verify budget availability before approving requisitions
+            </p>
+        </div>
+        
+        <div class="practice-card">
+            <div class="practice-icon">
+                <i class="bi bi-file-text"></i>
+            </div>
+            <h4 class="practice-title">Clear Documentation</h4>
+            <p class="practice-description">
+                Ensure requisitions have proper justification and specifications
+            </p>
+        </div>
+        
+        <div class="practice-card">
+            <div class="practice-icon">
+                <i class="bi bi-chat-left-text"></i>
+            </div>
+            <h4 class="practice-title">Feedback</h4>
+            <p class="practice-description">
+                Provide clear comments when rejecting to help staff improve
+            </p>
+        </div>
+        
+        <div class="practice-card">
+            <div class="practice-icon">
+                <i class="bi bi-shield-check"></i>
+            </div>
+            <h4 class="practice-title">Policy Compliance</h4>
+            <p class="practice-description">
+                Ensure all requisitions comply with university procurement policies
+            </p>
+        </div>
+        
+        <div class="practice-card">
+            <div class="practice-icon">
+                <i class="bi bi-graph-up"></i>
+            </div>
+            <h4 class="practice-title">Monitor Trends</h4>
+            <p class="practice-description">
+                Regularly review department spending patterns and budget utilization
+            </p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

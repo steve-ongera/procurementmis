@@ -1,0 +1,145 @@
+{% load humanize %}
+
+{% block title %}Help Center - HOD Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Help Center</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_dashboard' %}">HOD Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Help Center</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'hod_guidelines' %}" class="btn btn-primary">
+            <i class="bi bi-book"></i>
+            View Guidelines
+        </a>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="quick-links-grid">
+    {% for link in quick_links %}
+    <a href="{% url link.url %}" class="quick-link-card">
+        <div class="link-icon">
+            <i class="bi bi-{{ link.icon }}"></i>
+        </div>
+        <div class="link-content">
+            <h3 class="link-title">{{ link.title }}</h3>
+            <p class="link-description">{{ link.description }}</p>
+        </div>
+        <div class="link-arrow">
+            <i class="bi bi-arrow-right"></i>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- FAQs -->
+<div class="faqs-section">
+    <h2 class="section-title">
+        <i class="bi bi-question-circle"></i>
+        Frequently Asked Questions
+    </h2>
+    
+    {% for category in faqs %}
+    <div class="faq-category">
+        <h3 class="category-title">{{ category.category }}</h3>
+        
+        <div class="faq-items">
+            {% for item in category.questions %}
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">
+                    <span>{{ item.question }}</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>{{ item.answer }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Contact Support -->
+<div class="contact-card">
+    <div class="contact-header">
+        <h3 class="contact-title">
+            <i class="bi bi-headset"></i>
+            Need More Help?
+        </h3>
+        <p class="contact-subtitle">Our support team is here to assist you</p>
+    </div>
+    
+    <div class="contact-grid">
+        <div class="contact-method">
+            <div class="method-icon">
+                <i class="bi bi-envelope"></i>
+            </div>
+            <div class="method-info">
+                <div class="method-label">Email Support</div>
+                <div class="method-value">procurement@university.ac.ke</div>
+            </div>
+        </div>
+        
+        <div class="contact-method">
+            <div class="method-icon">
+                <i class="bi bi-telephone"></i>
+            </div>
+            <div class="method-info">
+                <div class="method-label">Phone Support</div>
+                <div class="method-value">+254 XXX XXX XXX</div>
+            </div>
+        </div>
+        
+        <div class="contact-method">
+            <div class="method-icon">
+                <i class="bi bi-clock"></i>
+            </div>
+            <div class="method-info">
+                <div class="method-label">Support Hours</div>
+                <div class="method-value">Mon - Fri: 8:00 AM - 5:00 PM</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleFaq(button) {
+    const faqItem = button.parentElement;
+    const answer = faqItem.querySelector('.faq-answer');
+    const icon = button.querySelector('i');
+    
+    // Close all other FAQs
+    document.querySelectorAll('.faq-item').forEach(item => {
+        if (item !== faqItem && item.classList.contains('active')) {
+            item.classList.remove('active');
+            item.querySelector('.faq-answer').style.maxHeight = null;
+            item.querySelector('.faq-question i').style.transform = 'rotate(0deg)';
+        }
+    });
+    
+    // Toggle current FAQ
+    faqItem.classList.toggle('active');
+    
+    if (faqItem.classList.contains('active')) {
+        answer.style.maxHeight = answer.scrollHeight + 'px';
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        answer.style.maxHeight = null;
+        icon.style.transform = 'rotate(0deg)';
+    }
+}
+</script>
+
+{% endblock %}

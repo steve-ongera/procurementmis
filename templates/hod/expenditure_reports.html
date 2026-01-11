@@ -1,0 +1,255 @@
+{% load humanize %}
+
+{% block title %}Expenditure Reports - HOD Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Expenditure Reports</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_dashboard' %}">HOD Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Expenditure Reports</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'hod_export_budget_pdf' %}" class="btn">
+            <i class="bi bi-file-pdf"></i>
+            Export PDF
+        </a>
+        <a href="{% url 'hod_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back
+        </a>
+    </div>
+</div>
+
+<!-- Date Range Filter -->
+<div class="filter-card">
+    <form method="get" action="">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from|date:'Y-m-d' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to|date:'Y-m-d' }}">
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Generate Report
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Report Period -->
+<div class="report-header">
+    <h2 class="report-title">{{ department.name }}</h2>
+    <div class="report-period">
+        Report Period: {{ date_from|date:"F d, Y" }} to {{ date_to|date:"F d, Y" }}
+    </div>
+</div>
+
+<!-- Requisitions Summary -->
+<div class="report-section">
+    <h3 class="section-title">
+        <i class="bi bi-file-text"></i>
+        Requisitions Summary
+    </h3>
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-value">{{ requisitions.count|intcomma }}</div>
+            <div class="summary-label">Total Requisitions</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">KES {{ requisitions.total_requested|floatformat:0|intcomma }}</div>
+            <div class="summary-label">Total Requested</div>
+        </div>
+    </div>
+</div>
+
+<!-- Purchase Orders Summary -->
+<div class="report-section">
+    <h3 class="section-title">
+        <i class="bi bi-receipt"></i>
+        Purchase Orders Summary
+    </h3>
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-value">{{ purchase_orders.count|intcomma }}</div>
+            <div class="summary-label">Total POs</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">KES {{ purchase_orders.total_po_value|floatformat:0|intcomma }}</div>
+            <div class="summary-label">Total PO Value</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">KES {{ purchase_orders.avg_value|floatformat:0|intcomma }}</div>
+            <div class="summary-label">Average PO Value</div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoices & Payments -->
+<div class="report-section">
+    <h3 class="section-title">
+        <i class="bi bi-cash-stack"></i>
+        Invoices & Payments
+    </h3>
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-value">{{ invoices.count|intcomma }}</div>
+            <div class="summary-label">Total Invoices</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">KES {{ invoices.total_invoiced|floatformat:0|intcomma }}</div>
+            <div class="summary-label">Total Invoiced</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">KES {{ invoices.total_paid|floatformat:0|intcomma }}</div>
+            <div class="summary-label">Total Paid</div>
+        </div>
+    </div>
+</div>
+
+<!-- Expenditure by Category -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-pie-chart"></i>
+            Expenditure by Budget Category
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Code</th>
+                    <th>Allocated</th>
+                    <th>Committed</th>
+                    <th>Spent</th>
+                    <th>% of Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in category_expenditure %}
+                <tr>
+                    <td>{{ cat.category__name }}</td>
+                    <td>{{ cat.category__code }}</td>
+                    <td class="amount-cell">KES {{ cat.allocated|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ cat.committed|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ cat.spent|floatformat:0|intcomma }}</td>
+                    <td>
+                        <div class="percentage-bar">
+                            <div class="bar-fill" style="width: {% widthratio cat.spent cat.allocated 100 %}%"></div>
+                            <span>{% widthratio cat.spent cat.allocated 100 %}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Monthly Expenditure Trend -->
+<div class="chart-card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-graph-up"></i>
+            Monthly Expenditure Trend
+        </h3>
+    </div>
+    <div class="chart-container">
+        <table class="trend-table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Amount</th>
+                    <th>Trend</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for month in monthly_expenditure %}
+                <tr>
+                    <td>{{ month.month }}</td>
+                    <td class="amount-cell">KES {{ month.amount|floatformat:0|intcomma }}</td>
+                    <td>
+                        <div class="trend-bar">
+                            <div class="trend-fill" style="width: {% widthratio month.amount 1000000 100 %}%"></div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Top Suppliers -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-building"></i>
+            Top Suppliers by Expenditure
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Supplier</th>
+                    <th>Purchase Orders</th>
+                    <th>Total Value</th>
+                    <th>% of Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for supplier in top_suppliers %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ supplier.supplier__name }}</td>
+                    <td class="amount-cell">{{ supplier.po_count }}</td>
+                    <td class="amount-cell">KES {{ supplier.total_value|floatformat:0|intcomma }}</td>
+                    <td>
+                        <div class="percentage-bar">
+                            <span>{% widthratio supplier.total_value purchase_orders.total_po_value 100 %}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Assets Acquired -->
+<div class="report-section">
+    <h3 class="section-title">
+        <i class="bi bi-box-seam"></i>
+        Assets Acquired
+    </h3>
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-value">{{ assets.count|intcomma }}</div>
+            <div class="summary-label">Total Assets</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">KES {{ assets.total_value|floatformat:0|intcomma }}</div>
+            <div class="summary-label">Total Value</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

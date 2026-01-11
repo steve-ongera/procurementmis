@@ -1,0 +1,247 @@
+{% load humanize %}
+
+{% block title %}Department Analytics - HOD Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Department Analytics</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_dashboard' %}">HOD Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Analytics</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'hod_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back
+        </a>
+    </div>
+</div>
+
+<!-- Date Range Filter -->
+<div class="filter-card">
+    <form method="get" action="">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from|date:'Y-m-d' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to|date:'Y-m-d' }}">
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Apply Date Range
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Requisition Analytics -->
+<div class="analytics-section">
+    <h2 class="section-title">
+        <i class="bi bi-file-bar-graph"></i>
+        Requisition Analytics
+    </h2>
+    
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-value">{{ requisition_stats.total|intcomma }}</div>
+            <div class="summary-label">Total Requisitions</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">KES {{ requisition_stats.total_value|floatformat:0|intcomma }}</div>
+            <div class="summary-label">Total Value</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">KES {{ requisition_stats.avg_value|floatformat:0|intcomma }}</div>
+            <div class="summary-label">Average Value</div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Distribution -->
+<div class="chart-card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-pie-chart"></i>
+            Requisitions by Status
+        </h3>
+    </div>
+    <div class="chart-grid">
+        {% for item in requisition_stats.by_status %}
+        <div class="chart-item">
+            <div class="chart-label">{{ item.status }}</div>
+            <div class="chart-value">{{ item.count }}</div>
+            <div class="chart-bar">
+                <div class="chart-fill" style="width: {% widthratio item.count requisition_stats.total 100 %}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Priority Distribution -->
+<div class="chart-card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-bar-chart"></i>
+            Requisitions by Priority
+        </h3>
+    </div>
+    <div class="chart-grid">
+        {% for item in requisition_stats.by_priority %}
+        <div class="chart-item">
+            <div class="chart-label">{{ item.priority }}</div>
+            <div class="chart-value">{{ item.count }}</div>
+            <div class="chart-bar">
+                <div class="chart-fill" style="width: {% widthratio item.count requisition_stats.total 100 %}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Budget Utilization by Category -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-wallet2"></i>
+            Budget Utilization by Category
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Code</th>
+                    <th>Allocated</th>
+                    <th>Spent</th>
+                    <th>Committed</th>
+                    <th>Utilization</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in budget_utilization %}
+                <tr>
+                    <td>{{ item.category__name }}</td>
+                    <td>{{ item.category__code }}</td>
+                    <td class="amount-cell">KES {{ item.allocated|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ item.spent|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ item.committed|floatformat:0|intcomma }}</td>
+                    <td>
+                        <div class="utilization-cell">
+                            <div class="progress-bar mini">
+                                <div class="progress-fill" style="width: {% widthratio item.spent item.allocated 100 %}%"></div>
+                            </div>
+                            <span class="percentage">{% widthratio item.spent item.allocated 100 %}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Top Requesters -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-people"></i>
+            Top Requesters
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Requisitions</th>
+                    <th>Total Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for requester in top_requesters %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ requester.get_full_name }}</td>
+                    <td>{{ requester.email }}</td>
+                    <td class="amount-cell">{{ requester.req_count }}</td>
+                    <td class="amount-cell">KES {{ requester.total_value|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Purchase Order Analytics -->
+<div class="analytics-section">
+    <h2 class="section-title">
+        <i class="bi bi-receipt"></i>
+        Purchase Order Analytics
+    </h2>
+    
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-value">{{ po_stats.total_pos|intcomma }}</div>
+            <div class="summary-label">Total POs</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">KES {{ po_stats.total_value|floatformat:0|intcomma }}</div>
+            <div class="summary-label">Total PO Value</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">KES {{ po_stats.avg_value|floatformat:0|intcomma }}</div>
+            <div class="summary-label">Average PO Value</div>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Distribution -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-building"></i>
+            Top Suppliers
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Supplier</th>
+                    <th>Purchase Orders</th>
+                    <th>Total Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for supplier in supplier_distribution %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ supplier.supplier__name }}</td>
+                    <td class="amount-cell">{{ supplier.po_count }}</td>
+                    <td class="amount-cell">KES {{ supplier.total_value|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

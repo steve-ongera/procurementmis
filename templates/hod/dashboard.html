@@ -1,0 +1,296 @@
+{% load humanize %}
+
+{% block title %}HOD Dashboard - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">HOD Dashboard</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>HOD Dashboard</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'hod_analytics' %}" class="btn">
+            <i class="bi bi-graph-up"></i>
+            Analytics
+        </a>
+        <a href="{% url 'hod_new_requisition' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            New Requisition
+        </a>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.pending_approvals|intcomma }}</div>
+        <div class="summary-label">Pending Approvals</div>
+        <a href="{% url 'hod_pending_approvals' %}" class="summary-link">
+            <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.total_requisitions_month|intcomma }}</div>
+        <div class="summary-label">Requisitions This Month</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.approved_this_month|intcomma }}</div>
+        <div class="summary-label">Approved This Month</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.department_staff|intcomma }}</div>
+        <div class="summary-label">Department Staff</div>
+        <a href="{% url 'hod_staff_management' %}" class="summary-link">
+            <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Budget Overview -->
+{% if budget_overview %}
+<div class="budget-overview-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-wallet2"></i>
+            Budget Overview - {{ current_budget_year.name }}
+        </h2>
+        <a href="{% url 'hod_budget_overview' %}" class="btn-link">
+            View Details
+            <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+    <div class="budget-stats-grid">
+        <div class="budget-stat">
+            <div class="budget-label">Allocated</div>
+            <div class="budget-amount">KES {{ budget_overview.allocated|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="budget-stat">
+            <div class="budget-label">Committed</div>
+            <div class="budget-amount">KES {{ budget_overview.committed|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="budget-stat">
+            <div class="budget-label">Spent</div>
+            <div class="budget-amount">KES {{ budget_overview.spent|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="budget-stat">
+            <div class="budget-label">Available</div>
+            <div class="budget-amount success">KES {{ budget_overview.available|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+    <div class="budget-progress">
+        <div class="progress-label">
+            <span>Budget Utilization</span>
+            <span class="progress-percentage">{{ budget_overview.utilization_percentage|floatformat:1 }}%</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ budget_overview.utilization_percentage }}%"></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Pending Approvals -->
+{% if pending_approvals %}
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clock-history"></i>
+            Pending Approvals ({{ pending_approvals|length }})
+        </h2>
+        <a href="{% url 'hod_pending_approvals' %}" class="btn">
+            View All
+            <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requisition No.</th>
+                    <th>Requested By</th>
+                    <th>Title</th>
+                    <th>Priority</th>
+                    <th>Amount</th>
+                    <th>Submitted</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in pending_approvals %}
+                <tr>
+                    <td>
+                        <a href="{% url 'hod_requisition_detail' req.id %}" class="invoice-number">
+                            {{ req.requisition_number }}
+                            <i class="bi bi-arrow-up-right"></i>
+                        </a>
+                    </td>
+                    <td>{{ req.requested_by.get_full_name }}</td>
+                    <td>{{ req.title|truncatewords:8 }}</td>
+                    <td>
+                        <span class="status-badge status-{{ req.priority|lower }}">
+                            {{ req.get_priority_display }}
+                        </span>
+                    </td>
+                    <td class="amount-cell">KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
+                    <td class="date-cell">{{ req.submitted_at|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'hod_requisition_detail' req.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <button type="button" class="action-btn" onclick="approveRequisition('{{ req.id }}')" title="Approve">
+                            <i class="bi bi-check-circle"></i>
+                        </button>
+                        <button type="button" class="action-btn" onclick="rejectRequisition('{{ req.id }}')" title="Reject">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Requisitions -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-file-text"></i>
+            Recent Department Requisitions
+        </h2>
+        <a href="{% url 'hod_department_requests' %}" class="btn">
+            View All
+            <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+    {% if recent_requisitions %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requisition No.</th>
+                    <th>Requested By</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in recent_requisitions %}
+                <tr>
+                    <td>
+                        <a href="{% url 'hod_requisition_detail' req.id %}" class="invoice-number">
+                            {{ req.requisition_number }}
+                            <i class="bi bi-arrow-up-right"></i>
+                        </a>
+                    </td>
+                    <td>{{ req.requested_by.get_full_name }}</td>
+                    <td>{{ req.title|truncatewords:8 }}</td>
+                    <td>
+                        <span class="status-badge status-{{ req.status|lower }}">
+                            {% if req.status == 'DRAFT' %}<i class="bi bi-pencil"></i>{% endif %}
+                            {% if req.status == 'SUBMITTED' %}<i class="bi bi-upload"></i>{% endif %}
+                            {% if req.status == 'HOD_APPROVED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                            {% if req.status == 'APPROVED' %}<i class="bi bi-check2-all"></i>{% endif %}
+                            {% if req.status == 'REJECTED' %}<i class="bi bi-x-circle"></i>{% endif %}
+                            {{ req.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="amount-cell">KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
+                    <td class="date-cell">{{ req.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'hod_requisition_detail' req.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-file-text"></i>
+        <p>No recent requisitions</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Performance Metrics -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-header">
+            <h3 class="metric-title">Approval Rate</h3>
+            <i class="bi bi-check-circle-fill metric-icon"></i>
+        </div>
+        <div class="metric-value">{{ performance.approval_rate|floatformat:1 }}%</div>
+        <div class="metric-chart">
+            <div class="chart-bar" style="width: {{ performance.approval_rate }}%"></div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-header">
+            <h3 class="metric-title">Rejection Rate</h3>
+            <i class="bi bi-x-circle-fill metric-icon"></i>
+        </div>
+        <div class="metric-value">{{ performance.rejection_rate|floatformat:1 }}%</div>
+        <div class="metric-chart">
+            <div class="chart-bar danger" style="width: {{ performance.rejection_rate }}%"></div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-header">
+            <h3 class="metric-title">Avg. Approval Time</h3>
+            <i class="bi bi-clock-fill metric-icon"></i>
+        </div>
+        <div class="metric-value">
+            {% if performance.avg_approval_time %}
+                {{ performance.avg_approval_time.days }} days
+            {% else %}
+                N/A
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Trend Chart -->
+<div class="chart-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-bar-chart-line"></i>
+            Monthly Requisition Trend
+        </h2>
+    </div>
+    <div class="chart-container">
+        <canvas id="monthlyTrendChart"></canvas>
+    </div>
+</div>
+
+<script>
+// Chart data from backend
+const monthlyTrendData = {{ monthly_trend|safe }};
+
+// Approval/Reject functions
+function approveRequisition(reqId) {
+    if (confirm('Are you sure you want to approve this requisition?')) {
+        // Show approval modal with comments
+        showApprovalModal(reqId);
+    }
+}
+
+function rejectRequisition(reqId) {
+    // Show rejection modal with reason
+    showRejectionModal(reqId);
+}
+</script>
+{% endblock %}

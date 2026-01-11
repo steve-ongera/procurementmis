@@ -1,0 +1,175 @@
+{% load humanize %}
+
+{% block title %}{{ staff_member.get_full_name }} - Staff Details{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Staff Member Details</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_dashboard' %}">HOD Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_staff_management' %}">Staff</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ staff_member.get_full_name }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'hod_staff_management' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Staff
+        </a>
+    </div>
+</div>
+
+<!-- Staff Member Info Card -->
+<div class="detail-card">
+    <div class="detail-header">
+        <div class="staff-profile">
+            {% if staff_member.profile_picture %}
+            <img src="{{ staff_member.profile_picture.url }}" alt="{{ staff_member.get_full_name }}" class="profile-picture">
+            {% else %}
+            <div class="profile-picture-placeholder">
+                <i class="bi bi-person-circle"></i>
+            </div>
+            {% endif %}
+            <div class="profile-info">
+                <h2 class="profile-name">{{ staff_member.get_full_name }}</h2>
+                <div class="profile-role">{{ staff_member.get_role_display }}</div>
+            </div>
+        </div>
+        <div class="profile-status">
+            {% if staff_member.is_active_user %}
+            <span class="status-badge status-active">
+                <i class="bi bi-check-circle"></i>
+                Active
+            </span>
+            {% else %}
+            <span class="status-badge status-inactive">
+                <i class="bi bi-x-circle"></i>
+                Inactive
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="detail-info-grid">
+        <div class="info-item">
+            <div class="info-label">Email</div>
+            <div class="info-value">{{ staff_member.email }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Phone Number</div>
+            <div class="info-value">{{ staff_member.phone_number|default:"-" }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Employee ID</div>
+            <div class="info-value">{{ staff_member.employee_id|default:"-" }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Department</div>
+            <div class="info-value">{{ department.name }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Username</div>
+            <div class="info-value">{{ staff_member.username }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Joined</div>
+            <div class="info-value">{{ staff_member.created_at|date:"F d, Y" }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity Summary -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ activity.total_requisitions|intcomma }}</div>
+        <div class="summary-label">Total Requisitions</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ activity.this_year|intcomma }}</div>
+        <div class="summary-label">This Year</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ activity.total_value|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Value</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ activity.approved|intcomma }}</div>
+        <div class="summary-label">Approved</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ activity.rejected|intcomma }}</div>
+        <div class="summary-label">Rejected</div>
+    </div>
+</div>
+
+<!-- Recent Requisitions -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-file-text"></i>
+            Recent Requisitions
+        </h2>
+    </div>
+    {% if requisitions %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requisition No.</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requisitions %}
+                <tr>
+                    <td>
+                        <a href="{% url 'hod_requisition_detail' req.id %}" class="invoice-number">
+                            {{ req.requisition_number }}
+                            <i class="bi bi-arrow-up-right"></i>
+                        </a>
+                    </td>
+                    <td>{{ req.title|truncatewords:8 }}</td>
+                    <td>
+                        <span class="status-badge status-{{ req.status|lower }}">
+                            {{ req.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ req.priority|lower }}">
+                            {{ req.get_priority_display }}
+                        </span>
+                    </td>
+                    <td class="amount-cell">KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
+                    <td class="date-cell">{{ req.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'hod_requisition_detail' req.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p>No requisitions found for this staff member</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

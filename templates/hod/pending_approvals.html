@@ -1,0 +1,249 @@
+{% load humanize %}
+
+{% block title %}Pending Approvals - HOD Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Pending Approvals</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_dashboard' %}">HOD Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Pending Approvals</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'hod_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ total_pending|intcomma }}</div>
+        <div class="summary-label">Total Pending</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ page_obj.paginator.count|intcomma }}</div>
+        <div class="summary-label">Requiring Action</div>
+    </div>
+</div>
+
+<!-- Pending Approvals Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clock-history"></i>
+            Requisitions Awaiting Your Approval ({{ page_obj.paginator.count }})
+        </h2>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requisition No.</th>
+                    <th>Requested By</th>
+                    <th>Title</th>
+                    <th>Priority</th>
+                    <th>Amount</th>
+                    <th>Budget Line</th>
+                    <th>Required By</th>
+                    <th>Submitted</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in page_obj %}
+                <tr>
+                    <td>
+                        <a href="{% url 'hod_requisition_detail' req.id %}" class="invoice-number">
+                            {{ req.requisition_number }}
+                            <i class="bi bi-arrow-up-right"></i>
+                        </a>
+                    </td>
+                    <td>
+                        <div class="user-info">
+                            <div class="user-name">{{ req.requested_by.get_full_name }}</div>
+                            <div class="user-email">{{ req.requested_by.email }}</div>
+                        </div>
+                    </td>
+                    <td>
+                        {{ req.title|truncatewords:10 }}
+                        {% if req.is_emergency %}
+                        <span class="badge-urgent">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            URGENT
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ req.priority|lower }}">
+                            {{ req.get_priority_display }}
+                        </span>
+                    </td>
+                    <td class="amount-cell">KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% if req.budget %}
+                        {{ req.budget.category.code }}
+                        {% else %}
+                        <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="date-cell">{{ req.required_date|date:"M d, Y" }}</td>
+                    <td class="date-cell">
+                        {{ req.submitted_at|date:"M d, Y H:i" }}
+                        <div class="time-ago">{{ req.submitted_at|timesince }} ago</div>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'hod_requisition_detail' req.id %}" class="action-btn" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <button type="button" class="action-btn success" onclick="openApprovalModal('{{ req.id }}', '{{ req.requisition_number }}')" title="Approve">
+                                <i class="bi bi-check-circle"></i>
+                            </button>
+                            <button type="button" class="action-btn danger" onclick="openRejectionModal('{{ req.id }}', '{{ req.requisition_number }}')" title="Reject">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        <div class="pagination-info">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+        </div>
+        <div class="pagination-controls">
+            {% if page_obj.has_previous %}
+            <a href="?page=1" class="page-link">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            {% endif %}
+
+            <span class="page-current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-link">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">Last</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>No pending approvals! You're all caught up.</p>
+        <a href="{% url 'hod_dashboard' %}" class="btn btn-primary">
+            Back to Dashboard
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Approval Modal -->
+<div id="approvalModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Approve Requisition</h3>
+            <button type="button" class="modal-close" onclick="closeApprovalModal()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <form id="approvalForm" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p>You are about to approve requisition <strong id="approvalReqNumber"></strong></p>
+                <div class="form-group">
+                    <label class="form-label">Comments (Optional)</label>
+                    <textarea name="comments" class="form-control" rows="4" placeholder="Add any comments or conditions for approval..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeApprovalModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i>
+                    Approve Requisition
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div id="rejectionModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Reject Requisition</h3>
+            <button type="button" class="modal-close" onclick="closeRejectionModal()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <form id="rejectionForm" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p>You are about to reject requisition <strong id="rejectionReqNumber"></strong></p>
+                <div class="form-group">
+                    <label class="form-label">Reason for Rejection <span class="required">*</span></label>
+                    <textarea name="rejection_reason" class="form-control" rows="4" placeholder="Please provide a clear reason for rejection..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeRejectionModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-x-circle"></i>
+                    Reject Requisition
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openApprovalModal(reqId, reqNumber) {
+    document.getElementById('approvalReqNumber').textContent = reqNumber;
+    document.getElementById('approvalForm').action = "{% url 'hod_approve_requisition' '00000000-0000-0000-0000-000000000000' %}".replace('00000000-0000-0000-0000-000000000000', reqId);
+    document.getElementById('approvalModal').style.display = 'flex';
+}
+
+function closeApprovalModal() {
+    document.getElementById('approvalModal').style.display = 'none';
+}
+
+function openRejectionModal(reqId, reqNumber) {
+    document.getElementById('rejectionReqNumber').textContent = reqNumber;
+    document.getElementById('rejectionForm').action = "{% url 'hod_reject_requisition' '00000000-0000-0000-0000-000000000000' %}".replace('00000000-0000-0000-0000-000000000000', reqId);
+    document.getElementById('rejectionModal').style.display = 'flex';
+}
+
+function closeRejectionModal() {
+    document.getElementById('rejectionModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

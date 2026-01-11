@@ -1,0 +1,158 @@
+
+{% load humanize %}
+
+{% block title %}Approval History - HOD Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Approval History</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'hod_dashboard' %}">HOD Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Approval History</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'hod_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back
+        </a>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.total|intcomma }}</div>
+        <div class="summary-label">Total Processed</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.approved|intcomma }}</div>
+        <div class="summary-label">Approved</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.rejected|intcomma }}</div>
+        <div class="summary-label">Rejected</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">
+            {% if stats.total > 0 %}
+            {{ stats.approved|floatformat:0|divide:stats.total|multiply:100|floatformat:1 }}%
+            {% else %}
+            0%
+            {% endif %}
+        </div>
+        <div class="summary-label">Approval Rate</div>
+    </div>
+</div>
+
+<!-- Approval History Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clock-history"></i>
+            Your Approval History ({{ page_obj.paginator.count }})
+        </h2>
+    </div>
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requisition No.</th>
+                    <th>Requested By</th>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Your Decision</th>
+                    <th>Comments</th>
+                    <th>Decision Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for approval in page_obj %}
+                <tr>
+                    <td>
+                        <a href="{% url 'hod_requisition_detail' approval.requisition.id %}" class="invoice-number">
+                            {{ approval.requisition.requisition_number }}
+                            <i class="bi bi-arrow-up-right"></i>
+                        </a>
+                    </td>
+                    <td>{{ approval.requisition.requested_by.get_full_name }}</td>
+                    <td>{{ approval.requisition.title|truncatewords:8 }}</td>
+                    <td class="amount-cell">KES {{ approval.requisition.estimated_amount|floatformat:0|intcomma }}</td>
+                    <td>
+                        <span class="status-badge status-{{ approval.status|lower }}">
+                            {% if approval.status == 'APPROVED' %}
+                            <i class="bi bi-check-circle"></i>
+                            Approved
+                            {% elif approval.status == 'REJECTED' %}
+                            <i class="bi bi-x-circle"></i>
+                            Rejected
+                            {% else %}
+                            <i class="bi bi-clock"></i>
+                            {{ approval.get_status_display }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>{{ approval.comments|truncatewords:10|default:"-" }}</td>
+                    <td class="date-cell">
+                        {% if approval.approval_date %}
+                        {{ approval.approval_date|date:"M d, Y H:i" }}
+                        <div class="time-ago">{{ approval.approval_date|timesince }} ago</div>
+                        {% else %}
+                        <span class="text-muted">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'hod_requisition_detail' approval.requisition.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        <div class="pagination-info">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+        </div>
+        <div class="pagination-controls">
+            {% if page_obj.has_previous %}
+            <a href="?page=1" class="page-link">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            {% endif %}
+
+            <span class="page-current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-link">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">Last</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-clock-history"></i>
+        <p>No approval history yet</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
