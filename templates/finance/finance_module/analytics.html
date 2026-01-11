@@ -1,0 +1,230 @@
+<!-- ========================================== -->
+<!-- finance/analytics.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Finance Analytics - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Finance Analytics</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Analytics</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_dashboard' %}" class="btn">
+            <i class="bi bi-speedometer2"></i>
+            Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Current Year Info -->
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    Analytics for Budget Year: <strong>{{ current_year.name }}</strong>
+</div>
+
+<!-- Monthly Spending Trend -->
+<div class="chart-card">
+    <div class="chart-header">
+        <h2 class="chart-title">
+            <i class="bi bi-graph-up"></i>
+            Monthly Spending Trend (Last 12 Months)
+        </h2>
+    </div>
+    <div class="chart-container">
+        <canvas id="monthlySpendingChart"></canvas>
+    </div>
+</div>
+
+<!-- Two Column Layout -->
+<div class="content-grid">
+    <!-- Category Spending -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h2 class="chart-title">
+                <i class="bi bi-pie-chart"></i>
+                Spending by Category
+            </h2>
+        </div>
+        <div class="chart-container">
+            <canvas id="categorySpendingChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Department Spending -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h2 class="chart-title">
+                <i class="bi bi-building"></i>
+                Spending by Department
+            </h2>
+        </div>
+        <div class="chart-container">
+            <canvas id="departmentSpendingChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Top Suppliers -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-shop"></i>
+            Top 10 Suppliers by Payment Value
+        </h2>
+    </div>
+    {% if top_suppliers %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Supplier</th>
+                    <th>Number of Payments</th>
+                    <th>Total Amount Paid</th>
+                    <th>% of Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for supplier in top_suppliers %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ supplier.invoice__supplier__name }}</td>
+                    <td>{{ supplier.payment_count }}</td>
+                    <td class="amount-cell">KES {{ supplier.total_paid|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% with total=supplier.total_paid|floatformat:2|add:0 %}
+                        {% with grand_total=top_suppliers|first|getattr:"total_paid"|floatformat:2|add:0 %}
+                        {{ total|div:grand_total|mul:100|floatformat:1 }}%
+                        {% endwith %}
+                        {% endwith %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Payment Methods -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-credit-card"></i>
+            Payment Methods Distribution
+        </h2>
+    </div>
+    {% if payment_by_method %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Payment Method</th>
+                    <th>Number of Transactions</th>
+                    <th>Total Amount</th>
+                    <th>Average Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for method in payment_by_method %}
+                <tr>
+                    <td>
+                        <strong>
+                            {% if method.payment_method == 'BANK_TRANSFER' %}Bank Transfer
+                            {% elif method.payment_method == 'CHEQUE' %}Cheque
+                            {% elif method.payment_method == 'EFT' %}Electronic Funds Transfer
+                            {% elif method.payment_method == 'MOBILE_MONEY' %}Mobile Money
+                            {% else %}{{ method.payment_method }}
+                            {% endif %}
+                        </strong>
+                    </td>
+                    <td>{{ method.count }}</td>
+                    <td class="amount-cell">KES {{ method.total|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ method.total|div:method.count|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Chart.js Script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Monthly Spending Chart
+    const monthlyCtx = document.getElementById('monthlySpendingChart').getContext('2d');
+    const monthlyData = {{ monthly_spending|safe }};
+    
+    new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: monthlyData.map(d => `${d.year}-${d.month}`),
+            datasets: [{
+                label: 'Monthly Spending',
+                data: monthlyData.map(d => d.total),
+                borderColor: '#2563EB',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Category Spending Chart
+    const categoryCtx = document.getElementById('categorySpendingChart').getContext('2d');
+    const categoryData = {{ category_spending|safe }};
+    
+    new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: categoryData.map(d => d.category__name),
+            datasets: [{
+                data: categoryData.map(d => d.spent),
+                backgroundColor: [
+                    '#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+                    '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Department Spending Chart
+    const deptCtx = document.getElementById('departmentSpendingChart').getContext('2d');
+    const deptData = {{ department_spending|safe }};
+    
+    new Chart(deptCtx, {
+        type: 'bar',
+        data: {
+            labels: deptData.map(d => d.department__name),
+            datasets: [{
+                label: 'Amount Spent',
+                data: deptData.map(d => d.spent),
+                backgroundColor: '#2563EB'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+</script>
+{% endblock %}
+

@@ -1,0 +1,217 @@
+<!-- ========================================== -->
+<!-- finance/help.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+
+{% block title %}Finance Help - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Finance Help & Documentation</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Help</span>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="help-section">
+    <h2>Quick Links</h2>
+    <div class="help-grid">
+        <a href="#budget-management" class="help-card">
+            <i class="bi bi-wallet2"></i>
+            <h3>Budget Management</h3>
+            <p>Learn how to manage budgets and allocations</p>
+        </a>
+        <a href="#invoice-verification" class="help-card">
+            <i class="bi bi-receipt"></i>
+            <h3>Invoice Verification</h3>
+            <p>3-way matching and verification process</p>
+        </a>
+        <a href="#payment-processing" class="help-card">
+            <i class="bi bi-credit-card"></i>
+            <h3>Payment Processing</h3>
+            <p>How to process and approve payments</p>
+        </a>
+        <a href="#reporting" class="help-card">
+            <i class="bi bi-graph-up"></i>
+            <h3>Reports & Analytics</h3>
+            <p>Generate and export financial reports</p>
+        </a>
+    </div>
+</div>
+
+<!-- Budget Management -->
+<div class="help-section" id="budget-management">
+    <h2>Budget Management</h2>
+    
+    <div class="help-content">
+        <h3>Creating a Budget</h3>
+        <ol>
+            <li>Navigate to Finance → Budgets → Create Budget</li>
+            <li>Select the budget year, department, and category</li>
+            <li>Enter the allocated amount</li>
+            <li>Add description and reference number if applicable</li>
+            <li>Click "Create Budget" to save</li>
+        </ol>
+
+        <h3>Budget Tracking</h3>
+        <p>Monitor budget utilization through the Budget Tracking page:</p>
+        <ul>
+            <li>View department-wise and category-wise breakdowns</li>
+            <li>Track allocated, committed, and spent amounts</li>
+            <li>Monitor utilization percentages</li>
+            <li>Identify over-utilized or under-utilized budgets</li>
+        </ul>
+
+        <h3>Budget Reallocation</h3>
+        <p>Transfer funds between budget lines:</p>
+        <ol>
+            <li>Go to Budget Tracking → Reallocate Budget</li>
+            <li>Select source and destination budgets</li>
+            <li>Enter amount and justification</li>
+            <li>Submit for processing</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Invoice Verification -->
+<div class="help-section" id="invoice-verification">
+    <h2>Invoice Verification</h2>
+    
+    <div class="help-content">
+        <h3>3-Way Matching Process</h3>
+        <p>Verify that invoices match purchase orders and goods received notes:</p>
+        <ol>
+            <li>Review pending invoices from the dashboard</li>
+            <li>Open invoice for verification</li>
+            <li>Compare invoice with PO and GRN:
+                <ul>
+                    <li>Verify supplier matches</li>
+                    <li>Check quantities received vs invoiced</li>
+                    <li>Confirm unit prices match PO</li>
+                    <li>Validate total amounts</li>
+                </ul>
+            </li>
+            <li>Note any discrepancies</li>
+            <li>Approve as "Matched" or mark as "Disputed"</li>
+        </ol>
+
+        <h3>Approving for Payment</h3>
+        <p>After verification, approve invoices for payment:</p>
+        <ol>
+            <li>Review matched invoice details</li>
+            <li>Verify supplier bank details</li>
+            <li>Add approval comments if needed</li>
+            <li>Click "Approve for Payment"</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Payment Processing -->
+<div class="help-section" id="payment-processing">
+    <h2>Payment Processing</h2>
+    
+    <div class="help-content">
+        <h3>Creating a Payment</h3>
+        <ol>
+            <li>From approved invoice, click "Process Payment"</li>
+            <li>Verify invoice and supplier details</li>
+            <li>Enter payment information:
+                <ul>
+                    <li>Payment date</li>
+                    <li>Payment amount</li>
+                    <li>Payment method (Bank Transfer, Cheque, EFT, Mobile Money)</li>
+                    <li>Payment reference/transaction number</li>
+                    <li>Bank details (for cheques)</li>
+                </ul>
+            </li>
+            <li>Add notes if necessary</li>
+            <li>Click "Create Payment"</li>
+        </ol>
+
+        <h3>Approving Payments</h3>
+        <p>Review and approve pending payments:</p>
+        <ol>
+            <li>Navigate to pending payments</li>
+            <li>Review payment details</li>
+            <li>Verify supplier bank information</li>
+            <li>Approve or reject with comments</li>
+        </ol>
+
+        <h3>Payment Schedule</h3>
+        <p>View and manage upcoming payments by due date to ensure timely processing.</p>
+    </div>
+</div>
+
+<!-- Reporting -->
+<div class="help-section" id="reporting">
+    <h2>Reports & Analytics</h2>
+    
+    <div class="help-content">
+        <h3>Available Reports</h3>
+        <ul>
+            <li><strong>Expenditure Report:</strong> Track spending by department and supplier</li>
+            <li><strong>Budget vs Actual:</strong> Compare budget allocations with actual spending</li>
+            <li><strong>Payment History:</strong> Review all completed payments</li>
+            <li><strong>Transaction Report:</strong> Detailed transaction listing</li>
+        </ul>
+
+        <h3>Exporting Reports</h3>
+        <p>Most reports can be exported to CSV format:</p>
+        <ol>
+            <li>Open the desired report</li>
+            <li>Apply filters as needed</li>
+            <li>Click "Export" button</li>
+            <li>Choose format (CSV, PDF, Excel)</li>
+            <li>Download file</li>
+        </ol>
+
+        <h3>Analytics Dashboard</h3>
+        <p>View comprehensive financial analytics including:</p>
+        <ul>
+            <li>Monthly spending trends</li>
+            <li>Category-wise expenditure</li>
+            <li>Department-wise spending</li>
+            <li>Top suppliers by value</li>
+            <li>Payment method distribution</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Common Tasks -->
+<div class="help-section">
+    <h2>Common Tasks</h2>
+    
+    <div class="task-list">
+        <div class="task-item">
+            <h3>Approve Requisition for Budget</h3>
+            <p>Finance → Pending Approvals → Select requisition → Review budget availability → Approve/Reject</p>
+        </div>
+        
+        <div class="task-item">
+            <h3>Check Budget Balance</h3>
+            <p>Finance → Budget Tracking → View department or category summary</p>
+        </div>
+        
+        <div class="task-item">
+            <h3>Process Overdue Payments</h3>
+            <p>Finance → Invoices → Overdue → Select invoice → Process Payment</p>
+        </div>
+        
+        <div class="task-item">
+            <h3>Generate Monthly Report</h3>
+            <p>Finance → Reports → Expenditure Report → Set date range → Generate → Export</p>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Support -->
+<div class="help-section">
+    <h2>Need More Help?</h2>
+    <div class="contact-car

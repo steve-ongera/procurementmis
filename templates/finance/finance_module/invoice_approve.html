@@ -1,0 +1,131 @@
+<!-- ========================================== -->
+<!-- finance/invoice_approve.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Approve Invoice - {{ invoice.invoice_number }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Approve Invoice for Payment</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_invoice_detail' invoice.id %}">{{ invoice.invoice_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Approve</span>
+        </div>
+    </div>
+</div>
+
+<!-- Alert -->
+<div class="alert alert-success">
+    <i class="bi bi-check-circle"></i>
+    This invoice has been verified and matched. Review the details below before approving for payment.
+</div>
+
+<!-- Invoice Summary -->
+<div class="info-card">
+    <h3>Invoice Details</h3>
+    <div class="info-grid">
+        <div class="info-item">
+            <label class="info-label">Invoice Number</label>
+            <div class="info-value">{{ invoice.invoice_number }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Supplier</label>
+            <div class="info-value">
+                <strong>{{ invoice.supplier.name }}</strong>
+                <div class="text-muted">{{ invoice.supplier.supplier_number }}</div>
+            </div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Purchase Order</label>
+            <div class="info-value">
+                <a href="{% url 'po_detail' invoice.purchase_order.id %}" class="link">
+                    {{ invoice.purchase_order.po_number }}
+                </a>
+            </div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Invoice Date</label>
+            <div class="info-value">{{ invoice.invoice_date|date:"M d, Y" }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Due Date</label>
+            <div class="info-value">{{ invoice.due_date|date:"M d, Y" }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">3-Way Match Status</label>
+            <div class="info-value">
+                <span class="badge badge-success">
+                    <i class="bi bi-check-circle"></i> Verified & Matched
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Amount Breakdown -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-label">Subtotal</div>
+        <div class="summary-value">KES {{ invoice.subtotal|floatformat:0|intcomma }}</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label">Tax Amount</div>
+        <div class="summary-value">KES {{ invoice.tax_amount|floatformat:0|intcomma }}</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label">Other Charges</div>
+        <div class="summary-value">KES {{ invoice.other_charges|floatformat:0|intcomma }}</div>
+    </div>
+    <div class="summary-card highlight">
+        <div class="summary-label">Total Amount</div>
+        <div class="summary-value">KES {{ invoice.total_amount|floatformat:0|intcomma }}</div>
+    </div>
+</div>
+
+<!-- Verification Notes -->
+{% if invoice.matching_notes %}
+<div class="info-card">
+    <h3>Verification Notes</h3>
+    <p>{{ invoice.matching_notes }}</p>
+    <div class="text-muted">
+        Verified by: {{ invoice.verified_by.get_full_name }} on {{ invoice.verified_at|date:"M d, Y H:i" }}
+    </div>
+</div>
+{% endif %}
+
+<!-- Approval Form -->
+<div class="form-card">
+    <h3>Approval Decision</h3>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">Approval Comments (Optional)</label>
+            <textarea name="comments" class="form-control" rows="4" placeholder="Enter any additional comments or notes..."></textarea>
+        </div>
+
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Important:</strong> By approving this invoice, you authorize it for payment processing. 
+            Ensure all details are correct before proceeding.
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'finance_invoice_detail' invoice.id %}" class="btn">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-check2-circle"></i> Approve for Payment
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,119 @@
+<!-- ========================================== -->
+<!-- finance/payment_history.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Payment History - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Payment History</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Payment History</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_export_report' %}?type=payments&format=csv" class="btn">
+            <i class="bi bi-download"></i>
+            Export
+        </a>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-icon success">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="summary-value">{{ total_count }}</div>
+        <div class="summary-label">Completed Payments</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon success">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+        <div class="summary-value">KES {{ total_paid|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Amount Paid</div>
+    </div>
+</div>
+
+<!-- Payment History Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clock-history"></i>
+            Completed Payments ({{ total_count }})
+        </h2>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Payment Number</th>
+                    <th>Invoice Number</th>
+                    <th>Supplier</th>
+                    <th>Payment Date</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in page_obj %}
+                <tr>
+                    <td>
+                        <a href="{% url 'finance_payment_detail' payment.id %}" class="link">
+                            {{ payment.payment_number }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{% url 'finance_invoice_detail' payment.invoice.id %}" class="link">
+                            {{ payment.invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td>{{ payment.invoice.supplier.name }}</td>
+                    <td class="date-cell">{{ payment.payment_date|date:"M d, Y" }}</td>
+                    <td class="amount-cell">KES {{ payment.payment_amount|floatformat:0|intcomma }}</td>
+                    <td>{{ payment.get_payment_method_display }}</td>
+                    <td>{{ payment.payment_reference }}</td>
+                    <td>
+                        <a href="{% url 'finance_payment_detail' payment.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        {% endif %}
+        <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-clock-history"></i>
+        <p>No payment history available</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

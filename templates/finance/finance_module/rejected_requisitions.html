@@ -1,0 +1,81 @@
+<!-- ========================================== -->
+<!-- finance/rejected_requisitions.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Rejected Requisitions - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Rejected Requisitions</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Rejected Requisitions</span>
+        </div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-x-circle"></i>
+            Rejected Requisitions ({{ total_count }})
+        </h2>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requisition Number</th>
+                    <th>Title</th>
+                    <th>Department</th>
+                    <th>Amount</th>
+                    <th>Rejection Reason</th>
+                    <th>Rejected Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in page_obj %}
+                <tr>
+                    <td>
+                        <a href="{% url 'requisition_detail' req.id %}" class="link">
+                            {{ req.requisition_number }}
+                        </a>
+                    </td>
+                    <td>{{ req.title|truncatewords:5 }}</td>
+                    <td>{{ req.department.name }}</td>
+                    <td class="amount-cell">KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
+                    <td>{{ req.rejection_reason|truncatewords:10 }}</td>
+                    <td class="date-cell">{{ req.updated_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        {% endif %}
+        <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-x-circle"></i>
+        <p>No rejected requisitions</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

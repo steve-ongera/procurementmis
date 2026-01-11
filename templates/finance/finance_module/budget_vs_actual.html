@@ -1,0 +1,121 @@
+<!-- ========================================== -->
+<!-- finance/budget_vs_actual.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Budget vs Actual Report - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Budget vs Actual Report</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Budget vs Actual</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_export_report' %}?type=budget_vs_actual&format=csv" class="btn">
+            <i class="bi bi-download"></i>
+            Export
+        </a>
+    </div>
+</div>
+
+<!-- Current Year Info -->
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    Budget Year: <strong>{{ current_year.name }}</strong>
+    ({{ current_year.start_date|date:"M d, Y" }} - {{ current_year.end_date|date:"M d, Y" }})
+</div>
+
+<!-- Budget Comparison Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-calculator"></i>
+            Budget vs Actual Comparison
+        </h2>
+    </div>
+
+    {% if budgets %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Category</th>
+                    <th>Budget Allocated</th>
+                    <th>Actual Spent</th>
+                    <th>Variance</th>
+                    <th>% Used</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for budget in budgets %}
+                <tr>
+                    <td>
+                        <strong>{{ budget.department.name }}</strong>
+                        <div class="text-muted">{{ budget.department.code }}</div>
+                    </td>
+                    <td>
+                        <strong>{{ budget.category.name }}</strong>
+                        <div class="text-muted">{{ budget.category.code }}</div>
+                    </td>
+                    <td class="amount-cell">KES {{ budget.allocated_amount|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ budget.actual_spent|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell {% if budget.variance < 0 %}text-danger{% else %}text-success{% endif %}">
+                        KES {{ budget.variance|floatformat:0|intcomma }}
+                    </td>
+                    <td>
+                        <div class="progress-container">
+                            {% with percentage=budget.variance_percentage|floatformat:1 %}
+                            <div class="progress-bar {% if percentage > 90 %}bg-danger{% elif percentage > 75 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 style="width: {{ percentage }}%">
+                            </div>
+                            <span class="progress-text">{{ percentage }}%</span>
+                            {% endwith %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if budget.variance < 0 %}
+                        <span class="badge badge-danger">
+                            <i class="bi bi-exclamation-triangle"></i> Over Budget
+                        </span>
+                        {% elif budget.variance_percentage > 90 %}
+                        <span class="badge badge-warning">
+                            <i class="bi bi-exclamation-circle"></i> Near Limit
+                        </span>
+                        {% else %}
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i> On Track
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="2"><strong>TOTAL</strong></td>
+                    <td class="amount-cell"><strong>KES {{ budgets|sum_attr:"allocated_amount"|floatformat:0|intcomma }}</strong></td>
+                    <td class="amount-cell"><strong>KES {{ budgets|sum_attr:"actual_spent"|floatformat:0|intcomma }}</strong></td>
+                    <td class="amount-cell"><strong>KES {{ budgets|sum_attr:"variance"|floatformat:0|intcomma }}</strong></td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-calculator"></i>
+        <p>No budget data available</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

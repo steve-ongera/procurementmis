@@ -1,0 +1,208 @@
+<!-- ========================================== -->
+<!-- finance/invoice_verify.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Verify Invoice - {{ invoice.invoice_number }} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Invoice Verification (3-Way Matching)</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_invoice_detail' invoice.id %}">{{ invoice.invoice_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Verify</span>
+        </div>
+    </div>
+</div>
+
+<!-- Alert -->
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    <strong>3-Way Matching:</strong> Verify that the Invoice matches the Purchase Order and Goods Received Note.
+</div>
+
+<!-- Comparison Cards -->
+<div class="comparison-grid">
+    <!-- Purchase Order -->
+    <div class="comparison-card">
+        <div class="comparison-header po">
+            <i class="bi bi-file-earmark-text"></i>
+            <h3>Purchase Order</h3>
+            <span class="doc-number">{{ po.po_number }}</span>
+        </div>
+        <div class="comparison-body">
+            <div class="info-item">
+                <label>Supplier</label>
+                <div>{{ po.supplier.name }}</div>
+            </div>
+            <div class="info-item">
+                <label>PO Date</label>
+                <div>{{ po.po_date|date:"M d, Y" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Total Amount</label>
+                <div class="amount">KES {{ po.total_amount|floatformat:0|intcomma }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Goods Received Note -->
+    <div class="comparison-card">
+        <div class="comparison-header grn">
+            <i class="bi bi-box-seam"></i>
+            <h3>Goods Received Note</h3>
+            <span class="doc-number">{{ grn.grn_number }}</span>
+        </div>
+        <div class="comparison-body">
+            <div class="info-item">
+                <label>Received Date</label>
+                <div>{{ grn.received_date|date:"M d, Y" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Received By</label>
+                <div>{{ grn.received_by.get_full_name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Status</label>
+                <div>
+                    <span class="status-badge status-{{ grn.status|lower }}">
+                        {{ grn.get_status_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice -->
+    <div class="comparison-card">
+        <div class="comparison-header invoice">
+            <i class="bi bi-receipt"></i>
+            <h3>Invoice</h3>
+            <span class="doc-number">{{ invoice.invoice_number }}</span>
+        </div>
+        <div class="comparison-body">
+            <div class="info-item">
+                <label>Invoice Date</label>
+                <div>{{ invoice.invoice_date|date:"M d, Y" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Due Date</label>
+                <div>{{ invoice.due_date|date:"M d, Y" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Total Amount</label>
+                <div class="amount">KES {{ invoice.total_amount|floatformat:0|intcomma }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Comparison Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-list-check"></i>
+            Line Item Comparison
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Description</th>
+                    <th>PO Quantity</th>
+                    <th>GRN Quantity</th>
+                    <th>Invoice Quantity</th>
+                    <th>PO Price</th>
+                    <th>Invoice Price</th>
+                    <th>Match Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items.all %}
+                <tr>
+                    <td>{{ item.description }}</td>
+                    <td>{{ item.po_item.quantity }}</td>
+                    <td>
+                        {% with grn_item=item.po_item.grn_items.first %}
+                        {% if grn_item %}{{ grn_item.quantity_accepted }}{% else %}-{% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>{{ item.quantity }}</td>
+                    <td class="amount-cell">KES {{ item.po_item.unit_price|floatformat:2|intcomma }}</td>
+                    <td class="amount-cell">KES {{ item.unit_price|floatformat:2|intcomma }}</td>
+                    <td>
+                        {% if item.quantity == item.po_item.quantity and item.unit_price == item.po_item.unit_price %}
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i> Match
+                        </span>
+                        {% else %}
+                        <span class="badge badge-warning">
+                            <i class="bi bi-exclamation-triangle"></i> Mismatch
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Matching Summary -->
+<div class="matching-summary">
+    <div class="summary-item">
+        <i class="bi bi-check-circle-fill success"></i>
+        <div>
+            <strong>Supplier Match:</strong>
+            <span>{% if invoice.supplier == po.supplier %}Matched{% else %}Mismatch{% endif %}</span>
+        </div>
+    </div>
+    <div class="summary-item">
+        <i class="bi bi-check-circle-fill success"></i>
+        <div>
+            <strong>PO Reference:</strong>
+            <span>{{ po.po_number }}</span>
+        </div>
+    </div>
+    <div class="summary-item">
+        <i class="bi bi-check-circle-fill success"></i>
+        <div>
+            <strong>GRN Reference:</strong>
+            <span>{{ grn.grn_number }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Verification Form -->
+<div class="form-card">
+    <h3>Verification Decision</h3>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">Comments / Matching Notes</label>
+            <textarea name="comments" class="form-control" rows="4" placeholder="Enter verification comments and any discrepancies noted..." required></textarea>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'finance_invoice_detail' invoice.id %}" class="btn">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+            <button type="submit" name="action" value="dispute" class="btn btn-warning">
+                <i class="bi bi-exclamation-triangle"></i> Mark as Disputed
+            </button>
+            <button type="submit" name="action" value="approve" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> Verify & Match
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

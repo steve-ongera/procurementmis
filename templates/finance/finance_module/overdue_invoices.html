@@ -1,0 +1,117 @@
+<!-- ========================================== -->
+<!-- finance/overdue_invoices.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Overdue Invoices - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Overdue Invoices</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Overdue Invoices</span>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>Attention:</strong> These invoices have passed their due date and require immediate action.
+</div>
+
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ total_count }}</div>
+        <div class="summary-label">Overdue Invoices</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ total_overdue|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Overdue Amount</div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-exclamation-triangle"></i>
+            Overdue Invoices ({{ total_count }})
+        </h2>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Invoice Number</th>
+                    <th>Supplier</th>
+                    <th>Due Date</th>
+                    <th>Days Overdue</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in page_obj %}
+                <tr class="overdue-row">
+                    <td>
+                        <a href="{% url 'finance_invoice_detail' invoice.id %}" class="link">
+                            {{ invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td>{{ invoice.supplier.name }}</td>
+                    <td class="due-date-overdue">{{ invoice.due_date|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="badge badge-danger">
+                            {{ invoice.due_date|timesince }} overdue
+                        </span>
+                    </td>
+                    <td class="amount-cell">KES {{ invoice.total_amount|floatformat:0|intcomma }}</td>
+                    <td>
+                        <span class="status-badge status-{{ invoice.status|lower }}">
+                            {{ invoice.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'finance_invoice_detail' invoice.id %}" class="action-btn" title="View">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if invoice.status == 'APPROVED' %}
+                        <a href="{% url 'finance_process_payment' invoice.id %}" class="btn btn-sm btn-danger">
+                            <i class="bi bi-credit-card"></i> Pay Now
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        {% endif %}
+        <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>No overdue invoices</p>
+        <small>All invoices are being paid on time</small>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

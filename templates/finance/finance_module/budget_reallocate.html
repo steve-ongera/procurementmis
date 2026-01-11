@@ -1,0 +1,108 @@
+<!-- ========================================== -->
+<!-- finance/budget_reallocate.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Budget Reallocation - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Budget Reallocation (Virement)</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_budget_tracking' %}">Budget Tracking</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Reallocate</span>
+        </div>
+    </div>
+</div>
+
+<!-- Info Alert -->
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    <strong>Budget Reallocation:</strong> Transfer funds from one budget line to another within the same fiscal year. 
+    Ensure proper justification is provided for audit purposes.
+</div>
+
+<!-- Form Card -->
+<div class="form-card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h3>Reallocation Details</h3>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">From Budget (Source) *</label>
+                    {{ form.from_budget }}
+                    {% if form.from_budget.errors %}
+                    <div class="error-message">{{ form.from_budget.errors }}</div>
+                    {% endif %}
+                    <small class="form-help">Select the budget to transfer funds from</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">To Budget (Destination) *</label>
+                    {{ form.to_budget }}
+                    {% if form.to_budget.errors %}
+                    <div class="error-message">{{ form.to_budget.errors }}</div>
+                    {% endif %}
+                    <small class="form-help">Select the budget to transfer funds to</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Reallocation Amount *</label>
+                    {{ form.amount }}
+                    {% if form.amount.errors %}
+                    <div class="error-message">{{ form.amount.errors }}</div>
+                    {% endif %}
+                    <small class="form-help">Enter the amount to reallocate</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Justification *</label>
+                {{ form.justification }}
+                {% if form.justification.errors %}
+                <div class="error-message">{{ form.justification.errors }}</div>
+                {% endif %}
+                <small class="form-help">Provide detailed justification for this reallocation</small>
+            </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="form-actions">
+            <a href="{% url 'finance_budget_tracking' %}" class="btn">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-arrow-left-right"></i> Process Reallocation
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Instructions -->
+<div class="info-card">
+    <h3>Reallocation Guidelines</h3>
+    <ul class="guideline-list">
+        <li>Ensure the source budget has sufficient available balance</li>
+        <li>Both budgets must belong to the same fiscal year</li>
+        <li>Provide clear justification for the reallocation</li>
+        <li>Reallocations are subject to audit review</li>
+        <li>Contact the budget office for assistance if needed</li>
+    </ul>
+</div>
+{% endblock %}
+

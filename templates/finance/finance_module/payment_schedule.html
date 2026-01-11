@@ -1,0 +1,131 @@
+<!-- ========================================== -->
+<!-- finance/payment_schedule.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Payment Schedule - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Payment Schedule</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Payment Schedule</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_payments_list' %}" class="btn">
+            <i class="bi bi-credit-card"></i>
+            All Payments
+        </a>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-icon pending">
+            <i class="bi bi-calendar-check"></i>
+        </div>
+        <div class="summary-value">{{ total_count }}</div>
+        <div class="summary-label">Invoices Awaiting Payment</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon warning">
+            <i class="bi bi-currency-dollar"></i>
+        </div>
+        <div class="summary-value">KES {{ total_scheduled|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Scheduled Amount</div>
+    </div>
+</div>
+
+<!-- Upcoming Payments Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-calendar-event"></i>
+            Approved Invoices Awaiting Payment ({{ total_count }})
+        </h2>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Invoice Number</th>
+                    <th>Supplier</th>
+                    <th>Invoice Date</th>
+                    <th>Due Date</th>
+                    <th>Amount Due</th>
+                    <th>Priority</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in page_obj %}
+                <tr {% if invoice.due_date < today %}class="overdue-row"{% endif %}>
+                    <td>
+                        <a href="{% url 'finance_invoice_detail' invoice.id %}" class="link">
+                            {{ invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td>{{ invoice.supplier.name }}</td>
+                    <td class="date-cell">{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                    <td class="{% if invoice.due_date < today %}due-date-overdue{% else %}date-cell{% endif %}">
+                        {{ invoice.due_date|date:"M d, Y" }}
+                        {% if invoice.due_date < today %}
+                        <i class="bi bi-exclamation-circle"></i>
+                        {% endif %}
+                    </td>
+                    <td class="amount-cell">KES {{ invoice.balance_due|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% if invoice.due_date < today %}
+                        <span class="badge badge-danger">Overdue</span>
+                        {% elif invoice.due_date <= today_plus_7 %}
+                        <span class="badge badge-warning">Due Soon</span>
+                        {% else %}
+                        <span class="badge badge-info">Scheduled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'finance_invoice_detail' invoice.id %}" class="action-btn" title="View">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'finance_process_payment' invoice.id %}" class="action-btn" title="Process Payment">
+                            <i class="bi bi-credit-card"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        {% endif %}
+        <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-calendar-check"></i>
+        <p>No payments scheduled</p>
+        <small>All approved invoices have been paid</small>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,109 @@
+<!-- finance/budget_form.html (Create/Edit Budget) -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{% if budget %}Edit Budget{% else %}Create Budget{% endif %} - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{% if budget %}Edit Budget{% else %}Create Budget{% endif %}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_budgets_list' %}">Budgets</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{% if budget %}Edit{% else %}Create{% endif %}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Form Card -->
+<div class="form-card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h3>Budget Information</h3>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Budget Year *</label>
+                    {{ form.budget_year }}
+                    {% if form.budget_year.errors %}
+                    <div class="error-message">{{ form.budget_year.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Department *</label>
+                    {{ form.department }}
+                    {% if form.department.errors %}
+                    <div class="error-message">{{ form.department.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Budget Category *</label>
+                    {{ form.category }}
+                    {% if form.category.errors %}
+                    <div class="error-message">{{ form.category.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Budget Type *</label>
+                    {{ form.budget_type }}
+                    {% if form.budget_type.errors %}
+                    <div class="error-message">{{ form.budget_type.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Allocated Amount *</label>
+                    {{ form.allocated_amount }}
+                    {% if form.allocated_amount.errors %}
+                    <div class="error-message">{{ form.allocated_amount.errors }}</div>
+                    {% endif %}
+                    <small class="form-help">Enter the total budget allocation amount</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Reference Number</label>
+                    {{ form.reference_number }}
+                    {% if form.reference_number.errors %}
+                    <div class="error-message">{{ form.reference_number.errors }}</div>
+                    {% endif %}
+                    <small class="form-help">Optional reference number for tracking</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                <div class="error-message">{{ form.description.errors }}</div>
+                {% endif %}
+                <small class="form-help">Provide details about this budget allocation</small>
+            </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="form-actions">
+            <a href="{% if budget %}{% url 'finance_budget_detail' budget.id %}{% else %}{% url 'finance_budgets_list' %}{% endif %}" class="btn">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> {% if budget %}Update Budget{% else %}Create Budget{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

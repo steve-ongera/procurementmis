@@ -1,0 +1,113 @@
+<!-- ========================================== -->
+<!-- finance/pending_invoices.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Pending Invoices - University Procurement System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Pending Invoices</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Pending Invoices</span>
+        </div>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ total_count }}</div>
+        <div class="summary-label">Pending Invoices</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ total_value|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Value</div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-hourglass-split"></i>
+            Invoices Awaiting Verification ({{ total_count }})
+        </h2>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Invoice Number</th>
+                    <th>Supplier</th>
+                    <th>PO Number</th>
+                    <th>Invoice Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in page_obj %}
+                <tr>
+                    <td>
+                        <a href="{% url 'finance_invoice_detail' invoice.id %}" class="link">
+                            {{ invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td>{{ invoice.supplier.name }}</td>
+                    <td>
+                        <a href="{% url 'po_detail' invoice.purchase_order.id %}" class="link">
+                            {{ invoice.purchase_order.po_number }}
+                        </a>
+                    </td>
+                    <td class="date-cell">{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                    <td class="amount-cell">KES {{ invoice.total_amount|floatformat:0|intcomma }}</td>
+                    <td>
+                        <span class="status-badge status-{{ invoice.status|lower }}">
+                            {{ invoice.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'finance_invoice_detail' invoice.id %}" class="action-btn" title="View">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'finance_invoice_verify' invoice.id %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-check-circle"></i> Verify
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        {% endif %}
+        <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>No pending invoices</p>
+        <small>All invoices have been verified</small>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
