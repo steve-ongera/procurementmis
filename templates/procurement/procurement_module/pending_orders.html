@@ -1,51 +1,1036 @@
 <!-- ========================================== -->
-<!-- 13. procurement/procurement_module/pending_orders.html -->
+<!-- procurement/procurement_module/pending_orders.html -->
 <!-- ========================================== -->
 {% extends 'base.html' %}
 {% load humanize %}
 
+{% block title %}Pending Purchase Orders - Procurement Module{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    /* Reduced font sizes throughout */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem; /* Reduced from 1.75rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.625rem; /* Reduced from 0.75rem */
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.75rem; /* Reduced padding */
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.6875rem;
+    }
+
+    .btn i {
+        font-size: 0.875rem; /* Reduced from 1rem */
+    }
+
+    .alert-card {
+        background: #FEF3C7;
+        border: 1px solid #FDE68A;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .alert-content {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .alert-icon {
+        font-size: 1.25rem;
+        color: #F59E0B;
+    }
+
+    .alert-text {
+        font-size: 0.875rem;
+        line-height: 1.4;
+    }
+
+    .alert-text strong {
+        font-weight: 600;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem; /* Reduced from 1.25rem */
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .stat-info h3 {
+        font-size: 1.5rem; /* Reduced from 1.75rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.125rem 0;
+        line-height: 1.2;
+    }
+
+    .stat-info p {
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        color: var(--secondary-color);
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .stat-icon {
+        width: 2.5rem; /* Reduced from 3rem */
+        height: 2.5rem; /* Reduced from 3rem */
+        border-radius: 0.375rem; /* Reduced from 0.5rem */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem; /* Reduced from 1.25rem */
+        background: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem; /* Reduced from 1.5rem */
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-title {
+        font-size: 0.875rem; /* Reduced from 0.9375rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .summary-title i {
+        color: var(--primary-color);
+        font-size: 1rem; /* Reduced from 1.125rem */
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+
+    .summary-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        color: #64748B;
+        font-weight: 500;
+    }
+
+    .summary-value {
+        font-size: 1rem; /* Reduced from 1.125rem */
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem; /* Reduced from 1.5rem */
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-title {
+        font-size: 0.875rem; /* Reduced from 0.9375rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-title i {
+        color: var(--primary-color);
+        font-size: 1rem; /* Reduced from 1.125rem */
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .filter-label {
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .filter-input,
+    .filter-select {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+        color: #1E293B;
+        background: white;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .table-container {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+    }
+
+    th {
+        background: var(--table-header);
+        text-align: left;
+        padding: 0.75rem 1rem; /* Reduced padding */
+        font-weight: 600;
+        color: #475569;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.625rem 1rem; /* Reduced padding */
+        border-bottom: 1px solid var(--border-color);
+        color: #1E293B;
+        vertical-align: middle;
+    }
+
+    tr:last-child td {
+        border-bottom: none;
+    }
+
+    tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .amount {
+        font-weight: 600;
+        color: #1E293B;
+        font-size: 0.8125rem;
+        white-space: nowrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem; /* Reduced padding */
+        border-radius: 0.75rem; /* Reduced from 1rem */
+        font-size: 0.6875rem; /* Reduced from 0.75rem */
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    .status-draft { 
+        background: #F3F4F6; 
+        color: #374151; 
+        border: 1px solid #E5E7EB;
+    }
+    .status-pending { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border: 1px solid #FDE68A;
+    }
+    .status-approved { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border: 1px solid #BFDBFE;
+    }
+
+    .supplier-name {
+        font-weight: 500;
+        color: #1E293B;
+        font-size: 0.8125rem;
+    }
+
+    .supplier-category {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-top: 0.125rem;
+    }
+
+    .po-date {
+        font-size: 0.8125rem;
+        color: #64748B;
+    }
+
+    .days-pending {
+        font-size: 0.75rem;
+        color: #94A3B8;
+        margin-top: 0.125rem;
+    }
+
+    .delivery-date {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-top: 0.125rem;
+    }
+
+    .delivery-urgent {
+        color: #EF4444;
+        font-weight: 600;
+    }
+
+    .delivery-soon {
+        color: #F59E0B;
+        font-weight: 600;
+    }
+
+    .actions-cell {
+        display: flex;
+        gap: 0.375rem;
+        flex-wrap: wrap;
+    }
+
+    .action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+
+    .action-link:hover {
+        background: var(--primary-light);
+        border-color: var(--border-color);
+    }
+
+    .action-link i {
+        font-size: 0.75rem;
+    }
+
+    .action-link.approve {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .action-link.approve:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    .action-link.edit {
+        background: transparent;
+        color: var(--warning-color);
+        border-color: var(--warning-color);
+    }
+
+    .action-link.edit:hover {
+        background: #FEF3C7;
+    }
+
+    .action-link.complete {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .action-link.complete:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: #94A3B8;
+        font-size: 0.75rem;
+    }
+
+    .empty-state i {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--table-header);
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .pagination-info {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .pagination {
+        display: flex;
+        gap: 0.375rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .pagination-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .pagination-link:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+    }
+
+    .pagination-link.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .pagination-link.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #F8FAFC;
+    }
+
+    .pagination-link.disabled:hover {
+        background: #F8FAFC;
+        border-color: var(--border-color);
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid,
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-form {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            min-width: 800px;
+        }
+        
+        .actions-cell {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>Pending Purchase Orders</h1>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Pending Purchase Orders</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_all_orders' %}">
+                All Purchase Orders
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Pending Orders</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'procurement_all_orders' %}" class="btn">
+            <i class="bi bi-list-ul"></i>
+            All Orders
+        </a>
+        <a href="{% url 'procurement_create_order' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create New Order
+        </a>
+        <a href="{% url 'procurement_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
 
-<p>Total: {{ total_count }}</p>
+<!-- Alert Card -->
+<div class="alert-card">
+    <div class="alert-content">
+        <i class="bi bi-exclamation-triangle alert-icon"></i>
+        <div class="alert-text">
+            <strong>Action Required:</strong> These purchase orders require your attention. Please process them promptly to avoid procurement delays and ensure timely delivery of goods and services.
+        </div>
+    </div>
+</div>
 
-<table>
-    <thead>
-        <tr>
-            <th>PO #</th>
-            <th>Supplier</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for po in page_obj %}
-        <tr>
-            <td>{{ po.po_number }}</td>
-            <td>{{ po.supplier.name }}</td>
-            <td>KES {{ po.total_amount|floatformat:0|intcomma }}</td>
-            <td>{{ po.get_status_display }}</td>
-            <td>{{ po.created_at|date:"M d, Y" }}</td>
-            <td>
-                <a href="#">Complete</a>
-                <a href="#">Edit</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ total_count|intcomma }}</h3>
+                <p>Pending Orders</p>
+            </div>
+            <div class="stat-icon" style="background: #FEF3C7; color: var(--warning-color);">
+                <i class="bi bi-clock-history"></i>
+            </div>
+        </div>
+    </div>
 
-{% if page_obj.has_other_pages %}
-<div class="pagination">
-    {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
-    {% endif %}
-    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>KES {{ total_value|floatformat:0|intcomma }}</h3>
+                <p>Total Value</p>
+            </div>
+            <div class="stat-icon" style="background: #FEE2E2; color: var(--danger-color);">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ avg_order_value|floatformat:0|intcomma }}</h3>
+                <p>Avg Order Value</p>
+            </div>
+            <div class="stat-icon" style="background: #DBEAFE; color: #1E40AF;">
+                <i class="bi bi-graph-up"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ oldest_days|default:"0" }}</h3>
+                <p>Oldest (Days)</p>
+            </div>
+            <div class="stat-icon" style="background: #D1FAE5; color: var(--success-color);">
+                <i class="bi bi-calendar"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Card -->
+<div class="summary-card">
+    <h3 class="summary-title">
+        <i class="bi bi-bar-chart"></i>
+        Pending Orders Summary
+    </h3>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="summary-label">By Status</div>
+            <div class="summary-value">
+                Draft: {{ draft_count }}, Pending: {{ pending_approval_count }}, Approved: {{ approved_count }}
+            </div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Avg Processing Time</div>
+            <div class="summary-value">{{ avg_processing_time|floatformat:1 }} days</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Urgent Deliveries</div>
+            <div class="summary-value" style="color: var(--danger-color);">
+                {{ urgent_delivery_count }}
+            </div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">This Week</div>
+            <div class="summary-value">{{ this_week_count }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="filter-card">
+    <h3 class="filter-title">
+        <i class="bi bi-funnel"></i>
+        Filter Pending Orders
+    </h3>
+    
+    <form method="get" class="filter-form">
+        <div class="filter-group">
+            <label class="filter-label" for="search">Search</label>
+            <input type="text" 
+                   name="search" 
+                   id="search"
+                   class="filter-input" 
+                   placeholder="Search by PO number, supplier..." 
+                   value="{{ request.GET.search }}">
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="status">Status</label>
+            <select name="status" id="status" class="filter-select">
+                <option value="">All Pending Status</option>
+                <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>Draft</option>
+                <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending Approval</option>
+                <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved (Not Sent)</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="supplier">Supplier</label>
+            <select name="supplier" id="supplier" class="filter-select">
+                <option value="">All Suppliers</option>
+                {% for supplier in suppliers %}
+                <option value="{{ supplier.id }}" {% if request.GET.supplier == supplier.id|stringformat:"s" %}selected{% endif %}>
+                    {{ supplier.name|truncatechars:30 }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="urgency">Delivery Urgency</label>
+            <select name="urgency" id="urgency" class="filter-select">
+                <option value="">All</option>
+                <option value="urgent" {% if request.GET.urgency == 'urgent' %}selected{% endif %}>Urgent (≤ 3 days)</option>
+                <option value="soon" {% if request.GET.urgency == 'soon' %}selected{% endif %}>Soon (4-7 days)</option>
+                <option value="normal" {% if request.GET.urgency == 'normal' %}selected{% endif %}>Normal (> 7 days)</option>
+            </select>
+        </div>
+        
+        {% if request.GET.search or request.GET.status or request.GET.supplier or request.GET.urgency %}
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+            <a href="{% url 'procurement_pending_orders' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+        </div>
+        {% else %}
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Pending Orders Table -->
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>PO #</th>
+                <th>Supplier</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Delivery Date</th>
+                <th>Days Pending</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for po in page_obj %}
+            <tr>
+                <td>
+                    <strong>{{ po.po_number }}</strong>
+                </td>
+                <td>
+                    <div class="supplier-name">{{ po.supplier.name|truncatechars:25 }}</div>
+                    <div class="supplier-category">{{ po.supplier.category|default:"General" }}</div>
+                </td>
+                <td class="amount">KES {{ po.total_amount|floatformat:0|intcomma }}</td>
+                <td>
+                    <span class="status-badge status-{{ po.status|lower }}">
+                        {{ po.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    <div class="po-date">{{ po.created_at|date:"M d, Y" }}</div>
+                    {% with days_pending=po.days_pending %}
+                    <div class="days-pending">
+                        {{ days_pending }} day{{ days_pending|pluralize }} pending
+                    </div>
+                    {% endwith %}
+                </td>
+                <td>
+                    {% with delivery_days=po.days_until_delivery %}
+                    <div class="po-date">{{ po.delivery_date|date:"M d, Y" }}</div>
+                    <div class="delivery-date {% if delivery_days <= 3 %}delivery-urgent{% elif delivery_days <= 7 %}delivery-soon{% endif %}">
+                        {% if delivery_days <= 0 %}
+                            <i class="bi bi-exclamation-triangle"></i> Overdue
+                        {% elif delivery_days <= 3 %}
+                            <i class="bi bi-clock"></i> {{ delivery_days }} day{{ delivery_days|pluralize }}
+                        {% elif delivery_days <= 7 %}
+                            <i class="bi bi-clock"></i> {{ delivery_days }} days
+                        {% else %}
+                            {{ delivery_days }} days
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                </td>
+                <td>
+                    {% with days_pending=po.days_pending %}
+                    <span style="color: {% if days_pending > 14 %}#EF4444{% elif days_pending > 7 %}#F59E0B{% else %}#10B981{% endif %}; font-weight: 600;">
+                        {{ days_pending }}
+                    </span>
+                    {% endwith %}
+                </td>
+                <td class="actions-cell">
+                    <a href="{% url 'po_detail' po.id %}" class="action-link" title="View Details">
+                        <i class="bi bi-eye"></i>
+                        View
+                    </a>
+                    {% if po.status == 'draft' %}
+                    <a href="{% url 'po_update' po.id %}" class="action-link edit" title="Edit PO">
+                        <i class="bi bi-pencil"></i>
+                        Edit
+                    </a>
+                    <a href="{% url 'po_approve' po.id %}" class="action-link approve" title="Submit for Approval">
+                        <i class="bi bi-check-circle"></i>
+                        Submit
+                    </a>
+                    {% endif %}
+                    {% if po.status == 'pending' %}
+                    <a href="{% url 'po_approve' po.id %}" class="action-link approve" title="Approve PO">
+                        <i class="bi bi-check-circle"></i>
+                        Approve
+                    </a>
+                    {% endif %}
+                    {% if po.status == 'approved' %}
+                    <a href="{% url 'po_send' po.id %}" class="action-link complete" title="Send to Supplier">
+                        <i class="bi bi-send"></i>
+                        Send
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="empty-state">
+                    <i class="bi bi-check-circle"></i>
+                    <p>No pending purchase orders found{% if request.GET.search or request.GET.status or request.GET.supplier or request.GET.urgency %} matching your filters{% else %}. Great job!{% endif %}</p>
+                    {% if request.GET.search or request.GET.status or request.GET.supplier or request.GET.urgency %}
+                    <a href="{% url 'procurement_pending_orders' %}" class="btn btn-sm" style="margin-top: 0.5rem;">
+                        Clear filters to see all pending orders
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-container">
+        <div class="pagination-info">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ total_count }} pending orders
+        </div>
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.supplier %}supplier={{ request.GET.supplier }}&{% endif %}{% if request.GET.urgency %}urgency={{ request.GET.urgency }}&{% endif %}page=1" 
+                   class="pagination-link" title="First Page">
+                    <i class="bi bi-chevron-double-left"></i>
+                </a>
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.supplier %}supplier={{ request.GET.supplier }}&{% endif %}{% if request.GET.urgency %}urgency={{ request.GET.urgency }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                   class="pagination-link" title="Previous Page">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            {% else %}
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-double-left"></i>
+                </span>
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-left"></i>
+                </span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="pagination-link active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.supplier %}supplier={{ request.GET.supplier }}&{% endif %}{% if request.GET.urgency %}urgency={{ request.GET.urgency }}&{% endif %}page={{ num }}" 
+                       class="pagination-link">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.supplier %}supplier={{ request.GET.supplier }}&{% endif %}{% if request.GET.urgency %}urgency={{ request.GET.urgency }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                   class="pagination-link" title="Next Page">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.supplier %}supplier={{ request.GET.supplier }}&{% endif %}{% if request.GET.urgency %}urgency={{ request.GET.urgency }}&{% endif %}page={{ page_obj.paginator.num_pages }}" 
+                   class="pagination-link" title="Last Page">
+                    <i class="bi bi-chevron-double-right"></i>
+                </a>
+            {% else %}
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-right"></i>
+                </span>
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-double-right"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
     {% endif %}
 </div>
-{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh page every 3 minutes to show updated pending orders
+    setTimeout(function() {
+        window.location.reload();
+    }, 180000); // 3 minutes in milliseconds
+    
+    // Highlight urgent orders (overdue delivery or pending > 14 days)
+    document.addEventListener('DOMContentLoaded', function() {
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const daysPendingCell = row.querySelector('td:nth-child(7) span');
+            const deliveryDateCell = row.querySelector('td:nth-child(6) .delivery-date');
+            
+            if (daysPendingCell) {
+                const daysPending = parseInt(daysPendingCell.textContent);
+                if (daysPending > 14) {
+                    row.style.borderLeft = '4px solid #EF4444';
+                } else if (daysPending > 7) {
+                    row.style.borderLeft = '4px solid #F59E0B';
+                }
+            }
+            
+            if (deliveryDateCell && deliveryDateCell.classList.contains('delivery-urgent')) {
+                row.style.borderLeft = '4px solid #EF4444';
+            } else if (deliveryDateCell && deliveryDateCell.classList.contains('delivery-soon')) {
+                row.style.borderLeft = '4px solid #F59E0B';
+            }
+        });
+        
+        // Add quick action buttons for bulk operations
+        const headerRow = document.querySelector('thead tr');
+        if (headerRow) {
+            const bulkActionsCell = document.createElement('th');
+            bulkActionsCell.innerHTML = `
+                <div style="display: flex; gap: 0.25rem;">
+                    <button type="button" class="btn btn-sm" onclick="selectAllRows()" title="Select All" style="padding: 0.125rem 0.25rem;">
+                        <i class="bi bi-check-square"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm" onclick="approveSelected()" title="Approve Selected" style="padding: 0.125rem 0.25rem; background: #10B981; color: white;">
+                        <i class="bi bi-check-circle"></i>
+                    </button>
+                </div>
+            `;
+            bulkActionsCell.style.width = '100px';
+            headerRow.appendChild(bulkActionsCell);
+        }
+        
+        // Add checkboxes to each row
+        const dataRows = document.querySelectorAll('tbody tr');
+        dataRows.forEach(row => {
+            const actionsCell = row.querySelector('.actions-cell');
+            if (actionsCell) {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'row-selector';
+                checkbox.style.marginRight = '0.5rem';
+                actionsCell.insertBefore(checkbox, actionsCell.firstChild);
+            }
+        });
+    });
+    
+    function selectAllRows() {
+        const checkboxes = document.querySelectorAll('.row-selector');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+        });
+    }
+    
+    function approveSelected() {
+        const selectedRows = document.querySelectorAll('.row-selector:checked');
+        if (selectedRows.length === 0) {
+            alert('Please select at least one purchase order to approve.');
+            return;
+        }
+        
+        if (confirm(`Approve ${selectedRows.length} selected purchase order(s)? This action cannot be undone.`)) {
+            // In a real implementation, this would send an AJAX request
+            // For now, we'll just show a message
+            alert(`Approval request sent for ${selectedRows.length} purchase order(s). Please wait for confirmation.`);
+            
+            // Reload the page after 2 seconds to show updated status
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        }
+    }
+</script>
 {% endblock %}

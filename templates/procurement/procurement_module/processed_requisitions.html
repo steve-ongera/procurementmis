@@ -1,52 +1,968 @@
 <!-- ========================================== -->
-<!-- 5. procurement/procurement_module/processed_requisitions.html -->
+<!-- procurement/procurement_module/processed_requisitions.html -->
 <!-- ========================================== -->
 {% extends 'base.html' %}
 {% load humanize %}
 
+{% block title %}Processed Requisitions - Procurement Module{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    /* Reduced font sizes throughout */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem; /* Reduced from 1.75rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.625rem; /* Reduced from 0.75rem */
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.75rem; /* Reduced padding */
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.6875rem;
+    }
+
+    .btn i {
+        font-size: 0.875rem; /* Reduced from 1rem */
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem; /* Reduced from 1.25rem */
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .stat-info h3 {
+        font-size: 1.5rem; /* Reduced from 1.75rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.125rem 0;
+        line-height: 1.2;
+    }
+
+    .stat-info p {
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        color: var(--secondary-color);
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .stat-icon {
+        width: 2.5rem; /* Reduced from 3rem */
+        height: 2.5rem; /* Reduced from 3rem */
+        border-radius: 0.375rem; /* Reduced from 0.5rem */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem; /* Reduced from 1.25rem */
+        background: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem; /* Reduced from 1.5rem */
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-title {
+        font-size: 0.875rem; /* Reduced from 0.9375rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .summary-title i {
+        color: var(--primary-color);
+        font-size: 1rem; /* Reduced from 1.125rem */
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+
+    .summary-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        color: #64748B;
+        font-weight: 500;
+    }
+
+    .summary-value {
+        font-size: 1rem; /* Reduced from 1.125rem */
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem; /* Reduced from 1.5rem */
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-title {
+        font-size: 0.875rem; /* Reduced from 0.9375rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-title i {
+        color: var(--primary-color);
+        font-size: 1rem; /* Reduced from 1.125rem */
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .filter-label {
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .filter-input,
+    .filter-select,
+    .filter-date {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+        color: #1E293B;
+        background: white;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus,
+    .filter-date:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .export-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+        justify-content: flex-end;
+    }
+
+    .table-container {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+    }
+
+    th {
+        background: var(--table-header);
+        text-align: left;
+        padding: 0.75rem 1rem; /* Reduced padding */
+        font-weight: 600;
+        color: #475569;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.625rem 1rem; /* Reduced padding */
+        border-bottom: 1px solid var(--border-color);
+        color: #1E293B;
+        vertical-align: middle;
+    }
+
+    tr:last-child td {
+        border-bottom: none;
+    }
+
+    tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .amount {
+        font-weight: 600;
+        color: #1E293B;
+        font-size: 0.8125rem;
+        white-space: nowrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem; /* Reduced padding */
+        border-radius: 0.75rem; /* Reduced from 1rem */
+        font-size: 0.6875rem; /* Reduced from 0.75rem */
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    .status-approved { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border: 1px solid #A7F3D0;
+    }
+    .status-rejected { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border: 1px solid #FECACA;
+    }
+    .status-completed { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border: 1px solid #BFDBFE;
+    }
+    .status-cancelled { 
+        background: #F3F4F6; 
+        color: #374151; 
+        border: 1px solid #E5E7EB;
+    }
+    .status-closed { 
+        background: #F3F4F6; 
+        color: #374151; 
+        border: 1px solid #E5E7EB;
+    }
+
+    .actions-cell {
+        display: flex;
+        gap: 0.375rem;
+        flex-wrap: wrap;
+    }
+
+    .action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+
+    .action-link:hover {
+        background: var(--primary-light);
+        border-color: var(--border-color);
+    }
+
+    .action-link i {
+        font-size: 0.75rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem 1rem; /* Reduced padding */
+        color: #94A3B8;
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+    }
+
+    .empty-state i {
+        font-size: 1.5rem; /* Reduced from 2rem */
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--table-header);
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .pagination-info {
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        color: var(--secondary-color);
+    }
+
+    .pagination {
+        display: flex;
+        gap: 0.375rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .pagination-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .pagination-link:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+    }
+
+    .pagination-link.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .pagination-link.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #F8FAFC;
+    }
+
+    .pagination-link.disabled:hover {
+        background: #F8FAFC;
+        border-color: var(--border-color);
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid,
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-form {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            min-width: 800px;
+        }
+        
+        .actions-cell {
+            flex-direction: column;
+        }
+        
+        .pagination-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .pagination {
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>Processed Requisitions</h1>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Processed Requisitions</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Processed Requisitions</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'procurement_pending_requisitions' %}" class="btn">
+            <i class="bi bi-clock-history"></i>
+            Pending Requisitions
+        </a>
+        <a href="{% url 'procurement_all_requisitions' %}" class="btn">
+            <i class="bi bi-list-ul"></i>
+            All Requisitions
+        </a>
+        <a href="{% url 'procurement_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
 
-<p>Total: {{ total_count }}</p>
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ total_count|intcomma }}</h3>
+                <p>Total Processed</p>
+            </div>
+            <div class="stat-icon" style="background: #D1FAE5; color: var(--success-color);">
+                <i class="bi bi-check-circle"></i>
+            </div>
+        </div>
+    </div>
 
-<table>
-    <thead>
-        <tr>
-            <th>Requisition #</th>
-            <th>Title</th>
-            <th>Department</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Processed Date</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for req in page_obj %}
-        <tr>
-            <td>{{ req.requisition_number }}</td>
-            <td>{{ req.title }}</td>
-            <td>{{ req.department.name }}</td>
-            <td>KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
-            <td>{{ req.get_status_display }}</td>
-            <td>{{ req.updated_at|date:"M d, Y" }}</td>
-            <td>
-                <a href="#">View</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>KES {{ total_value|floatformat:0|intcomma }}</h3>
+                <p>Total Value</p>
+            </div>
+            <div class="stat-icon" style="background: #DBEAFE; color: #1E40AF;">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+        </div>
+    </div>
 
-{% if page_obj.has_other_pages %}
-<div class="pagination">
-    {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
-    {% endif %}
-    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ approved_count|intcomma }}</h3>
+                <p>Approved</p>
+            </div>
+            <div class="stat-icon" style="background: #D1FAE5; color: var(--success-color);">
+                <i class="bi bi-check-lg"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ rejected_count|intcomma }}</h3>
+                <p>Rejected</p>
+            </div>
+            <div class="stat-icon" style="background: #FEE2E2; color: var(--danger-color);">
+                <i class="bi bi-x-circle"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Card -->
+<div class="summary-card">
+    <h3 class="summary-title">
+        <i class="bi bi-bar-chart"></i>
+        Processing Summary
+    </h3>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="summary-label">Approval Rate</div>
+            <div class="summary-value" style="color: var(--success-color);">
+                {{ approval_rate|floatformat:1 }}%
+            </div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Avg Processing Time</div>
+            <div class="summary-value">
+                {{ avg_processing_time|floatformat:1 }} days
+            </div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">This Month</div>
+            <div class="summary-value">
+                {{ this_month_count|intcomma }}
+            </div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Last Month</div>
+            <div class="summary-value">
+                {{ last_month_count|intcomma }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="filter-card">
+    <h3 class="filter-title">
+        <i class="bi bi-funnel"></i>
+        Filter Processed Requisitions
+    </h3>
+    
+    <form method="get" class="filter-form">
+        <div class="filter-group">
+            <label class="filter-label" for="search">Search</label>
+            <input type="text" 
+                   name="search" 
+                   id="search"
+                   class="filter-input" 
+                   placeholder="Search requisitions..." 
+                   value="{{ request.GET.search }}">
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="status">Final Status</label>
+            <select name="status" id="status" class="filter-select">
+                <option value="">All Status</option>
+                <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved</option>
+                <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+                <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                <option value="closed" {% if request.GET.status == 'closed' %}selected{% endif %}>Closed</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="department">Department</label>
+            <select name="department" id="department" class="filter-select">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}" {% if request.GET.department == dept.id|stringformat:"s" %}selected{% endif %}>
+                    {{ dept.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="date_from">From Date</label>
+            <input type="date" 
+                   name="date_from" 
+                   id="date_from"
+                   class="filter-date" 
+                   value="{{ request.GET.date_from }}">
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="date_to">To Date</label>
+            <input type="date" 
+                   name="date_to" 
+                   id="date_to"
+                   class="filter-date" 
+                   value="{{ request.GET.date_to }}">
+        </div>
+        
+        {% if request.GET.search or request.GET.status or request.GET.department or request.GET.date_from or request.GET.date_to %}
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+            <a href="{% url 'procurement_processed_requisitions' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+        </div>
+        {% else %}
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+        </div>
+        {% endif %}
+    </form>
+    
+    <div class="export-actions">
+        <button type="button" class="btn" onclick="exportToCSV()">
+            <i class="bi bi-file-earmark-excel"></i>
+            Export CSV
+        </button>
+        <button type="button" class="btn" onclick="printReport()">
+            <i class="bi bi-printer"></i>
+            Print Report
+        </button>
+    </div>
+</div>
+
+<!-- Processed Requisitions Table -->
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Req #</th>
+                <th>Title</th>
+                <th>Department</th>
+                <th>Amount</th>
+                <th>Final Status</th>
+                <th>Submitted Date</th>
+                <th>Processed Date</th>
+                <th>Processing Time</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in page_obj %}
+            <tr>
+                <td>
+                    <strong>{{ req.requisition_number }}</strong>
+                </td>
+                <td>{{ req.title|truncatechars:35 }}</td>
+                <td>{{ req.department.name|truncatechars:15 }}</td>
+                <td class="amount">KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
+                <td>
+                    <span class="status-badge status-{{ req.status|lower }}">
+                        {{ req.get_status_display }}
+                    </span>
+                </td>
+                <td>{{ req.created_at|date:"M d, Y" }}</td>
+                <td>{{ req.updated_at|date:"M d, Y" }}</td>
+                <td>
+                    <span style="color: {% if req.processing_days > 7 %}#EF4444{% elif req.processing_days > 3 %}#F59E0B{% else %}#10B981{% endif %}; font-weight: 600;">
+                        {{ req.processing_days }} day{{ req.processing_days|pluralize }}
+                    </span>
+                </td>
+                <td class="actions-cell">
+                    <a href="{% url 'requisition_detail' req.id %}" class="action-link" title="View Details">
+                        <i class="bi bi-eye"></i>
+                        View
+                    </a>
+                    {% if req.status == 'approved' %}
+                    <a href="{% url 'po_create' %}?requisition_id={{ req.id }}" class="action-link" title="Create PO">
+                        <i class="bi bi-file-earmark-plus"></i>
+                        Create PO
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="empty-state">
+                    <i class="bi bi-clipboard-check"></i>
+                    <p>No processed requisitions found{% if request.GET.search or request.GET.status or request.GET.department or request.GET.date_from or request.GET.date_to %} matching your filters{% endif %}.</p>
+                    {% if request.GET.search or request.GET.status or request.GET.department or request.GET.date_from or request.GET.date_to %}
+                    <a href="{% url 'procurement_processed_requisitions' %}" class="btn btn-sm" style="margin-top: 0.5rem;">
+                        Clear filters to see all processed requisitions
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-container">
+        <div class="pagination-info">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ total_count }} processed requisitions
+        </div>
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page=1" 
+                   class="pagination-link" title="First Page">
+                    <i class="bi bi-chevron-double-left"></i>
+                </a>
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                   class="pagination-link" title="Previous Page">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            {% else %}
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-double-left"></i>
+                </span>
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-left"></i>
+                </span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="pagination-link active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page={{ num }}" 
+                       class="pagination-link">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                   class="pagination-link" title="Next Page">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page={{ page_obj.paginator.num_pages }}" 
+                   class="pagination-link" title="Last Page">
+                    <i class="bi bi-chevron-double-right"></i>
+                </a>
+            {% else %}
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-right"></i>
+                </span>
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-double-right"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
     {% endif %}
 </div>
-{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function exportToCSV() {
+        // Build the export URL with current filters
+        let exportUrl = '{% url "export_report_excel" %}?report_type=processed_requisitions';
+        
+        // Add current filters to the export URL
+        const params = new URLSearchParams(window.location.search);
+        params.forEach((value, key) => {
+            exportUrl += `&${key}=${value}`;
+        });
+        
+        // Trigger the download
+        window.location.href = exportUrl;
+    }
+    
+    function printReport() {
+        // Store original body content
+        const originalContent = document.body.innerHTML;
+        
+        // Get the table container content
+        const reportContent = document.querySelector('.table-container').outerHTML;
+        
+        // Create print window content
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Processed Requisitions Report</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    h1 { color: #1E293B; margin-bottom: 20px; }
+                    .print-header { 
+                        display: flex; 
+                        justify-content: space-between; 
+                        align-items: center;
+                        margin-bottom: 20px;
+                        padding-bottom: 10px;
+                        border-bottom: 2px solid #E2E8F0;
+                    }
+                    .print-info { font-size: 12px; color: #64748B; }
+                    table { 
+                        width: 100%; 
+                        border-collapse: collapse; 
+                        font-size: 11px; 
+                    }
+                    th { 
+                        background: #F1F5F9; 
+                        padding: 8px; 
+                        text-align: left; 
+                        border: 1px solid #E2E8F0; 
+                        font-weight: 600;
+                    }
+                    td { 
+                        padding: 6px 8px; 
+                        border: 1px solid #E2E8F0; 
+                    }
+                    .amount { font-weight: 600; }
+                    .status-badge { 
+                        padding: 2px 6px; 
+                        border-radius: 10px; 
+                        font-size: 10px; 
+                        font-weight: 600;
+                        display: inline-block;
+                    }
+                    @media print {
+                        @page { margin: 0.5in; }
+                        .no-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="print-header">
+                    <div>
+                        <h1>Processed Requisitions Report</h1>
+                        <div class="print-info">
+                            Generated on: ${new Date().toLocaleDateString()}<br>
+                            Total Records: {{ total_count }}
+                        </div>
+                    </div>
+                    <div class="print-info">
+                        University Procurement System
+                    </div>
+                </div>
+                ${reportContent.replace('table-container', '').replace(/btn-.*?/g, 'no-print')}
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() {
+                            window.close();
+                        }, 100);
+                    };
+                <\/script>
+            </body>
+            </html>
+        `;
+        
+        // Open print window
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+    }
+    
+    // Set date inputs to default ranges
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateFrom = document.getElementById('date_from');
+        const dateTo = document.getElementById('date_to');
+        
+        if (!dateFrom.value) {
+            // Default to last 30 days
+            const lastMonth = new Date();
+            lastMonth.setDate(lastMonth.getDate() - 30);
+            dateFrom.valueAsDate = lastMonth;
+        }
+        
+        if (!dateTo.value) {
+            // Default to today
+            dateTo.valueAsDate = new Date();
+        }
+    });
+</script>
 {% endblock %}

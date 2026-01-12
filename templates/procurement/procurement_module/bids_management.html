@@ -1,72 +1,1029 @@
 <!-- ========================================== -->
-<!-- 10. procurement/procurement_module/bids_management.html -->
+<!-- procurement/procurement_module/bids_management.html -->
 <!-- ========================================== -->
 {% extends 'base.html' %}
 {% load humanize %}
 
+{% block title %}Bids Management - Procurement Module{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    /* Reduced font sizes throughout */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem; /* Reduced from 1.75rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.625rem; /* Reduced from 0.75rem */
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.75rem; /* Reduced padding */
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.6875rem;
+    }
+
+    .btn i {
+        font-size: 0.875rem; /* Reduced from 1rem */
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem; /* Reduced from 1.25rem */
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .stat-info h3 {
+        font-size: 1.5rem; /* Reduced from 1.75rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.125rem 0;
+        line-height: 1.2;
+    }
+
+    .stat-info p {
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        color: var(--secondary-color);
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .stat-icon {
+        width: 2.5rem; /* Reduced from 3rem */
+        height: 2.5rem; /* Reduced from 3rem */
+        border-radius: 0.375rem; /* Reduced from 0.5rem */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem; /* Reduced from 1.25rem */
+        background: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem; /* Reduced from 1.5rem */
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-title {
+        font-size: 0.875rem; /* Reduced from 0.9375rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .summary-title i {
+        color: var(--primary-color);
+        font-size: 1rem; /* Reduced from 1.125rem */
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+
+    .summary-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        color: #64748B;
+        font-weight: 500;
+    }
+
+    .summary-value {
+        font-size: 1rem; /* Reduced from 1.125rem */
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem; /* Reduced from 1.5rem */
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-title {
+        font-size: 0.875rem; /* Reduced from 0.9375rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-title i {
+        color: var(--primary-color);
+        font-size: 1rem; /* Reduced from 1.125rem */
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .filter-label {
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .filter-input,
+    .filter-select {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+        color: #1E293B;
+        background: white;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .export-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+        justify-content: flex-end;
+    }
+
+    .table-container {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+    }
+
+    th {
+        background: var(--table-header);
+        text-align: left;
+        padding: 0.75rem 1rem; /* Reduced padding */
+        font-weight: 600;
+        color: #475569;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.625rem 1rem; /* Reduced padding */
+        border-bottom: 1px solid var(--border-color);
+        color: #1E293B;
+        vertical-align: middle;
+    }
+
+    tr:last-child td {
+        border-bottom: none;
+    }
+
+    tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .amount {
+        font-weight: 600;
+        color: #1E293B;
+        font-size: 0.8125rem;
+        white-space: nowrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem; /* Reduced padding */
+        border-radius: 0.75rem; /* Reduced from 1rem */
+        font-size: 0.6875rem; /* Reduced from 0.75rem */
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    .status-submitted { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border: 1px solid #BFDBFE;
+    }
+    .status-under-review { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border: 1px solid #FDE68A;
+    }
+    .status-qualified { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border: 1px solid #A7F3D0;
+    }
+    .status-disqualified { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border: 1px solid #FECACA;
+    }
+    .status-awarded { 
+        background: #10B981; 
+        color: white; 
+        border: 1px solid #10B981;
+    }
+    .status-rejected { 
+        background: #EF4444; 
+        color: white; 
+        border: 1px solid #EF4444;
+    }
+
+    .tender-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        background: #F3F4F6;
+        color: #374151;
+        border: 1px solid #E5E7EB;
+    }
+
+    .supplier-name {
+        font-weight: 500;
+        color: #1E293B;
+        font-size: 0.8125rem;
+    }
+
+    .submission-date {
+        font-size: 0.75rem;
+        color: #64748B;
+    }
+
+    .actions-cell {
+        display: flex;
+        gap: 0.375rem;
+        flex-wrap: wrap;
+    }
+
+    .action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+
+    .action-link:hover {
+        background: var(--primary-light);
+        border-color: var(--border-color);
+    }
+
+    .action-link i {
+        font-size: 0.75rem;
+    }
+
+    .action-link.evaluate {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .action-link.evaluate:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: #94A3B8;
+        font-size: 0.75rem;
+    }
+
+    .empty-state i {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--table-header);
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .pagination-info {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .pagination {
+        display: flex;
+        gap: 0.375rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .pagination-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .pagination-link:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+    }
+
+    .pagination-link.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .pagination-link.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #F8FAFC;
+    }
+
+    .pagination-link.disabled:hover {
+        background: #F8FAFC;
+        border-color: var(--border-color);
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid,
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-form {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            min-width: 800px;
+        }
+        
+        .actions-cell {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>Bids Management</h1>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Bids Management</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Bids Management</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'procurement_active_tenders' %}" class="btn">
+            <i class="bi bi-file-earmark-text"></i>
+            Active Tenders
+        </a>
+        <a href="{% url 'procurement_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
 
-<form method="get">
-    <select name="tender">
-        <option value="">All Tenders</option>
-        {% for tender in tenders %}
-        <option value="{{ tender.id }}" {% if request.GET.tender == tender.id|stringformat:"s" %}selected{% endif %}>{{ tender.tender_number }}</option>
-        {% endfor %}
-    </select>
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ total_count|intcomma }}</h3>
+                <p>Total Bids</p>
+            </div>
+            <div class="stat-icon" style="background: #DBEAFE; color: #1E40AF;">
+                <i class="bi bi-envelope"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ under_review_count|intcomma }}</h3>
+                <p>Under Review</p>
+            </div>
+            <div class="stat-icon" style="background: #FEF3C7; color: var(--warning-color);">
+                <i class="bi bi-clock-history"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ awarded_count|intcomma }}</h3>
+                <p>Awarded</p>
+            </div>
+            <div class="stat-icon" style="background: #D1FAE5; color: var(--success-color);">
+                <i class="bi bi-trophy"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>KES {{ total_bid_amount|floatformat:0|intcomma }}</h3>
+                <p>Total Bid Value</p>
+            </div>
+            <div class="stat-icon" style="background: #FEE2E2; color: var(--danger-color);">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Card -->
+<div class="summary-card">
+    <h3 class="summary-title">
+        <i class="bi bi-bar-chart"></i>
+        Bids Summary
+    </h3>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="summary-label">Average Bid Amount</div>
+            <div class="summary-value">KES {{ avg_bid_amount|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Qualification Rate</div>
+            <div class="summary-value" style="color: var(--success-color);">
+                {{ qualification_rate|floatformat:1 }}%
+            </div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Avg Bids per Tender</div>
+            <div class="summary-value">{{ avg_bids_per_tender|floatformat:1 }}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">This Month</div>
+            <div class="summary-value">{{ this_month_count|intcomma }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="filter-card">
+    <h3 class="filter-title">
+        <i class="bi bi-funnel"></i>
+        Filter Bids
+    </h3>
     
-    <select name="status">
-        <option value="">All Status</option>
-        {% for value, label in status_choices %}
-        <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-    </select>
+    <form method="get" class="filter-form">
+        <div class="filter-group">
+            <label class="filter-label" for="search">Search</label>
+            <input type="text" 
+                   name="search" 
+                   id="search"
+                   class="filter-input" 
+                   placeholder="Search by bid number, supplier..." 
+                   value="{{ request.GET.search }}">
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="tender">Tender</label>
+            <select name="tender" id="tender" class="filter-select">
+                <option value="">All Tenders</option>
+                {% for tender in tenders %}
+                <option value="{{ tender.id }}" {% if request.GET.tender == tender.id|stringformat:"s" %}selected{% endif %}>
+                    {{ tender.tender_number }} - {{ tender.title|truncatechars:30 }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="status">Status</label>
+            <select name="status" id="status" class="filter-select">
+                <option value="">All Status</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="date_from">Submitted From</label>
+            <input type="date" 
+                   name="date_from" 
+                   id="date_from"
+                   class="filter-input" 
+                   value="{{ request.GET.date_from }}">
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="date_to">Submitted To</label>
+            <input type="date" 
+                   name="date_to" 
+                   id="date_to"
+                   class="filter-input" 
+                   value="{{ request.GET.date_to }}">
+        </div>
+        
+        {% if request.GET.search or request.GET.tender or request.GET.status or request.GET.date_from or request.GET.date_to %}
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+            <a href="{% url 'procurement_bids_management' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+        </div>
+        {% else %}
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+        </div>
+        {% endif %}
+    </form>
     
-    <button type="submit">Filter</button>
-    <a href="{% url 'procurement_bids_management' %}">Clear</a>
-</form>
+    <div class="export-actions">
+        <button type="button" class="btn" onclick="exportToCSV()">
+            <i class="bi bi-file-earmark-excel"></i>
+            Export CSV
+        </button>
+        <button type="button" class="btn" onclick="printReport()">
+            <i class="bi bi-printer"></i>
+            Print Report
+        </button>
+    </div>
+</div>
 
-<p>Total: {{ total_count }}</p>
+<!-- Bids Table -->
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Bid #</th>
+                <th>Tender</th>
+                <th>Supplier</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Submitted</th>
+                <th>Days Since</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bid in page_obj %}
+            <tr>
+                <td>
+                    <strong>{{ bid.bid_number }}</strong>
+                </td>
+                <td>
+                    <div>
+                        <span class="tender-badge">
+                            {{ bid.tender.tender_number }}
+                        </span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: #64748B; margin-top: 0.125rem;">
+                        {{ bid.tender.title|truncatechars:30 }}
+                    </div>
+                </td>
+                <td>
+                    <div class="supplier-name">{{ bid.supplier.name|truncatechars:25 }}</div>
+                    <div style="font-size: 0.75rem; color: #64748B; margin-top: 0.125rem;">
+                        {{ bid.supplier.category|default:"General" }}
+                    </div>
+                </td>
+                <td class="amount">KES {{ bid.bid_amount|floatformat:0|intcomma }}</td>
+                <td>
+                    <span class="status-badge status-{{ bid.status|lower }}">
+                        {{ bid.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    <div class="submission-date">{{ bid.submitted_at|date:"M d, Y" }}</div>
+                    <div style="font-size: 0.75rem; color: #64748B;">
+                        {{ bid.submitted_at|time:"H:i" }}
+                    </div>
+                </td>
+                <td>
+                    {% with days_since=bid.days_since_submission %}
+                    <span style="color: {% if days_since > 14 %}#EF4444{% elif days_since > 7 %}#F59E0B{% else %}#10B981{% endif %}; font-weight: 600;">
+                        {{ days_since }}
+                    </span>
+                    {% endwith %}
+                </td>
+                <td class="actions-cell">
+                    <a href="{% url 'bid_detail' bid.id %}" class="action-link" title="View Details">
+                        <i class="bi bi-eye"></i>
+                        View
+                    </a>
+                    {% if bid.status == 'submitted' or bid.status == 'under_review' %}
+                    <a href="{% url 'bid_evaluate' bid.id %}" class="action-link evaluate" title="Evaluate Bid">
+                        <i class="bi bi-check-circle"></i>
+                        Evaluate
+                    </a>
+                    {% endif %}
+                    {% if bid.status == 'qualified' %}
+                    <a href="{% url 'bid_award' bid.id %}" class="action-link" title="Award Bid" style="background: var(--success-color); color: white;">
+                        <i class="bi bi-trophy"></i>
+                        Award
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="empty-state">
+                    <i class="bi bi-envelope-x"></i>
+                    <p>No bids found{% if request.GET.search or request.GET.tender or request.GET.status or request.GET.date_from or request.GET.date_to %} matching your filters{% endif %}.</p>
+                    {% if not request.GET.search and not request.GET.tender and not request.GET.status and not request.GET.date_from and not request.GET.date_to %}
+                    <a href="{% url 'procurement_active_tenders' %}" class="btn btn-sm btn-primary" style="margin-top: 0.5rem;">
+                        <i class="bi bi-file-earmark-text"></i>
+                        View Active Tenders
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-container">
+        <div class="pagination-info">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ total_count }} bids
+        </div>
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.tender %}tender={{ request.GET.tender }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page=1" 
+                   class="pagination-link" title="First Page">
+                    <i class="bi bi-chevron-double-left"></i>
+                </a>
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.tender %}tender={{ request.GET.tender }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                   class="pagination-link" title="Previous Page">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            {% else %}
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-double-left"></i>
+                </span>
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-left"></i>
+                </span>
+            {% endif %}
 
-<table>
-    <thead>
-        <tr>
-            <th>Bid #</th>
-            <th>Tender</th>
-            <th>Supplier</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Submitted</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for bid in page_obj %}
-        <tr>
-            <td>{{ bid.bid_number }}</td>
-            <td>{{ bid.tender.tender_number }}</td>
-            <td>{{ bid.supplier.name }}</td>
-            <td>KES {{ bid.bid_amount|floatformat:0|intcomma }}</td>
-            <td>{{ bid.get_status_display }}</td>
-            <td>{{ bid.submitted_at|date:"M d, Y" }}</td>
-            <td>
-                <a href="#">View</a>
-                <a href="#">Evaluate</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="pagination-link active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.tender %}tender={{ request.GET.tender }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page={{ num }}" 
+                       class="pagination-link">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
 
-{% if page_obj.has_other_pages %}
-<div class="pagination">
-    {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
-    {% endif %}
-    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+            {% if page_obj.has_next %}
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.tender %}tender={{ request.GET.tender }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                   class="pagination-link" title="Next Page">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.tender %}tender={{ request.GET.tender }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page={{ page_obj.paginator.num_pages }}" 
+                   class="pagination-link" title="Last Page">
+                    <i class="bi bi-chevron-double-right"></i>
+                </a>
+            {% else %}
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-right"></i>
+                </span>
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-double-right"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
     {% endif %}
 </div>
-{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function exportToCSV() {
+        // Build the export URL with current filters
+        let exportUrl = '{% url "export_report_excel" %}?report_type=bids_management';
+        
+        // Add current filters to the export URL
+        const params = new URLSearchParams(window.location.search);
+        params.forEach((value, key) => {
+            exportUrl += `&${key}=${value}`;
+        });
+        
+        // Trigger the download
+        window.location.href = exportUrl;
+    }
+    
+    function printReport() {
+        // Store original body content
+        const originalContent = document.body.innerHTML;
+        
+        // Get the table container content
+        const reportContent = document.querySelector('.table-container').outerHTML;
+        
+        // Create print window content
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Bids Management Report</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    h1 { color: #1E293B; margin-bottom: 20px; }
+                    .print-header { 
+                        display: flex; 
+                        justify-content: space-between; 
+                        align-items: center;
+                        margin-bottom: 20px;
+                        padding-bottom: 10px;
+                        border-bottom: 2px solid #E2E8F0;
+                    }
+                    .print-info { font-size: 12px; color: #64748B; }
+                    table { 
+                        width: 100%; 
+                        border-collapse: collapse; 
+                        font-size: 11px; 
+                    }
+                    th { 
+                        background: #F1F5F9; 
+                        padding: 8px; 
+                        text-align: left; 
+                        border: 1px solid #E2E8F0; 
+                        font-weight: 600;
+                    }
+                    td { 
+                        padding: 6px 8px; 
+                        border: 1px solid #E2E8F0; 
+                    }
+                    .status-badge { 
+                        padding: 2px 6px; 
+                        border-radius: 10px; 
+                        font-size: 10px; 
+                        font-weight: 600;
+                        display: inline-block;
+                    }
+                    .no-print { display: none; }
+                    @media print {
+                        @page { margin: 0.5in; }
+                        .no-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="print-header">
+                    <div>
+                        <h1>Bids Management Report</h1>
+                        <div class="print-info">
+                            Generated on: ${new Date().toLocaleDateString()}<br>
+                            Total Bids: {{ total_count }}<br>
+                            Qualification Rate: {{ qualification_rate|floatformat:1 }}%
+                        </div>
+                    </div>
+                    <div class="print-info">
+                        University Procurement System
+                    </div>
+                </div>
+                ${reportContent.replace('table-container', '').replace(/btn-.*?/g, 'no-print')}
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() {
+                            window.close();
+                        }, 100);
+                    };
+                <\/script>
+            </body>
+            </html>
+        `;
+        
+        // Open print window
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+    }
+    
+    // Set default date range to last 30 days
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateFrom = document.getElementById('date_from');
+        const dateTo = document.getElementById('date_to');
+        
+        if (!dateFrom.value) {
+            // Default to last 30 days
+            const last30Days = new Date();
+            last30Days.setDate(last30Days.getDate() - 30);
+            dateFrom.valueAsDate = last30Days;
+        }
+        
+        if (!dateTo.value) {
+            // Default to today
+            dateTo.valueAsDate = new Date();
+        }
+        
+        // Highlight bids that need urgent attention (submitted > 7 days ago)
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const daysSinceCell = row.querySelector('td:nth-child(7) span');
+            if (daysSinceCell) {
+                const daysSince = parseInt(daysSinceCell.textContent);
+                if (daysSince > 7) {
+                    row.style.borderLeft = '4px solid #F59E0B';
+                }
+                if (daysSince > 14) {
+                    row.style.borderLeft = '4px solid #EF4444';
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

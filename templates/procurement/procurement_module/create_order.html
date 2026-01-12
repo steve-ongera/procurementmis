@@ -1,44 +1,770 @@
 <!-- ========================================== -->
-<!-- 12. procurement/procurement_module/create_order.html -->
+<!-- procurement/procurement_module/create_order.html -->
 <!-- ========================================== -->
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block content %}
-<h1>Create Purchase Order</h1>
+{% block title %}Create Purchase Order - Procurement Module{% endblock %}
 
-<form method="post">
-    {% csrf_token %}
-    
-    <label>Awarded Bid (Optional):</label>
-    <select name="bid">
-        <option value="">Select Awarded Bid</option>
-        {% for bid in awarded_bids %}
-        <option value="{{ bid.id }}">{{ bid.tender.tender_number }} - {{ bid.supplier.name }}</option>
-        {% endfor %}
-    </select>
-    
-    <label>Supplier:</label>
-    <select name="supplier" required>
-        <option value="">Select Supplier</option>
-        {% for supplier in suppliers %}
-        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
-        {% endfor %}
-    </select>
-    
-    <label>Delivery Date:</label>
-    <input type="date" name="delivery_date" required>
-    
-    <label>Delivery Address:</label>
-    <textarea name="delivery_address" required></textarea>
-    
-    <label>Payment Terms:</label>
-    <textarea name="payment_terms" required></textarea>
-    
-    <label>Special Instructions:</label>
-    <textarea name="special_instructions"></textarea>
-    
-    <button type="submit">Create Purchase Order</button>
-    <a href="{% url 'procurement_all_orders' %}">Cancel</a>
-</form>
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    /* Reduced font sizes throughout */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem; /* Reduced from 1.75rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.625rem; /* Reduced from 0.75rem */
+        color: #94A3B8;
+    }
+
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+    }
+
+    .form-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+
+    .bid-info {
+        background: var(--primary-light);
+        border: 1px solid #93C5FD;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        display: none;
+    }
+
+    .bid-info.active {
+        display: block;
+    }
+
+    .bid-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+
+    .bid-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E40AF;
+        margin: 0;
+    }
+
+    .bid-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        background: var(--success-color);
+        color: white;
+        border: none;
+    }
+
+    .bid-details {
+        font-size: 0.75rem;
+        color: #475569;
+        line-height: 1.4;
+    }
+
+    .bid-details p {
+        margin: 0.25rem 0;
+    }
+
+    .bid-items {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #93C5FD;
+    }
+
+    .items-table {
+        width: 100%;
+        font-size: 0.75rem;
+        border-collapse: collapse;
+    }
+
+    .items-table th {
+        background: #DBEAFE;
+        padding: 0.5rem;
+        font-weight: 600;
+        color: #1E40AF;
+        border: 1px solid #BFDBFE;
+    }
+
+    .items-table td {
+        padding: 0.5rem;
+        border: 1px solid #BFDBFE;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-label.required::after {
+        content: " *";
+        color: var(--danger-color);
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #1E293B;
+        background: white;
+        width: 100%;
+        transition: all 0.2s;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-textarea {
+        min-height: 80px;
+        resize: vertical;
+        font-family: inherit;
+        line-height: 1.5;
+    }
+
+    .form-select option {
+        padding: 0.375rem 0.5rem;
+        margin: 0.125rem 0;
+        border-radius: 0.25rem;
+        font-size: 0.8125rem;
+    }
+
+    .form-select option:hover {
+        background: var(--primary-light);
+    }
+
+    .date-input {
+        position: relative;
+    }
+
+    .date-input i {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #64748B;
+        font-size: 0.875rem;
+        pointer-events: none;
+    }
+
+    .date-input input {
+        padding-right: 2.5rem;
+    }
+
+    .supplier-info {
+        background: #F8FAFC;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 0.5rem;
+        display: none;
+    }
+
+    .supplier-info.active {
+        display: block;
+    }
+
+    .supplier-details {
+        font-size: 0.75rem;
+        color: #475569;
+        line-height: 1.4;
+    }
+
+    .supplier-details p {
+        margin: 0.25rem 0;
+    }
+
+    .form-help {
+        font-size: 0.6875rem;
+        color: var(--secondary-color);
+        margin-top: 0.25rem;
+        font-style: italic;
+    }
+
+    .error-message {
+        font-size: 0.75rem;
+        color: var(--danger-color);
+        margin-top: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .error-message i {
+        font-size: 0.75rem;
+    }
+
+    .form-group.has-error .form-input,
+    .form-group.has-error .form-select,
+    .form-group.has-error .form-textarea {
+        border-color: var(--danger-color);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+        margin-top: 1.5rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-secondary {
+        background: #F1F5F9;
+        color: #475569;
+        border-color: #E2E8F0;
+    }
+
+    .btn-secondary:hover {
+        background: #E2E8F0;
+        border-color: #CBD5E1;
+    }
+
+    .btn i {
+        font-size: 0.875rem;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Create Purchase Order</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_all_orders' %}">
+                All Purchase Orders
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Create Purchase Order</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'procurement_all_orders' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Back to Orders
+        </a>
+    </div>
+</div>
+
+<div class="form-container">
+    <div class="form-card">
+        <form method="post" id="poForm">
+            {% csrf_token %}
+            
+            <!-- Bid Selection Section -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="bi bi-trophy"></i>
+                    Select Awarded Bid (Optional)
+                </h3>
+                
+                <div class="form-group">
+                    <label for="bid" class="form-label">Awarded Bid</label>
+                    <select name="bid" id="bid" class="form-select">
+                        <option value="">Select an awarded bid...</option>
+                        {% for bid in awarded_bids %}
+                        <option value="{{ bid.id }}" 
+                                data-supplier="{{ bid.supplier.id }}"
+                                data-supplier-name="{{ bid.supplier.name }}"
+                                data-supplier-address="{{ bid.supplier.address }}"
+                                data-supplier-contact="{{ bid.supplier.contact_person }}"
+                                data-supplier-phone="{{ bid.supplier.phone }}"
+                                data-tender="{{ bid.tender.tender_number }}"
+                                data-tender-title="{{ bid.tender.title }}"
+                                data-bid-amount="{{ bid.bid_amount }}"
+                                data-requisition="{{ bid.tender.requisition.requisition_number }}"
+                                data-items='{{ bid.items_json|safe }}'>
+                            {{ bid.tender.tender_number }} - {{ bid.supplier.name }} (KES {{ bid.bid_amount|floatformat:0|intcomma }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-help">Select an awarded bid to auto-fill supplier and item details</div>
+                </div>
+                
+                <div id="bidInfo" class="bid-info">
+                    <div class="bid-header">
+                        <h4 class="bid-title" id="selectedBidTitle"></h4>
+                        <span class="bid-badge">
+                            <i class="bi bi-check-circle"></i>
+                            Awarded
+                        </span>
+                    </div>
+                    <div class="bid-details">
+                        <p><strong>Tender:</strong> <span id="selectedBidTender"></span></p>
+                        <p><strong>Requisition:</strong> <span id="selectedBidRequisition"></span></p>
+                        <p><strong>Bid Amount:</strong> KES <span id="selectedBidAmount"></span></p>
+                    </div>
+                    
+                    <div class="bid-items">
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Description</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bidItemsTable">
+                                <!-- Items will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Supplier Details Section -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="bi bi-people"></i>
+                    Supplier Details
+                </h3>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="supplier" class="form-label required">Supplier</label>
+                        <select name="supplier" id="supplier" class="form-select" required>
+                            <option value="">Select a supplier...</option>
+                            {% for supplier in suppliers %}
+                            <option value="{{ supplier.id }}" 
+                                    data-address="{{ supplier.address }}"
+                                    data-contact="{{ supplier.contact_person }}"
+                                    data-phone="{{ supplier.phone }}"
+                                    data-email="{{ supplier.email }}">
+                                {{ supplier.name }} - {{ supplier.category|default:"General" }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="supplierInfo" class="supplier-info">
+                    <div class="supplier-details">
+                        <p><strong>Address:</strong> <span id="selectedSupplierAddress"></span></p>
+                        <p><strong>Contact Person:</strong> <span id="selectedSupplierContact"></span></p>
+                        <p><strong>Phone:</strong> <span id="selectedSupplierPhone"></span></p>
+                        <p><strong>Email:</strong> <span id="selectedSupplierEmail"></span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Delivery Details Section -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="bi bi-truck"></i>
+                    Delivery Details
+                </h3>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="delivery_date" class="form-label required">Delivery Date</label>
+                        <div class="date-input">
+                            <input type="date" 
+                                   name="delivery_date" 
+                                   id="delivery_date" 
+                                   class="form-input" 
+                                   required>
+                            <i class="bi bi-calendar"></i>
+                        </div>
+                        <div class="form-help">Expected delivery date for the order</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="delivery_address" class="form-label required">Delivery Address</label>
+                    <textarea name="delivery_address" 
+                              id="delivery_address" 
+                              class="form-textarea" 
+                              required
+                              placeholder="Enter delivery address including department, building, room number..."></textarea>
+                    <div class="form-help">Detailed delivery address for the supplier</div>
+                </div>
+            </div>
+            
+            <!-- Payment & Instructions Section -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="bi bi-file-text"></i>
+                    Terms & Instructions
+                </h3>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="payment_terms" class="form-label required">Payment Terms</label>
+                        <textarea name="payment_terms" 
+                                  id="payment_terms" 
+                                  class="form-textarea" 
+                                  required
+                                  placeholder="Specify payment terms, e.g., 'Net 30 days', '50% advance, 50% on delivery'..."></textarea>
+                        <div class="form-help">Clearly define payment terms and conditions</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="special_instructions" class="form-label">Special Instructions</label>
+                        <textarea name="special_instructions" 
+                                  id="special_instructions" 
+                                  class="form-textarea" 
+                                  placeholder="Any special instructions for the supplier..."></textarea>
+                        <div class="form-help">Optional special instructions or requirements</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <a href="{% url 'procurement_all_orders' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i>
+                    Create Purchase Order
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const bidSelect = document.getElementById('bid');
+        const bidInfo = document.getElementById('bidInfo');
+        const supplierSelect = document.getElementById('supplier');
+        const supplierInfo = document.getElementById('supplierInfo');
+        const deliveryDateInput = document.getElementById('delivery_date');
+        const deliveryAddressTextarea = document.getElementById('delivery_address');
+        const paymentTermsTextarea = document.getElementById('payment_terms');
+        const bidItemsTable = document.getElementById('bidItemsTable');
+        
+        // Set minimum delivery date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const formattedTomorrow = tomorrow.toISOString().split('T')[0];
+        deliveryDateInput.min = formattedTomorrow;
+        deliveryDateInput.value = formattedTomorrow;
+        
+        // Bid selection handler
+        bidSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            
+            if (selectedOption.value) {
+                // Show bid info
+                bidInfo.classList.add('active');
+                document.getElementById('selectedBidTitle').textContent = selectedOption.textContent;
+                document.getElementById('selectedBidTender').textContent = selectedOption.dataset.tender + ' - ' + selectedOption.dataset.tenderTitle;
+                document.getElementById('selectedBidRequisition').textContent = selectedOption.dataset.requisition;
+                document.getElementById('selectedBidAmount').textContent = 
+                    parseInt(selectedOption.dataset.bidAmount).toLocaleString();
+                
+                // Auto-select supplier
+                const supplierId = selectedOption.dataset.supplier;
+                supplierSelect.value = supplierId;
+                triggerSupplierChange(supplierId);
+                
+                // Auto-fill payment terms based on bid amount
+                if (!paymentTermsTextarea.value) {
+                    const bidAmount = parseFloat(selectedOption.dataset.bidAmount);
+                    if (bidAmount > 1000000) {
+                        paymentTermsTextarea.value = '30% advance payment upon order confirmation, 70% upon delivery and acceptance. Payment to be made within 30 days of invoice receipt.';
+                    } else if (bidAmount > 500000) {
+                        paymentTermsTextarea.value = '50% advance payment, 50% upon delivery. Payment within 14 days of invoice receipt.';
+                    } else {
+                        paymentTermsTextarea.value = 'Payment upon delivery and acceptance. Net 30 days from invoice date.';
+                    }
+                }
+                
+                // Populate bid items table
+                try {
+                    const items = JSON.parse(selectedOption.dataset.items);
+                    bidItemsTable.innerHTML = '';
+                    
+                    let totalAmount = 0;
+                    items.forEach(item => {
+                        const itemTotal = item.quantity * item.unit_price;
+                        totalAmount += itemTotal;
+                        
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.item_name || 'N/A'}</td>
+                            <td>${item.description || 'N/A'}</td>
+                            <td>${item.quantity}</td>
+                            <td>KES ${item.unit_price.toLocaleString()}</td>
+                            <td>KES ${itemTotal.toLocaleString()}</td>
+                        `;
+                        bidItemsTable.appendChild(row);
+                    });
+                    
+                    // Add total row
+                    const totalRow = document.createElement('tr');
+                    totalRow.style.fontWeight = '600';
+                    totalRow.style.background = '#F1F5F9';
+                    totalRow.innerHTML = `
+                        <td colspan="4" style="text-align: right;">Total:</td>
+                        <td>KES ${totalAmount.toLocaleString()}</td>
+                    `;
+                    bidItemsTable.appendChild(totalRow);
+                    
+                } catch (error) {
+                    bidItemsTable.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748B;">No item details available</td></tr>';
+                }
+                
+            } else {
+                bidInfo.classList.remove('active');
+                bidItemsTable.innerHTML = '';
+            }
+        });
+        
+        // Supplier selection handler
+        supplierSelect.addEventListener('change', function() {
+            triggerSupplierChange(this.value);
+        });
+        
+        function triggerSupplierChange(supplierId) {
+            const selectedOption = Array.from(supplierSelect.options).find(opt => opt.value === supplierId);
+            
+            if (selectedOption && selectedOption.value) {
+                supplierInfo.classList.add('active');
+                document.getElementById('selectedSupplierAddress').textContent = selectedOption.dataset.address || 'Not provided';
+                document.getElementById('selectedSupplierContact').textContent = selectedOption.dataset.contact || 'Not provided';
+                document.getElementById('selectedSupplierPhone').textContent = selectedOption.dataset.phone || 'Not provided';
+                document.getElementById('selectedSupplierEmail').textContent = selectedOption.dataset.email || 'Not provided';
+                
+                // Auto-fill delivery address if empty
+                if (!deliveryAddressTextarea.value && selectedOption.dataset.address) {
+                    deliveryAddressTextarea.value = `University Main Campus\nProcurement Department\nStore Room 101\n${selectedOption.dataset.address}`;
+                }
+            } else {
+                supplierInfo.classList.remove('active');
+            }
+        }
+        
+        // Form validation
+        const poForm = document.getElementById('poForm');
+        poForm.addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // Clear previous errors
+            document.querySelectorAll('.form-group').forEach(group => {
+                group.classList.remove('has-error');
+                const errorMsg = group.querySelector('.error-message');
+                if (errorMsg) errorMsg.remove();
+            });
+            
+            // Validate delivery date is in the future
+            const deliveryDate = new Date(deliveryDateInput.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (deliveryDate <= today) {
+                showError(deliveryDateInput, 'Delivery date must be in the future');
+                isValid = false;
+            }
+            
+            // Validate supplier is selected
+            if (!supplierSelect.value) {
+                showError(supplierSelect, 'Please select a supplier');
+                isValid = false;
+            }
+            
+            // Validate delivery address is provided
+            if (!deliveryAddressTextarea.value.trim()) {
+                showError(deliveryAddressTextarea, 'Delivery address is required');
+                isValid = false;
+            }
+            
+            // Validate payment terms are provided
+            if (!paymentTermsTextarea.value.trim()) {
+                showError(paymentTermsTextarea, 'Payment terms are required');
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                e.preventDefault();
+                // Scroll to first error
+                const firstError = document.querySelector('.has-error');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        });
+        
+        function showError(input, message) {
+            const formGroup = input.closest('.form-group');
+            formGroup.classList.add('has-error');
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `<i class="bi bi-exclamation-circle"></i> ${message}`;
+            
+            input.parentNode.insertBefore(errorDiv, input.nextSibling);
+        }
+        
+        // Auto-fill sample payment terms if empty and no bid selected
+        if (!paymentTermsTextarea.value && !bidSelect.value) {
+            paymentTermsTextarea.value = 'Payment upon delivery and acceptance. Net 30 days from invoice date. All taxes included.';
+        }
+    });
+</script>
 {% endblock %}

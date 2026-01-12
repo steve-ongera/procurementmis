@@ -28,6 +28,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'pms',
     'django.contrib.humanize',
+    'crispy_forms',
+    'crispy_bootstrap5',   # if using Bootstrap 5
 ]
 
 MIDDLEWARE = [

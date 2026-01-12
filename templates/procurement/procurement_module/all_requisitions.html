@@ -1,73 +1,611 @@
 <!-- ========================================== -->
-<!-- 3. procurement/procurement_module/all_requisitions.html -->
+<!-- procurement/procurement_module/all_requisitions.html -->
 <!-- ========================================== -->
 {% extends 'base.html' %}
 {% load humanize %}
 
+{% block title %}All Requisitions - Procurement Module{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    /* Reduced font sizes throughout */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem; /* Reduced from 1.75rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.625rem; /* Reduced from 0.75rem */
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.75rem; /* Reduced padding */
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.6875rem; /* Smaller font for small buttons */
+    }
+
+    .btn i {
+        font-size: 0.875rem; /* Reduced from 1rem */
+    }
+
+    .stats-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem; /* Reduced from 1.25rem */
+        margin-bottom: 1.5rem;
+    }
+
+    .stats-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .stats-label {
+        font-size: 0.875rem; /* Reduced from 0.9375rem */
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    .stats-value {
+        font-size: 1.125rem; /* Reduced from 1.25rem */
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem; /* Reduced from 1.5rem */
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-title {
+        font-size: 0.875rem; /* Reduced from 0.9375rem */
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-title i {
+        color: var(--primary-color);
+        font-size: 1rem; /* Reduced from 1.125rem */
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .filter-label {
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .filter-input,
+    .filter-select {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+        color: #1E293B;
+        background: white;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .table-container {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8125rem; /* Reduced from 0.875rem */
+    }
+
+    th {
+        background: var(--table-header);
+        text-align: left;
+        padding: 0.75rem 1rem; /* Reduced padding */
+        font-weight: 600;
+        color: #475569;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.625rem 1rem; /* Reduced padding */
+        border-bottom: 1px solid var(--border-color);
+        color: #1E293B;
+        vertical-align: middle;
+    }
+
+    tr:last-child td {
+        border-bottom: none;
+    }
+
+    tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .amount {
+        font-weight: 600;
+        color: #1E293B;
+        font-size: 0.8125rem;
+        white-space: nowrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem; /* Reduced padding */
+        border-radius: 0.75rem; /* Reduced from 1rem */
+        font-size: 0.6875rem; /* Reduced from 0.75rem */
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    .status-draft { background: #F1F5F9; color: #64748B; border: 1px solid #E2E8F0; }
+    .status-submitted { background: #DBEAFE; color: #1E40AF; border: 1px solid #BFDBFE; }
+    .status-pending { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+    .status-approved { background: #D1FAE5; color: #065F46; border: 1px solid #A7F3D0; }
+    .status-rejected { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+    .status-processing { background: #E0F2FE; color: #075985; border: 1px solid #BAE6FD; }
+    .status-completed { background: #D1FAE5; color: #065F46; border: 1px solid #A7F3D0; }
+    .status-cancelled { background: #F3F4F6; color: #374151; border: 1px solid #E5E7EB; }
+
+    .actions-cell {
+        display: flex;
+        gap: 0.375rem;
+        flex-wrap: wrap;
+    }
+
+    .action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+
+    .action-link:hover {
+        background: var(--primary-light);
+        border-color: var(--border-color);
+    }
+
+    .action-link i {
+        font-size: 0.75rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem 1rem; /* Reduced padding */
+        color: #94A3B8;
+        font-size: 0.75rem; /* Reduced from 0.875rem */
+    }
+
+    .empty-state i {
+        font-size: 1.5rem; /* Reduced from 2rem */
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--table-header);
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .pagination-info {
+        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        color: var(--secondary-color);
+    }
+
+    .pagination {
+        display: flex;
+        gap: 0.375rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .pagination-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .pagination-link:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+    }
+
+    .pagination-link.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .pagination-link.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #F8FAFC;
+    }
+
+    .pagination-link.disabled:hover {
+        background: #F8FAFC;
+        border-color: var(--border-color);
+    }
+
+    @media (max-width: 768px) {
+        .filter-form {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            min-width: 800px;
+        }
+        
+        .actions-cell {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>All Requisitions</h1>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">All Requisitions</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>All Requisitions</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'requisition_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            New Requisition
+        </a>
+        <a href="{% url 'procurement_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
 
-<form method="get">
-    <input type="text" name="search" placeholder="Search..." value="{{ request.GET.search }}">
+<!-- Total Count Stats -->
+<div class="stats-card">
+    <div class="stats-content">
+        <div class="stats-label">Total Requisitions</div>
+        <div class="stats-value">{{ total_count|intcomma }}</div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="filter-card">
+    <h3 class="filter-title">
+        <i class="bi bi-funnel"></i>
+        Filter Requisitions
+    </h3>
     
-    <select name="status">
-        <option value="">All Status</option>
-        {% for value, label in status_choices %}
-        <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-    </select>
+    <form method="get" class="filter-form">
+        <div class="filter-group">
+            <label class="filter-label" for="search">Search</label>
+            <input type="text" 
+                   name="search" 
+                   id="search"
+                   class="filter-input" 
+                   placeholder="Search by number, title, department..." 
+                   value="{{ request.GET.search }}">
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="status">Status</label>
+            <select name="status" id="status" class="filter-select">
+                <option value="">All Status</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label" for="department">Department</label>
+            <select name="department" id="department" class="filter-select">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}" {% if request.GET.department == dept.id|stringformat:"s" %}selected{% endif %}>
+                    {{ dept.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        {% if request.GET.search or request.GET.status or request.GET.department %}
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+            <a href="{% url 'procurement_all_requisitions' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+        </div>
+        {% else %}
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Requisitions Table -->
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Requisition #</th>
+                <th>Title</th>
+                <th>Department</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in page_obj %}
+            <tr>
+                <td>
+                    <strong>{{ req.requisition_number }}</strong>
+                </td>
+                <td>{{ req.title|truncatechars:40 }}</td>
+                <td>{{ req.department.name|truncatechars:20 }}</td>
+                <td class="amount">KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
+                <td>
+                    <span class="status-badge status-{{ req.status|lower }}">
+                        {{ req.get_status_display }}
+                    </span>
+                </td>
+                <td>{{ req.created_at|date:"M d, Y" }}</td>
+                <td class="actions-cell">
+                    <a href="{% url 'requisition_detail' req.id %}" class="action-link" title="View Details">
+                        <i class="bi bi-eye"></i>
+                        View
+                    </a>
+                    {% if req.status == 'draft' or req.status == 'submitted' %}
+                    <a href="{% url 'requisition_update' req.id %}" class="action-link" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                        Edit
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="empty-state">
+                    <i class="bi bi-clipboard-x"></i>
+                    <p>No requisitions found{% if request.GET.search or request.GET.status or request.GET.department %} matching your filters{% endif %}.</p>
+                    {% if request.GET.search or request.GET.status or request.GET.department %}
+                    <a href="{% url 'procurement_all_requisitions' %}" class="btn btn-sm" style="margin-top: 0.5rem;">
+                        Clear filters to see all requisitions
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     
-    <select name="department">
-        <option value="">All Departments</option>
-        {% for dept in departments %}
-        <option value="{{ dept.id }}" {% if request.GET.department == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
-        {% endfor %}
-    </select>
-    
-    <button type="submit">Filter</button>
-    <a href="{% url 'procurement_all_requisitions' %}">Clear</a>
-</form>
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-container">
+        <div class="pagination-info">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ total_count }} entries
+        </div>
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}page=1" 
+                   class="pagination-link" title="First Page">
+                    <i class="bi bi-chevron-double-left"></i>
+                </a>
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                   class="pagination-link" title="Previous Page">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            {% else %}
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-double-left"></i>
+                </span>
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-left"></i>
+                </span>
+            {% endif %}
 
-<p>Total: {{ total_count }}</p>
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="pagination-link active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}page={{ num }}" 
+                       class="pagination-link">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
 
-<table>
-    <thead>
-        <tr>
-            <th>Requisition #</th>
-            <th>Title</th>
-            <th>Department</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for req in page_obj %}
-        <tr>
-            <td>{{ req.requisition_number }}</td>
-            <td>{{ req.title }}</td>
-            <td>{{ req.department.name }}</td>
-            <td>KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
-            <td>{{ req.get_status_display }}</td>
-            <td>{{ req.created_at|date:"M d, Y" }}</td>
-            <td>
-                <a href="#">View</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-{% if page_obj.has_other_pages %}
-<div class="pagination">
-    {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
-    {% endif %}
-    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+            {% if page_obj.has_next %}
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                   class="pagination-link" title="Next Page">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}page={{ page_obj.paginator.num_pages }}" 
+                   class="pagination-link" title="Last Page">
+                    <i class="bi bi-chevron-double-right"></i>
+                </a>
+            {% else %}
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-right"></i>
+                </span>
+                <span class="pagination-link disabled">
+                    <i class="bi bi-chevron-double-right"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
     {% endif %}
 </div>
-{% endif %}
 {% endblock %}

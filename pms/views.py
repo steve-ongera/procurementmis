@@ -97,7 +97,7 @@ def dashboard_view(request):
     elif role == 'HOD':
         return hod_dashboard(request)
     elif role == 'PROCUREMENT':
-        return procurement_dashboard(request)
+        return procurement_dashboard_view(request)
     elif role == 'FINANCE':
         return finance_dashboard_view(request)
     elif role == 'STORES':

@@ -3,17 +3,17 @@
         <div class="logo">
             <i class="fas fa-shopping-cart"></i>
         </div>
-        <span class="logo-text">Procument MIS</span>
+        <span class="logo-text">Procurement MIS</span>
     </div>
 
     <!-- Main Section -->
     <div class="menu-section">
         <div class="menu-title">MAIN</div>
-        <a href="{% url 'dashboard' %}" class="menu-item active">
+        <a href="{% url 'procurement_dashboard' %}" class="menu-item active">
             <i class="fas fa-home"></i>
             <span>Dashboard</span>
         </a>
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_analytics' %}" class="menu-item">
             <i class="fas fa-chart-line"></i>
             <span>Procurement Analytics</span>
         </a>
@@ -23,18 +23,20 @@
     <div class="menu-section">
         <div class="menu-title">REQUISITIONS</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_all_requisitions' %}" class="menu-item">
             <i class="fas fa-inbox"></i>
             <span>All Requisitions</span>
-            <span class="badge">8</span>
+            {% if pending_count %}
+            <span class="badge">{{ pending_count }}</span>
+            {% endif %}
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_pending_requisitions' %}" class="menu-item">
             <i class="fas fa-clock"></i>
             <span>Pending Processing</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_processed_requisitions' %}" class="menu-item">
             <i class="fas fa-check"></i>
             <span>Processed</span>
         </a>
@@ -50,13 +52,13 @@
             <i class="fas fa-chevron-right arrow"></i>
         </div>
         <div class="submenu" id="submenu-tenders">
-            <a href="#" class="submenu-item">Active Tenders</a>
-            <a href="#" class="submenu-item">Create Tender</a>
-            <a href="#" class="submenu-item">Closed Tenders</a>
-            <a href="#" class="submenu-item">Tender Evaluation</a>
+            <a href="{% url 'procurement_active_tenders' %}" class="submenu-item">Active Tenders</a>
+            <a href="{% url 'procurement_create_tender' %}" class="submenu-item">Create Tender</a>
+            <a href="{% url 'procurement_closed_tenders' %}" class="submenu-item">Closed Tenders</a>
+            <a href="{% url 'procurement_tender_evaluation' %}" class="submenu-item">Tender Evaluation</a>
         </div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_bids_management' %}" class="menu-item">
             <i class="fas fa-file-signature"></i>
             <span>Bids Management</span>
         </a>
@@ -67,13 +69,13 @@
             <i class="fas fa-chevron-right arrow"></i>
         </div>
         <div class="submenu" id="submenu-orders">
-            <a href="#" class="submenu-item">All Orders</a>
-            <a href="#" class="submenu-item">Create Order</a>
-            <a href="#" class="submenu-item">Pending Orders</a>
-            <a href="#" class="submenu-item">Completed Orders</a>
+            <a href="{% url 'procurement_all_orders' %}" class="submenu-item">All Orders</a>
+            <a href="{% url 'procurement_create_order' %}" class="submenu-item">Create Order</a>
+            <a href="{% url 'procurement_pending_orders' %}" class="submenu-item">Pending Orders</a>
+            <a href="{% url 'procurement_completed_orders' %}" class="submenu-item">Completed Orders</a>
         </div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_contracts' %}" class="menu-item">
             <i class="fas fa-file-contract"></i>
             <span>Contracts</span>
         </a>
@@ -83,22 +85,22 @@
     <div class="menu-section">
         <div class="menu-title">SUPPLIERS</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_all_suppliers' %}" class="menu-item">
             <i class="fas fa-truck"></i>
             <span>All Suppliers</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_add_supplier' %}" class="menu-item">
             <i class="fas fa-user-plus"></i>
             <span>Add Supplier</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_supplier_evaluation' %}" class="menu-item">
             <i class="fas fa-star"></i>
             <span>Supplier Evaluation</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_blacklisted_suppliers' %}" class="menu-item">
             <i class="fas fa-ban"></i>
             <span>Blacklisted</span>
         </a>
@@ -108,12 +110,12 @@
     <div class="menu-section">
         <div class="menu-title">REPORTS</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_reports' %}" class="menu-item">
             <i class="fas fa-chart-bar"></i>
             <span>Procurement Reports</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'procurement_spend_analysis' %}" class="menu-item">
             <i class="fas fa-file-invoice-dollar"></i>
             <span>Spend Analysis</span>
         </a>
