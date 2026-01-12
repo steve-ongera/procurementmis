@@ -13737,3 +13737,739 @@ def finance_help_view(request):
     
     context = {}
     return render(request, 'finance/finance_module/help.html', context)
+
+# procurement/views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Sum, Count, Q, Avg
+from django.core.paginator import Paginator
+from django.utils import timezone
+from datetime import timedelta
+from decimal import Decimal
+
+from .models import (
+    Requisition, Tender, Bid, PurchaseOrder, Supplier, Contract,
+    RequisitionApproval, BidEvaluation, Department, ItemCategory
+)
+
+
+def check_procurement_permission(user):
+    """Check if user has procurement officer permissions"""
+    return user.role in ['PROCUREMENT', 'ADMIN']
+
+
+# ============================================================================
+# DASHBOARD & ANALYTICS
+# ============================================================================
+
+@login_required
+def procurement_dashboard_view(request):
+    """Procurement officer dashboard"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    # Get statistics
+    pending_requisitions = Requisition.objects.filter(
+        status='PROCUREMENT_APPROVED'
+    ).count()
+    
+    active_tenders = Tender.objects.filter(
+        status='PUBLISHED',
+        closing_date__gte=timezone.now()
+    ).count()
+    
+    pending_pos = PurchaseOrder.objects.filter(
+        status__in=['DRAFT', 'PENDING_APPROVAL']
+    ).count()
+    
+    active_suppliers = Supplier.objects.filter(
+        status='APPROVED'
+    ).count()
+    
+    # Recent activities
+    recent_requisitions = Requisition.objects.filter(
+        status__in=['SUBMITTED', 'HOD_APPROVED', 'BUDGET_APPROVED']
+    ).select_related('department', 'requested_by').order_by('-created_at')[:5]
+    
+    recent_tenders = Tender.objects.all().select_related(
+        'requisition'
+    ).order_by('-created_at')[:5]
+    
+    recent_pos = PurchaseOrder.objects.all().select_related(
+        'supplier', 'requisition'
+    ).order_by('-created_at')[:5]
+    
+    # Monthly trends
+    current_month = timezone.now().month
+    monthly_spend = PurchaseOrder.objects.filter(
+        po_date__month=current_month,
+        status__in=['APPROVED', 'SENT', 'DELIVERED']
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    context = {
+        'pending_requisitions': pending_requisitions,
+        'active_tenders': active_tenders,
+        'pending_pos': pending_pos,
+        'active_suppliers': active_suppliers,
+        'recent_requisitions': recent_requisitions,
+        'recent_tenders': recent_tenders,
+        'recent_pos': recent_pos,
+        'monthly_spend': monthly_spend,
+    }
+    
+    return render(request, 'procurement/procurement_module/dashboard.html', context)
+
+
+@login_required
+def procurement_analytics_view(request):
+    """Procurement analytics and insights"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    # Date range filter
+    date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
+    date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+    
+    # Spend analysis
+    total_spend = PurchaseOrder.objects.filter(
+        po_date__gte=date_from,
+        po_date__lte=date_to,
+        status__in=['APPROVED', 'SENT', 'DELIVERED']
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    # Department spending
+    dept_spending = PurchaseOrder.objects.filter(
+        po_date__gte=date_from,
+        po_date__lte=date_to,
+        status__in=['APPROVED', 'SENT', 'DELIVERED']
+    ).values(
+        'requisition__department__name'
+    ).annotate(
+        total=Sum('total_amount')
+    ).order_by('-total')[:10]
+    
+    # Supplier performance
+    supplier_stats = PurchaseOrder.objects.filter(
+        po_date__gte=date_from,
+        po_date__lte=date_to
+    ).values(
+        'supplier__name'
+    ).annotate(
+        order_count=Count('id'),
+        total_value=Sum('total_amount')
+    ).order_by('-total_value')[:10]
+    
+    # Processing times
+    avg_processing_time = Requisition.objects.filter(
+        status='APPROVED',
+        submitted_at__gte=date_from,
+        updated_at__lte=date_to
+    ).annotate(
+        processing_days=(timezone.now() - timezone.now())  # Placeholder
+    ).count()
+    
+    context = {
+        'date_from': date_from,
+        'date_to': date_to,
+        'total_spend': total_spend,
+        'dept_spending': dept_spending,
+        'supplier_stats': supplier_stats,
+        'avg_processing_time': avg_processing_time,
+    }
+    
+    return render(request, 'procurement/procurement_module/analytics.html', context)
+
+
+# ============================================================================
+# REQUISITIONS MANAGEMENT
+# ============================================================================
+
+@login_required
+def procurement_all_requisitions_view(request):
+    """List all requisitions"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    # Filters
+    status = request.GET.get('status', '')
+    department = request.GET.get('department', '')
+    search = request.GET.get('search', '')
+    
+    requisitions = Requisition.objects.all().select_related(
+        'department', 'requested_by', 'budget'
+    ).order_by('-created_at')
+    
+    if status:
+        requisitions = requisitions.filter(status=status)
+    if department:
+        requisitions = requisitions.filter(department_id=department)
+    if search:
+        requisitions = requisitions.filter(
+            Q(requisition_number__icontains=search) |
+            Q(title__icontains=search)
+        )
+    
+    paginator = Paginator(requisitions, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    departments = Department.objects.all()
+    
+    context = {
+        'page_obj': page_obj,
+        'departments': departments,
+        'total_count': requisitions.count(),
+        'status_choices': Requisition.STATUS_CHOICES,
+    }
+    
+    return render(request, 'procurement/procurement_module/all_requisitions.html', context)
+
+
+@login_required
+def procurement_pending_requisitions_view(request):
+    """List pending requisitions for procurement processing"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    requisitions = Requisition.objects.filter(
+        status__in=['SUBMITTED', 'HOD_APPROVED', 'BUDGET_APPROVED']
+    ).select_related(
+        'department', 'requested_by', 'budget'
+    ).order_by('-created_at')
+    
+    paginator = Paginator(requisitions, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    total_value = requisitions.aggregate(Sum('estimated_amount'))['estimated_amount__sum'] or 0
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': requisitions.count(),
+        'total_value': total_value,
+    }
+    
+    return render(request, 'procurement/procurement_module/pending_requisitions.html', context)
+
+
+@login_required
+def procurement_processed_requisitions_view(request):
+    """List processed requisitions"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    requisitions = Requisition.objects.filter(
+        status__in=['APPROVED', 'PROCUREMENT_APPROVED']
+    ).select_related(
+        'department', 'requested_by', 'budget'
+    ).order_by('-updated_at')
+    
+    paginator = Paginator(requisitions, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': requisitions.count(),
+    }
+    
+    return render(request, 'procurement/procurement_module/processed_requisitions.html', context)
+
+
+# ============================================================================
+# TENDERS MANAGEMENT
+# ============================================================================
+
+@login_required
+def procurement_active_tenders_view(request):
+    """List active tenders"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    tenders = Tender.objects.filter(
+        status='PUBLISHED',
+        closing_date__gte=timezone.now()
+    ).select_related('requisition').order_by('closing_date')
+    
+    paginator = Paginator(tenders, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': tenders.count(),
+    }
+    
+    return render(request, 'procurement/procurement_module/active_tenders.html', context)
+
+
+@login_required
+def procurement_create_tender_view(request):
+    """Create new tender"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        # Handle tender creation
+        messages.success(request, 'Tender created successfully.')
+        return redirect('procurement_active_tenders')
+    
+    # Get approved requisitions without tenders
+    requisitions = Requisition.objects.filter(
+        status='APPROVED'
+    ).exclude(
+        tenders__isnull=False
+    ).select_related('department')
+    
+    suppliers = Supplier.objects.filter(status='APPROVED')
+    
+    context = {
+        'requisitions': requisitions,
+        'suppliers': suppliers,
+        'tender_types': Tender.TENDER_TYPES,
+        'methods': Tender.METHOD_CHOICES,
+    }
+    
+    return render(request, 'procurement/procurement_module/create_tender.html', context)
+
+
+@login_required
+def procurement_closed_tenders_view(request):
+    """List closed tenders"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    tenders = Tender.objects.filter(
+        status__in=['CLOSED', 'AWARDED', 'CANCELLED']
+    ).select_related('requisition').order_by('-closing_date')
+    
+    paginator = Paginator(tenders, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': tenders.count(),
+    }
+    
+    return render(request, 'procurement/procurement_module/closed_tenders.html', context)
+
+
+@login_required
+def procurement_tender_evaluation_view(request):
+    """Tender evaluation dashboard"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    tenders = Tender.objects.filter(
+        status__in=['CLOSED', 'EVALUATING']
+    ).select_related('requisition').order_by('-closing_date')
+    
+    # Get tenders with bids
+    tenders_with_bids = []
+    for tender in tenders:
+        bid_count = tender.bids.count()
+        if bid_count > 0:
+            tenders_with_bids.append({
+                'tender': tender,
+                'bid_count': bid_count,
+                'evaluated_count': tender.bids.filter(evaluations__isnull=False).distinct().count()
+            })
+    
+    context = {
+        'tenders_with_bids': tenders_with_bids,
+    }
+    
+    return render(request, 'procurement/procurement_module/tender_evaluation.html', context)
+
+
+# ============================================================================
+# BIDS MANAGEMENT
+# ============================================================================
+
+@login_required
+def procurement_bids_management_view(request):
+    """Manage all bids"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    status = request.GET.get('status', '')
+    tender_id = request.GET.get('tender', '')
+    
+    bids = Bid.objects.all().select_related(
+        'tender', 'supplier'
+    ).order_by('-submitted_at')
+    
+    if status:
+        bids = bids.filter(status=status)
+    if tender_id:
+        bids = bids.filter(tender_id=tender_id)
+    
+    paginator = Paginator(bids, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    tenders = Tender.objects.filter(status__in=['PUBLISHED', 'CLOSED', 'EVALUATING'])
+    
+    context = {
+        'page_obj': page_obj,
+        'tenders': tenders,
+        'status_choices': Bid.STATUS_CHOICES,
+        'total_count': bids.count(),
+    }
+    
+    return render(request, 'procurement/procurement_module/bids_management.html', context)
+
+
+# ============================================================================
+# PURCHASE ORDERS
+# ============================================================================
+
+@login_required
+def procurement_all_orders_view(request):
+    """List all purchase orders"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    status = request.GET.get('status', '')
+    search = request.GET.get('search', '')
+    
+    orders = PurchaseOrder.objects.all().select_related(
+        'supplier', 'requisition'
+    ).order_by('-created_at')
+    
+    if status:
+        orders = orders.filter(status=status)
+    if search:
+        orders = orders.filter(
+            Q(po_number__icontains=search) |
+            Q(supplier__name__icontains=search)
+        )
+    
+    paginator = Paginator(orders, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    total_value = orders.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': orders.count(),
+        'total_value': total_value,
+        'status_choices': PurchaseOrder.STATUS_CHOICES,
+    }
+    
+    return render(request, 'procurement/procurement_module/all_orders.html', context)
+
+
+@login_required
+def procurement_create_order_view(request):
+    """Create new purchase order"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        # Handle PO creation
+        messages.success(request, 'Purchase order created successfully.')
+        return redirect('procurement_all_orders')
+    
+    # Get awarded bids without POs
+    awarded_bids = Bid.objects.filter(
+        status='AWARDED',
+        purchase_order__isnull=True
+    ).select_related('tender', 'supplier')
+    
+    suppliers = Supplier.objects.filter(status='APPROVED')
+    
+    context = {
+        'awarded_bids': awarded_bids,
+        'suppliers': suppliers,
+    }
+    
+    return render(request, 'procurement/procurement_module/create_order.html', context)
+
+
+@login_required
+def procurement_pending_orders_view(request):
+    """List pending purchase orders"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    orders = PurchaseOrder.objects.filter(
+        status__in=['DRAFT', 'PENDING_APPROVAL']
+    ).select_related('supplier', 'requisition').order_by('-created_at')
+    
+    paginator = Paginator(orders, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': orders.count(),
+    }
+    
+    return render(request, 'procurement/procurement_module/pending_orders.html', context)
+
+
+@login_required
+def procurement_completed_orders_view(request):
+    """List completed purchase orders"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    orders = PurchaseOrder.objects.filter(
+        status__in=['DELIVERED', 'CLOSED']
+    ).select_related('supplier', 'requisition').order_by('-updated_at')
+    
+    paginator = Paginator(orders, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': orders.count(),
+    }
+    
+    return render(request, 'procurement/procurement_module/completed_orders.html', context)
+
+
+# ============================================================================
+# CONTRACTS
+# ============================================================================
+
+@login_required
+def procurement_contracts_view(request):
+    """List all contracts"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    status = request.GET.get('status', '')
+    contract_type = request.GET.get('type', '')
+    
+    contracts = Contract.objects.all().select_related(
+        'supplier', 'purchase_order'
+    ).order_by('-created_at')
+    
+    if status:
+        contracts = contracts.filter(status=status)
+    if contract_type:
+        contracts = contracts.filter(contract_type=contract_type)
+    
+    paginator = Paginator(contracts, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    total_value = contracts.aggregate(Sum('contract_value'))['contract_value__sum'] or 0
+    active_count = contracts.filter(status='ACTIVE').count()
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': contracts.count(),
+        'total_value': total_value,
+        'active_count': active_count,
+        'status_choices': Contract.STATUS_CHOICES,
+        'type_choices': Contract.CONTRACT_TYPES,
+    }
+    
+    return render(request, 'procurement/procurement_module/contracts.html', context)
+
+
+# ============================================================================
+# SUPPLIERS
+# ============================================================================
+
+@login_required
+def procurement_all_suppliers_view(request):
+    """List all suppliers"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    status = request.GET.get('status', '')
+    search = request.GET.get('search', '')
+    
+    suppliers = Supplier.objects.all().prefetch_related('categories').order_by('name')
+    
+    if status:
+        suppliers = suppliers.filter(status=status)
+    if search:
+        suppliers = suppliers.filter(
+            Q(name__icontains=search) |
+            Q(supplier_number__icontains=search) |
+            Q(email__icontains=search)
+        )
+    
+    paginator = Paginator(suppliers, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': suppliers.count(),
+        'status_choices': Supplier.STATUS_CHOICES,
+    }
+    
+    return render(request, 'procurement/procurement_module/all_suppliers.html', context)
+
+
+@login_required
+def procurement_add_supplier_view(request):
+    """Add new supplier"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        # Handle supplier creation
+        messages.success(request, 'Supplier added successfully.')
+        return redirect('procurement_all_suppliers')
+    
+    categories = ItemCategory.objects.filter(is_active=True)
+    
+    context = {
+        'categories': categories,
+    }
+    
+    return render(request, 'procurement/procurement_module/add_supplier.html', context)
+
+
+@login_required
+def procurement_supplier_evaluation_view(request):
+    """Supplier performance evaluation"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    suppliers = Supplier.objects.filter(
+        status='APPROVED'
+    ).annotate(
+        order_count=Count('purchase_orders'),
+        total_value=Sum('purchase_orders__total_amount'),
+        avg_rating=Avg('performances__overall_rating')
+    ).order_by('-avg_rating')
+    
+    paginator = Paginator(suppliers, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': suppliers.count(),
+    }
+    
+    return render(request, 'procurement/procurement_module/supplier_evaluation.html', context)
+
+
+@login_required
+def procurement_blacklisted_suppliers_view(request):
+    """List blacklisted suppliers"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    suppliers = Supplier.objects.filter(
+        status='BLACKLISTED'
+    ).order_by('-updated_at')
+    
+    paginator = Paginator(suppliers, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': suppliers.count(),
+    }
+    
+    return render(request, 'procurement/procurement_module/blacklisted_suppliers.html', context)
+
+
+# ============================================================================
+# REPORTS
+# ============================================================================
+
+@login_required
+def procurement_reports_view(request):
+    """Procurement reports dashboard"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    # Summary statistics
+    total_requisitions = Requisition.objects.count()
+    total_tenders = Tender.objects.count()
+    total_pos = PurchaseOrder.objects.count()
+    total_spend = PurchaseOrder.objects.aggregate(
+        Sum('total_amount')
+    )['total_amount__sum'] or 0
+    
+    context = {
+        'total_requisitions': total_requisitions,
+        'total_tenders': total_tenders,
+        'total_pos': total_pos,
+        'total_spend': total_spend,
+    }
+    
+    return render(request, 'procurement/procurement_module/reports.html', context)
+
+
+@login_required
+def procurement_spend_analysis_view(request):
+    """Spend analysis report"""
+    if not check_procurement_permission(request.user):
+        messages.error(request, 'You do not have procurement officer permissions.')
+        return redirect('dashboard')
+    
+    date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=365)).strftime('%Y-%m-%d'))
+    date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+    
+    # Department spending
+    dept_spending = PurchaseOrder.objects.filter(
+        po_date__gte=date_from,
+        po_date__lte=date_to
+    ).values(
+        'requisition__department__name'
+    ).annotate(
+        total=Sum('total_amount'),
+        count=Count('id')
+    ).order_by('-total')
+    
+    # Category spending
+    category_spending = PurchaseOrder.objects.filter(
+        po_date__gte=date_from,
+        po_date__lte=date_to
+    ).values(
+        'requisition__budget__category__name'
+    ).annotate(
+        total=Sum('total_amount')
+    ).order_by('-total')[:10]
+    
+    total_spend = PurchaseOrder.objects.filter(
+        po_date__gte=date_from,
+        po_date__lte=date_to
+    ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    
+    context = {
+        'date_from': date_from,
+        'date_to': date_to,
+        'dept_spending': dept_spending,
+        'category_spending': category_spending,
+        'total_spend': total_spend,
+    }
+    
+    return render(request, 'procurement/procurement_module/spend_analysis.html', context)
