@@ -5,23 +5,465 @@
 
 {% block title %}Finance Help - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.6875rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    /* Help Sections */
+    .help-section {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .help-section h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .help-section h2 i {
+        color: var(--primary-color);
+        font-size: 1.125rem;
+    }
+
+    /* Quick Links Grid */
+    .help-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .help-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .help-card:hover {
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .help-card i {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .help-card h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .help-card p {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    /* Help Content */
+    .help-content {
+        margin-top: 1rem;
+    }
+
+    .help-content h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 1.5rem 0 0.75rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .help-content h3:first-child {
+        margin-top: 0;
+    }
+
+    .help-content h3 i {
+        color: var(--secondary-color);
+        font-size: 0.875rem;
+    }
+
+    .help-content p {
+        font-size: 0.8125rem;
+        color: #475569;
+        line-height: 1.6;
+        margin: 0 0 1rem 0;
+    }
+
+    /* Lists */
+    .help-content ol,
+    .help-content ul {
+        margin: 0.75rem 0 1rem 1.25rem;
+        padding: 0;
+    }
+
+    .help-content li {
+        font-size: 0.8125rem;
+        color: #475569;
+        line-height: 1.6;
+        margin-bottom: 0.5rem;
+    }
+
+    .help-content ol {
+        list-style: decimal;
+    }
+
+    .help-content ul {
+        list-style: disc;
+    }
+
+    .help-content ul ul {
+        margin: 0.5rem 0 0.5rem 1.25rem;
+        list-style: circle;
+    }
+
+    .help-content li strong {
+        color: #1E293B;
+        font-weight: 600;
+    }
+
+    /* Task List */
+    .task-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .task-item {
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        padding: 1rem;
+        transition: border-color 0.2s;
+    }
+
+    .task-item:hover {
+        border-color: #CBD5E1;
+    }
+
+    .task-item h3 {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 0 0 0.375rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .task-item h3 i {
+        font-size: 0.75rem;
+        color: var(--primary-color);
+    }
+
+    .task-item p {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Contact Support */
+    .contact-card {
+        background: linear-gradient(135deg, var(--primary-light), #DBEAFE);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .contact-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: white;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .contact-item i {
+        font-size: 1rem;
+        color: var(--primary-color);
+        margin-top: 0.125rem;
+    }
+
+    .contact-item div {
+        flex: 1;
+    }
+
+    .contact-item h4 {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .contact-item p {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .contact-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .contact-item a:hover {
+        text-decoration: underline;
+    }
+
+    /* Table of Contents */
+    .toc {
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .toc h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.75rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .toc h3 i {
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+
+    .toc-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .toc-list a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .toc-list a:hover {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .toc-list a i {
+        font-size: 0.75rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .help-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.875rem;
+        }
+        
+        .help-section {
+            padding: 1.25rem;
+        }
+        
+        .contact-info {
+            grid-template-columns: 1fr;
+        }
+        
+        .toc-list {
+            flex-direction: column;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.875rem;
+        }
+        
+        .help-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .help-section {
+            padding: 1rem;
+        }
+        
+        .help-section h2 {
+            font-size: 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .contact-card {
+            padding: 1rem;
+        }
+        
+        .task-item {
+            padding: 0.875rem;
+        }
+        
+        .toc {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Finance Help & Documentation</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'finance_dashboard' %}">Finance</a>
             <i class="bi bi-chevron-right"></i>
             <span>Help</span>
         </div>
     </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Table of Contents -->
+<div class="toc">
+    <h3>
+        <i class="bi bi-bookmark"></i>
+        Table of Contents
+    </h3>
+    <ul class="toc-list">
+        <li><a href="#budget-management"><i class="bi bi-chevron-right"></i> Budget Management</a></li>
+        <li><a href="#invoice-verification"><i class="bi bi-chevron-right"></i> Invoice Verification</a></li>
+        <li><a href="#payment-processing"><i class="bi bi-chevron-right"></i> Payment Processing</a></li>
+        <li><a href="#reporting"><i class="bi bi-chevron-right"></i> Reports & Analytics</a></li>
+        <li><a href="#common-tasks"><i class="bi bi-chevron-right"></i> Common Tasks</a></li>
+        <li><a href="#contact-support"><i class="bi bi-chevron-right"></i> Contact Support</a></li>
+    </ul>
 </div>
 
 <!-- Quick Links -->
 <div class="help-section">
-    <h2>Quick Links</h2>
+    <h2>
+        <i class="bi bi-lightning-charge"></i>
+        Quick Links
+    </h2>
     <div class="help-grid">
         <a href="#budget-management" class="help-card">
             <i class="bi bi-wallet2"></i>
@@ -48,10 +490,16 @@
 
 <!-- Budget Management -->
 <div class="help-section" id="budget-management">
-    <h2>Budget Management</h2>
+    <h2>
+        <i class="bi bi-wallet2"></i>
+        Budget Management
+    </h2>
     
     <div class="help-content">
-        <h3>Creating a Budget</h3>
+        <h3>
+            <i class="bi bi-plus-circle"></i>
+            Creating a Budget
+        </h3>
         <ol>
             <li>Navigate to Finance → Budgets → Create Budget</li>
             <li>Select the budget year, department, and category</li>
@@ -60,7 +508,10 @@
             <li>Click "Create Budget" to save</li>
         </ol>
 
-        <h3>Budget Tracking</h3>
+        <h3>
+            <i class="bi bi-graph-up"></i>
+            Budget Tracking
+        </h3>
         <p>Monitor budget utilization through the Budget Tracking page:</p>
         <ul>
             <li>View department-wise and category-wise breakdowns</li>
@@ -69,7 +520,10 @@
             <li>Identify over-utilized or under-utilized budgets</li>
         </ul>
 
-        <h3>Budget Reallocation</h3>
+        <h3>
+            <i class="bi bi-arrow-left-right"></i>
+            Budget Reallocation
+        </h3>
         <p>Transfer funds between budget lines:</p>
         <ol>
             <li>Go to Budget Tracking → Reallocate Budget</li>
@@ -82,10 +536,16 @@
 
 <!-- Invoice Verification -->
 <div class="help-section" id="invoice-verification">
-    <h2>Invoice Verification</h2>
+    <h2>
+        <i class="bi bi-receipt"></i>
+        Invoice Verification
+    </h2>
     
     <div class="help-content">
-        <h3>3-Way Matching Process</h3>
+        <h3>
+            <i class="bi bi-check-square"></i>
+            3-Way Matching Process
+        </h3>
         <p>Verify that invoices match purchase orders and goods received notes:</p>
         <ol>
             <li>Review pending invoices from the dashboard</li>
@@ -102,7 +562,10 @@
             <li>Approve as "Matched" or mark as "Disputed"</li>
         </ol>
 
-        <h3>Approving for Payment</h3>
+        <h3>
+            <i class="bi bi-check-circle"></i>
+            Approving for Payment
+        </h3>
         <p>After verification, approve invoices for payment:</p>
         <ol>
             <li>Review matched invoice details</li>
@@ -115,10 +578,16 @@
 
 <!-- Payment Processing -->
 <div class="help-section" id="payment-processing">
-    <h2>Payment Processing</h2>
+    <h2>
+        <i class="bi bi-credit-card"></i>
+        Payment Processing
+    </h2>
     
     <div class="help-content">
-        <h3>Creating a Payment</h3>
+        <h3>
+            <i class="bi bi-cash-stack"></i>
+            Creating a Payment
+        </h3>
         <ol>
             <li>From approved invoice, click "Process Payment"</li>
             <li>Verify invoice and supplier details</li>
@@ -135,7 +604,10 @@
             <li>Click "Create Payment"</li>
         </ol>
 
-        <h3>Approving Payments</h3>
+        <h3>
+            <i class="bi bi-shield-check"></i>
+            Approving Payments
+        </h3>
         <p>Review and approve pending payments:</p>
         <ol>
             <li>Navigate to pending payments</li>
@@ -144,17 +616,26 @@
             <li>Approve or reject with comments</li>
         </ol>
 
-        <h3>Payment Schedule</h3>
+        <h3>
+            <i class="bi bi-calendar-check"></i>
+            Payment Schedule
+        </h3>
         <p>View and manage upcoming payments by due date to ensure timely processing.</p>
     </div>
 </div>
 
 <!-- Reporting -->
 <div class="help-section" id="reporting">
-    <h2>Reports & Analytics</h2>
+    <h2>
+        <i class="bi bi-graph-up"></i>
+        Reports & Analytics
+    </h2>
     
     <div class="help-content">
-        <h3>Available Reports</h3>
+        <h3>
+            <i class="bi bi-file-text"></i>
+            Available Reports
+        </h3>
         <ul>
             <li><strong>Expenditure Report:</strong> Track spending by department and supplier</li>
             <li><strong>Budget vs Actual:</strong> Compare budget allocations with actual spending</li>
@@ -162,7 +643,10 @@
             <li><strong>Transaction Report:</strong> Detailed transaction listing</li>
         </ul>
 
-        <h3>Exporting Reports</h3>
+        <h3>
+            <i class="bi bi-download"></i>
+            Exporting Reports
+        </h3>
         <p>Most reports can be exported to CSV format:</p>
         <ol>
             <li>Open the desired report</li>
@@ -172,7 +656,10 @@
             <li>Download file</li>
         </ol>
 
-        <h3>Analytics Dashboard</h3>
+        <h3>
+            <i class="bi bi-speedometer2"></i>
+            Analytics Dashboard
+        </h3>
         <p>View comprehensive financial analytics including:</p>
         <ul>
             <li>Monthly spending trends</li>
@@ -185,33 +672,106 @@
 </div>
 
 <!-- Common Tasks -->
-<div class="help-section">
-    <h2>Common Tasks</h2>
+<div class="help-section" id="common-tasks">
+    <h2>
+        <i class="bi bi-list-task"></i>
+        Common Tasks
+    </h2>
     
     <div class="task-list">
         <div class="task-item">
-            <h3>Approve Requisition for Budget</h3>
+            <h3>
+                <i class="bi bi-check-square"></i>
+                Approve Requisition for Budget
+            </h3>
             <p>Finance → Pending Approvals → Select requisition → Review budget availability → Approve/Reject</p>
         </div>
         
         <div class="task-item">
-            <h3>Check Budget Balance</h3>
+            <h3>
+                <i class="bi bi-eye"></i>
+                Check Budget Balance
+            </h3>
             <p>Finance → Budget Tracking → View department or category summary</p>
         </div>
         
         <div class="task-item">
-            <h3>Process Overdue Payments</h3>
+            <h3>
+                <i class="bi bi-clock-history"></i>
+                Process Overdue Payments
+            </h3>
             <p>Finance → Invoices → Overdue → Select invoice → Process Payment</p>
         </div>
         
         <div class="task-item">
-            <h3>Generate Monthly Report</h3>
+            <h3>
+                <i class="bi bi-file-earmark-text"></i>
+                Generate Monthly Report
+            </h3>
             <p>Finance → Reports → Expenditure Report → Set date range → Generate → Export</p>
         </div>
     </div>
 </div>
 
 <!-- Contact Support -->
-<div class="help-section">
-    <h2>Need More Help?</h2>
-    <div class="contact-car
+<div class="help-section" id="contact-support">
+    <h2>
+        <i class="bi bi-question-circle"></i>
+        Need More Help?
+    </h2>
+    <div class="contact-card">
+        <p style="margin: 0 0 1rem 0; font-size: 0.8125rem; color: #1E293B; line-height: 1.6;">
+            Contact the Finance Support Team for assistance with specific issues or to report system problems.
+        </p>
+        <div class="contact-info">
+            <div class="contact-item">
+                <i class="bi bi-telephone"></i>
+                <div>
+                    <h4>Phone Support</h4>
+                    <p>Ext. 1234<br>Mon-Fri, 8:00 AM - 5:00 PM</p>
+                </div>
+            </div>
+            <div class="contact-item">
+                <i class="bi bi-envelope"></i>
+                <div>
+                    <h4>Email Support</h4>
+                    <p><a href="mailto:finance-support@university.edu">finance-support@university.edu</a><br>Response within 24 hours</p>
+                </div>
+            </div>
+            <div class="contact-item">
+                <i class="bi bi-chat-left-text"></i>
+                <div>
+                    <h4>Live Chat</h4>
+                    <p>Available during business hours<br>Click the chat icon in the bottom right</p>
+                </div>
+            </div>
+            <div class="contact-item">
+                <i class="bi bi-person-lines-fill"></i>
+                <div>
+                    <h4>Visit Office</h4>
+                    <p>Finance Office, Admin Building, Room 205<br>Drop-in hours: 10:00 AM - 12:00 PM</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            if (targetId === '#') return;
+            
+            const targetElement = document.querySelector(targetId);
+            if (targetElement) {
+                window.scrollTo({
+                    top: targetElement.offsetTop - 20,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

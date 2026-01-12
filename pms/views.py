@@ -13493,19 +13493,50 @@ def finance_rejected_requisitions_view(request):
     
     requisitions = Requisition.objects.filter(
         status='REJECTED'
-    ).select_related('department', 'requested_by', 'budget').order_by('-updated_at')
+    ).select_related(
+        'department', 
+        'requested_by', 
+        'budget'
+    ).prefetch_related('approvals').order_by('-updated_at')
+    
+    # Add rejection info from approvals
+    for req in requisitions:
+        rejection_approval = req.approvals.filter(status='REJECTED').first()
+        if rejection_approval:
+            req.rejected_by = rejection_approval.approver
+            req.rejected_by_role = rejection_approval.get_approval_stage_display()
+            req.rejection_comments = rejection_approval.comments
+        else:
+            req.rejected_by = None
+            req.rejected_by_role = ''
+            req.rejection_comments = ''
     
     paginator = Paginator(requisitions, 20)
     page = request.GET.get('page')
     page_obj = paginator.get_page(page)
     
+    # Calculate summary stats
+    total_amount = sum(req.estimated_amount for req in requisitions)
+    departments = requisitions.values_list('department', flat=True).distinct()
+    
+    # Calculate average review days
+    avg_days = 0
+    if requisitions:
+        total_days = sum(
+            (req.updated_at - req.created_at).days 
+            for req in requisitions
+        )
+        avg_days = total_days / requisitions.count()
+    
     context = {
         'page_obj': page_obj,
         'total_count': requisitions.count(),
+        'total_amount': total_amount,
+        'departments': Department.objects.filter(id__in=departments),
+        'avg_days': avg_days,
     }
     
     return render(request, 'finance/finance_module/rejected_requisitions.html', context)
-
 
 # ============================================================================
 # REPORTS

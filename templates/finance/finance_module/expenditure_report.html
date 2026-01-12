@@ -1,4 +1,3 @@
-
 <!-- ========================================== -->
 <!-- finance/expenditure_report.html -->
 <!-- ========================================== -->
@@ -7,12 +6,452 @@
 
 {% block title %}Expenditure Report - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.6875rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn i {
+        font-size: 0.875rem;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.375rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #1E293B;
+        background: var(--card-bg);
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    /* Summary Card */
+    .summary-card {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        border: 1px solid var(--primary-dark);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        color: white;
+    }
+
+    .summary-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .summary-label {
+        font-size: 0.9375rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        opacity: 0.9;
+    }
+
+    .summary-meta {
+        font-size: 0.8125rem;
+        opacity: 0.8;
+        font-weight: 500;
+    }
+
+    /* Summary Grid for additional stats */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .stat-label {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .table-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .table-count {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+        background: var(--hover-bg);
+        padding: 0.25rem 0.625rem;
+        border-radius: 1rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 0.75rem 1.25rem;
+        text-align: left;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.8125rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.8125rem;
+    }
+
+    /* Chart Container */
+    .chart-container {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        height: 300px;
+        position: relative;
+    }
+
+    .chart-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chart-title i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 0.875rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.8125rem;
+        margin: 0 0 1.25rem 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .filter-actions .btn {
+            width: 100%;
+        }
+        
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.875rem;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .summary-value {
+            font-size: 1.75rem;
+        }
+        
+        th, td {
+            padding: 0.625rem 0.875rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .table-responsive {
+            margin: 0 -0.5rem;
+        }
+        
+        .table-card {
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        
+        .filter-card,
+        .summary-card {
+            margin: 0 -0.5rem 1.5rem;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        
+        .chart-container {
+            padding: 1rem;
+            height: 250px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Expenditure Report</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'finance_dashboard' %}">Finance</a>
             <i class="bi bi-chevron-right"></i>
@@ -44,14 +483,15 @@
                 <select name="department" class="form-control">
                     <option value="">All Departments</option>
                     {% for dept in departments %}
-                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
                     {% endfor %}
                 </select>
             </div>
         </div>
         <div class="filter-actions">
             <button type="submit" class="btn btn-primary">
-                <i class="bi bi-search"></i> Generate Report
+                <i class="bi bi-search"></i>
+                Generate Report
             </button>
         </div>
     </form>
@@ -64,13 +504,38 @@
     <div class="summary-meta">{{ date_from }} to {{ date_to }}</div>
 </div>
 
+<!-- Additional Stats -->
+<div class="summary-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ transaction_count|intcomma }}</div>
+        <div class="stat-label">Total Transactions</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ supplier_count|intcomma }}</div>
+        <div class="stat-label">Suppliers</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">KES {{ avg_transaction|floatformat:0|intcomma }}</div>
+        <div class="stat-label">Average Transaction</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ dept_count|intcomma }}</div>
+        <div class="stat-label">Departments</div>
+    </div>
+</div>
+
 <!-- Department Expenditure -->
 <div class="table-card">
     <div class="table-header">
-        <h2 class="table-title">
-            <i class="bi bi-building"></i>
-            Expenditure by Department
-        </h2>
+        <div>
+            <h2 class="table-title">
+                <i class="bi bi-building"></i>
+                Expenditure by Department
+            </h2>
+            {% if dept_expenditure %}
+            <div class="table-count">{{ dept_expenditure|length }} departments</div>
+            {% endif %}
+        </div>
     </div>
     {% if dept_expenditure %}
     <div class="table-responsive">
@@ -78,20 +543,40 @@
             <thead>
                 <tr>
                     <th>Department</th>
+                    <th>Code</th>
                     <th>Transactions</th>
                     <th>Total Amount</th>
+                    <th>% of Total</th>
                 </tr>
             </thead>
             <tbody>
                 {% for dept in dept_expenditure %}
                 <tr>
-                    <td>{{ dept.invoice__purchase_order__requisition__department__name }}</td>
+                    <td><strong>{{ dept.invoice__purchase_order__requisition__department__name }}</strong></td>
+                    <td>{{ dept.invoice__purchase_order__requisition__department__code|default:"-" }}</td>
                     <td>{{ dept.count }}</td>
                     <td class="amount-cell">KES {{ dept.total|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% widthratio dept.total total_expenditure 100 as percentage %}
+                        {{ percentage|floatformat:1 }}%
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
+            <tfoot>
+                <tr style="background: var(--table-header);">
+                    <td colspan="2"><strong>TOTAL</strong></td>
+                    <td><strong>{{ transaction_count|intcomma }}</strong></td>
+                    <td class="amount-cell"><strong>KES {{ total_expenditure|floatformat:0|intcomma }}</strong></td>
+                    <td><strong>100.0%</strong></td>
+                </tr>
+            </tfoot>
         </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-building"></i>
+        <p>No department expenditure data available</p>
     </div>
     {% endif %}
 </div>
@@ -99,32 +584,79 @@
 <!-- Supplier Expenditure -->
 <div class="table-card">
     <div class="table-header">
-        <h2 class="table-title">
-            <i class="bi bi-shop"></i>
-            Top 10 Suppliers by Expenditure
-        </h2>
+        <div>
+            <h2 class="table-title">
+                <i class="bi bi-shop"></i>
+                Top Suppliers by Expenditure
+            </h2>
+            {% if supplier_expenditure %}
+            <div class="table-count">{{ supplier_expenditure|length }} suppliers</div>
+            {% endif %}
+        </div>
     </div>
     {% if supplier_expenditure %}
     <div class="table-responsive">
         <table>
             <thead>
                 <tr>
+                    <th>Rank</th>
                     <th>Supplier</th>
                     <th>Transactions</th>
                     <th>Total Amount</th>
+                    <th>% of Total</th>
                 </tr>
             </thead>
             <tbody>
                 {% for supplier in supplier_expenditure %}
                 <tr>
-                    <td>{{ supplier.invoice__supplier__name }}</td>
+                    <td>#{{ forloop.counter }}</td>
+                    <td><strong>{{ supplier.invoice__supplier__name }}</strong></td>
                     <td>{{ supplier.count }}</td>
                     <td class="amount-cell">KES {{ supplier.total|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% widthratio supplier.total total_expenditure 100 as percentage %}
+                        {{ percentage|floatformat:1 }}%
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-shop"></i>
+        <p>No supplier expenditure data available</p>
+    </div>
     {% endif %}
 </div>
+
+<!-- Chart Container (Optional - could add if you have chart data) -->
+{% comment %}
+<div class="chart-container">
+    <h3 class="chart-title">
+        <i class="bi bi-bar-chart"></i>
+        Expenditure Trend
+    </h3>
+    <canvas id="expenditureChart"></canvas>
+</div>
+{% endcomment %}
+
+<script>
+    // Set today as default for date_to if not set
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateToInput = document.querySelector('input[name="date_to"]');
+        const dateFromInput = document.querySelector('input[name="date_from"]');
+        
+        if (!dateToInput.value) {
+            const today = new Date().toISOString().split('T')[0];
+            dateToInput.value = today;
+        }
+        
+        if (!dateFromInput.value) {
+            const firstDayOfMonth = new Date();
+            firstDayOfMonth.setDate(1);
+            dateFromInput.value = firstDayOfMonth.toISOString().split('T')[0];
+        }
+    });
+</script>
 {% endblock %}

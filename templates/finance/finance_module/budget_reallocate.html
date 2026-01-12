@@ -6,12 +6,388 @@
 
 {% block title %}Budget Reallocation - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.6875rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    /* Alert */
+    .alert {
+        padding: 0.875rem 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+    }
+
+    .alert-info {
+        background-color: #EFF6FF;
+        border-color: #BFDBFE;
+        color: #1E40AF;
+    }
+
+    .alert i {
+        font-size: 1rem;
+        margin-top: 0.125rem;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-card form {
+        padding: 0;
+    }
+
+    .form-section {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .form-section:last-child {
+        border-bottom: none;
+    }
+
+    .form-section h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-section h3 i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.375rem;
+    }
+
+    .required:after {
+        content: ' *';
+        color: var(--danger-color);
+    }
+
+    .form-help {
+        display: block;
+        font-size: 0.75rem;
+        color: #94A3B8;
+        margin-top: 0.375rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #1E293B;
+        background: var(--card-bg);
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    select.form-control,
+    input.form-control,
+    textarea.form-control {
+        font-family: inherit;
+    }
+
+    textarea.form-control {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+    /* Error Styling */
+    .error-message {
+        font-size: 0.75rem;
+        color: var(--danger-color);
+        margin-top: 0.375rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .error-message:before {
+        content: '⚠';
+        font-size: 0.875rem;
+    }
+
+    input.error,
+    select.error,
+    textarea.error {
+        border-color: var(--danger-color);
+    }
+
+    input.error:focus,
+    select.error:focus,
+    textarea.error:focus {
+        border-color: var(--danger-color);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    .alert-error {
+        background-color: #FEF2F2;
+        border-color: #FECACA;
+        color: #991B1B;
+        margin: 1.5rem;
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding: 1.25rem 1.5rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn i {
+        font-size: 0.875rem;
+    }
+
+    /* Info Card */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-card h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .info-card h3 i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .guideline-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .guideline-list li {
+        padding: 0.5rem 0;
+        font-size: 0.8125rem;
+        color: #475569;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .guideline-list li:before {
+        content: '✓';
+        color: var(--success-color);
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-top: 0.125rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+            gap: 0.875rem;
+        }
+        
+        .form-section {
+            padding: 1.25rem;
+        }
+        
+        .form-actions {
+            padding: 1rem 1.25rem;
+        }
+        
+        .info-card {
+            padding: 1.25rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.875rem;
+        }
+        
+        .form-section {
+            padding: 1rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .info-card {
+            padding: 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .form-card,
+        .info-card {
+            margin: 0 -0.5rem;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        
+        .form-section h3,
+        .info-card h3 {
+            font-size: 0.875rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Budget Reallocation (Virement)</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'finance_dashboard' %}">Finance</a>
             <i class="bi bi-chevron-right"></i>
@@ -19,6 +395,12 @@
             <i class="bi bi-chevron-right"></i>
             <span>Reallocate</span>
         </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_budget_tracking' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Tracking
+        </a>
     </div>
 </div>
 
@@ -35,11 +417,14 @@
         {% csrf_token %}
         
         <div class="form-section">
-            <h3>Reallocation Details</h3>
+            <h3>
+                <i class="bi bi-arrow-left-right"></i>
+                Reallocation Details
+            </h3>
             
             <div class="form-grid">
                 <div class="form-group">
-                    <label class="form-label">From Budget (Source) *</label>
+                    <label class="form-label required">From Budget (Source)</label>
                     {{ form.from_budget }}
                     {% if form.from_budget.errors %}
                     <div class="error-message">{{ form.from_budget.errors }}</div>
@@ -48,7 +433,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">To Budget (Destination) *</label>
+                    <label class="form-label required">To Budget (Destination)</label>
                     {{ form.to_budget }}
                     {% if form.to_budget.errors %}
                     <div class="error-message">{{ form.to_budget.errors }}</div>
@@ -57,7 +442,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Reallocation Amount *</label>
+                    <label class="form-label required">Reallocation Amount</label>
                     {{ form.amount }}
                     {% if form.amount.errors %}
                     <div class="error-message">{{ form.amount.errors }}</div>
@@ -67,7 +452,7 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">Justification *</label>
+                <label class="form-label required">Justification</label>
                 {{ form.justification }}
                 {% if form.justification.errors %}
                 <div class="error-message">{{ form.justification.errors }}</div>
@@ -78,16 +463,15 @@
 
         {% if form.non_field_errors %}
         <div class="alert alert-error">
+            <i class="bi bi-exclamation-triangle"></i>
             {{ form.non_field_errors }}
         </div>
         {% endif %}
 
         <div class="form-actions">
-            <a href="{% url 'finance_budget_tracking' %}" class="btn">
-                <i class="bi bi-x-circle"></i> Cancel
-            </a>
             <button type="submit" class="btn btn-primary">
-                <i class="bi bi-arrow-left-right"></i> Process Reallocation
+                <i class="bi bi-arrow-left-right"></i>
+                Process Reallocation
             </button>
         </div>
     </form>
@@ -95,7 +479,10 @@
 
 <!-- Instructions -->
 <div class="info-card">
-    <h3>Reallocation Guidelines</h3>
+    <h3>
+        <i class="bi bi-list-check"></i>
+        Reallocation Guidelines
+    </h3>
     <ul class="guideline-list">
         <li>Ensure the source budget has sufficient available balance</li>
         <li>Both budgets must belong to the same fiscal year</li>
@@ -104,5 +491,29 @@
         <li>Contact the budget office for assistance if needed</li>
     </ul>
 </div>
-{% endblock %}
 
+<script>
+    // Add error class to form fields with errors
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if form.errors %}
+            {% for field in form %}
+                {% if field.errors %}
+                    document.querySelector('[name="{{ field.name }}"]').classList.add('error');
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        
+        // Add required indicator to labels
+        const requiredFields = ['from_budget', 'to_budget', 'amount', 'justification'];
+        requiredFields.forEach(fieldName => {
+            const field = document.querySelector(`[name="${fieldName}"]`);
+            if (field) {
+                const label = field.closest('.form-group').querySelector('.form-label');
+                if (label && !label.classList.contains('required')) {
+                    label.classList.add('required');
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
