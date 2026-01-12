@@ -6,41 +6,757 @@
 
 {% block title %}Overdue Invoices - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.6875rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.625rem;
+        font-size: 0.75rem;
+        border-radius: 0.25rem;
+    }
+
+    .btn i {
+        font-size: 0.875rem;
+    }
+
+    /* Alert */
+    .alert {
+        padding: 0.875rem 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+    }
+
+    .alert-warning {
+        background-color: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-danger {
+        background-color: #FEE2E2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    .alert i {
+        font-size: 1rem;
+        margin-top: 0.125rem;
+    }
+
+    /* Summary Stats */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-card.highlight {
+        background: linear-gradient(135deg, #FEE2E2, #FECACA);
+        border-color: var(--danger-color);
+        border-width: 2px;
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .summary-card.highlight .summary-value {
+        color: var(--danger-color);
+        font-size: 1.75rem;
+    }
+
+    .summary-label {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    .summary-card.highlight .summary-label {
+        color: #991B1B;
+        font-weight: 600;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.375rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #1E293B;
+        background: var(--card-bg);
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--danger-color);
+        font-size: 1rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 0.75rem 1.25rem;
+        text-align: left;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.8125rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: #FEF2F2;
+    }
+
+    /* Overdue Row Styling */
+    tbody tr.overdue-row {
+        background: #FEF2F2;
+        border-left: 3px solid var(--danger-color);
+    }
+
+    tbody tr.overdue-row:hover {
+        background: #FEE2E2;
+    }
+
+    .link {
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 0.8125rem;
+    }
+
+    .link:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .due-date-overdue {
+        color: var(--danger-color);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .due-date-overdue i {
+        font-size: 0.75rem;
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.8125rem;
+    }
+
+    /* Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.3125rem 0.625rem;
+        border-radius: 1rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .badge-danger { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+    .badge-warning { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .badge i {
+        font-size: 0.5625rem;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.3125rem 0.625rem;
+        border-radius: 1rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .status-approved { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-verifying { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-matched { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .status-paid { 
+        background: #10B981; 
+        color: white; 
+        border-color: #059669;
+    }
+    .status-disputed { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.875rem;
+        height: 1.875rem;
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .action-btn i {
+        font-size: 0.875rem;
+    }
+
+    /* Urgency Indicators */
+    .urgency-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .urgency-critical {
+        color: var(--danger-color);
+    }
+
+    .urgency-high {
+        color: #F97316;
+    }
+
+    .urgency-medium {
+        color: var(--warning-color);
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--table-header);
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .page-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-decoration: none;
+        background: var(--card-bg);
+        transition: all 0.2s;
+    }
+
+    .page-link:hover {
+        background: var(--hover-bg);
+        border-color: #CBD5E1;
+    }
+
+    .page-info {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 0.875rem;
+        opacity: 0.5;
+        color: var(--success-color);
+    }
+
+    .empty-state p {
+        font-size: 0.8125rem;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .empty-state small {
+        font-size: 0.75rem;
+        color: #94A3B8;
+        opacity: 0.8;
+    }
+
+    /* Export Button */
+    .export-btn {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .export-btn:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .filter-actions .btn {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.875rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .pagination {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        th, td {
+            padding: 0.625rem 0.875rem;
+        }
+        
+        .action-btn {
+            width: 2rem;
+            height: 2rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .table-responsive {
+            margin: 0 -0.5rem;
+        }
+        
+        .table-card {
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        
+        .filter-card {
+            margin: 0 -0.5rem 1.5rem;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        
+        .summary-card {
+            padding: 1rem;
+        }
+        
+        .summary-value {
+            font-size: 1.25rem;
+        }
+        
+        .summary-card.highlight .summary-value {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Overdue Invoices</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'finance_dashboard' %}">Finance</a>
             <i class="bi bi-chevron-right"></i>
             <span>Overdue Invoices</span>
         </div>
     </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_payment_schedule' %}" class="btn">
+            <i class="bi bi-calendar-event"></i>
+            Payment Schedule
+        </a>
+        <a href="{% url 'finance_export_report' %}?type=overdue_invoices&format=csv" class="btn export-btn">
+            <i class="bi bi-download"></i>
+            Export Report
+        </a>
+    </div>
 </div>
 
-<div class="alert alert-warning">
+<!-- Alert -->
+<div class="alert alert-danger">
     <i class="bi bi-exclamation-triangle"></i>
-    <strong>Attention:</strong> These invoices have passed their due date and require immediate action.
+    <strong>URGENT ATTENTION REQUIRED:</strong> These invoices have passed their due date and require immediate payment processing to avoid penalties and maintain good supplier relationships.
 </div>
 
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Invoice #, supplier..." value="{{ request.GET.search }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Days Overdue</label>
+                <select name="overdue_days" class="form-control">
+                    <option value="">All Overdue</option>
+                    <option value="7" {% if request.GET.overdue_days == '7' %}selected{% endif %}>1-7 Days</option>
+                    <option value="30" {% if request.GET.overdue_days == '30' %}selected{% endif %}>8-30 Days</option>
+                    <option value="90" {% if request.GET.overdue_days == '90' %}selected{% endif %}>31-90 Days</option>
+                    <option value="90+" {% if request.GET.overdue_days == '90+' %}selected{% endif %}>90+ Days</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    <option value="APPROVED" {% if request.GET.status == 'APPROVED' %}selected{% endif %}>Approved</option>
+                    <option value="MATCHED" {% if request.GET.status == 'MATCHED' %}selected{% endif %}>Matched</option>
+                    <option value="VERIFYING" {% if request.GET.status == 'VERIFYING' %}selected{% endif %}>Verifying</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Amount Range</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="number" name="amount_min" class="form-control" placeholder="Min" value="{{ request.GET.amount_min }}">
+                    <input type="number" name="amount_max" class="form-control" placeholder="Max" value="{{ request.GET.amount_max }}">
+                </div>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <a href="{% url 'finance_overdue_invoices' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Summary Stats -->
 <div class="summary-grid">
     <div class="summary-card">
-        <div class="summary-value">{{ total_count }}</div>
+        <div class="summary-value">{{ total_count|intcomma }}</div>
         <div class="summary-label">Overdue Invoices</div>
     </div>
-    <div class="summary-card">
+    <div class="summary-card highlight">
         <div class="summary-value">KES {{ total_overdue|floatformat:0|intcomma }}</div>
         <div class="summary-label">Total Overdue Amount</div>
     </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ avg_days_overdue|floatformat:1 }}</div>
+        <div class="summary-label">Avg. Days Overdue</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ supplier_count|intcomma }}</div>
+        <div class="summary-label">Affected Suppliers</div>
+    </div>
 </div>
 
+<!-- Overdue Invoices Table -->
 <div class="table-card">
     <div class="table-header">
         <h2 class="table-title">
             <i class="bi bi-exclamation-triangle"></i>
-            Overdue Invoices ({{ total_count }})
+            Overdue Invoices
+            {% if total_count > 0 %}
+            <span style="color: var(--danger-color); margin-left: 0.5rem;">({{ total_count }})</span>
+            {% endif %}
         </h2>
     </div>
 
@@ -49,12 +765,13 @@
         <table>
             <thead>
                 <tr>
-                    <th>Invoice Number</th>
+                    <th>Invoice #</th>
                     <th>Supplier</th>
                     <th>Due Date</th>
                     <th>Days Overdue</th>
                     <th>Amount</th>
                     <th>Status</th>
+                    <th>Urgency</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -65,53 +782,154 @@
                         <a href="{% url 'finance_invoice_detail' invoice.id %}" class="link">
                             {{ invoice.invoice_number }}
                         </a>
+                        <div class="text-muted" style="font-size: 0.75rem; margin-top: 0.125rem;">
+                            PO: {{ invoice.purchase_order.po_number|default:"-" }}
+                        </div>
                     </td>
-                    <td>{{ invoice.supplier.name }}</td>
-                    <td class="due-date-overdue">{{ invoice.due_date|date:"M d, Y" }}</td>
+                    <td>
+                        <div>{{ invoice.supplier.name }}</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">
+                            {{ invoice.supplier.email|default:"" }}
+                        </div>
+                    </td>
+                    <td class="due-date-overdue">
+                        {{ invoice.due_date|date:"M d, Y" }}
+                        <i class="bi bi-exclamation-circle"></i>
+                    </td>
                     <td>
                         <span class="badge badge-danger">
-                            {{ invoice.due_date|timesince }} overdue
+                            {{ invoice.days_overdue }} days
                         </span>
+                        <div class="text-muted" style="font-size: 0.75rem; margin-top: 0.125rem;">
+                            {{ invoice.due_date|timesince }}
+                        </div>
                     </td>
                     <td class="amount-cell">KES {{ invoice.total_amount|floatformat:0|intcomma }}</td>
                     <td>
                         <span class="status-badge status-{{ invoice.status|lower }}">
+                            <i class="bi {% if invoice.status == 'APPROVED' %}bi-check-circle{% elif invoice.status == 'MATCHED' %}bi-shield-check{% elif invoice.status == 'VERIFYING' %}bi-hourglass-split{% elif invoice.status == 'DISPUTED' %}bi-exclamation-triangle{% else %}bi-circle{% endif %}"></i>
                             {{ invoice.get_status_display }}
                         </span>
                     </td>
                     <td>
-                        <a href="{% url 'finance_invoice_detail' invoice.id %}" class="action-btn" title="View">
+                        {% if invoice.days_overdue >= 90 %}
+                        <span class="urgency-indicator urgency-critical">
+                            <i class="bi bi-fire"></i>
+                            Critical
+                        </span>
+                        {% elif invoice.days_overdue >= 30 %}
+                        <span class="urgency-indicator urgency-high">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            High
+                        </span>
+                        {% elif invoice.days_overdue >= 7 %}
+                        <span class="urgency-indicator urgency-medium">
+                            <i class="bi bi-clock"></i>
+                            Medium
+                        </span>
+                        {% else %}
+                        <span class="urgency-indicator">
+                            <i class="bi bi-bell"></i>
+                            Low
+                        </span>
+                        {% endif %}
+                        <div class="text-muted" style="font-size: 0.75rem; margin-top: 0.125rem;">
+                            {% if invoice.days_overdue >= 90 %}90+ days overdue{% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{% url 'finance_invoice_detail' invoice.id %}" class="action-btn" title="View Details">
                             <i class="bi bi-eye"></i>
                         </a>
                         {% if invoice.status == 'APPROVED' %}
-                        <a href="{% url 'finance_process_payment' invoice.id %}" class="btn btn-sm btn-danger">
-                            <i class="bi bi-credit-card"></i> Pay Now
+                        <a href="{% url 'finance_process_payment' invoice.id %}" class="action-btn btn-danger btn-sm" title="Process Payment Now" style="color: white; padding: 0.25rem 0.625rem; border-radius: 0.25rem;">
+                            <i class="bi bi-credit-card"></i>
+                            Pay
                         </a>
                         {% endif %}
+                        <a href="{% url 'finance_invoice_reminder' invoice.id %}" class="action-btn" title="Send Reminder">
+                            <i class="bi bi-envelope"></i>
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
+            {% if total_count > 10 %}
+            <tfoot style="background: var(--table-header);">
+                <tr>
+                    <td colspan="4" style="text-align: right; padding: 0.75rem; font-weight: 600;">Total Overdue:</td>
+                    <td style="padding: 0.75rem; font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; color: var(--danger-color);">
+                        KES {{ total_overdue|floatformat:0|intcomma }}
+                    </td>
+                    <td colspan="3"></td>
+                </tr>
+            </tfoot>
+            {% endif %}
         </table>
     </div>
 
+    <!-- Pagination -->
     {% if page_obj.has_other_pages %}
     <div class="pagination">
         {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">
+            <i class="bi bi-chevron-left"></i>
+            Previous
+        </a>
         {% endif %}
         <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">
+            Next
+            <i class="bi bi-chevron-right"></i>
+        </a>
         {% endif %}
     </div>
     {% endif %}
     {% else %}
     <div class="empty-state">
         <i class="bi bi-check-circle"></i>
-        <p>No overdue invoices</p>
-        <small>All invoices are being paid on time</small>
+        <p>No overdue invoices found</p>
+        <small>Great work! All invoices are being paid on time.</small>
+        <div style="margin-top: 1rem;">
+            <a href="{% url 'finance_payment_schedule' %}" class="btn btn-primary">
+                <i class="bi bi-calendar-check"></i>
+                View Payment Schedule
+            </a>
+        </div>
     </div>
     {% endif %}
 </div>
+
+<script>
+    // Calculate days overdue for each invoice
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
+        
+        // Update urgency colors based on days overdue
+        const overdueRows = document.querySelectorAll('.overdue-row');
+        overdueRows.forEach(row => {
+            const daysCell = row.querySelector('.badge-danger');
+            if (daysCell) {
+                const daysText = daysCell.textContent;
+                const daysMatch = daysText.match(/\d+/);
+                if (daysMatch) {
+                    const days = parseInt(daysMatch[0]);
+                    if (days >= 90) {
+                        row.style.borderLeftColor = '#991B1B';
+                        row.style.background = '#FEE2E2';
+                    } else if (days >= 30) {
+                        row.style.borderLeftColor = '#F97316';
+                    }
+                }
+            }
+        });
+        
+        // Set up filter defaults
+        const overdueDaysSelect = document.querySelector('select[name="overdue_days"]');
+        if (!overdueDaysSelect.value) {
+            overdueDaysSelect.value = '';
+        }
+    });
+</script>
 {% endblock %}
