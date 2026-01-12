@@ -6,12 +6,561 @@
 
 {% block title %}Approve Payment - {{ payment.payment_number }} - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.6875rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+    }
+
+    .btn i {
+        font-size: 0.875rem;
+    }
+
+    /* Approval Banner */
+    .approval-banner {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        color: white;
+        text-align: center;
+    }
+
+    .approval-banner h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0 0 0.75rem 0;
+        opacity: 0.9;
+    }
+
+    .approval-amount {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .approval-details {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        font-size: 0.8125rem;
+        opacity: 0.9;
+        margin-top: 0.75rem;
+    }
+
+    /* Info Card */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-card h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .info-card h3 i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .info-item {
+        margin-bottom: 0.75rem;
+    }
+
+    .info-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        margin-bottom: 0.375rem;
+    }
+
+    .info-value {
+        font-size: 0.8125rem;
+        color: #1E293B;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    .amount-large {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.3125rem 0.625rem;
+        border-radius: 1rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .status-pending { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-approved { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-rejected { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+    .status-paid { 
+        background: #10B981; 
+        color: white; 
+        border-color: #059669;
+    }
+
+    /* Bank Details Card */
+    .bank-details-card {
+        background: var(--primary-light);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .bank-details-card h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .bank-details-card h3 i {
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+
+    .bank-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .bank-item label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        margin-bottom: 0.25rem;
+    }
+
+    .bank-item div {
+        font-size: 0.8125rem;
+        color: #1E293B;
+        font-weight: 500;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Payment Method Card */
+    .method-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .method-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: white;
+    }
+
+    .method-bank { 
+        background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    }
+    .method-cheque { 
+        background: linear-gradient(135deg, #F59E0B, #D97706);
+    }
+    .method-eft { 
+        background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+    }
+    .method-mobile { 
+        background: linear-gradient(135deg, #10B981, #059669);
+    }
+
+    .method-content {
+        flex: 1;
+    }
+
+    .method-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .method-details {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-card h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .form-card h3 i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.375rem;
+    }
+
+    .required:after {
+        content: ' *';
+        color: var(--danger-color);
+    }
+
+    .form-help {
+        display: block;
+        font-size: 0.75rem;
+        color: #94A3B8;
+        margin-top: 0.375rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #1E293B;
+        background: var(--card-bg);
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea.form-control {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .form-actions .btn {
+        min-width: 140px;
+        justify-content: center;
+    }
+
+    /* Warning Alert */
+    .warning-alert {
+        background: #FEF3C7;
+        border: 1px solid #FDE68A;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .warning-alert i {
+        font-size: 1.25rem;
+        color: var(--warning-color);
+        margin-top: 0.125rem;
+    }
+
+    .warning-alert-content {
+        flex: 1;
+    }
+
+    .warning-alert-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #92400E;
+        margin-bottom: 0.25rem;
+    }
+
+    .warning-alert-details {
+        font-size: 0.8125rem;
+        color: #92400E;
+        line-height: 1.4;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .info-grid,
+        .bank-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .approval-details {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+        }
+        
+        .method-card {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.75rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.875rem;
+        }
+        
+        .approval-amount {
+            font-size: 1.75rem;
+        }
+        
+        .info-grid,
+        .bank-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-card,
+        .info-card,
+        .bank-details-card {
+            padding: 1.25rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .form-card,
+        .info-card,
+        .bank-details-card,
+        .approval-banner,
+        .method-card {
+            margin: 0 -0.5rem 1.5rem;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        
+        .approval-banner {
+            border-radius: 0;
+        }
+        
+        .form-actions .btn {
+            min-width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Approve Payment</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'finance_dashboard' %}">Finance</a>
             <i class="bi bi-chevron-right"></i>
@@ -20,85 +569,301 @@
             <span>Approve</span>
         </div>
     </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_payment_detail' payment.id %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Payment
+        </a>
+    </div>
+</div>
+
+<!-- Approval Banner -->
+<div class="approval-banner">
+    <h2>Payment Authorization Required</h2>
+    <div class="approval-amount">KES {{ payment.payment_amount|floatformat:0|intcomma }}</div>
+    <div class="approval-details">
+        <span>Payment: {{ payment.payment_number }}</span>
+        <span>Invoice: {{ payment.invoice.invoice_number }}</span>
+        <span>Supplier: {{ payment.invoice.supplier.name }}</span>
+    </div>
+</div>
+
+<!-- Warning Alert -->
+<div class="warning-alert">
+    <i class="bi bi-exclamation-triangle"></i>
+    <div class="warning-alert-content">
+        <div class="warning-alert-title">Payment Authorization Required</div>
+        <div class="warning-alert-details">
+            Review all payment details carefully before approval. Once approved, this payment will be marked as completed 
+            and funds will be released to the supplier. Ensure bank details are correct.
+        </div>
+    </div>
 </div>
 
 <!-- Payment Summary -->
 <div class="info-card">
-    <h3>Payment Details</h3>
+    <h3>
+        <i class="bi bi-receipt"></i>
+        Payment Details
+    </h3>
     <div class="info-grid">
         <div class="info-item">
             <label class="info-label">Payment Number</label>
-            <div class="info-value">{{ payment.payment_number }}</div>
+            <div class="info-value">
+                <strong>{{ payment.payment_number }}</strong>
+            </div>
         </div>
         <div class="info-item">
             <label class="info-label">Invoice</label>
-            <div class="info-value">{{ payment.invoice.invoice_number }}</div>
+            <div class="info-value">
+                <a href="{% url 'finance_invoice_detail' payment.invoice.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;">
+                    {{ payment.invoice.invoice_number }}
+                </a>
+                <div style="font-size: 0.75rem; color: #94A3B8;">
+                    Due: {{ payment.invoice.due_date|date:"M d, Y" }}
+                </div>
+            </div>
         </div>
         <div class="info-item">
             <label class="info-label">Supplier</label>
-            <div class="info-value">{{ payment.invoice.supplier.name }}</div>
+            <div class="info-value">
+                <div>{{ payment.invoice.supplier.name }}</div>
+                <div style="font-size: 0.75rem; color: #94A3B8;">
+                    {{ payment.invoice.supplier.supplier_number }}
+                </div>
+            </div>
         </div>
         <div class="info-item">
             <label class="info-label">Payment Amount</label>
             <div class="info-value amount-large">KES {{ payment.payment_amount|floatformat:0|intcomma }}</div>
         </div>
         <div class="info-item">
-            <label class="info-label">Payment Method</label>
-            <div class="info-value">{{ payment.get_payment_method_display }}</div>
+            <label class="info-label">Payment Date</label>
+            <div class="info-value">
+                {{ payment.payment_date|date:"M d, Y" }}
+                <div style="font-size: 0.75rem; color: #94A3B8;">
+                    {{ payment.payment_date|date:"H:i" }}
+                </div>
+            </div>
         </div>
         <div class="info-item">
             <label class="info-label">Reference</label>
-            <div class="info-value">{{ payment.payment_reference }}</div>
+            <div class="info-value">
+                <code style="font-size: 0.8125rem; font-family: ui-monospace; color: var(--secondary-color);">
+                    {{ payment.payment_reference|default:"-" }}
+                </code>
+            </div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Created By</label>
+            <div class="info-value">
+                {% if payment.created_by %}
+                {{ payment.created_by.get_full_name|default:payment.created_by.username }}
+                <div style="font-size: 0.75rem; color: #94A3B8;">
+                    {{ payment.created_at|date:"M d, Y" }}
+                </div>
+                {% else %}
+                <span style="color: #94A3B8;">System</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Current Status</label>
+            <div class="info-value">
+                <span class="status-badge status-{{ payment.status|lower }}">
+                    <i class="bi {% if payment.status == 'PENDING' %}bi-hourglass-split{% elif payment.status == 'APPROVED' %}bi-check-circle{% elif payment.status == 'REJECTED' %}bi-x-circle{% else %}bi-currency-dollar{% endif %}"></i>
+                    {{ payment.get_status_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Method Card -->
+<div class="method-card">
+    <div class="method-icon method-{{ payment.payment_method|lower|cut:'_' }}">
+        <i class="bi {% if payment.payment_method == 'BANK_TRANSFER' %}bi-bank{% elif payment.payment_method == 'CHEQUE' %}bi-receipt{% elif payment.payment_method == 'EFT' %}bi-arrow-left-right{% else %}bi-phone{% endif %}"></i>
+    </div>
+    <div class="method-content">
+        <div class="method-title">{{ payment.get_payment_method_display }}</div>
+        <div class="method-details">
+            {% if payment.payment_method == 'BANK_TRANSFER' %}
+            Electronic bank transfer to supplier account
+            {% elif payment.payment_method == 'CHEQUE' %}
+            Physical cheque payment
+            {% elif payment.payment_method == 'EFT' %}
+            Electronic Funds Transfer
+            {% elif payment.payment_method == 'MOBILE_MONEY' %}
+            Mobile money transfer
+            {% endif %}
+            {% if payment.bank_name %}
+            • Bank: {{ payment.bank_name }}
+            {% endif %}
+            {% if payment.cheque_number %}
+            • Cheque #: {{ payment.cheque_number }}
+            {% endif %}
         </div>
     </div>
 </div>
 
 <!-- Supplier Bank Details -->
-<div class="info-card">
-    <h3>Supplier Bank Details</h3>
-    <div class="info-grid">
-        <div class="info-item">
-            <label class="info-label">Bank Name</label>
-            <div class="info-value">{{ payment.invoice.supplier.bank_name }}</div>
+<div class="bank-details-card">
+    <h3>
+        <i class="bi bi-bank"></i>
+        Supplier Bank Details
+    </h3>
+    {% if payment.invoice.supplier.bank_account %}
+    <div class="bank-grid">
+        <div class="bank-item">
+            <label>Bank Name</label>
+            <div>{{ payment.invoice.supplier.bank_account.bank_name }}</div>
         </div>
-        <div class="info-item">
-            <label class="info-label">Branch</label>
-            <div class="info-value">{{ payment.invoice.supplier.bank_branch }}</div>
+        <div class="bank-item">
+            <label>Account Name</label>
+            <div>{{ payment.invoice.supplier.bank_account.account_name }}</div>
         </div>
-        <div class="info-item">
-            <label class="info-label">Account Number</label>
-            <div class="info-value">{{ payment.invoice.supplier.account_number }}</div>
+        <div class="bank-item">
+            <label>Account Number</label>
+            <div>{{ payment.invoice.supplier.bank_account.account_number }}</div>
         </div>
-        <div class="info-item">
-            <label class="info-label">Account Name</label>
-            <div class="info-value">{{ payment.invoice.supplier.account_name }}</div>
+        <div class="bank-item">
+            <label>Branch</label>
+            <div>{{ payment.invoice.supplier.bank_account.branch_name|default:"-" }}</div>
+        </div>
+        <div class="bank-item">
+            <label>SWIFT/BIC Code</label>
+            <div>{{ payment.invoice.supplier.bank_account.swift_code|default:"-" }}</div>
+        </div>
+        <div class="bank-item">
+            <label>Currency</label>
+            <div>{{ payment.invoice.supplier.bank_account.currency|default:"KES" }}</div>
         </div>
     </div>
+    {% else %}
+    <div style="text-align: center; padding: 1rem; color: #94A3B8;">
+        <i class="bi bi-exclamation-circle" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+        <p style="margin: 0; font-size: 0.8125rem;">No bank details available for this supplier</p>
+    </div>
+    {% endif %}
 </div>
+
+<!-- Payment Notes -->
+{% if payment.notes %}
+<div class="info-card">
+    <h3>
+        <i class="bi bi-chat-left-text"></i>
+        Payment Notes
+    </h3>
+    <div style="background: var(--hover-bg); padding: 1rem; border-radius: 0.375rem; border: 1px solid var(--border-color);">
+        <p style="margin: 0; font-size: 0.8125rem; line-height: 1.6; color: #475569;">{{ payment.notes }}</p>
+    </div>
+</div>
+{% endif %}
 
 <!-- Approval Form -->
 <div class="form-card">
-    <h3>Approve or Reject Payment</h3>
+    <h3>
+        <i class="bi bi-clipboard-check"></i>
+        Approval Decision
+    </h3>
     <form method="post">
         {% csrf_token %}
         
         <div class="form-group">
-            <label class="form-label">Notes (for rejection)</label>
-            <textarea name="notes" class="form-control" rows="4" placeholder="Enter reason if rejecting..."></textarea>
+            <label class="form-label">
+                {% if payment.status == 'PENDING' %}
+                Approval/Rejection Comments
+                {% elif payment.status == 'REJECTED' %}
+                Rejection Reason (Required)
+                {% else %}
+                Approval Comments (Optional)
+                {% endif %}
+            </label>
+            <textarea name="notes" class="form-control" rows="4" placeholder="Enter comments regarding your decision. This will be recorded in the audit trail..."></textarea>
+            <small class="form-help">
+                {% if payment.status == 'REJECTED' %}
+                Required when rejecting a payment. Explain the reason for rejection.
+                {% else %}
+                Optional comments for approval, required for rejection.
+                {% endif %}
+            </small>
         </div>
 
         <div class="form-actions">
-            <a href="{% url 'finance_payment_detail' payment.id %}" class="btn">
-                <i class="bi bi-x-circle"></i> Cancel
-            </a>
             <button type="submit" name="action" value="reject" class="btn btn-danger">
-                <i class="bi bi-x-circle"></i> Reject Payment
+                <i class="bi bi-x-circle"></i>
+                Reject Payment
             </button>
             <button type="submit" name="action" value="approve" class="btn btn-primary">
-                <i class="bi bi-check-circle"></i> Approve Payment
+                <i class="bi bi-check-circle"></i>
+                Approve Payment
             </button>
         </div>
     </form>
 </div>
-{% endblock %}
 
+<script>
+    // Add confirmation for actions
+    document.addEventListener('DOMContentLoaded', function() {
+        const rejectBtn = document.querySelector('button[value="reject"]');
+        const approveBtn = document.querySelector('button[value="approve"]');
+        
+        if (rejectBtn) {
+            rejectBtn.addEventListener('click', function(e) {
+                const amount = '{{ payment.payment_amount|floatformat:0|intcomma }}';
+                const supplier = '{{ payment.invoice.supplier.name }}';
+                const notesField = document.querySelector('textarea[name="notes"]');
+                
+                // Check if notes are provided for rejection
+                if (!notesField.value.trim()) {
+                    if (!confirm(`You are about to reject payment of KES ${amount} to ${supplier}. No rejection reason provided. Are you sure you want to reject without a reason?`)) {
+                        e.preventDefault();
+                    }
+                } else {
+                    if (!confirm(`Are you sure you want to reject payment of KES ${amount} to ${supplier}? This action cannot be undone.`)) {
+                        e.preventDefault();
+                    }
+                }
+            });
+        }
+        
+        if (approveBtn) {
+            approveBtn.addEventListener('click', function(e) {
+                const amount = '{{ payment.payment_amount|floatformat:0|intcomma }}';
+                const supplier = '{{ payment.invoice.supplier.name }}';
+                const method = '{{ payment.get_payment_method_display }}';
+                
+                if (!confirm(`Confirm approval of KES ${amount} to ${supplier} via ${method}? This will mark the payment as completed and release funds.`)) {
+                    e.preventDefault();
+                }
+            });
+        }
+        
+        // Set minimum date for payment date if editing
+        const paymentDateStr = '{{ payment.payment_date|date:"Y-m-d" }}';
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Check if payment is overdue
+        const dueDateStr = '{{ payment.invoice.due_date|date:"Y-m-d" }}';
+        if (dueDateStr < today) {
+            const warningTitle = document.querySelector('.warning-alert-title');
+            if (warningTitle) {
+                warningTitle.innerHTML = 'URGENT: Invoice Payment is Overdue!';
+                warningTitle.style.color = 'var(--danger-color)';
+            }
+        }
+        
+        // Auto-focus notes field for rejection
+        const action = '{{ payment.status }}';
+        if (action === 'REJECTED') {
+            const notesField = document.querySelector('textarea[name="notes"]');
+            if (notesField) {
+                notesField.focus();
+                notesField.required = true;
+                const label = notesField.closest('.form-group').querySelector('.form-label');
+                if (label) label.classList.add('required');
+            }
+        }
+    });
+</script>
+{% endblock %}

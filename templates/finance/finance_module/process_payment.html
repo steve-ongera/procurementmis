@@ -6,12 +6,508 @@
 
 {% block title %}Process Payment - {{ invoice.invoice_number }} - University Procurement System{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.6875rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn i {
+        font-size: 0.875rem;
+    }
+
+    /* Alert */
+    .alert {
+        padding: 0.875rem 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+    }
+
+    .alert-warning {
+        background-color: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-error {
+        background-color: #FEF2F2;
+        border-color: #FECACA;
+        color: #991B1B;
+        margin: 1.5rem;
+    }
+
+    .alert i {
+        font-size: 1rem;
+        margin-top: 0.125rem;
+    }
+
+    /* Summary Banner */
+    .summary-banner {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        color: white;
+        text-align: center;
+    }
+
+    .summary-banner h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        margin: 0 0 0.75rem 0;
+        opacity: 0.9;
+    }
+
+    .summary-amount {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .summary-details {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        font-size: 0.8125rem;
+        opacity: 0.9;
+    }
+
+    /* Info Card */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-card h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .info-card h3 i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .info-item {
+        margin-bottom: 0.75rem;
+    }
+
+    .info-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        margin-bottom: 0.375rem;
+    }
+
+    .info-value {
+        font-size: 0.8125rem;
+        color: #1E293B;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    .amount-value {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: var(--primary-color);
+    }
+
+    .balance-due {
+        color: var(--danger-color);
+        font-weight: 700;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-card h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .form-card h3 i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #1E293B;
+        margin-bottom: 0.375rem;
+    }
+
+    .required:after {
+        content: ' *';
+        color: var(--danger-color);
+    }
+
+    .form-help {
+        display: block;
+        font-size: 0.75rem;
+        color: #94A3B8;
+        margin-top: 0.375rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #1E293B;
+        background: var(--card-bg);
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    /* Error Styling */
+    .error-message {
+        font-size: 0.75rem;
+        color: var(--danger-color);
+        margin-top: 0.375rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .error-message:before {
+        content: '⚠';
+        font-size: 0.875rem;
+    }
+
+    input.error,
+    select.error,
+    textarea.error {
+        border-color: var(--danger-color);
+    }
+
+    input.error:focus,
+    select.error:focus,
+    textarea.error:focus {
+        border-color: var(--danger-color);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    /* Amount Input Group */
+    .amount-input-group {
+        position: relative;
+    }
+
+    .currency-prefix {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    .currency-prefix + .form-control {
+        padding-left: 3rem;
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .form-actions .btn {
+        min-width: 140px;
+        justify-content: center;
+    }
+
+    /* Bank Details Card */
+    .bank-details-card {
+        background: var(--primary-light);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .bank-details-card h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .bank-details-card h3 i {
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+
+    .bank-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .bank-item label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        margin-bottom: 0.25rem;
+    }
+
+    .bank-item div {
+        font-size: 0.8125rem;
+        color: #1E293B;
+        font-weight: 500;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .info-grid,
+        .bank-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .summary-details {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.875rem;
+        }
+        
+        .summary-amount {
+            font-size: 1.75rem;
+        }
+        
+        .info-grid,
+        .bank-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-card,
+        .info-card,
+        .bank-details-card {
+            padding: 1.25rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .form-card,
+        .info-card,
+        .bank-details-card,
+        .summary-banner {
+            margin: 0 -0.5rem 1.5rem;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        
+        .summary-banner {
+            border-radius: 0;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Process Payment</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'finance_dashboard' %}">Finance</a>
             <i class="bi bi-chevron-right"></i>
@@ -20,139 +516,363 @@
             <span>Process Payment</span>
         </div>
     </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_invoice_detail' invoice.id %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Invoice
+        </a>
+    </div>
 </div>
+
+<!-- Summary Banner -->
+<div class="summary-banner">
+    <h3>Payment Due</h3>
+    <div class="summary-amount">KES {{ invoice.balance_due|floatformat:0|intcomma }}</div>
+    <div class="summary-details">
+        <span>Invoice: {{ invoice.invoice_number }}</span>
+        <span>Supplier: {{ invoice.supplier.name }}</span>
+        <span>Due: {{ invoice.due_date|date:"M d, Y" }}</span>
+    </div>
+</div>
+
+<!-- Alert for overdue invoices -->
+{% now "Y-m-d" as today %}
+{% if invoice.due_date|date:"Y-m-d" < today %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>Invoice is Overdue!</strong> Due date was {{ invoice.due_date|date:"M d, Y" }} ({{ invoice.due_date|timesince:today }} ago). Process payment urgently.
+</div>
+{% elif invoice.days_until_due <= 3 %}
+<div class="alert alert-warning">
+    <i class="bi bi-clock"></i>
+    <strong>Due Soon:</strong> Payment due in {{ invoice.days_until_due }} days ({{ invoice.due_date|date:"M d, Y" }}).
+</div>
+{% endif %}
 
 <!-- Invoice Summary -->
 <div class="info-card">
-    <h3>Invoice Details</h3>
+    <h3>
+        <i class="bi bi-receipt"></i>
+        Invoice Details
+    </h3>
     <div class="info-grid">
         <div class="info-item">
             <label class="info-label">Invoice Number</label>
-            <div class="info-value">{{ invoice.invoice_number }}</div>
+            <div class="info-value">
+                <strong>{{ invoice.invoice_number }}</strong>
+            </div>
         </div>
         <div class="info-item">
             <label class="info-label">Supplier</label>
-            <div class="info-value">{{ invoice.supplier.name }}</div>
+            <div class="info-value">
+                <div>{{ invoice.supplier.name }}</div>
+                <div style="font-size: 0.75rem; color: #94A3B8;">{{ invoice.supplier.supplier_number }}</div>
+            </div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Invoice Date</label>
+            <div class="info-value">{{ invoice.invoice_date|date:"M d, Y" }}</div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Due Date</label>
+            <div class="info-value">
+                {{ invoice.due_date|date:"M d, Y" }}
+                <div style="font-size: 0.75rem; color: #94A3B8;">
+                    {% if invoice.due_date|date:"Y-m-d" < today %}
+                    <span style="color: var(--danger-color);">Overdue</span>
+                    {% else %}
+                    {{ invoice.days_until_due }} days remaining
+                    {% endif %}
+                </div>
+            </div>
         </div>
         <div class="info-item">
             <label class="info-label">Total Amount</label>
-            <div class="info-value">KES {{ invoice.total_amount|floatformat:0|intcomma }}</div>
+            <div class="info-value amount-value">KES {{ invoice.total_amount|floatformat:0|intcomma }}</div>
         </div>
         <div class="info-item">
             <label class="info-label">Amount Paid</label>
-            <div class="info-value">KES {{ invoice.amount_paid|floatformat:0|intcomma }}</div>
+            <div class="info-value amount-value" style="color: var(--success-color);">
+                KES {{ invoice.amount_paid|floatformat:0|intcomma }}
+            </div>
         </div>
         <div class="info-item">
             <label class="info-label">Balance Due</label>
-            <div class="info-value">KES {{ invoice.balance_due|floatformat:0|intcomma }}</div>
+            <div class="info-value amount-value balance-due">
+                KES {{ invoice.balance_due|floatformat:0|intcomma }}
+            </div>
+        </div>
+        <div class="info-item">
+            <label class="info-label">Purchase Order</label>
+            <div class="info-value">
+                <a href="{% url 'po_detail' invoice.purchase_order.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;">
+                    {{ invoice.purchase_order.po_number }}
+                </a>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Supplier Bank Details -->
-<div class="info-card">
-    <h3>Supplier Bank Details</h3>
-    <div class="info-grid">
-        <div class="info-item">
-            <label class="info-label">Bank Name</label>
-            <div class="info-value">{{ invoice.supplier.bank_name }}</div>
+<div class="bank-details-card">
+    <h3>
+        <i class="bi bi-bank"></i>
+        Supplier Bank Details
+    </h3>
+    {% if invoice.supplier.bank_account %}
+    <div class="bank-grid">
+        <div class="bank-item">
+            <label>Bank Name</label>
+            <div>{{ invoice.supplier.bank_account.bank_name }}</div>
         </div>
-        <div class="info-item">
-            <label class="info-label">Branch</label>
-            <div class="info-value">{{ invoice.supplier.bank_branch }}</div>
+        <div class="bank-item">
+            <label>Account Name</label>
+            <div>{{ invoice.supplier.bank_account.account_name }}</div>
         </div>
-        <div class="info-item">
-            <label class="info-label">Account Number</label>
-            <div class="info-value">{{ invoice.supplier.account_number }}</div>
+        <div class="bank-item">
+            <label>Account Number</label>
+            <div>{{ invoice.supplier.bank_account.account_number }}</div>
         </div>
-        <div class="info-item">
-            <label class="info-label">Account Name</label>
-            <div class="info-value">{{ invoice.supplier.account_name }}</div>
+        <div class="bank-item">
+            <label>Branch</label>
+            <div>{{ invoice.supplier.bank_account.branch_name|default:"-" }}</div>
+        </div>
+        <div class="bank-item">
+            <label>SWIFT/BIC Code</label>
+            <div>{{ invoice.supplier.bank_account.swift_code|default:"-" }}</div>
+        </div>
+        <div class="bank-item">
+            <label>Currency</label>
+            <div>{{ invoice.supplier.bank_account.currency|default:"KES" }}</div>
         </div>
     </div>
+    {% else %}
+    <div style="text-align: center; padding: 1rem; color: #94A3B8;">
+        <i class="bi bi-exclamation-circle" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+        <p style="margin: 0; font-size: 0.8125rem;">No bank details available for this supplier</p>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Payment Form -->
 <div class="form-card">
-    <h3>Payment Information</h3>
+    <h3>
+        <i class="bi bi-credit-card"></i>
+        Payment Information
+    </h3>
     <form method="post">
         {% csrf_token %}
         
         <div class="form-grid">
             <div class="form-group">
-                <label class="form-label">Payment Date *</label>
+                <label class="form-label required">Payment Date</label>
                 {{ form.payment_date }}
                 {% if form.payment_date.errors %}
                 <div class="error-message">{{ form.payment_date.errors }}</div>
                 {% endif %}
+                <small class="form-help">Date when payment is made/will be made</small>
             </div>
 
             <div class="form-group">
-                <label class="form-label">Payment Amount *</label>
-                {{ form.payment_amount }}
+                <label class="form-label required">Payment Amount</label>
+                <div class="amount-input-group">
+                    <span class="currency-prefix">KES</span>
+                    {{ form.payment_amount }}
+                </div>
                 {% if form.payment_amount.errors %}
                 <div class="error-message">{{ form.payment_amount.errors }}</div>
                 {% endif %}
-                <small class="form-help">Maximum: KES {{ invoice.balance_due|floatformat:2|intcomma }}</small>
+                <small class="form-help">Maximum: KES {{ invoice.balance_due|floatformat:0|intcomma }}</small>
             </div>
 
             <div class="form-group">
-                <label class="form-label">Payment Method *</label>
+                <label class="form-label required">Payment Method</label>
                 {{ form.payment_method }}
                 {% if form.payment_method.errors %}
                 <div class="error-message">{{ form.payment_method.errors }}</div>
                 {% endif %}
+                <small class="form-help">Select the payment method used</small>
             </div>
 
             <div class="form-group">
-                <label class="form-label">Payment Reference *</label>
+                <label class="form-label required">Payment Reference</label>
                 {{ form.payment_reference }}
                 {% if form.payment_reference.errors %}
                 <div class="error-message">{{ form.payment_reference.errors }}</div>
                 {% endif %}
-                <small class="form-help">Transaction reference/confirmation number</small>
+                <small class="form-help">Transaction/confirmation number</small>
             </div>
+        </div>
 
-            <div class="form-group">
-                <label class="form-label">Bank Name</label>
-                {{ form.bank_name }}
-                {% if form.bank_name.errors %}
-                <div class="error-message">{{ form.bank_name.errors }}</div>
-                {% endif %}
+        <!-- Conditional Fields Based on Payment Method -->
+        <div id="bank-fields" style="display: none;">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label required">Bank Name</label>
+                    {{ form.bank_name }}
+                    {% if form.bank_name.errors %}
+                    <div class="error-message">{{ form.bank_name.errors }}</div>
+                    {% endif %}
+                    <small class="form-help">Bank used for the transfer</small>
+                </div>
             </div>
+        </div>
 
-            <div class="form-group">
-                <label class="form-label">Cheque Number</label>
-                {{ form.cheque_number }}
-                {% if form.cheque_number.errors %}
-                <div class="error-message">{{ form.cheque_number.errors }}</div>
-                {% endif %}
+        <div id="cheque-fields" style="display: none;">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label required">Cheque Number</label>
+                    {{ form.cheque_number }}
+                    {% if form.cheque_number.errors %}
+                    <div class="error-message">{{ form.cheque_number.errors }}</div>
+                    {% endif %}
+                    <small class="form-help">Cheque number from cheque book</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Bank Name</label>
+                    {{ form.bank_name }}
+                    {% if form.bank_name.errors %}
+                    <div class="error-message">{{ form.bank_name.errors }}</div>
+                    {% endif %}
+                    <small class="form-help">Bank the cheque is drawn on</small>
+                </div>
             </div>
         </div>
 
         <div class="form-group">
-            <label class="form-label">Notes</label>
+            <label class="form-label">Payment Notes</label>
             {{ form.notes }}
             {% if form.notes.errors %}
             <div class="error-message">{{ form.notes.errors }}</div>
             {% endif %}
+            <small class="form-help">Any additional notes about this payment</small>
         </div>
 
         {% if form.non_field_errors %}
         <div class="alert alert-error">
+            <i class="bi bi-exclamation-triangle"></i>
             {{ form.non_field_errors }}
         </div>
         {% endif %}
 
         <div class="form-actions">
-            <a href="{% url 'finance_invoice_detail' invoice.id %}" class="btn">
-                <i class="bi bi-x-circle"></i> Cancel
-            </a>
             <button type="submit" class="btn btn-primary">
-                <i class="bi bi-check-circle"></i> Create Payment
+                <i class="bi bi-check-circle"></i>
+                Create Payment Record
             </button>
         </div>
     </form>
 </div>
-{% endblock %}
 
+<script>
+    // Add error class to form fields with errors
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if form.errors %}
+            {% for field in form %}
+                {% if field.errors %}
+                    document.querySelector('[name="{{ field.name }}"]').classList.add('error');
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        
+        // Add required indicator to labels
+        const requiredFields = ['payment_date', 'payment_amount', 'payment_method', 'payment_reference'];
+        requiredFields.forEach(fieldName => {
+            const field = document.querySelector(`[name="${fieldName}"]`);
+            if (field) {
+                const label = field.closest('.form-group').querySelector('.form-label');
+                if (label && !label.classList.contains('required')) {
+                    label.classList.add('required');
+                }
+            }
+        });
+        
+        // Set today as default for payment date
+        const paymentDateInput = document.querySelector('[name="payment_date"]');
+        if (paymentDateInput && !paymentDateInput.value) {
+            const today = new Date().toISOString().split('T')[0];
+            paymentDateInput.value = today;
+        }
+        
+        // Set max amount to balance due
+        const paymentAmountInput = document.querySelector('[name="payment_amount"]');
+        if (paymentAmountInput) {
+            const balanceDue = parseFloat('{{ invoice.balance_due }}');
+            paymentAmountInput.max = balanceDue;
+            
+            // Set default value to balance due
+            if (!paymentAmountInput.value && balanceDue > 0) {
+                paymentAmountInput.value = balanceDue.toFixed(2);
+            }
+        }
+        
+        // Show/hide conditional fields based on payment method
+        const paymentMethodSelect = document.querySelector('[name="payment_method"]');
+        const bankFields = document.getElementById('bank-fields');
+        const chequeFields = document.getElementById('cheque-fields');
+        
+        function toggleConditionalFields() {
+            const method = paymentMethodSelect.value;
+            
+            // Hide all conditional fields
+            if (bankFields) bankFields.style.display = 'none';
+            if (chequeFields) chequeFields.style.display = 'none';
+            
+            // Show appropriate fields based on selection
+            if (method === 'BANK_TRANSFER' || method === 'EFT') {
+                if (bankFields) bankFields.style.display = 'block';
+            } else if (method === 'CHEQUE') {
+                if (chequeFields) chequeFields.style.display = 'block';
+            }
+            
+            // Update required fields
+            const bankNameField = document.querySelector('[name="bank_name"]');
+            const chequeNumberField = document.querySelector('[name="cheque_number"]');
+            
+            if (bankNameField) {
+                if (method === 'BANK_TRANSFER' || method === 'EFT' || method === 'CHEQUE') {
+                    bankNameField.required = true;
+                    const label = bankNameField.closest('.form-group').querySelector('.form-label');
+                    if (label) label.classList.add('required');
+                } else {
+                    bankNameField.required = false;
+                    const label = bankNameField.closest('.form-group').querySelector('.form-label');
+                    if (label) label.classList.remove('required');
+                }
+            }
+            
+            if (chequeNumberField) {
+                if (method === 'CHEQUE') {
+                    chequeNumberField.required = true;
+                    const label = chequeNumberField.closest('.form-group').querySelector('.form-label');
+                    if (label) label.classList.add('required');
+                } else {
+                    chequeNumberField.required = false;
+                    const label = chequeNumberField.closest('.form-group').querySelector('.form-label');
+                    if (label) label.classList.remove('required');
+                }
+            }
+        }
+        
+        if (paymentMethodSelect) {
+            paymentMethodSelect.addEventListener('change', toggleConditionalFields);
+            // Trigger on page load
+            toggleConditionalFields();
+        }
+        
+        // Add confirmation for payment creation
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', function(e) {
+                const amount = document.querySelector('[name="payment_amount"]')?.value || '0';
+                const method = document.querySelector('[name="payment_method"]')?.options[document.querySelector('[name="payment_method"]').selectedIndex]?.text || '';
+                const supplier = '{{ invoice.supplier.name }}';
+                
+                if (!confirm(`Confirm payment of KES ${amount} to ${supplier} via ${method}? This will create a payment record and update the invoice status.`)) {
+                    e.preventDefault();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
