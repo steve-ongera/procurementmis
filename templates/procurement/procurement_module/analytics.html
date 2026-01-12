@@ -1,0 +1,59 @@
+<!-- ========================================== -->
+<!-- 2. procurement/procurement_module/analytics.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Procurement Analytics</h1>
+
+<form method="get">
+    <label>From Date:</label>
+    <input type="date" name="date_from" value="{{ date_from }}">
+    
+    <label>To Date:</label>
+    <input type="date" name="date_to" value="{{ date_to }}">
+    
+    <button type="submit">Apply</button>
+</form>
+
+<h2>Total Spend: KES {{ total_spend|floatformat:0|intcomma }}</h2>
+
+<h3>Department Spending</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Department</th>
+            <th>Total Spend</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for dept in dept_spending %}
+        <tr>
+            <td>{{ dept.requisition__department__name }}</td>
+            <td>KES {{ dept.total|floatformat:0|intcomma }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3>Top Suppliers by Value</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Supplier</th>
+            <th>Orders</th>
+            <th>Total Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for supplier in supplier_stats %}
+        <tr>
+            <td>{{ supplier.supplier__name }}</td>
+            <td>{{ supplier.order_count }}</td>
+            <td>KES {{ supplier.total_value|floatformat:0|intcomma }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

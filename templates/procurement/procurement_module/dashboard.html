@@ -1,0 +1,106 @@
+<!-- ========================================== -->
+<!-- 1. procurement/procurement_module/dashboard.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Procurement Dashboard</h1>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>{{ pending_requisitions }}</h3>
+        <p>Pending Requisitions</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ active_tenders }}</h3>
+        <p>Active Tenders</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ pending_pos }}</h3>
+        <p>Pending Purchase Orders</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ active_suppliers }}</h3>
+        <p>Active Suppliers</p>
+    </div>
+</div>
+
+<div class="monthly-spend">
+    <h3>Monthly Spend: KES {{ monthly_spend|floatformat:0|intcomma }}</h3>
+</div>
+
+<h2>Recent Requisitions</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Requisition #</th>
+            <th>Title</th>
+            <th>Department</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for req in recent_requisitions %}
+        <tr>
+            <td>{{ req.requisition_number }}</td>
+            <td>{{ req.title }}</td>
+            <td>{{ req.department.name }}</td>
+            <td>KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
+            <td>{{ req.get_status_display }}</td>
+            <td>{{ req.created_at|date:"M d, Y" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Recent Tenders</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Tender #</th>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Closing Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tender in recent_tenders %}
+        <tr>
+            <td>{{ tender.tender_number }}</td>
+            <td>{{ tender.title }}</td>
+            <td>{{ tender.get_tender_type_display }}</td>
+            <td>{{ tender.get_status_display }}</td>
+            <td>{{ tender.closing_date|date:"M d, Y" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Recent Purchase Orders</h2>
+<table>
+    <thead>
+        <tr>
+            <th>PO #</th>
+            <th>Supplier</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for po in recent_pos %}
+        <tr>
+            <td>{{ po.po_number }}</td>
+            <td>{{ po.supplier.name }}</td>
+            <td>KES {{ po.total_amount|floatformat:0|intcomma }}</td>
+            <td>{{ po.get_status_display }}</td>
+            <td>{{ po.po_date|date:"M d, Y" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

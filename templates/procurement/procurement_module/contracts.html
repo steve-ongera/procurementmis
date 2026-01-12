@@ -1,0 +1,44 @@
+<!-- ========================================== -->
+<!-- 15. procurement/procurement_module/contracts.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Contracts Management</h1>
+
+<form method="get">
+    <select name="status">
+        <option value="">All Status</option>
+        {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    
+    <select name="type">
+        <option value="">All Types</option>
+        {% for value, label in type_choices %}
+        <option value="{{ value }}" {% if request.GET.type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    
+    <button type="submit">Filter</button>
+    <a href="{% url 'procurement_contracts' %}">Clear</a>
+</form>
+
+<p>Total: {{ total_count }}</p>
+<p>Active Contracts: {{ active_count }}</p>
+<p>Total Value: KES {{ total_value|floatformat:0|intcomma }}</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Contract #</th>
+            <th>Title</th>
+            <th>Supplier</th>
+            <th>Type</th>
+            <th>Value</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Status</th>
+            <th

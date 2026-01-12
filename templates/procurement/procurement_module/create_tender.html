@@ -1,0 +1,61 @@
+<!-- ========================================== -->
+<!-- 7. procurement/procurement_module/create_tender.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Create New Tender</h1>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <label>Requisition:</label>
+    <select name="requisition" required>
+        <option value="">Select Requisition</option>
+        {% for req in requisitions %}
+        <option value="{{ req.id }}">{{ req.requisition_number }} - {{ req.title }}</option>
+        {% endfor %}
+    </select>
+    
+    <label>Title:</label>
+    <input type="text" name="title" required>
+    
+    <label>Tender Type:</label>
+    <select name="tender_type" required>
+        {% for value, label in tender_types %}
+        <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+    </select>
+    
+    <label>Procurement Method:</label>
+    <select name="procurement_method" required>
+        {% for value, label in methods %}
+        <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+    </select>
+    
+    <label>Description:</label>
+    <textarea name="description" required></textarea>
+    
+    <label>Estimated Budget:</label>
+    <input type="number" step="0.01" name="estimated_budget" required>
+    
+    <label>Closing Date:</label>
+    <input type="datetime-local" name="closing_date" required>
+    
+    <label>Bid Opening Date:</label>
+    <input type="datetime-local" name="bid_opening_date" required>
+    
+    <label>Invited Suppliers (Optional):</label>
+    <select name="suppliers" multiple>
+        {% for supplier in suppliers %}
+        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+        {% endfor %}
+    </select>
+    
+    <button type="submit">Create Tender</button>
+    <a href="{% url 'procurement_active_tenders' %}">Cancel</a>
+</form>
+{% endblock %}
+

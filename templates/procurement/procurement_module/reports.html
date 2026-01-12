@@ -1,0 +1,56 @@
+<!-- ========================================== -->
+<!-- 20. procurement/procurement_module/reports.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Procurement Reports</h1>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>{{ total_requisitions }}</h3>
+        <p>Total Requisitions</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ total_tenders }}</h3>
+        <p>Total Tenders</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ total_pos }}</h3>
+        <p>Total Purchase Orders</p>
+    </div>
+    <div class="stat-card">
+        <h3>KES {{ total_spend|floatformat:0|intcomma }}</h3>
+        <p>Total Spend</p>
+    </div>
+</div>
+
+<h2>Available Reports</h2>
+
+<div class="reports-list">
+    <div class="report-item">
+        <h3>Spend Analysis</h3>
+        <p>Detailed spending analysis by department and category</p>
+        <a href="{% url 'procurement_spend_analysis' %}">View Report</a>
+    </div>
+    
+    <div class="report-item">
+        <h3>Supplier Performance</h3>
+        <p>Supplier ratings and performance metrics</p>
+        <a href="{% url 'procurement_supplier_evaluation' %}">View Report</a>
+    </div>
+    
+    <div class="report-item">
+        <h3>Tender Analysis</h3>
+        <p>Tender processing times and success rates</p>
+        <a href="#">View Report</a>
+    </div>
+    
+    <div class="report-item">
+        <h3>Purchase Order Summary</h3>
+        <p>Summary of all purchase orders</p>
+        <a href="{% url 'procurement_all_orders' %}">View Report</a>
+    </div>
+</div>
+{% endblock %}

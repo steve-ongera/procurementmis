@@ -1,0 +1,76 @@
+<!-- ========================================== -->
+<!-- 17. procurement/procurement_module/add_supplier.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Add New Supplier</h1>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <h2>Basic Information</h2>
+    <label>Supplier Name:</label>
+    <input type="text" name="name" required>
+    
+    <label>Registration Number:</label>
+    <input type="text" name="registration_number" required>
+    
+    <label>Tax ID:</label>
+    <input type="text" name="tax_id">
+    
+    <label>Email:</label>
+    <input type="email" name="email" required>
+    
+    <label>Phone Number:</label>
+    <input type="text" name="phone_number" required>
+    
+    <h2>Address</h2>
+    <label>Physical Address:</label>
+    <textarea name="physical_address" required></textarea>
+    
+    <label>Postal Address:</label>
+    <input type="text" name="postal_address">
+    
+    <label>Website:</label>
+    <input type="url" name="website">
+    
+    <h2>Contact Person</h2>
+    <label>Name:</label>
+    <input type="text" name="contact_person" required>
+    
+    <label>Phone:</label>
+    <input type="text" name="contact_person_phone" required>
+    
+    <label>Email:</label>
+    <input type="email" name="contact_person_email" required>
+    
+    <h2>Banking Details</h2>
+    <label>Bank Name:</label>
+    <input type="text" name="bank_name" required>
+    
+    <label>Branch:</label>
+    <input type="text" name="bank_branch" required>
+    
+    <label>Account Number:</label>
+    <input type="text" name="account_number" required>
+    
+    <label>Account Name:</label>
+    <input type="text" name="account_name" required>
+    
+    <label>SWIFT Code:</label>
+    <input type="text" name="swift_code">
+    
+    <h2>Categories</h2>
+    <label>Select Categories:</label>
+    <select name="categories" multiple required>
+        {% for category in categories %}
+        <option value="{{ category.id }}">{{ category.name }}</option>
+        {% endfor %}
+    </select>
+    
+    <button type="submit">Add Supplier</button>
+    <a href="{% url 'procurement_all_suppliers' %}">Cancel</a>
+</form>
+{% endblock %}

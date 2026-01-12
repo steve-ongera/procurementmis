@@ -1,0 +1,51 @@
+<!-- ========================================== -->
+<!-- 18. procurement/procurement_module/supplier_evaluation.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Supplier Performance Evaluation</h1>
+
+<p>Total Suppliers: {{ total_count }}</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Supplier</th>
+            <th>Total Orders</th>
+            <th>Total Value</th>
+            <th>Average Rating</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for supplier in page_obj %}
+        <tr>
+            <td>{{ supplier.name }}</td>
+            <td>{{ supplier.order_count }}</td>
+            <td>KES {{ supplier.total_value|floatformat:0|intcomma|default:"0" }}</td>
+            <td>{{ supplier.avg_rating|floatformat:2|default:"N/A" }}/5.0</td>
+            <td>{{ supplier.get_status_display }}</td>
+            <td>
+                <a href="#">View Details</a>
+                <a href="#">Rate Performance</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

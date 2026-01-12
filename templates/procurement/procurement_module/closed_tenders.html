@@ -1,0 +1,52 @@
+<!-- ========================================== -->
+<!-- 8. procurement/procurement_module/closed_tenders.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Closed Tenders</h1>
+
+<p>Total: {{ total_count }}</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Tender #</th>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Closed Date</th>
+            <th>Bids Received</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tender in page_obj %}
+        <tr>
+            <td>{{ tender.tender_number }}</td>
+            <td>{{ tender.title }}</td>
+            <td>{{ tender.get_tender_type_display }}</td>
+            <td>{{ tender.get_status_display }}</td>
+            <td>{{ tender.closing_date|date:"M d, Y" }}</td>
+            <td>{{ tender.bids.count }}</td>
+            <td>
+                <a href="#">View Details</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

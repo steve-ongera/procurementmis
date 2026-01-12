@@ -1,0 +1,54 @@
+<!-- ========================================== -->
+<!-- 4. procurement/procurement_module/pending_requisitions.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Pending Requisitions</h1>
+
+<p>Total: {{ total_count }}</p>
+<p>Total Value: KES {{ total_value|floatformat:0|intcomma }}</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Requisition #</th>
+            <th>Title</th>
+            <th>Department</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for req in page_obj %}
+        <tr>
+            <td>{{ req.requisition_number }}</td>
+            <td>{{ req.title }}</td>
+            <td>{{ req.department.name }}</td>
+            <td>KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
+            <td>{{ req.get_status_display }}</td>
+            <td>{{ req.created_at|date:"M d, Y" }}</td>
+            <td>
+                <a href="#">Process</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+

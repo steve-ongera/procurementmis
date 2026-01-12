@@ -1,0 +1,134 @@
+<!-- ========================================== -->
+<!-- 21. procurement/procurement_module/spend_analysis.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Spend Analysis Report</h1>
+
+<form method="get">
+    <label>From Date:</label>
+    <input type="date" name="date_from" value="{{ date_from }}">
+    
+    <label>To Date:</label>
+    <input type="date" name="date_to" value="{{ date_to }}">
+    
+    <button type="submit">Apply</button>
+</form>
+
+<h2>Total Spend: KES {{ total_spend|floatformat:0|intcomma }}</h2>
+<p>Period: {{ date_from }} to {{ date_to }}</p>
+
+<h3>Spending by Department</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Department</th>
+            <th>Number of Orders</th>
+            <th>Total Spend</th>
+            <th>% of Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for dept in dept_spending %}
+        <tr>
+            <td>{{ dept.requisition__department__name }}</td>
+            <td>{{ dept.count }}</td>
+            <td>KES {{ dept.total|floatformat:0|intcomma }}</td>
+            <td>
+                {% if total_spend > 0 %}
+                {{ dept.total|floatformat:0|intcomma|add:"0"|floatformat:0|default:"0" }}%
+                {% else %}
+                0%
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3>Top 10 Spending Categories</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Total Spend</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cat in category_spending %}
+        <tr>
+            <td>{{ cat.requisition__budget__category__name|default:"Uncategorized" }}</td>
+            <td>KES {{ cat.total|floatformat:0|intcomma }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{% url 'procurement_reports' %}">Back to Reports</a>
+{% endblock %}>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for req in recent_requisitions %}
+        <tr>
+            <td>{{ req.requisition_number }}</td>
+            <td>{{ req.title }}</td>
+            <td>{{ req.department.name }}</td>
+            <td>KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
+            <td>{{ req.get_status_display }}</td>
+            <td>{{ req.created_at|date:"M d, Y" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Recent Tenders</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Tender #</th>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Closing Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tender in recent_tenders %}
+        <tr>
+            <td>{{ tender.tender_number }}</td>
+            <td>{{ tender.title }}</td>
+            <td>{{ tender.get_tender_type_display }}</td>
+            <td>{{ tender.get_status_display }}</td>
+            <td>{{ tender.closing_date|date:"M d, Y" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Recent Purchase Orders</h2>
+<table>
+    <thead>
+        <tr>
+            <th>PO #</th>
+            <th>Supplier</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for po in recent_pos %}
+        <tr>
+            <td>{{ po.po_number }}</td>
+            <td>{{ po.supplier.name }}</td>
+            <td>KES {{ po.total_amount|floatformat:0|intcomma }}</td>
+            <td>{{ po.get_status_display }}</td>
+            <td>{{ po.po_date|date:"M d, Y" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

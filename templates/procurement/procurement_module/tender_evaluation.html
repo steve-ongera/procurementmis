@@ -1,0 +1,36 @@
+<!-- ========================================== -->
+<!-- 9. procurement/procurement_module/tender_evaluation.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Tender Evaluation</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>Tender #</th>
+            <th>Title</th>
+            <th>Total Bids</th>
+            <th>Evaluated</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in tenders_with_bids %}
+        <tr>
+            <td>{{ item.tender.tender_number }}</td>
+            <td>{{ item.tender.title }}</td>
+            <td>{{ item.bid_count }}</td>
+            <td>{{ item.evaluated_count }}</td>
+            <td>{{ item.tender.get_status_display }}</td>
+            <td>
+                <a href="#">Evaluate Bids</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

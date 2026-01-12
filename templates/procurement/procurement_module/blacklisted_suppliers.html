@@ -1,0 +1,53 @@
+<!-- ========================================== -->
+<!-- 19. procurement/procurement_module/blacklisted_suppliers.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Blacklisted Suppliers</h1>
+
+<p>Total: {{ total_count }}</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Supplier #</th>
+            <th>Name</th>
+            <th>Registration #</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Blacklisted Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for supplier in page_obj %}
+        <tr>
+            <td>{{ supplier.supplier_number }}</td>
+            <td>{{ supplier.name }}</td>
+            <td>{{ supplier.registration_number }}</td>
+            <td>{{ supplier.email }}</td>
+            <td>{{ supplier.phone_number }}</td>
+            <td>{{ supplier.updated_at|date:"M d, Y" }}</td>
+            <td>
+                <a href="#">View Details</a>
+                <a href="#">Reactivate</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

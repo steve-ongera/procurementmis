@@ -1,0 +1,72 @@
+<!-- ========================================== -->
+<!-- 10. procurement/procurement_module/bids_management.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Bids Management</h1>
+
+<form method="get">
+    <select name="tender">
+        <option value="">All Tenders</option>
+        {% for tender in tenders %}
+        <option value="{{ tender.id }}" {% if request.GET.tender == tender.id|stringformat:"s" %}selected{% endif %}>{{ tender.tender_number }}</option>
+        {% endfor %}
+    </select>
+    
+    <select name="status">
+        <option value="">All Status</option>
+        {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    
+    <button type="submit">Filter</button>
+    <a href="{% url 'procurement_bids_management' %}">Clear</a>
+</form>
+
+<p>Total: {{ total_count }}</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Bid #</th>
+            <th>Tender</th>
+            <th>Supplier</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for bid in page_obj %}
+        <tr>
+            <td>{{ bid.bid_number }}</td>
+            <td>{{ bid.tender.tender_number }}</td>
+            <td>{{ bid.supplier.name }}</td>
+            <td>KES {{ bid.bid_amount|floatformat:0|intcomma }}</td>
+            <td>{{ bid.get_status_display }}</td>
+            <td>{{ bid.submitted_at|date:"M d, Y" }}</td>
+            <td>
+                <a href="#">View</a>
+                <a href="#">Evaluate</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,44 @@
+<!-- ========================================== -->
+<!-- 12. procurement/procurement_module/create_order.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>Create Purchase Order</h1>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <label>Awarded Bid (Optional):</label>
+    <select name="bid">
+        <option value="">Select Awarded Bid</option>
+        {% for bid in awarded_bids %}
+        <option value="{{ bid.id }}">{{ bid.tender.tender_number }} - {{ bid.supplier.name }}</option>
+        {% endfor %}
+    </select>
+    
+    <label>Supplier:</label>
+    <select name="supplier" required>
+        <option value="">Select Supplier</option>
+        {% for supplier in suppliers %}
+        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+        {% endfor %}
+    </select>
+    
+    <label>Delivery Date:</label>
+    <input type="date" name="delivery_date" required>
+    
+    <label>Delivery Address:</label>
+    <textarea name="delivery_address" required></textarea>
+    
+    <label>Payment Terms:</label>
+    <textarea name="payment_terms" required></textarea>
+    
+    <label>Special Instructions:</label>
+    <textarea name="special_instructions"></textarea>
+    
+    <button type="submit">Create Purchase Order</button>
+    <a href="{% url 'procurement_all_orders' %}">Cancel</a>
+</form>
+{% endblock %}

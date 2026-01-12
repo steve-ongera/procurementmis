@@ -1,0 +1,75 @@
+<!-- ========================================== -->
+<!-- 16. procurement/procurement_module/all_suppliers.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h1>All Suppliers</h1>
+
+<a href="{% url 'procurement_add_supplier' %}">Add New Supplier</a>
+
+<form method="get">
+    <input type="text" name="search" placeholder="Search..." value="{{ request.GET.search }}">
+    
+    <select name="status">
+        <option value="">All Status</option>
+        {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    
+    <button type="submit">Filter</button>
+    <a href="{% url 'procurement_all_suppliers' %}">Clear</a>
+</form>
+
+<p>Total: {{ total_count }}</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Supplier #</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Categories</th>
+            <th>Rating</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for supplier in page_obj %}
+        <tr>
+            <td>{{ supplier.supplier_number }}</td>
+            <td>{{ supplier.name }}</td>
+            <td>{{ supplier.email }}</td>
+            <td>{{ supplier.phone_number }}</td>
+            <td>
+                {% for cat in supplier.categories.all %}
+                {{ cat.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+            <td>{{ supplier.rating|floatformat:1 }}/5.0</td>
+            <td>{{ supplier.get_status_display }}</td>
+            <td>
+                <a href="#">View</a>
+                <a href="#">Edit</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
