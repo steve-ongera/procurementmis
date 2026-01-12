@@ -353,7 +353,59 @@ urlpatterns = [
     
     # Help & Support
     path('finance-module/help/', views.finance_help_view, name='finance_help'),
-
     
+    # ============================================================================
+    # DASHBOARD & ANALYTICS
+    # ============================================================================
+    path('procurement-module/', views.procurement_dashboard_view, name='procurement_dashboard'),
+    path('procurement-module/analytics/', views.procurement_analytics_view, name='procurement_analytics'),
+    
+    # ============================================================================
+    # REQUISITIONS
+    # ============================================================================
+    path('procurement-module/requisitions/all/', views.procurement_all_requisitions_view, name='procurement_all_requisitions'),
+    path('procurement-module/requisitions/pending/', views.procurement_pending_requisitions_view, name='procurement_pending_requisitions'),
+    path('procurement-module/requisitions/processed/', views.procurement_processed_requisitions_view, name='procurement_processed_requisitions'),
+    
+    # ============================================================================
+    # TENDERS
+    # ============================================================================
+    path('procurement-module/tenders/active/', views.procurement_active_tenders_view, name='procurement_active_tenders'),
+    path('procurement-module/tenders/create/', views.procurement_create_tender_view, name='procurement_create_tender'),
+    path('procurement-module/tenders/closed/', views.procurement_closed_tenders_view, name='procurement_closed_tenders'),
+    path('procurement-module/tenders/evaluation/', views.procurement_tender_evaluation_view, name='procurement_tender_evaluation'),
+    
+    # ============================================================================
+    # BIDS
+    # ============================================================================
+    path('procurement-module/bids/', views.procurement_bids_management_view, name='procurement_bids_management'),
+    
+    # ============================================================================
+    # PURCHASE ORDERS
+    # ============================================================================
+    path('procurement-module/orders/all/', views.procurement_all_orders_view, name='procurement_all_orders'),
+    path('procurement-module/orders/create/', views.procurement_create_order_view, name='procurement_create_order'),
+    path('procurement-module/orders/pending/', views.procurement_pending_orders_view, name='procurement_pending_orders'),
+    path('procurement-module/orders/completed/', views.procurement_completed_orders_view, name='procurement_completed_orders'),
+    
+    # ============================================================================
+    # CONTRACTS
+    # ============================================================================
+    path('procurement-module/contracts/', views.procurement_contracts_view, name='procurement_contracts'),
+    
+    # ============================================================================
+    # SUPPLIERS
+    # ============================================================================
+    path('procurement-module/suppliers/all/', views.procurement_all_suppliers_view, name='procurement_all_suppliers'),
+    path('procurement-module/suppliers/add/', views.procurement_add_supplier_view, name='procurement_add_supplier'),
+    path('procurement-module/suppliers/evaluation/', views.procurement_supplier_evaluation_view, name='procurement_supplier_evaluation'),
+    path('procurement-module/suppliers/blacklisted/', views.procurement_blacklisted_suppliers_view, name='procurement_blacklisted_suppliers'),
+    
+    # ============================================================================
+    # REPORTS
+    # ============================================================================
+    path('procurement-module/reports/', views.procurement_reports_view, name='procurement_reports'),
+    path('procurement-module/reports/spend-analysis/', views.procurement_spend_analysis_view, name='procurement_spend_analysis'),
+   
     
 ]
