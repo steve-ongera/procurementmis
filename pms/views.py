@@ -10534,10 +10534,26 @@ def staff_requisitions_list(request):
     
     return render(request, 'staff/requisitions_list.html', context)
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from django.db.models import Q, Sum
+from decimal import Decimal
+from .models import (
+    Requisition, RequisitionItem, RequisitionAttachment,
+    RequisitionApproval, ProcurementPlan, ProcurementPlanItem,
+    ProcurementPlanAmendment, Budget
+)
+from .forms import (
+    RequisitionForm, RequisitionItemFormSet, 
+    RequisitionAttachmentFormSet
+)
+
 
 @login_required
 def staff_requisition_create(request):
-    """Create a new requisition"""
+    """Create a new requisition with plan enforcement"""
     
     if request.method == 'POST':
         form = RequisitionForm(request.POST, user=request.user)
@@ -10553,6 +10569,57 @@ def staff_requisition_create(request):
                 requisition.department = request.user.department
             
             requisition.status = 'DRAFT'
+            
+            # PLAN ENFORCEMENT LOGIC
+            is_planned = form.cleaned_data.get('is_planned', True)
+            procurement_plan_item = form.cleaned_data.get('procurement_plan_item')
+            is_emergency = form.cleaned_data.get('is_emergency', False)
+            
+            # Validate plan compliance
+            if is_planned and not procurement_plan_item:
+                messages.error(
+                    request, 
+                    'Please select a procurement plan item for planned requisitions.'
+                )
+                context = {
+                    'form': form,
+                    'formset': formset,
+                    'attachment_formset': attachment_formset,
+                    'page_title': 'Create New Requisition',
+                }
+                return render(request, 'staff/requisition_form.html', context)
+            
+            # Validate unplanned requisitions
+            if not is_planned:
+                if not is_emergency:
+                    messages.error(
+                        request, 
+                        'Unplanned requisitions must be marked as emergency.'
+                    )
+                    context = {
+                        'form': form,
+                        'formset': formset,
+                        'attachment_formset': attachment_formset,
+                        'page_title': 'Create New Requisition',
+                    }
+                    return render(request, 'staff/requisition_form.html', context)
+                
+                if not requisition.emergency_justification:
+                    messages.error(
+                        request, 
+                        'Emergency justification is required for unplanned requisitions.'
+                    )
+                    context = {
+                        'form': form,
+                        'formset': formset,
+                        'attachment_formset': attachment_formset,
+                        'page_title': 'Create New Requisition',
+                    }
+                    return render(request, 'staff/requisition_form.html', context)
+                
+                # Mark as requiring plan amendment
+                requisition.requires_plan_amendment = True
+            
             requisition.save()
             
             # Save requisition items
@@ -10566,6 +10633,26 @@ def staff_requisition_create(request):
             
             # Update estimated amount
             requisition.estimated_amount = total_estimated
+            
+            # VALIDATE AGAINST PLAN ITEM
+            if is_planned and procurement_plan_item:
+                # Check quantity (if applicable)
+                total_qty = sum(i.quantity for i in items)
+                
+                # Check budget
+                if total_estimated > procurement_plan_item.remaining_budget:
+                    messages.warning(
+                        request,
+                        f'Warning: Estimated amount (KES {total_estimated:,.2f}) exceeds '
+                        f'remaining plan budget (KES {procurement_plan_item.remaining_budget:,.2f}). '
+                        f'This may require additional approvals.'
+                    )
+                
+                # Update plan item tracking
+                procurement_plan_item.quantity_requisitioned += total_qty
+                procurement_plan_item.amount_committed += total_estimated
+                procurement_plan_item.save()
+            
             requisition.save()
             
             # Save attachments
@@ -10575,7 +10662,18 @@ def staff_requisition_create(request):
                 attachment.uploaded_by = request.user
                 attachment.save()
             
-            messages.success(request, f'Requisition {requisition.requisition_number} created successfully!')
+            messages.success(
+                request, 
+                f'Requisition {requisition.requisition_number} created successfully!'
+            )
+            
+            if not is_planned:
+                messages.info(
+                    request,
+                    'This is an unplanned/emergency requisition. '
+                    'It will require HOD emergency approval and procurement plan amendment.'
+                )
+            
             return redirect('staff_requisition_detail', pk=requisition.pk)
         else:
             messages.error(request, 'Please correct the errors below.')
@@ -10584,11 +10682,24 @@ def staff_requisition_create(request):
         formset = RequisitionItemFormSet()
         attachment_formset = RequisitionAttachmentFormSet()
     
+    # Get available procurement plan items for the user's department
+    available_plan_items = None
+    if request.user.department:
+        current_budget_year = BudgetYear.objects.filter(is_active=True).first()
+        if current_budget_year:
+            available_plan_items = ProcurementPlanItem.objects.filter(
+                procurement_plan__department=request.user.department,
+                procurement_plan__budget_year=current_budget_year,
+                procurement_plan__status='APPROVED',
+                status='PLANNED'
+            ).select_related('procurement_plan', 'budget')
+    
     context = {
         'form': form,
         'formset': formset,
         'attachment_formset': attachment_formset,
         'page_title': 'Create New Requisition',
+        'available_plan_items': available_plan_items,
     }
     
     return render(request, 'staff/requisition_form.html', context)
@@ -10596,11 +10707,13 @@ def staff_requisition_create(request):
 
 @login_required
 def staff_requisition_detail(request, pk):
-    """View requisition details"""
+    """View requisition details with plan information"""
     
     requisition = get_object_or_404(
         Requisition.objects.select_related(
-            'department', 'budget', 'requested_by'
+            'department', 'budget', 'requested_by',
+            'procurement_plan_item__procurement_plan',
+            'plan_amendment'
         ).prefetch_related('items', 'attachments', 'approvals'),
         pk=pk
     )
@@ -10620,12 +10733,27 @@ def staff_requisition_detail(request, pk):
     # Calculate totals
     total_items = items.count()
     
+    # Plan compliance check
+    plan_warnings = []
+    if requisition.is_planned and requisition.procurement_plan_item:
+        plan_item = requisition.procurement_plan_item
+        
+        if requisition.estimated_amount > plan_item.estimated_cost:
+            plan_warnings.append(
+                f'Requisition amount exceeds planned budget by '
+                f'KES {(requisition.estimated_amount - plan_item.estimated_cost):,.2f}'
+            )
+        
+        if plan_item.remaining_budget < 0:
+            plan_warnings.append('Procurement plan item is over budget')
+    
     context = {
         'requisition': requisition,
         'items': items,
         'attachments': attachments,
         'approvals': approvals,
         'total_items': total_items,
+        'plan_warnings': plan_warnings,
         'can_edit': requisition.status == 'DRAFT',
         'can_submit': requisition.status == 'DRAFT' and items.exists(),
         'can_cancel': requisition.status in ['DRAFT', 'SUBMITTED'],
@@ -10638,7 +10766,12 @@ def staff_requisition_detail(request, pk):
 def staff_requisition_edit(request, pk):
     """Edit a requisition (only if in DRAFT status)"""
     
-    requisition = get_object_or_404(Requisition, pk=pk)
+    requisition = get_object_or_404(
+        Requisition.objects.select_related(
+            'procurement_plan_item__procurement_plan'
+        ),
+        pk=pk
+    )
     
     # Check permissions
     if requisition.requested_by != request.user:
@@ -10659,12 +10792,40 @@ def staff_requisition_edit(request, pk):
         )
         
         if form.is_valid() and formset.is_valid() and attachment_formset.is_valid():
+            # Track old values for plan item updates
+            old_plan_item = requisition.procurement_plan_item
+            old_total = requisition.estimated_amount
+            
             requisition = form.save()
             
             # Save items and recalculate total
             items = formset.save()
-            total_estimated = sum(item.estimated_total for item in requisition.items.all())
+            total_estimated = sum(
+                item.estimated_total for item in requisition.items.all()
+            )
             requisition.estimated_amount = total_estimated
+            
+            # Update plan item tracking
+            new_plan_item = requisition.procurement_plan_item
+            
+            # Revert old plan item
+            if old_plan_item:
+                old_plan_item.amount_committed -= old_total
+                old_plan_item.save()
+            
+            # Update new plan item
+            if new_plan_item and requisition.is_planned:
+                new_plan_item.amount_committed += total_estimated
+                new_plan_item.save()
+                
+                # Validate budget
+                if total_estimated > new_plan_item.remaining_budget:
+                    messages.warning(
+                        request,
+                        f'Warning: Amount exceeds remaining budget by '
+                        f'KES {(total_estimated - new_plan_item.remaining_budget):,.2f}'
+                    )
+            
             requisition.save()
             
             # Save attachments
@@ -10681,12 +10842,25 @@ def staff_requisition_edit(request, pk):
         formset = RequisitionItemFormSet(instance=requisition)
         attachment_formset = RequisitionAttachmentFormSet(instance=requisition)
     
+    # Get available plan items
+    available_plan_items = None
+    if request.user.department:
+        current_budget_year = BudgetYear.objects.filter(is_active=True).first()
+        if current_budget_year:
+            available_plan_items = ProcurementPlanItem.objects.filter(
+                procurement_plan__department=request.user.department,
+                procurement_plan__budget_year=current_budget_year,
+                procurement_plan__status='APPROVED',
+                status='PLANNED'
+            ).select_related('procurement_plan', 'budget')
+    
     context = {
         'form': form,
         'formset': formset,
         'attachment_formset': attachment_formset,
         'requisition': requisition,
         'page_title': f'Edit Requisition {requisition.requisition_number}',
+        'available_plan_items': available_plan_items,
     }
     
     return render(request, 'staff/requisition_form.html', context)
@@ -10694,9 +10868,14 @@ def staff_requisition_edit(request, pk):
 
 @login_required
 def staff_requisition_submit(request, pk):
-    """Submit a requisition for approval"""
+    """Submit a requisition for approval with plan validation"""
     
-    requisition = get_object_or_404(Requisition, pk=pk)
+    requisition = get_object_or_404(
+        Requisition.objects.select_related(
+            'procurement_plan_item__procurement_plan'
+        ),
+        pk=pk
+    )
     
     # Check permissions
     if requisition.requested_by != request.user:
@@ -10717,6 +10896,58 @@ def staff_requisition_submit(request, pk):
         messages.error(request, 'Please select a budget before submitting.')
         return redirect('staff_requisition_edit', pk=pk)
     
+    # PLAN VALIDATION
+    validation_errors = []
+    
+    if requisition.is_planned:
+        if not requisition.procurement_plan_item:
+            validation_errors.append(
+                'Planned requisition must be linked to a procurement plan item'
+            )
+        else:
+            plan_item = requisition.procurement_plan_item
+            
+            # Check if plan is approved
+            if plan_item.procurement_plan.status != 'APPROVED':
+                validation_errors.append(
+                    'Procurement plan is not approved. Status: '
+                    f'{plan_item.procurement_plan.get_status_display()}'
+                )
+            
+            # Check budget
+            if requisition.estimated_amount > plan_item.remaining_budget:
+                validation_errors.append(
+                    f'Amount (KES {requisition.estimated_amount:,.2f}) exceeds '
+                    f'remaining plan budget (KES {plan_item.remaining_budget:,.2f})'
+                )
+    else:
+        # Unplanned requisition validation
+        if not requisition.is_emergency:
+            validation_errors.append(
+                'Unplanned requisition must be marked as emergency'
+            )
+        
+        if not requisition.emergency_justification:
+            validation_errors.append(
+                'Emergency justification is required for unplanned requisitions'
+            )
+        
+        if not requisition.emergency_type:
+            validation_errors.append('Emergency type must be specified')
+        
+        if requisition.requires_plan_amendment and not requisition.plan_amendment:
+            messages.warning(
+                request,
+                'This unplanned requisition will require procurement plan amendment. '
+                'HOD and procurement officer will create the amendment during approval.'
+            )
+    
+    # If there are validation errors, don't submit
+    if validation_errors:
+        for error in validation_errors:
+            messages.error(request, error)
+        return redirect('staff_requisition_edit', pk=pk)
+    
     # Change status to submitted
     requisition.status = 'SUBMITTED'
     requisition.submitted_at = timezone.now()
@@ -10730,19 +10961,24 @@ def staff_requisition_submit(request, pk):
         status='PENDING'
     )
     
-    messages.success(
-        request, 
-        f'Requisition {requisition.requisition_number} submitted for approval!'
-    )
+    success_msg = f'Requisition {requisition.requisition_number} submitted for approval!'
+    
+    if not requisition.is_planned:
+        success_msg += ' (Emergency/Unplanned - requires HOD emergency approval)'
+    
+    messages.success(request, success_msg)
     
     return redirect('staff_requisition_detail', pk=pk)
 
 
 @login_required
 def staff_requisition_cancel(request, pk):
-    """Cancel a requisition"""
+    """Cancel a requisition and revert plan commitments"""
     
-    requisition = get_object_or_404(Requisition, pk=pk)
+    requisition = get_object_or_404(
+        Requisition.objects.select_related('procurement_plan_item'),
+        pk=pk
+    )
     
     # Check permissions
     if requisition.requested_by != request.user:
@@ -10754,8 +10990,21 @@ def staff_requisition_cancel(request, pk):
         return redirect('staff_requisition_detail', pk=pk)
     
     if request.method == 'POST':
+        # Revert plan item commitments
+        if requisition.is_planned and requisition.procurement_plan_item:
+            plan_item = requisition.procurement_plan_item
+            plan_item.amount_committed -= requisition.estimated_amount
+            
+            # Revert quantity if tracked
+            total_qty = sum(
+                item.quantity for item in requisition.items.all()
+            )
+            plan_item.quantity_requisitioned -= total_qty
+            plan_item.save()
+        
         requisition.status = 'CANCELLED'
         requisition.save()
+        
         messages.success(request, 'Requisition cancelled successfully.')
         return redirect('staff_requisitions_list')
     
@@ -10765,6 +11014,34 @@ def staff_requisition_cancel(request, pk):
     
     return render(request, 'staff/requisition_cancel_confirm.html', context)
 
+
+@login_required
+def get_plan_item_details(request, plan_item_id):
+    """AJAX endpoint to get plan item details"""
+    try:
+        plan_item = ProcurementPlanItem.objects.select_related(
+            'procurement_plan', 'budget'
+        ).get(pk=plan_item_id)
+        
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'description': plan_item.description,
+                'estimated_cost': float(plan_item.estimated_cost),
+                'remaining_budget': float(plan_item.remaining_budget),
+                'quantity': float(plan_item.quantity),
+                'remaining_quantity': float(plan_item.remaining_quantity),
+                'unit_of_measure': plan_item.unit_of_measure,
+                'planned_quarter': plan_item.get_planned_quarter_display(),
+                'procurement_method': plan_item.get_procurement_method_display(),
+                'budget_name': plan_item.budget.category.name if plan_item.budget else 'N/A',
+            }
+        })
+    except ProcurementPlanItem.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Plan item not found'
+        }, status=404)
 
 @login_required
 def staff_requisitions_pending(request):
