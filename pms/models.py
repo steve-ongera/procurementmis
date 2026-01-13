@@ -319,6 +319,302 @@ class Item(models.Model):
         return f"{self.code} - {self.name}"
 
 
+class ProcurementPlan(models.Model):
+    """Annual Procurement Plan"""
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('SUBMITTED', 'Submitted'),
+        ('APPROVED', 'Approved'),
+        ('ACTIVE', 'Active'),
+        ('AMENDED', 'Amended'),
+        ('CLOSED', 'Closed'),
+    ]
+    
+    QUARTER_CHOICES = [
+        ('Q1', 'Quarter 1 (Jul-Sep)'),
+        ('Q2', 'Quarter 2 (Oct-Dec)'),
+        ('Q3', 'Quarter 3 (Jan-Mar)'),
+        ('Q4', 'Quarter 4 (Apr-Jun)'),
+    ]
+    
+    PROCUREMENT_METHOD_CHOICES = [
+        ('OPEN_TENDER', 'Open Tender'),
+        ('RESTRICTED_TENDER', 'Restricted Tender'),
+        ('RFQ', 'Request for Quotation'),
+        ('DIRECT_PROCUREMENT', 'Direct Procurement'),
+        ('FRAMEWORK', 'Framework Agreement'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    plan_number = models.CharField(max_length=50, unique=True, editable=False)
+    
+    budget_year = models.ForeignKey(
+        BudgetYear, 
+        on_delete=models.CASCADE, 
+        related_name='procurement_plans'
+    )
+    department = models.ForeignKey(
+        Department, 
+        on_delete=models.CASCADE, 
+        related_name='procurement_plans'
+    )
+    
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+    
+    # Approval tracking
+    submitted_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name='plans_submitted'
+    )
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    
+    approved_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='plans_approved'
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    
+    # Amendment tracking
+    is_amended = models.BooleanField(default=False)
+    amendment_count = models.IntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'procurement_plans'
+        unique_together = ['budget_year', 'department']
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.plan_number:
+            year = self.budget_year.name.replace('/', '-')
+            last_plan = ProcurementPlan.objects.filter(
+                plan_number__startswith=f'PP-{year}'
+            ).order_by('-plan_number').first()
+            
+            if last_plan:
+                last_number = int(last_plan.plan_number.split('-')[-1])
+                new_number = last_number + 1
+            else:
+                new_number = 1
+            
+            self.plan_number = f'PP-{year}-{new_number:04d}'
+        
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.plan_number} - {self.department.code} ({self.budget_year.name})"
+
+
+class ProcurementPlanItem(models.Model):
+    """Individual items in procurement plan"""
+    ITEM_TYPE_CHOICES = [
+        ('GOODS', 'Goods'),
+        ('SERVICES', 'Services'),
+        ('WORKS', 'Works'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('PLANNED', 'Planned'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+        ('CARRIED_FORWARD', 'Carried Forward'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    procurement_plan = models.ForeignKey(
+        ProcurementPlan, 
+        on_delete=models.CASCADE, 
+        related_name='items'
+    )
+    
+    # Link to item catalog (optional)
+    item = models.ForeignKey(
+        Item, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='plan_items'
+    )
+    
+    # Item details
+    item_type = models.CharField(max_length=20, choices=ITEM_TYPE_CHOICES)
+    description = models.TextField()
+    specifications = models.TextField(blank=True)
+    
+    quantity = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        validators=[MinValueValidator(0.01)]
+    )
+    unit_of_measure = models.CharField(max_length=50)
+    
+    # Budget allocation
+    estimated_cost = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        validators=[MinValueValidator(0)]
+    )
+    budget = models.ForeignKey(
+        Budget, 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='plan_items'
+    )
+    
+    # Procurement details
+    procurement_method = models.CharField(
+        max_length=30, 
+        choices=ProcurementPlan.PROCUREMENT_METHOD_CHOICES
+    )
+    planned_quarter = models.CharField(
+        max_length=2, 
+        choices=ProcurementPlan.QUARTER_CHOICES
+    )
+    
+    # Source of funds
+    source_of_funds = models.CharField(
+        max_length=100,
+        help_text="e.g., Government Budget, Donor Funds, IGR"
+    )
+    
+    # Tracking
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PLANNED')
+    
+    # Usage tracking
+    quantity_requisitioned = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0
+    )
+    amount_committed = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        default=0
+    )
+    
+    sequence = models.IntegerField(default=1)
+    notes = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'procurement_plan_items'
+        ordering = ['procurement_plan', 'sequence']
+
+    def __str__(self):
+        return f"{self.procurement_plan.plan_number} - {self.description[:50]}"
+    
+    @property
+    def remaining_quantity(self):
+        return self.quantity - self.quantity_requisitioned
+    
+    @property
+    def remaining_budget(self):
+        return self.estimated_cost - self.amount_committed
+
+
+class ProcurementPlanAmendment(models.Model):
+    """Track amendments to procurement plans"""
+    AMENDMENT_TYPE_CHOICES = [
+        ('ADD_ITEM', 'Add New Item'),
+        ('REMOVE_ITEM', 'Remove Item'),
+        ('MODIFY_ITEM', 'Modify Existing Item'),
+        ('BUDGET_CHANGE', 'Budget Change'),
+        ('QUARTER_CHANGE', 'Quarter Change'),
+        ('METHOD_CHANGE', 'Procurement Method Change'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Approval'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    amendment_number = models.CharField(max_length=50, unique=True, editable=False)
+    
+    procurement_plan = models.ForeignKey(
+        ProcurementPlan, 
+        on_delete=models.CASCADE, 
+        related_name='amendments'
+    )
+    
+    amendment_type = models.CharField(max_length=20, choices=AMENDMENT_TYPE_CHOICES)
+    
+    # What's being changed
+    plan_item = models.ForeignKey(
+        ProcurementPlanItem,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='amendments'
+    )
+    
+    justification = models.TextField(
+        help_text="Detailed reason for amendment"
+    )
+    
+    # Changes (stored as JSON for flexibility)
+    old_values = models.JSONField(null=True, blank=True)
+    new_values = models.JSONField(null=True, blank=True)
+    
+    # Supporting documents
+    supporting_document = models.FileField(
+        upload_to='plan_amendments/',
+        null=True,
+        blank=True
+    )
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    
+    # Approval workflow
+    requested_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='plan_amendments_requested'
+    )
+    requested_at = models.DateTimeField(auto_now_add=True)
+    
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='plan_amendments_approved'
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    
+    rejection_reason = models.TextField(blank=True)
+
+    class Meta:
+        db_table = 'procurement_plan_amendments'
+        ordering = ['-requested_at']
+
+    def save(self, *args, **kwargs):
+        if not self.amendment_number:
+            plan_number = self.procurement_plan.plan_number
+            count = self.procurement_plan.amendments.count() + 1
+            self.amendment_number = f"{plan_number}-AMD-{count:03d}"
+        
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.amendment_number} - {self.get_amendment_type_display()}"
+
+
 # ============================================================================
 # 5. SUPPLIER/VENDOR MANAGEMENT
 # ============================================================================
