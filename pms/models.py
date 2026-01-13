@@ -781,6 +781,80 @@ class Requisition(models.Model):
     notes = models.TextField(blank=True)
     rejection_reason = models.TextField(blank=True)
     
+    procurement_plan_item = models.ForeignKey(
+        ProcurementPlanItem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='requisitions',
+        help_text="Link to approved procurement plan item"
+    )
+    
+    is_planned = models.BooleanField(
+        default=True,
+        help_text="Whether this requisition is from procurement plan"
+    )
+    
+    # For unplanned requisitions
+    is_emergency = models.BooleanField(
+        default=False,
+        help_text="Emergency procurement flag"
+    )
+    
+    emergency_justification = models.TextField(
+        blank=True,
+        help_text="Detailed justification for unplanned/emergency procurement"
+    )
+    
+    emergency_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('BREAKDOWN', 'Equipment Breakdown'),
+            ('SAFETY', 'Safety/Health Emergency'),
+            ('REGULATORY', 'Regulatory/Compliance Requirement'),
+            ('DONOR', 'New Donor Funding'),
+            ('ACADEMIC', 'New Academic Requirement'),
+            ('OTHER', 'Other Emergency'),
+        ],
+        null=True,
+        blank=True
+    )
+    
+    # Plan amendment tracking
+    requires_plan_amendment = models.BooleanField(
+        default=False,
+        help_text="Whether plan needs to be amended for this requisition"
+    )
+    
+    plan_amendment = models.ForeignKey(
+        ProcurementPlanAmendment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='requisitions',
+        help_text="Link to plan amendment if required"
+    )
+    
+    # Additional validation fields
+    hod_emergency_approval = models.BooleanField(
+        default=False,
+        help_text="HOD confirmed this is genuine emergency"
+    )
+    
+    plan_deviation_approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='plan_deviations_approved',
+        help_text="Senior officer who approved deviation from plan"
+    )
+    
+    plan_deviation_approved_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+    
     submitted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
