@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Procurement Plan Reports{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_plan_list' %}">Plans</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Reports</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <button type="button" class="btn btn-primary" onclick="exportReport()">
+            <i class="bi bi-download"></i>
+            Export Report
+        </button>
+        <button type="button" class="btn" onclick="window.print()">
+            <i class="bi bi-printer"></i>
+            Print
+        </button>
+        <a href="{% url 'procurement_plan_list' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Plans
+        </a>
+    </div>
+</div>
+
+<!-- Filter Options -->
+<div class="filter-card">
+    <h3 class="filter-title">
+        <i class="bi bi-funnel"></i>
+        Report Filters
+    </h3>
+    
+    <form method="get" class="filter-form">
+        <div class="filter-group">
+            <label class="filter-label">Budget Year</label>
+            <select name="budget_year" class="filter-select">
+                <option value="">All Years</option>
+                {% for year in budget_years %}
+                <option value="{{ year.id }}" {% if selected_budget_year == year.id|stringformat:"s" %}selected{% endif %}>
+                    {{ year.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label class="filter-label">Department</label>
+            <select name="department" class="filter-select">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>
+                    {{ dept.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+            {% if selected_budget_year or selected_department %}
+            <a href="{% url 'procurement_plan_reports' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Summary Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ total_plans|intcomma }}</h3>
+                <p>Total Plans</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ approved_plans|intcomma }}</h3>
+                <p>Approved Plans</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-check-circle"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>KES {{ total_estimated|floatformat:0|intcomma }}</h3>
+                <p>Total Estimated</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>KES {{ total_committed|floatformat:0|intcomma }}</h3>
+                <p>Total Committed</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-check-all"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Utilization Rate -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-speedometer"></i>
+            Budget Utilization
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ utilization_rate|floatformat:1 }}%"></div>
+        </div>
+        <div class="progress-label">
+            {{ utilization_rate|floatformat:1 }}% Utilized (KES {{ total_committed|floatformat:0|intcomma }} of KES {{ total_estimated|floatformat:0|intcomma }})
+        </div>
+    </div>
+</div>
+
+<!-- By Department -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-building"></i>
+            Breakdown by Department
+        </h3>
+    </div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Total Items</th>
+                    <th>Total Cost</th>
+                    <th>Committed</th>
+                    <th>Utilization</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in by_department %}
+                <tr>
+                    <td>{{ dept.department__name }}</td>
+                    <td>{{ dept.total_items|intcomma }}</td>
+                    <td class="amount">KES {{ dept.total_cost|default:0|floatformat:0|intcomma }}</td>
+                    <td class="amount">KES {{ dept.total_committed|default:0|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% widthratio dept.total_committed|default:0 dept.total_cost|default:1 100 as util %}
+                        {{ util }}%
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="empty-state">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- By Quarter -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-calendar4-week"></i>
+            Breakdown by Quarter
+        </h3>
+    </div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Quarter</th>
+                    <th>Total Items</th>
+                    <th>Total Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quarter in by_quarter %}
+                <tr>
+                    <td>
+                        {% if quarter.planned_quarter == 'Q1' %}Quarter 1 (Jul-Sep)
+                        {% elif quarter.planned_quarter == 'Q2' %}Quarter 2 (Oct-Dec)
+                        {% elif quarter.planned_quarter == 'Q3' %}Quarter 3 (Jan-Mar)
+                        {% elif quarter.planned_quarter == 'Q4' %}Quarter 4 (Apr-Jun)
+                        {% endif %}
+                    </td>
+                    <td>{{ quarter.total_items|intcomma }}</td>
+                    <td class="amount">KES {{ quarter.total_cost|default:0|floatformat:0|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="empty-state">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- By Procurement Method -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-graph-up"></i>
+            Breakdown by Procurement Method
+        </h3>
+    </div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Procurement Method</th>
+                    <th>Total Items</th>
+                    <th>Total Cost</th>
+                    <th>Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for method in by_method %}
+                <tr>
+                    <td>
+                        {% if method.procurement_method == 'OPEN_TENDER' %}Open Tender
+                        {% elif method.procurement_method == 'RESTRICTED_TENDER' %}Restricted Tender
+                        {% elif method.procurement_method == 'RFQ' %}Request for Quotation
+                        {% elif method.procurement_method == 'DIRECT_PROCUREMENT' %}Direct Procurement
+                        {% elif method.procurement_method == 'FRAMEWORK' %}Framework Agreement
+                        {% endif %}
+                    </td>
+                    <td>{{ method.total_items|intcomma }}</td>
+                    <td class="amount">KES {{ method.total_cost|default:0|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% if total_estimated > 0 %}
+                        {% widthratio method.total_cost|default:0 total_estimated 100 as pct %}
+                        {{ pct }}%
+                        {% else %}
+                        0%
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="empty-state">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportReport() {
+    // Build export URL with current filters
+    let url = '/procurement/export/plans/?format=excel';
+    
+    const params = new URLSearchParams(window.location.search);
+    params.forEach((value, key) => {
+        url += `&${key}=${value}`;
+    });
+    
+    window.location.href = url;
+}
+</script>
+{% endblock %}

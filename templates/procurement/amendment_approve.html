@@ -1,0 +1,130 @@
+<!-- plan_amendment_approve.html -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Approve Amendment {{ amendment.amendment_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'plan_amendment_list' %}">Amendments</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Approve</span>
+        </div>
+    </div>
+</div>
+
+<!-- Amendment Details -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-info-circle"></i>
+            Amendment Details
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Amendment Number</label>
+                <div class="value">{{ amendment.amendment_number }}</div>
+            </div>
+            <div class="info-item">
+                <label>Plan Number</label>
+                <div class="value">{{ amendment.procurement_plan.plan_number }}</div>
+            </div>
+            <div class="info-item">
+                <label>Department</label>
+                <div class="value">{{ amendment.procurement_plan.department.name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Amendment Type</label>
+                <div class="value">{{ amendment.get_amendment_type_display }}</div>
+            </div>
+            <div class="info-item">
+                <label>Requested By</label>
+                <div class="value">{{ amendment.requested_by.get_full_name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Requested At</label>
+                <div class="value">{{ amendment.requested_at|date:"M d, Y H:i" }}</div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <label>Justification</label>
+            <div class="value">{{ amendment.justification }}</div>
+        </div>
+        
+        {% if amendment.old_values %}
+        <div class="info-section">
+            <label>Current Values</label>
+            <pre class="value">{{ amendment.old_values|pprint }}</pre>
+        </div>
+        {% endif %}
+        
+        {% if amendment.new_values %}
+        <div class="info-section">
+            <label>Proposed Changes</label>
+            <pre class="value">{{ amendment.new_values|pprint }}</pre>
+        </div>
+        {% endif %}
+        
+        {% if amendment.supporting_document %}
+        <div class="info-section">
+            <label>Supporting Document</label>
+            <div class="value">
+                <a href="{{ amendment.supporting_document.url }}" target="_blank" class="btn btn-sm">
+                    <i class="bi bi-download"></i>
+                    Download Document
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Approval Form -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-check-circle"></i>
+            Approve Amendment
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Note:</strong> Approving this amendment will apply the proposed changes to the procurement plan.
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-check-circle"></i>
+                    Approve Amendment
+                </button>
+                <a href="{% url 'plan_amendment_list' %}" class="btn">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to List
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (!confirm('Are you sure you want to approve this amendment?')) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

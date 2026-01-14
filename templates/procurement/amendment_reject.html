@@ -1,0 +1,120 @@
+<!-- ============================================== -->
+<!-- plan_amendment_reject.html -->
+<!-- ============================================== -->
+
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Reject Amendment {{ amendment.amendment_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Reject Amendment</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'plan_amendment_list' %}">Amendments</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Reject</span>
+        </div>
+    </div>
+</div>
+
+<!-- Amendment Details -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-info-circle"></i>
+            Amendment Details
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Amendment Number</label>
+                <div class="value">{{ amendment.amendment_number }}</div>
+            </div>
+            <div class="info-item">
+                <label>Plan Number</label>
+                <div class="value">{{ amendment.procurement_plan.plan_number }}</div>
+            </div>
+            <div class="info-item">
+                <label>Type</label>
+                <div class="value">{{ amendment.get_amendment_type_display }}</div>
+            </div>
+            <div class="info-item">
+                <label>Requested By</label>
+                <div class="value">{{ amendment.requested_by.get_full_name }}</div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <label>Justification</label>
+            <div class="value">{{ amendment.justification }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Form -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-x-circle"></i>
+            Reject Amendment
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Important:</strong> Please provide clear reasons for rejecting this amendment.
+            </div>
+            
+            <div class="form-group">
+                <label class="required">Rejection Reason</label>
+                <textarea name="rejection_reason" 
+                          class="form-control" 
+                          rows="6"
+                          placeholder="Provide detailed reasons for rejection..."
+                          required></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-danger btn-lg">
+                    <i class="bi bi-x-circle"></i>
+                    Reject Amendment
+                </button>
+                <a href="{% url 'plan_amendment_list' %}" class="btn">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to List
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const form = document.querySelector('form');
+const textarea = form.querySelector('textarea[name="rejection_reason"]');
+
+form.addEventListener('submit', function(e) {
+    const reason = textarea.value.trim();
+    
+    if (reason.length < 10) {
+        e.preventDefault();
+        alert('Please provide a detailed rejection reason.');
+        textarea.focus();
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to reject this amendment?')) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

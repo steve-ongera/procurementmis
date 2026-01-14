@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Create Procurement Plan{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_plan_list' %}">Procurement Plans</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Create</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'procurement_plan_list' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Cancel
+        </a>
+    </div>
+</div>
+
+<!-- Create Plan Form -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-file-earmark-plus"></i>
+            Create New Procurement Plan
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Note:</strong> You can only create one procurement plan per department per budget year. 
+                After creating the plan, you'll be able to add items to it.
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="budget_year" class="required">Budget Year</label>
+                    <select name="budget_year" id="budget_year" class="form-control" required>
+                        <option value="">Select Budget Year</option>
+                        {% for year in budget_years %}
+                        <option value="{{ year.id }}">{{ year.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text">Select the budget year for this procurement plan</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="department" class="required">Department</label>
+                    <select name="department" id="department" class="form-control" required>
+                        <option value="">Select Department</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.code }})</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text">Select the department for this plan</small>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="title" class="required">Plan Title</label>
+                <input type="text" 
+                       name="title" 
+                       id="title" 
+                       class="form-control" 
+                       placeholder="e.g., FY 2024/2025 Annual Procurement Plan"
+                       required>
+                <small class="form-text">Enter a descriptive title for this procurement plan</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea name="description" 
+                          id="description" 
+                          class="form-control" 
+                          rows="4"
+                          placeholder="Optional: Enter additional description or notes about this plan"></textarea>
+                <small class="form-text">Provide any additional details about this procurement plan</small>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i>
+                    Create Plan
+                </button>
+                <a href="{% url 'procurement_plan_list' %}" class="btn">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Help Section -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-question-circle"></i>
+            How to Create a Procurement Plan
+        </h3>
+    </div>
+    <div class="card-body">
+        <ol>
+            <li><strong>Select Budget Year:</strong> Choose the financial year for this procurement plan</li>
+            <li><strong>Select Department:</strong> Choose your department (only one plan allowed per department/year)</li>
+            <li><strong>Enter Title:</strong> Provide a clear, descriptive title for the plan</li>
+            <li><strong>Add Description:</strong> Optionally add more details about the plan</li>
+            <li><strong>Create:</strong> Click "Create Plan" to proceed to adding items</li>
+        </ol>
+        
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Important:</strong> After creating the plan, you'll need to:
+            <ul>
+                <li>Add procurement items with estimated costs and quarters</li>
+                <li>Assign budget allocations to each item</li>
+                <li>Submit the plan for approval</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const form = document.querySelector('form');
+    const budgetYear = document.getElementById('budget_year');
+    const department = document.getElementById('department');
+    const title = document.getElementById('title');
+    
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        let errors = [];
+        
+        if (!budgetYear.value) {
+            errors.push('Please select a budget year');
+            isValid = false;
+        }
+        
+        if (!department.value) {
+            errors.push('Please select a department');
+            isValid = false;
+        }
+        
+        if (!title.value.trim()) {
+            errors.push('Please enter a plan title');
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields:\n\n' + errors.join('\n'));
+        }
+    });
+});
+</script>
+{% endblock %}

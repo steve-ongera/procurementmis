@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Create Amendment for {{ plan.plan_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_plan_list' %}">Plans</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_plan_detail' plan.id %}">{{ plan.plan_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Create Amendment</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'procurement_plan_detail' plan.id %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Cancel
+        </a>
+    </div>
+</div>
+
+<!-- Plan Info -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-info-circle"></i>
+            Plan Information
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Plan Number</label>
+                <div class="value">{{ plan.plan_number }}</div>
+            </div>
+            <div class="info-item">
+                <label>Department</label>
+                <div class="value">{{ plan.department.name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Budget Year</label>
+                <div class="value">{{ plan.budget_year.name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Current Status</label>
+                <div class="value">
+                    <span class="status-badge status-{{ plan.status|lower }}">
+                        {{ plan.get_status_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Amendment Form -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-pencil-square"></i>
+            Request Plan Amendment
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Note:</strong> Plan amendments require approval from the administration. 
+                Provide detailed justification for your requested changes.
+            </div>
+            
+            <div class="form-group">
+                <label class="required">Amendment Type</label>
+                <select name="amendment_type" id="amendment_type" class="form-control" required>
+                    <option value="">Select Amendment Type</option>
+                    <option value="ADD_ITEM">Add New Item</option>
+                    <option value="REMOVE_ITEM">Remove Item</option>
+                    <option value="MODIFY_ITEM">Modify Existing Item</option>
+                    <option value="BUDGET_CHANGE">Budget Change</option>
+                    <option value="QUARTER_CHANGE">Quarter Change</option>
+                    <option value="METHOD_CHANGE">Procurement Method Change</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="itemSelectGroup" style="display: none;">
+                <label class="required">Select Plan Item (for modifications/removal)</label>
+                <select name="plan_item" id="plan_item" class="form-control">
+                    <option value="">Select Item</option>
+                    {% for item in plan_items %}
+                    <option value="{{ item.id }}">
+                        {{ item.description|truncatechars:50 }} - Q{{ item.planned_quarter }} - KES {{ item.estimated_cost|floatformat:0|intcomma }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="required">Justification</label>
+                <textarea name="justification" 
+                          id="justification"
+                          class="form-control" 
+                          rows="6"
+                          placeholder="Provide detailed justification for this amendment (minimum 100 characters)..."
+                          required></textarea>
+                <small class="form-text">
+                    Explain why this amendment is necessary and how it benefits the procurement process.
+                    Minimum 100 characters required.
+                </small>
+            </div>
+            
+            <div class="form-group" id="oldValuesGroup" style="display: none;">
+                <label>Current Values (JSON format)</label>
+                <textarea name="old_values" 
+                          id="old_values"
+                          class="form-control" 
+                          rows="4"
+                          placeholder='{"quantity": 10, "estimated_cost": 50000}'></textarea>
+                <small class="form-text">Enter current values in JSON format</small>
+            </div>
+            
+            <div class="form-group" id="newValuesGroup" style="display: none;">
+                <label>Proposed Changes (JSON format)</label>
+                <textarea name="new_values" 
+                          id="new_values"
+                          class="form-control" 
+                          rows="4"
+                          placeholder='{"quantity": 15, "estimated_cost": 75000}'></textarea>
+                <small class="form-text">Enter proposed values in JSON format</small>
+            </div>
+            
+            <div class="form-group">
+                <label>Supporting Document (Optional)</label>
+                <input type="file" 
+                       name="supporting_document" 
+                       class="form-control"
+                       accept=".pdf,.doc,.docx,.xls,.xlsx">
+                <small class="form-text">Upload supporting documentation if applicable (PDF, Word, Excel)</small>
+            </div>
+            
+            <div class="alert alert-warning">
+                <strong>Important:</strong>
+                <ul>
+                    <li>All amendments must be approved before taking effect</li>
+                    <li>Provide comprehensive justification to facilitate quick approval</li>
+                    <li>Include supporting documents where applicable</li>
+                    <li>For budget changes, ensure funds are available</li>
+                </ul>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-send"></i>
+                    Submit Amendment Request
+                </button>
+                <a href="{% url 'procurement_plan_detail' plan.id %}" class="btn">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Amendment Guidelines -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-question-circle"></i>
+            Amendment Guidelines
+        </h3>
+    </div>
+    <div class="card-body">
+        <h4>When to Request Amendments:</h4>
+        <ul>
+            <li><strong>Add Item:</strong> New requirement emerged after plan approval</li>
+            <li><strong>Remove Item:</strong> Item no longer needed or requirements changed</li>
+            <li><strong>Modify Item:</strong> Changes to quantity, specifications, or cost estimates</li>
+            <li><strong>Budget Change:</strong> Reallocation of budget between items</li>
+            <li><strong>Quarter Change:</strong> Timeline adjustments for procurement</li>
+            <li><strong>Method Change:</strong> Change in procurement approach</li>
+        </ul>
+        
+        <h4>Justification Requirements:</h4>
+        <ul>
+            <li>Clearly explain the reason for the amendment</li>
+            <li>Describe the impact if amendment is not approved</li>
+            <li>Provide any relevant supporting documentation</li>
+            <li>Ensure alignment with department objectives</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const amendmentType = document.getElementById('amendment_type');
+const itemSelectGroup = document.getElementById('itemSelectGroup');
+const itemSelect = document.getElementById('plan_item');
+const oldValuesGroup = document.getElementById('oldValuesGroup');
+const newValuesGroup = document.getElementById('newValuesGroup');
+const justification = document.getElementById('justification');
+
+// Show/hide fields based on amendment type
+amendmentType.addEventListener('change', function() {
+    const type = this.value;
+    
+    // Reset visibility
+    itemSelectGroup.style.display = 'none';
+    oldValuesGroup.style.display = 'none';
+    newValuesGroup.style.display = 'none';
+    itemSelect.required = false;
+    
+    // Show relevant fields
+    if (type === 'REMOVE_ITEM' || type === 'MODIFY_ITEM' || 
+        type === 'BUDGET_CHANGE' || type === 'QUARTER_CHANGE' || 
+        type === 'METHOD_CHANGE') {
+        itemSelectGroup.style.display = 'block';
+        itemSelect.required = true;
+    }
+    
+    if (type === 'MODIFY_ITEM' || type === 'BUDGET_CHANGE' || 
+        type === 'QUARTER_CHANGE' || type === 'METHOD_CHANGE') {
+        oldValuesGroup.style.display = 'block';
+        newValuesGroup.style.display = 'block';
+    }
+});
+
+// Form validation
+const form = document.querySelector('form');
+form.addEventListener('submit', function(e) {
+    const justText = justification.value.trim();
+    
+    if (justText.length < 100) {
+        e.preventDefault();
+        alert('Justification must be at least 100 characters long. Currently: ' + justText.length + ' characters.');
+        justification.focus();
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to submit this amendment request?')) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Reject {{ plan.plan_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_plan_list' %}">Plans</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_plan_detail' plan.id %}">{{ plan.plan_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Reject</span>
+        </div>
+    </div>
+</div>
+
+<!-- Plan Summary -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-file-earmark-x"></i>
+            Plan Summary
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Plan Number</label>
+                <div class="value">{{ plan.plan_number }}</div>
+            </div>
+            <div class="info-item">
+                <label>Department</label>
+                <div class="value">{{ plan.department.name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Budget Year</label>
+                <div class="value">{{ plan.budget_year.name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Submitted By</label>
+                <div class="value">{{ plan.submitted_by.get_full_name }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Form -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-x-circle"></i>
+            Reject Plan
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Important:</strong> Rejecting this plan will return it to draft status. 
+                The department will be able to make corrections and resubmit.
+            </div>
+            
+            <div class="form-group">
+                <label class="required">Rejection Reason</label>
+                <textarea name="rejection_reason" 
+                          class="form-control" 
+                          rows="6"
+                          placeholder="Provide detailed reasons for rejection. Be specific about what needs to be corrected..."
+                          required></textarea>
+                <small class="form-text text-danger">
+                    This field is required. Please provide clear guidance on what needs to be changed.
+                </small>
+            </div>
+            
+            <div class="alert alert-info">
+                <strong>Common Rejection Reasons:</strong>
+                <ul>
+                    <li>Budget allocations exceed available budget</li>
+                    <li>Procurement methods not appropriate for item types</li>
+                    <li>Insufficient justification for high-value items</li>
+                    <li>Items not aligned with department priorities</li>
+                    <li>Quarter distribution not realistic</li>
+                </ul>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-danger btn-lg">
+                    <i class="bi bi-x-circle"></i>
+                    Reject Plan
+                </button>
+                <a href="{% url 'procurement_plan_approve' plan.id %}" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i>
+                    Approve Instead
+                </a>
+                <a href="{% url 'procurement_plan_detail' plan.id %}" class="btn">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to Plan
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const form = document.querySelector('form');
+const textarea = form.querySelector('textarea[name="rejection_reason"]');
+
+form.addEventListener('submit', function(e) {
+    const reason = textarea.value.trim();
+    
+    if (reason.length < 20) {
+        e.preventDefault();
+        alert('Please provide a more detailed rejection reason (at least 20 characters).');
+        textarea.focus();
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to reject this procurement plan?\n\nThe plan will be returned to draft status for corrections.')) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

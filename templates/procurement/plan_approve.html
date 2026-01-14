@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Approve {{ plan.plan_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_plan_list' %}">Plans</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_plan_detail' plan.id %}">{{ plan.plan_number }}</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Approve</span>
+        </div>
+    </div>
+</div>
+
+<!-- Plan Summary -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-file-earmark-check"></i>
+            Plan Summary
+        </h3>
+        <span class="status-badge status-submitted">SUBMITTED FOR APPROVAL</span>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Plan Number</label>
+                <div class="value">{{ plan.plan_number }}</div>
+            </div>
+            <div class="info-item">
+                <label>Department</label>
+                <div class="value">{{ plan.department.name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Budget Year</label>
+                <div class="value">{{ plan.budget_year.name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Submitted By</label>
+                <div class="value">{{ plan.submitted_by.get_full_name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Submitted At</label>
+                <div class="value">{{ plan.submitted_at|date:"M d, Y H:i" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Total Items</label>
+                <div class="value">{{ plan.items.count }}</div>
+            </div>
+            <div class="info-item">
+                <label>Total Estimated Cost</label>
+                <div class="value">KES {{ plan.items.all|sum_field:'estimated_cost'|floatformat:0|intcomma }}</div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <label>Title</label>
+            <div class="value">{{ plan.title }}</div>
+        </div>
+        
+        {% if plan.description %}
+        <div class="info-section">
+            <label>Description</label>
+            <div class="value">{{ plan.description }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Review Checklist -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-clipboard-check"></i>
+            Approval Checklist
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="checklist">
+            <div class="checklist-item">
+                <input type="checkbox" id="check1">
+                <label for="check1">All plan items have budget allocations assigned</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check2">
+                <label for="check2">Estimated costs are reasonable and justified</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check3">
+                <label for="check3">Procurement methods align with university policies</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check4">
+                <label for="check4">Items are distributed appropriately across quarters</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check5">
+                <label for="check5">Plan aligns with department's strategic objectives</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approval Form -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-check-circle"></i>
+            Approve Plan
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Note:</strong> Approving this plan will allow the department to proceed with 
+                creating requisitions based on the planned items. You can still request amendments later if needed.
+            </div>
+            
+            <div class="form-group">
+                <label>Approval Comments (Optional)</label>
+                <textarea name="comments" 
+                          class="form-control" 
+                          rows="4"
+                          placeholder="Enter any comments or recommendations..."></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-check-circle"></i>
+                    Approve Plan
+                </button>
+                <a href="{% url 'procurement_plan_reject' plan.id %}" class="btn btn-danger">
+                    <i class="bi bi-x-circle"></i>
+                    Reject Instead
+                </a>
+                <a href="{% url 'procurement_plan_detail' plan.id %}" class="btn">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to Plan
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Enable approve button only when all checklist items are checked
+const approveForm = document.querySelector('form');
+const approveBtn = approveForm.querySelector('button[type="submit"]');
+const checkboxes = document.querySelectorAll('.checklist-item input[type="checkbox"]');
+
+function updateApproveButton() {
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    approveBtn.disabled = !allChecked;
+}
+
+checkboxes.forEach(cb => {
+    cb.addEventListener('change', updateApproveButton);
+});
+
+// Initial check
+updateApproveButton();
+
+// Confirm before approving
+approveForm.addEventListener('submit', function(e) {
+    if (!confirm('Are you sure you want to approve this procurement plan?\n\nThis action cannot be undone.')) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

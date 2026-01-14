@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ plan.plan_number }} - Procurement Plan Detail{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ plan.plan_number }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_plan_list' %}">Procurement Plans</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ plan.plan_number }}</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        {% if can_edit %}
+        <a href="{% url 'procurement_plan_edit' plan.id %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i>
+            Edit Plan
+        </a>
+        {% endif %}
+        
+        {% if plan.status == 'DRAFT' %}
+        <form method="post" action="{% url 'procurement_plan_submit' plan.id %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success" onclick="return confirm('Submit this plan for approval?')">
+                <i class="bi bi-send"></i>
+                Submit for Approval
+            </button>
+        </form>
+        {% endif %}
+        
+        {% if can_approve %}
+        <a href="{% url 'procurement_plan_approve' plan.id %}" class="btn btn-success">
+            <i class="bi bi-check-circle"></i>
+            Approve Plan
+        </a>
+        <a href="{% url 'procurement_plan_reject' plan.id %}" class="btn btn-danger">
+            <i class="bi bi-x-circle"></i>
+            Reject Plan
+        </a>
+        {% endif %}
+        
+        {% if can_activate %}
+        <form method="post" action="{% url 'procurement_plan_activate' plan.id %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success" onclick="return confirm('Activate this plan?')">
+                <i class="bi bi-play-circle"></i>
+                Activate Plan
+            </button>
+        </form>
+        {% endif %}
+        
+        {% if plan.status == 'APPROVED' or plan.status == 'ACTIVE' %}
+        <a href="{% url 'plan_amendment_create' plan.id %}" class="btn">
+            <i class="bi bi-pencil-square"></i>
+            Request Amendment
+        </a>
+        {% endif %}
+        
+        <a href="{% url 'procurement_plan_list' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to List
+        </a>
+    </div>
+</div>
+
+<!-- Plan Overview Card -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-info-circle"></i>
+            Plan Overview
+        </h3>
+        <span class="status-badge status-{{ plan.status|lower }}">
+            {{ plan.get_status_display }}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Plan Number</label>
+                <div class="value">{{ plan.plan_number }}</div>
+            </div>
+            <div class="info-item">
+                <label>Department</label>
+                <div class="value">{{ plan.department.name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Budget Year</label>
+                <div class="value">{{ plan.budget_year.name }}</div>
+            </div>
+            <div class="info-item">
+                <label>Status</label>
+                <div class="value">{{ plan.get_status_display }}</div>
+            </div>
+            <div class="info-item">
+                <label>Submitted By</label>
+                <div class="value">{{ plan.submitted_by.get_full_name|default:"-" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Submitted At</label>
+                <div class="value">{{ plan.submitted_at|date:"M d, Y H:i"|default:"-" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Approved By</label>
+                <div class="value">{{ plan.approved_by.get_full_name|default:"-" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Approved At</label>
+                <div class="value">{{ plan.approved_at|date:"M d, Y H:i"|default:"-" }}</div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <label>Title</label>
+            <div class="value">{{ plan.title }}</div>
+        </div>
+        
+        {% if plan.description %}
+        <div class="info-section">
+            <label>Description</label>
+            <div class="value">{{ plan.description }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Statistics Card -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ total_items|intcomma }}</h3>
+                <p>Total Items</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-box"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>KES {{ total_estimated|floatformat:0|intcomma }}</h3>
+                <p>Estimated Cost</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>KES {{ total_committed|floatformat:0|intcomma }}</h3>
+                <p>Committed</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-check-circle"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ completed_items }}/{{ total_items }}</h3>
+                <p>Completed</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-check-all"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Plan Items by Quarter -->
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-calendar4-week"></i>
+            Plan Items by Quarter
+        </h3>
+    </div>
+    <div class="card-body">
+        <!-- Q1 -->
+        <div class="quarter-section">
+            <h4>Quarter 1 (Jul-Sep) - {{ items_q1.count }} items</h4>
+            {% if items_q1 %}
+            <table class="table-sm">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Quantity</th>
+                        <th>Estimated Cost</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items_q1 %}
+                    <tr>
+                        <td>{{ item.description|truncatechars:50 }}</td>
+                        <td>{{ item.get_item_type_display }}</td>
+                        <td>{{ item.quantity }} {{ item.unit_of_measure }}</td>
+                        <td class="amount">KES {{ item.estimated_cost|floatformat:0|intcomma }}</td>
+                        <td>{{ item.get_procurement_method_display }}</td>
+                        <td>
+                            <span class="status-badge status-{{ item.status|lower }}">
+                                {{ item.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No items planned for Q1</p>
+            {% endif %}
+        </div>
+
+        <!-- Q2 -->
+        <div class="quarter-section">
+            <h4>Quarter 2 (Oct-Dec) - {{ items_q2.count }} items</h4>
+            {% if items_q2 %}
+            <table class="table-sm">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Quantity</th>
+                        <th>Estimated Cost</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items_q2 %}
+                    <tr>
+                        <td>{{ item.description|truncatechars:50 }}</td>
+                        <td>{{ item.get_item_type_display }}</td>
+                        <td>{{ item.quantity }} {{ item.unit_of_measure }}</td>
+                        <td class="amount">KES {{ item.estimated_cost|floatformat:0|intcomma }}</td>
+                        <td>{{ item.get_procurement_method_display }}</td>
+                        <td>
+                            <span class="status-badge status-{{ item.status|lower }}">
+                                {{ item.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No items planned for Q2</p>
+            {% endif %}
+        </div>
+
+        <!-- Q3 -->
+        <div class="quarter-section">
+            <h4>Quarter 3 (Jan-Mar) - {{ items_q3.count }} items</h4>
+            {% if items_q3 %}
+            <table class="table-sm">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Quantity</th>
+                        <th>Estimated Cost</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items_q3 %}
+                    <tr>
+                        <td>{{ item.description|truncatechars:50 }}</td>
+                        <td>{{ item.get_item_type_display }}</td>
+                        <td>{{ item.quantity }} {{ item.unit_of_measure }}</td>
+                        <td class="amount">KES {{ item.estimated_cost|floatformat:0|intcomma }}</td>
+                        <td>{{ item.get_procurement_method_display }}</td>
+                        <td>
+                            <span class="status-badge status-{{ item.status|lower }}">
+                                {{ item.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No items planned for Q3</p>
+            {% endif %}
+        </div>
+
+        <!-- Q4 -->
+        <div class="quarter-section">
+            <h4>Quarter 4 (Apr-Jun) - {{ items_q4.count }} items</h4>
+            {% if items_q4 %}
+            <table class="table-sm">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Quantity</th>
+                        <th>Estimated Cost</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items_q4 %}
+                    <tr>
+                        <td>{{ item.description|truncatechars:50 }}</td>
+                        <td>{{ item.get_item_type_display }}</td>
+                        <td>{{ item.quantity }} {{ item.unit_of_measure }}</td>
+                        <td class="amount">KES {{ item.estimated_cost|floatformat:0|intcomma }}</td>
+                        <td>{{ item.get_procurement_method_display }}</td>
+                        <td>
+                            <span class="status-badge status-{{ item.status|lower }}">
+                                {{ item.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No items planned for Q4</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Amendments -->
+{% if amendments %}
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="bi bi-pencil-square"></i>
+            Amendments ({{ amendments.count }})
+        </h3>
+    </div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Amendment #</th>
+                    <th>Type</th>
+                    <th>Requested By</th>
+                    <th>Requested At</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for amendment in amendments %}
+                <tr>
+                    <td><strong>{{ amendment.amendment_number }}</strong></td>
+                    <td>{{ amendment.get_amendment_type_display }}</td>
+                    <td>{{ amendment.requested_by.get_full_name }}</td>
+                    <td>{{ amendment.requested_at|date:"M d, Y H:i" }}</td>
+                    <td>
+                        <span class="status-badge status-{{ amendment.status|lower }}">
+                            {{ amendment.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'plan_amendment_list' %}" class="action-link">
+                            <i class="bi bi-eye"></i>
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

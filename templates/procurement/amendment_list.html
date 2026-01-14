@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Plan Amendments - Procurement Module{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">Dashboard</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Plan Amendments</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'procurement_plan_list' %}" class="btn">
+            <i class="bi bi-file-earmark-text"></i>
+            View Plans
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ total_amendments|intcomma }}</h3>
+                <p>Total Amendments</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-pencil-square"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ pending_amendments|intcomma }}</h3>
+                <p>Pending Approval</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-clock-history"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ approved_amendments|intcomma }}</h3>
+                <p>Approved</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-check-circle"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-info">
+                <h3>{{ rejected_amendments|intcomma }}</h3>
+                <p>Rejected</p>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-x-circle"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="filter-card">
+    <h3 class="filter-title">
+        <i class="bi bi-funnel"></i>
+        Filter Amendments
+    </h3>
+    
+    <form method="get" class="filter-form">
+        <div class="filter-group">
+            <label class="filter-label">Status</label>
+            <select name="status" class="filter-select">
+                <option value="">All Status</option>
+                <option value="PENDING" {% if selected_status == 'PENDING' %}selected{% endif %}>Pending</option>
+                <option value="APPROVED" {% if selected_status == 'APPROVED' %}selected{% endif %}>Approved</option>
+                <option value="REJECTED" {% if selected_status == 'REJECTED' %}selected{% endif %}>Rejected</option>
+            </select>
+        </div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filter
+            </button>
+            {% if selected_status %}
+            <a href="{% url 'plan_amendment_list' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Amendments Table -->
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Amendment #</th>
+                <th>Plan Number</th>
+                <th>Department</th>
+                <th>Type</th>
+                <th>Justification</th>
+                <th>Requested By</th>
+                <th>Requested At</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for amendment in amendments %}
+            <tr>
+                <td><strong>{{ amendment.amendment_number }}</strong></td>
+                <td>{{ amendment.procurement_plan.plan_number }}</td>
+                <td>{{ amendment.procurement_plan.department.code }}</td>
+                <td>{{ amendment.get_amendment_type_display }}</td>
+                <td>{{ amendment.justification|truncatechars:60 }}</td>
+                <td>{{ amendment.requested_by.get_full_name }}</td>
+                <td>{{ amendment.requested_at|date:"M d, Y H:i" }}</td>
+                <td>
+                    <span class="status-badge status-{{ amendment.status|lower }}">
+                        {{ amendment.get_status_display }}
+                    </span>
+                </td>
+                <td class="actions-cell">
+                    <a href="#" class="action-link" onclick="viewAmendment('{{ amendment.id }}')">
+                        <i class="bi bi-eye"></i>
+                        View
+                    </a>
+                    {% if amendment.status == 'PENDING' and user.role == 'ADMIN' %}
+                    <a href="{% url 'plan_amendment_approve' amendment.id %}" class="action-link" style="color: green;">
+                        <i class="bi bi-check"></i>
+                        Approve
+                    </a>
+                    <a href="{% url 'plan_amendment_reject' amendment.id %}" class="action-link" style="color: red;">
+                        <i class="bi bi-x"></i>
+                        Reject
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>No amendments found.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Amendment Details Modal -->
+<div id="amendmentModal" class="modal" style="display: none;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Amendment Details</h3>
+                <button type="button" class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body" id="amendmentDetails">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const modal = document.getElementById('amendmentModal');
+const closeBtn = document.querySelector('.close-modal');
+
+closeBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+});
+
+function viewAmendment(amendmentId) {
+    // In production, fetch amendment details via AJAX
+    const details = document.getElementById('amendmentDetails');
+    details.innerHTML = '<p>Loading amendment details...</p>';
+    modal.style.display = 'flex';
+    
+    // TODO: Implement actual AJAX call to fetch amendment details
+}
+</script>
+{% endblock %}
