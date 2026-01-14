@@ -19,6 +19,30 @@
         </a>
     </div>
 
+    <!-- Procurement Planning Section -->
+    <div class="menu-section">
+        <div class="menu-title">PLANNING</div>
+        
+        <div class="menu-item has-submenu" data-submenu="plans">
+            <i class="fas fa-clipboard-list"></i>
+            <span>Procurement Plans</span>
+            <i class="fas fa-chevron-right arrow"></i>
+        </div>
+        <div class="submenu" id="submenu-plans">
+            <a href="{% url 'procurement_plan_list' %}" class="submenu-item">All Plans</a>
+            <a href="{% url 'procurement_plan_create' %}" class="submenu-item">Create Plan</a>
+            <a href="{% url 'procurement_plan_reports' %}" class="submenu-item">Plan Reports</a>
+        </div>
+        
+        <a href="{% url 'plan_amendment_list' %}" class="menu-item">
+            <i class="fas fa-edit"></i>
+            <span>Plan Amendments</span>
+            {% if pending_amendments_count %}
+            <span class="badge">{{ pending_amendments_count }}</span>
+            {% endif %}
+        </a>
+    </div>
+
     <!-- Requisitions Section -->
     <div class="menu-section">
         <div class="menu-title">REQUISITIONS</div>
