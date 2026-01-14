@@ -1,12 +1,462 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}Procurement Plans - Procurement Module{% endblock %}
+{% block title %}Procurement Plans - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    /* Stats Summary */
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.125rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-value {
+        font-size: 1.375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 0.875rem 1.25rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.875rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.8125rem;
+        color: #334155;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .plan-number {
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 0.8125rem;
+    }
+
+    .plan-number:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .amount-cell {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.8125rem;
+    }
+
+    .date-cell {
+        color: var(--secondary-color);
+        font-size: 0.8125rem;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: 1rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .status-badge i {
+        font-size: 0.5625rem;
+    }
+
+    .status-draft { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+    .status-submitted { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-approved { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-active { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .status-amended { 
+        background: #E0E7FF; 
+        color: #3730A3; 
+        border-color: #C7D2FE;
+    }
+    .status-closed { 
+        background: #E2E8F0; 
+        color: #475569; 
+        border-color: #CBD5E1;
+    }
+    .status-rejected { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.125rem 0.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        margin-left: 0.5rem;
+    }
+
+    .badge-warning {
+        background: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE68A;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.875rem;
+        height: 1.875rem;
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        color: var(--secondary-color);
+        text-decoration: none;
+        font-size: 0.8125rem;
+        transition: color 0.2s;
+    }
+
+    .action-link:hover {
+        color: var(--primary-color);
+    }
+
+    .action-link.edit {
+        margin-left: 1rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.8125rem;
+        margin: 0 0 1.25rem 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .stats-summary {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">{{ page_title }}</h1>
+        <h1 class="page-title">Procurement Plans</h1>
         <div class="breadcrumb">
             <a href="{% url 'procurement_dashboard' %}">
                 <i class="bi bi-house"></i>
@@ -17,10 +467,6 @@
         </div>
     </div>
     <div class="header-actions">
-        <a href="{% url 'procurement_plan_create' %}" class="btn btn-success">
-            <i class="bi bi-plus-circle"></i>
-            Create Procurement Plan
-        </a>
         <a href="{% url 'procurement_plan_reports' %}" class="btn">
             <i class="bi bi-graph-up"></i>
             Reports
@@ -29,195 +475,191 @@
             <i class="bi bi-pencil-square"></i>
             Amendments
         </a>
+        <a href="{% url 'procurement_plan_create' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i>
+            Create Plan
+        </a>
     </div>
 </div>
 
-<!-- Stats Cards -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-info">
-                <h3>{{ total_plans|intcomma }}</h3>
-                <p>Total Plans</p>
-            </div>
-            <div class="stat-icon">
-                <i class="bi bi-file-earmark-text"></i>
-            </div>
-        </div>
+<!-- Summary Stats -->
+<div class="stats-summary">
+    <div class="summary-card">
+        <div class="summary-value">{{ total_plans|intcomma }}</div>
+        <div class="summary-label">Total Plans</div>
     </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-info">
-                <h3>{{ approved_plans|intcomma }}</h3>
-                <p>Approved Plans</p>
-            </div>
-            <div class="stat-icon">
-                <i class="bi bi-check-circle"></i>
-            </div>
-        </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ approved_plans|intcomma }}</div>
+        <div class="summary-label">Approved</div>
     </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-info">
-                <h3>{{ active_plans|intcomma }}</h3>
-                <p>Active Plans</p>
-            </div>
-            <div class="stat-icon">
-                <i class="bi bi-play-circle"></i>
-            </div>
-        </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ active_plans|intcomma }}</div>
+        <div class="summary-label">Active</div>
     </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-info">
-                <h3>{{ draft_plans|intcomma }}</h3>
-                <p>Draft Plans</p>
-            </div>
-            <div class="stat-icon">
-                <i class="bi bi-file-earmark"></i>
-            </div>
-        </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ draft_plans|intcomma }}</div>
+        <div class="summary-label">Draft</div>
     </div>
 </div>
 
-<!-- Filter Card -->
+<!-- Filters -->
 <div class="filter-card">
-    <h3 class="filter-title">
-        <i class="bi bi-funnel"></i>
-        Filter Procurement Plans
-    </h3>
-    
-    <form method="get" class="filter-form">
-        <div class="filter-group">
-            <label class="filter-label">Budget Year</label>
-            <select name="budget_year" class="filter-select">
-                <option value="">All Years</option>
-                {% for year in budget_years %}
-                <option value="{{ year.id }}" {% if selected_budget_year == year.id|stringformat:"s" %}selected{% endif %}>
-                    {{ year.name }}
-                </option>
-                {% endfor %}
-            </select>
+    <form method="get" action="{% url 'procurement_plan_list' %}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Budget Year</label>
+                <select name="budget_year" class="form-control">
+                    <option value="">All Years</option>
+                    {% for year in budget_years %}
+                    <option value="{{ year.id }}" {% if selected_budget_year == year.id|stringformat:"s" %}selected{% endif %}>
+                        {{ year.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <select name="department" class="form-control">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>
+                        {{ dept.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Status</option>
+                    <option value="DRAFT" {% if selected_status == 'DRAFT' %}selected{% endif %}>Draft</option>
+                    <option value="SUBMITTED" {% if selected_status == 'SUBMITTED' %}selected{% endif %}>Submitted</option>
+                    <option value="APPROVED" {% if selected_status == 'APPROVED' %}selected{% endif %}>Approved</option>
+                    <option value="ACTIVE" {% if selected_status == 'ACTIVE' %}selected{% endif %}>Active</option>
+                    <option value="AMENDED" {% if selected_status == 'AMENDED' %}selected{% endif %}>Amended</option>
+                    <option value="CLOSED" {% if selected_status == 'CLOSED' %}selected{% endif %}>Closed</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Search</label>
+                <div style="position: relative;">
+                    <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94A3B8; font-size: 0.8125rem;"></i>
+                    <input type="text" 
+                           name="search" 
+                           class="form-control" 
+                           placeholder="Plan number, title, department..." 
+                           value="{{ search_query }}"
+                           style="padding-left: 2.25rem;">
+                </div>
+            </div>
         </div>
-        
-        <div class="filter-group">
-            <label class="filter-label">Department</label>
-            <select name="department" class="filter-select">
-                <option value="">All Departments</option>
-                {% for dept in departments %}
-                <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>
-                    {{ dept.name }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-        
-        <div class="filter-group">
-            <label class="filter-label">Status</label>
-            <select name="status" class="filter-select">
-                <option value="">All Status</option>
-                <option value="DRAFT" {% if selected_status == 'DRAFT' %}selected{% endif %}>Draft</option>
-                <option value="SUBMITTED" {% if selected_status == 'SUBMITTED' %}selected{% endif %}>Submitted</option>
-                <option value="APPROVED" {% if selected_status == 'APPROVED' %}selected{% endif %}>Approved</option>
-                <option value="ACTIVE" {% if selected_status == 'ACTIVE' %}selected{% endif %}>Active</option>
-                <option value="AMENDED" {% if selected_status == 'AMENDED' %}selected{% endif %}>Amended</option>
-                <option value="CLOSED" {% if selected_status == 'CLOSED' %}selected{% endif %}>Closed</option>
-            </select>
-        </div>
-        
-        <div class="filter-group">
-            <label class="filter-label">Search</label>
-            <input type="text" 
-                   name="search" 
-                   class="filter-input" 
-                   placeholder="Search plan number, title, department..." 
-                   value="{{ search_query }}">
-        </div>
-        
+
         <div class="filter-actions">
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-filter"></i>
-                Apply Filters
-            </button>
             {% if selected_budget_year or selected_department or selected_status or search_query %}
             <a href="{% url 'procurement_plan_list' %}" class="btn">
                 <i class="bi bi-x-circle"></i>
-                Clear
+                Clear Filters
             </a>
             {% endif %}
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Apply Filters
+            </button>
         </div>
     </form>
 </div>
 
 <!-- Plans Table -->
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th>Plan Number</th>
-                <th>Department</th>
-                <th>Budget Year</th>
-                <th>Title</th>
-                <th>Items</th>
-                <th>Estimated Cost</th>
-                <th>Status</th>
-                <th>Submitted By</th>
-                <th>Created</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for plan in plans %}
-            <tr>
-                <td><strong>{{ plan.plan_number }}</strong></td>
-                <td>{{ plan.department.code }}</td>
-                <td>{{ plan.budget_year.name }}</td>
-                <td>
-                    {{ plan.title|truncatechars:40 }}
-                    {% if plan.is_amended %}
-                    <span class="badge badge-warning">
-                        <i class="bi bi-pencil"></i> Amended ({{ plan.amendment_count }})
-                    </span>
-                    {% endif %}
-                </td>
-                <td>{{ plan.total_items|default:0 }}</td>
-                <td class="amount">KES {{ plan.total_estimated_cost|default:0|floatformat:0|intcomma }}</td>
-                <td>
-                    <span class="status-badge status-{{ plan.status|lower }}">
-                        {{ plan.get_status_display }}
-                    </span>
-                </td>
-                <td>{{ plan.submitted_by.get_full_name|default:"-" }}</td>
-                <td>{{ plan.created_at|date:"M d, Y" }}</td>
-                <td class="actions-cell">
-                    <a href="{% url 'procurement_plan_detail' plan.id %}" class="action-link">
-                        <i class="bi bi-eye"></i>
-                        View
-                    </a>
-                    {% if plan.status == 'DRAFT' or plan.status == 'SUBMITTED' %}
-                    <a href="{% url 'procurement_plan_edit' plan.id %}" class="action-link edit">
-                        <i class="bi bi-pencil"></i>
-                        Edit
-                    </a>
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="10" class="empty-state">
-                    <i class="bi bi-file-earmark-x"></i>
-                    <p>No procurement plans found.</p>
-                    <a href="{% url 'procurement_plan_create' %}" class="btn btn-sm btn-success">
-                        <i class="bi bi-plus-circle"></i>
-                        Create First Plan
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-file-earmark-text"></i>
+            Procurement Plans ({{ plans.count|default:0 }})
+        </h2>
+    </div>
+
+    {% if plans %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Plan Number</th>
+                    <th>Department</th>
+                    <th>Budget Year</th>
+                    <th>Title</th>
+                    <th>Items</th>
+                    <th>Estimated Cost</th>
+                    <th>Status</th>
+                    <th>Submitted By</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan in plans %}
+                <tr>
+                    <td>
+                        <a href="{% url 'procurement_plan_detail' plan.id %}" class="plan-number">
+                            {{ plan.plan_number }}
+                            <i class="bi bi-arrow-up-right" style="font-size: 0.6875rem; margin-left: 0.25rem;"></i>
+                        </a>
+                    </td>
+                    <td>{{ plan.department.code }}</td>
+                    <td>{{ plan.budget_year.name }}</td>
+                    <td>
+                        <span style="font-size: 0.8125rem;">
+                            {{ plan.title|truncatechars:40 }}
+                        </span>
+                        {% if plan.is_amended %}
+                        <span class="badge badge-warning">
+                            <i class="bi bi-pencil" style="font-size: 0.5625rem;"></i>
+                            Amended ({{ plan.amendment_count }})
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>{{ plan.total_items|default:0 }}</td>
+                    <td class="amount-cell">KES {{ plan.total_estimated_cost|default:0|floatformat:0|intcomma }}</td>
+                    <td>
+                        <span class="status-badge status-{{ plan.status|lower }}">
+                            {% if plan.status == 'DRAFT' %}<i class="bi bi-pencil"></i>{% endif %}
+                            {% if plan.status == 'SUBMITTED' %}<i class="bi bi-clock"></i>{% endif %}
+                            {% if plan.status == 'APPROVED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                            {% if plan.status == 'ACTIVE' %}<i class="bi bi-play-circle"></i>{% endif %}
+                            {% if plan.status == 'AMENDED' %}<i class="bi bi-pencil-square"></i>{% endif %}
+                            {% if plan.status == 'CLOSED' %}<i class="bi bi-archive"></i>{% endif %}
+                            {% if plan.status == 'REJECTED' %}<i class="bi bi-x-circle"></i>{% endif %}
+                            {{ plan.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="date-cell">{{ plan.submitted_by.get_full_name|default:"-" }}</td>
+                    <td class="date-cell">{{ plan.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'procurement_plan_detail' plan.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if plan.status == 'DRAFT' or plan.status == 'SUBMITTED' %}
+                        <a href="{% url 'procurement_plan_edit' plan.id %}" class="action-btn" title="Edit Plan">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-file-earmark-x"></i>
+        <p>No procurement plans found matching your criteria</p>
+        <a href="{% url 'procurement_plan_create' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i>
+            Create First Plan
+        </a>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
