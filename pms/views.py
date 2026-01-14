@@ -10551,9 +10551,30 @@ from .forms import (
 )
 
 
+"""
+Enhanced views.py for staff requisition creation with improved functionality
+"""
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.http import JsonResponse
+from django.db.models import Q
+from decimal import Decimal
+import json
+
+from .models import (
+    Requisition, RequisitionItem, RequisitionAttachment,
+    ProcurementPlanItem, BudgetYear, Budget, Item, ItemCategory
+)
+from .forms import (
+    RequisitionForm, RequisitionItemFormSet, RequisitionAttachmentFormSet
+)
+
+
 @login_required
 def staff_requisition_create(request):
-    """Create a new requisition with plan enforcement"""
+    """Create a new requisition with plan enforcement and enhanced UX"""
     
     if request.method == 'POST':
         form = RequisitionForm(request.POST, user=request.user)
@@ -10692,7 +10713,7 @@ def staff_requisition_create(request):
                 procurement_plan__budget_year=current_budget_year,
                 procurement_plan__status='APPROVED',
                 status='PLANNED'
-            ).select_related('procurement_plan', 'budget')
+            ).select_related('procurement_plan', 'budget', 'item')
     
     context = {
         'form': form,
@@ -10703,6 +10724,103 @@ def staff_requisition_create(request):
     }
     
     return render(request, 'staff/requisition_form.html', context)
+
+
+@login_required
+def api_search_items(request):
+    """
+    API endpoint to search items for requisition
+    Returns JSON with item details
+    """
+    query = request.GET.get('q', '').strip()
+    
+    if len(query) < 2:
+        return JsonResponse({'items': []})
+    
+    items = Item.objects.filter(
+        Q(name__icontains=query) | 
+        Q(code__icontains=query) | 
+        Q(description__icontains=query),
+        is_active=True
+    ).select_related('category')[:20]
+    
+    items_data = [{
+        'id': str(item.id),
+        'code': item.code,
+        'name': item.name,
+        'description': item.description,
+        'category': item.category.name,
+        'unit_of_measure': item.unit_of_measure,
+        'standard_price': str(item.standard_price) if item.standard_price else '0.00',
+        'specifications': item.specifications
+    } for item in items]
+    
+    return JsonResponse({'items': items_data})
+
+
+@login_required
+def api_get_plan_item_details(request, plan_item_id):
+    """
+    API endpoint to get procurement plan item details
+    """
+    try:
+        plan_item = ProcurementPlanItem.objects.select_related(
+            'procurement_plan', 'budget', 'item'
+        ).get(id=plan_item_id)
+        
+        # Check if user has access
+        if plan_item.procurement_plan.department != request.user.department:
+            return JsonResponse({'error': 'Access denied'}, status=403)
+        
+        data = {
+            'id': str(plan_item.id),
+            'description': plan_item.description,
+            'specifications': plan_item.specifications,
+            'quantity': str(plan_item.quantity),
+            'unit_of_measure': plan_item.unit_of_measure,
+            'estimated_cost': str(plan_item.estimated_cost),
+            'remaining_budget': str(plan_item.remaining_budget),
+            'remaining_quantity': str(plan_item.remaining_quantity),
+            'planned_quarter': plan_item.get_planned_quarter_display(),
+            'procurement_method': plan_item.get_procurement_method_display(),
+            'budget_code': f"{plan_item.budget.category.code} - {plan_item.budget.category.name}" if plan_item.budget else '',
+            'item_type': plan_item.get_item_type_display(),
+        }
+        
+        return JsonResponse(data)
+        
+    except ProcurementPlanItem.DoesNotExist:
+        return JsonResponse({'error': 'Plan item not found'}, status=404)
+
+
+@login_required
+def api_validate_budget(request):
+    """
+    API endpoint to validate if budget has sufficient balance
+    """
+    budget_id = request.GET.get('budget_id')
+    amount = request.GET.get('amount', '0')
+    
+    try:
+        budget = Budget.objects.get(id=budget_id)
+        amount_decimal = Decimal(amount)
+        
+        available = budget.available_balance
+        sufficient = available >= amount_decimal
+        
+        return JsonResponse({
+            'sufficient': sufficient,
+            'available_balance': str(available),
+            'allocated_amount': str(budget.allocated_amount),
+            'committed_amount': str(budget.committed_amount),
+            'actual_spent': str(budget.actual_spent),
+            'budget_code': f"{budget.category.code} - {budget.category.name}",
+        })
+        
+    except Budget.DoesNotExist:
+        return JsonResponse({'error': 'Budget not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 
 @login_required
@@ -10760,7 +10878,6 @@ def staff_requisition_detail(request, pk):
     }
     
     return render(request, 'staff/requisition_detail.html', context)
-
 
 @login_required
 def staff_requisition_edit(request, pk):

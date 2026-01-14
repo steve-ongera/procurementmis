@@ -244,6 +244,7 @@ urlpatterns = [
     path('staff/requisitions/<uuid:pk>/edit/', views.staff_requisition_edit, name='staff_requisition_edit'),
     path('staff/requisitions/<uuid:pk>/submit/', views.staff_requisition_submit, name='staff_requisition_submit'),
     path('staff/requisitions/<uuid:pk>/cancel/', views.staff_requisition_cancel, name='staff_requisition_cancel'),
+    path('api/search-items/' , views.api_search_items , name='api_search_items'),
     
     # Requisition Status Views
     path('staff/requisitions/pending/', views.staff_requisitions_pending, name='staff_requisitions_pending'),

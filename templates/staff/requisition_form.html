@@ -100,6 +100,11 @@
         border-color: var(--primary-dark);
     }
 
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
     /* Alert boxes */
     .alert {
         padding: 0.875rem 1rem;
@@ -122,6 +127,12 @@
         background: #FEF3C7;
         border-color: #FDE68A;
         color: #92400E;
+    }
+
+    .alert-success {
+        background: #ECFDF5;
+        border-color: #A7F3D0;
+        color: #065F46;
     }
 
     .alert i {
@@ -203,6 +214,77 @@
         resize: vertical;
     }
 
+    /* Search box styling */
+    .search-box {
+        position: relative;
+    }
+
+    .search-box input {
+        padding-right: 2.5rem;
+    }
+
+    .search-box i {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--secondary-color);
+        pointer-events: none;
+    }
+
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        margin-top: 0.25rem;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        display: none;
+    }
+
+    .search-results.active {
+        display: block;
+    }
+
+    .search-result-item {
+        padding: 0.75rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border-color);
+        transition: background 0.2s;
+    }
+
+    .search-result-item:hover {
+        background: var(--hover-bg);
+    }
+
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+
+    .search-result-name {
+        font-weight: 500;
+        color: #1E293B;
+        font-size: 0.875rem;
+    }
+
+    .search-result-details {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-top: 0.125rem;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 1rem;
+        color: var(--secondary-color);
+    }
+
     /* Checkbox and radio styling */
     input[type="checkbox"],
     input[type="radio"] {
@@ -234,6 +316,11 @@
         border-color: var(--primary-color);
     }
 
+    .radio-option.active {
+        background: var(--primary-light);
+        border-color: var(--primary-color);
+    }
+
     .radio-option input[type="radio"]:checked + span {
         color: var(--primary-color);
         font-weight: 600;
@@ -247,10 +334,22 @@
         padding: 1rem;
         margin-top: 0.5rem;
         display: none;
+        animation: slideDown 0.3s ease;
     }
 
     .plan-item-info.active {
         display: block;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .plan-info-grid {
@@ -286,6 +385,12 @@
         padding: 1rem;
         margin-bottom: 1rem;
         background: var(--card-bg);
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
 
     .item-form h4 {
@@ -295,6 +400,28 @@
         color: #1E293B;
     }
 
+    /* Total calculator */
+    .total-calculator {
+        background: var(--success-color);
+        color: white;
+        padding: 0.75rem 1rem;
+        border-radius: 0.375rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+    }
+
+    .total-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .total-amount {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
     /* Error styling */
     .error-message {
         color: var(--danger-color);
@@ -302,9 +429,20 @@
         margin-top: 0.25rem;
     }
 
+    .field-error {
+        border-color: var(--danger-color) !important;
+    }
+
     /* Hidden form elements */
     input[type="hidden"] {
         display: none;
+    }
+
+    /* Help text */
+    .help-text {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-top: 0.25rem;
     }
 
     /* Responsive */
@@ -371,7 +509,7 @@
     </div>
 </div>
 
-<form method="post" enctype="multipart/form-data">
+<form method="post" enctype="multipart/form-data" id="requisitionForm">
     {% csrf_token %}
 
     <!-- Procurement Plan Selection -->
@@ -388,7 +526,7 @@
             <div class="form-group">
                 <label class="form-label">Requisition Type <span style="color: var(--danger-color);">*</span></label>
                 <div class="radio-group">
-                    <label class="radio-option">
+                    <label class="radio-option active">
                         <input type="radio" name="is_planned" value="true" checked id="id_is_planned_yes">
                         <span>Planned (From Procurement Plan)</span>
                     </label>
@@ -414,6 +552,7 @@
                                 data-uom="{{ plan_item.unit_of_measure }}"
                                 data-quarter="{{ plan_item.get_planned_quarter_display }}"
                                 data-method="{{ plan_item.get_procurement_method_display }}"
+                                data-specifications="{{ plan_item.specifications }}"
                                 {% if form.procurement_plan_item.value == plan_item.id|stringformat:"s" %}selected{% endif %}>
                             {{ plan_item.description|truncatewords:10 }} - 
                             {{ plan_item.get_planned_quarter_display }} - 
@@ -482,8 +621,8 @@
                 <div class="form-group" style="margin-top: 1rem;">
                     <label class="form-label">{{ form.emergency_justification.label }} <span style="color: var(--danger-color);">*</span></label>
                     {{ form.emergency_justification }}
-                    <small style="color: var(--secondary-color); font-size: 0.75rem; margin-top: 0.25rem;">
-                        Explain why this item was not planned and why it cannot wait until next quarter/year
+                    <small class="help-text">
+                        Explain why this item was not planned and why it cannot wait until next quarter/year (minimum 50 characters)
                     </small>
                     {% if form.emergency_justification.errors %}
                     <div class="error-message">
@@ -570,21 +709,25 @@
 
     <!-- Requisition Items -->
     <div class="table-card" style="margin-bottom: 1.5rem;">
-        <div class="table-header">
+        <div class="table-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h2 class="table-title">
                 <i class="bi bi-list-ul"></i>
                 Requisition Items <span style="color: var(--danger-color);">*</span>
             </h2>
+            <button type="button" class="btn btn-primary btn-sm" id="add-item-btn">
+                <i class="bi bi-plus-circle"></i>
+                Add Item
+            </button>
         </div>
         <div style="padding: 1.25rem;">
             {{ formset.management_form }}
             
             <div id="items-container">
                 {% for item_form in formset %}
-                <div class="item-form">
+                <div class="item-form" data-form-index="{{ forloop.counter0 }}">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h4>Item #{{ forloop.counter }}</h4>
-                        <button type="button" class="btn" onclick="this.closest('.item-form').remove();" style="font-size: 0.75rem;">
+                        <h4>Item #<span class="item-number">{{ forloop.counter }}</span></h4>
+                        <button type="button" class="btn btn-sm remove-item-btn" style="color: var(--danger-color);">
                             <i class="bi bi-trash"></i>
                             Remove
                         </button>
@@ -594,6 +737,15 @@
                     {{ item_form.DELETE }}
 
                     <div class="filter-grid">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label class="form-label">Search Item from Catalog</label>
+                            <div class="search-box">
+                                <input type="text" class="form-control item-search" placeholder="Search by name or code...">
+                                <i class="bi bi-search"></i>
+                                <div class="search-results"></div>
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label class="form-label">{{ item_form.item.label }}</label>
                             {{ item_form.item }}
@@ -605,7 +757,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">{{ item_form.unit_of_measure.label }}</label>
+                            <label class="form-label">{{ item_form.unit_of_measure.label }} <span style="color: var(--danger-color);">*</span></label>
                             {{ item_form.unit_of_measure }}
                             {% if item_form.unit_of_measure.errors %}
                             <div class="error-message">
@@ -615,7 +767,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">{{ item_form.quantity.label }}</label>
+                            <label class="form-label">{{ item_form.quantity.label }} <span style="color: var(--danger-color);">*</span></label>
                             {{ item_form.quantity }}
                             {% if item_form.quantity.errors %}
                             <div class="error-message">
@@ -625,7 +777,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">{{ item_form.estimated_unit_price.label }}</label>
+                            <label class="form-label">{{ item_form.estimated_unit_price.label }} <span style="color: var(--danger-color);">*</span></label>
                             {{ item_form.estimated_unit_price }}
                             {% if item_form.estimated_unit_price.errors %}
                             <div class="error-message">
@@ -636,7 +788,7 @@
                     </div>
 
                     <div class="form-group" style="margin-top: 1rem;">
-                        <label class="form-label">{{ item_form.item_description.label }}</label>
+                        <label class="form-label">{{ item_form.item_description.label }} <span style="color: var(--danger-color);">*</span></label>
                         {{ item_form.item_description }}
                         {% if item_form.item_description.errors %}
                         <div class="error-message">
@@ -646,7 +798,7 @@
                     </div>
 
                     <div class="form-group" style="margin-top: 1rem;">
-                        <label class="form-label">{{ item_form.specifications.label }}</label>
+                        <label class="form-label">{{ item_form.specifications.label }} <span style="color: var(--danger-color);">*</span></label>
                         {{ item_form.specifications }}
                         {% if item_form.specifications.errors %}
                         <div class="error-message">
@@ -664,24 +816,33 @@
                         </div>
                         {% endif %}
                     </div>
+
+                    <div style="background: var(--hover-bg); padding: 0.75rem; border-radius: 0.375rem; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.875rem; font-weight: 500;">Item Total:</span>
+                        <span class="item-total" style="font-size: 1rem; font-weight: 600; color: var(--primary-color);">KES 0.00</span>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
 
-            <button type="button" class="btn btn-primary" id="add-item-btn" style="margin-top: 1rem;">
-                <i class="bi bi-plus-circle"></i>
-                Add Another Item
-            </button>
+            <div class="total-calculator">
+                <span class="total-label">Total Estimated Amount:</span>
+                <span class="total-amount" id="grand-total">KES 0.00</span>
+            </div>
         </div>
     </div>
 
     <!-- Attachments -->
     <div class="table-card" style="margin-bottom: 1.5rem;">
-        <div class="table-header">
+        <div class="table-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h2 class="table-title">
                 <i class="bi bi-paperclip"></i>
                 Supporting Documents (Optional)
             </h2>
+            <button type="button" class="btn btn-primary btn-sm" id="add-attachment-btn">
+                <i class="bi bi-plus-circle"></i>
+                Add Document
+            </button>
         </div>
         <div style="padding: 1.25rem;">
             {{ attachment_formset.management_form }}
@@ -692,141 +853,602 @@
                     {{ attachment_form.id }}
                     {{ attachment_form.DELETE }}
 
-                    <div class="filter-grid">
-                        <div class="form-group">
-                            <label class="form-label">{{ attachment_form.attachment_type.label }}</label>
-                            {{ attachment_form.attachment_type }}
-                            {% if attachment_form.attachment_type.errors %}
-                            <div class="error-message">
-                                {{ attachment_form.attachment_type.errors }}
-                            </div>
-                            {% endif %}
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                        <button type="button" class="btn btn-sm remove-attachment-btn" style="color: var(--danger-color);">
+                        <i class="bi bi-trash"></i>
+                            Remove
+                        </button>
+                    </div>
+                <div class="filter-grid">
+                    <div class="form-group">
+                        <label class="form-label">{{ attachment_form.attachment_type.label }}</label>
+                        {{ attachment_form.attachment_type }}
+                        {% if attachment_form.attachment_type.errors %}
+                        <div class="error-message">
+                            {{ attachment_form.attachment_type.errors }}
                         </div>
-
-                        <div class="form-group">
-                            <label class="form-label">{{ attachment_form.file_name.label }}</label>
-                            {{ attachment_form.file_name }}
-                            {% if attachment_form.file_name.errors %}
-                            <div class="error-message">
-                                {{ attachment_form.file_name.errors }}
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">{{ attachment_form.file.label }}</label>
-                            {{ attachment_form.file }}
-                            {% if attachment_form.file.errors %}
-                            <div class="error-message">
-                                {{ attachment_form.file.errors }}
-                            </div>
-                            {% endif %}
-                        </div>
+                        {% endif %}
                     </div>
 
-                    <div class="form-group" style="margin-top: 1rem;">
-                        <label class="form-label">{{ attachment_form.description.label }}</label>
-                        {{ attachment_form.description }}
-                        {% if attachment_form.description.errors %}
+                    <div class="form-group">
+                        <label class="form-label">{{ attachment_form.file_name.label }}</label>
+                        {{ attachment_form.file_name }}
+                        {% if attachment_form.file_name.errors %}
                         <div class="error-message">
-                            {{ attachment_form.description.errors }}
+                            {{ attachment_form.file_name.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ attachment_form.file.label }}</label>
+                        {{ attachment_form.file }}
+                        {% if attachment_form.file.errors %}
+                        <div class="error-message">
+                            {{ attachment_form.file.errors }}
                         </div>
                         {% endif %}
                     </div>
                 </div>
-                {% endfor %}
-            </div>
 
-            <button type="button" class="btn btn-primary" id="add-attachment-btn" style="margin-top: 1rem;">
-                <i class="bi bi-plus-circle"></i>
-                Add Another Document
-            </button>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label">{{ attachment_form.description.label }}</label>
+                    {{ attachment_form.description }}
+                    {% if attachment_form.description.errors %}
+                    <div class="error-message">
+                        {{ attachment_form.description.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
+</div>
 
-    <!-- Form Actions -->
-    <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-bottom: 2rem;">
-        <a href="{% url 'staff_requisitions_list' %}" class="btn">
-            <i class="bi bi-x-circle"></i>
-            Cancel
-        </a>
-        <button type="submit" name="save_draft" class="btn">
-            <i class="bi bi-save"></i>
-            Save as Draft
-        </button>
-        <button type="submit" name="submit" class="btn btn-primary">
-            <i class="bi bi-check-circle"></i>
-            {% if requisition %}Update{% else %}Create{% endif %} Requisition
-        </button>
-    </div>
+<!-- Form Actions -->
+<div class="form-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-bottom: 2rem;">
+    <a href="{% url 'staff_requisitions_list' %}" class="btn">
+        <i class="bi bi-x-circle"></i>
+        Cancel
+    </a>
+    <button type="submit" name="save_draft" class="btn">
+        <i class="bi bi-save"></i>
+        Save as Draft
+    </button>
+    <button type="submit" name="submit" class="btn btn-primary">
+        <i class="bi bi-check-circle"></i>
+        {% if requisition %}Update{% else %}Create{% endif %} Requisition
+    </button>
+</div>
 </form>
-
 <script>
-// Toggle between planned and unplanned sections
-document.querySelectorAll('input[name="is_planned"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        const isPlanned = this.value === 'true';
-        document.getElementById('planned-section').style.display = isPlanned ? 'block' : 'none';
-        document.getElementById('unplanned-section').style.display = isPlanned ? 'none' : 'block';
-        
-        // Update required fields
+// ============================================================================
+// REQUISITION FORM DYNAMIC FUNCTIONALITY
+// ============================================================================
+
+(function() {
+    'use strict';
+
+    // Configuration
+    const SEARCH_DELAY = 300; // milliseconds
+    let searchTimeout = null;
+
+    // ========================================================================
+    // PLANNED VS UNPLANNED TOGGLE
+    // ========================================================================
+    
+    function initializeRequisitionType() {
+        const plannedSection = document.getElementById('planned-section');
+        const unplannedSection = document.getElementById('unplanned-section');
         const planItemSelect = document.getElementById('id_procurement_plan_item');
-        const emergencyType = document.querySelector('[name="emergency_type"]');
-        const emergencyJustification = document.querySelector('[name="emergency_justification"]');
         
-        if (isPlanned) {
-            planItemSelect.required = true;
-            if (emergencyType) emergencyType.required = false;
-            if (emergencyJustification) emergencyJustification.required = false;
-        } else {
-            planItemSelect.required = false;
-            if (emergencyType) emergencyType.required = true;
-            if (emergencyJustification) emergencyJustification.required = true;
+        document.querySelectorAll('input[name="is_planned"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const isPlanned = this.value === 'true';
+                
+                // Update radio option styling
+                document.querySelectorAll('.radio-option').forEach(opt => {
+                    opt.classList.remove('active');
+                });
+                this.closest('.radio-option').classList.add('active');
+                
+                // Toggle sections with animation
+                if (isPlanned) {
+                    plannedSection.style.display = 'block';
+                    unplannedSection.style.display = 'none';
+                    planItemSelect.required = true;
+                } else {
+                    plannedSection.style.display = 'none';
+                    unplannedSection.style.display = 'block';
+                    planItemSelect.required = false;
+                }
+            });
+        });
+    }
+
+    // ========================================================================
+    // PLAN ITEM DETAILS DISPLAY
+    // ========================================================================
+    
+    function initializePlanItemDetails() {
+        const planItemSelect = document.getElementById('id_procurement_plan_item');
+        const infoBox = document.getElementById('plan-item-info');
+        
+        planItemSelect.addEventListener('change', function() {
+            const option = this.options[this.selectedIndex];
+            
+            if (this.value) {
+                infoBox.classList.add('active');
+                
+                const cost = parseFloat(option.dataset.cost);
+                const remaining = parseFloat(option.dataset.remaining);
+                
+                document.getElementById('plan-cost').textContent = 'KES ' + formatCurrency(cost);
+                document.getElementById('plan-remaining').textContent = 'KES ' + formatCurrency(remaining);
+                document.getElementById('plan-quarter').textContent = option.dataset.quarter;
+                document.getElementById('plan-method').textContent = option.dataset.method;
+                document.getElementById('plan-quantity').textContent = option.dataset.quantity + ' ' + option.dataset.uom;
+                
+                // Auto-populate first item if empty
+                populateFromPlanItem(option);
+            } else {
+                infoBox.classList.remove('active');
+            }
+        });
+        
+        // Trigger on page load if already selected
+        if (planItemSelect.value) {
+            planItemSelect.dispatchEvent(new Event('change'));
+        }
+    }
+
+    function populateFromPlanItem(option) {
+        const firstItemForm = document.querySelector('.item-form');
+        if (!firstItemForm) return;
+        
+        const descInput = firstItemForm.querySelector('[name$="item_description"]');
+        const specInput = firstItemForm.querySelector('[name$="specifications"]');
+        const uomInput = firstItemForm.querySelector('[name$="unit_of_measure"]');
+        
+        // Only populate if empty
+        if (descInput && !descInput.value.trim()) {
+            descInput.value = option.dataset.description || '';
+        }
+        if (specInput && !specInput.value.trim()) {
+            specInput.value = option.dataset.specifications || '';
+        }
+        if (uomInput && !uomInput.value.trim()) {
+            uomInput.value = option.dataset.uom || '';
+        }
+    }
+
+    // ========================================================================
+    // ITEM CATALOG SEARCH
+    // ========================================================================
+    
+    function initializeItemSearch() {
+        document.querySelectorAll('.item-search').forEach(searchInput => {
+            const resultsDiv = searchInput.nextElementSibling.nextElementSibling;
+            
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                const query = this.value.trim();
+                
+                if (query.length < 2) {
+                    resultsDiv.classList.remove('active');
+                    return;
+                }
+                
+                resultsDiv.innerHTML = '<div class="loading-spinner"><i class="bi bi-hourglass-split"></i> Searching...</div>';
+                resultsDiv.classList.add('active');
+                
+                searchTimeout = setTimeout(() => {
+                    searchItems(query, resultsDiv, searchInput);
+                }, SEARCH_DELAY);
+            });
+            
+            // Close results when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                    resultsDiv.classList.remove('active');
+                }
+            });
+        });
+    }
+
+    function searchItems(query, resultsDiv, searchInput) {
+        fetch(`/api/search-items/?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.items && data.items.length > 0) {
+                    resultsDiv.innerHTML = data.items.map(item => `
+                        <div class="search-result-item" data-item='${JSON.stringify(item)}'>
+                            <div class="search-result-name">${item.code} - ${item.name}</div>
+                            <div class="search-result-details">
+                                ${item.category} | ${item.unit_of_measure} | KES ${formatCurrency(parseFloat(item.standard_price))}
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    // Add click handlers
+                    resultsDiv.querySelectorAll('.search-result-item').forEach(itemDiv => {
+                        itemDiv.addEventListener('click', function() {
+                            const item = JSON.parse(this.dataset.item);
+                            selectItem(item, searchInput);
+                            resultsDiv.classList.remove('active');
+                        });
+                    });
+                } else {
+                    resultsDiv.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--secondary-color);">No items found</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                resultsDiv.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--danger-color);">Search failed. Please try again.</div>';
+            });
+    }
+
+    function selectItem(item, searchInput) {
+        const itemForm = searchInput.closest('.item-form');
+        
+        // Populate item select
+        const itemSelect = itemForm.querySelector('[name$="item"]');
+        if (itemSelect) {
+            // Add option if doesn't exist
+            let option = itemSelect.querySelector(`option[value="${item.id}"]`);
+            if (!option) {
+                option = new Option(`${item.code} - ${item.name}`, item.id, true, true);
+                itemSelect.add(option);
+            }
+            itemSelect.value = item.id;
+        }
+        
+        // Auto-fill fields
+        const descInput = itemForm.querySelector('[name$="item_description"]');
+        const specInput = itemForm.querySelector('[name$="specifications"]');
+        const uomInput = itemForm.querySelector('[name$="unit_of_measure"]');
+        const priceInput = itemForm.querySelector('[name$="estimated_unit_price"]');
+        
+        if (descInput) descInput.value = item.description;
+        if (specInput) specInput.value = item.specifications || '';
+        if (uomInput) uomInput.value = item.unit_of_measure;
+        if (priceInput && item.standard_price) {
+            priceInput.value = parseFloat(item.standard_price).toFixed(2);
+            calculateItemTotal(itemForm);
+        }
+        
+        searchInput.value = `${item.code} - ${item.name}`;
+    }
+
+    // ========================================================================
+    // ITEM CALCULATION
+    // ========================================================================
+    
+    function initializeCalculations() {
+        document.querySelectorAll('.item-form').forEach(itemForm => {
+            const qtyInput = itemForm.querySelector('[name$="quantity"]');
+            const priceInput = itemForm.querySelector('[name$="estimated_unit_price"]');
+            
+            if (qtyInput) {
+                qtyInput.addEventListener('input', () => calculateItemTotal(itemForm));
+            }
+            if (priceInput) {
+                priceInput.addEventListener('input', () => calculateItemTotal(itemForm));
+            }
+        });
+    }
+
+    function calculateItemTotal(itemForm) {
+        const qtyInput = itemForm.querySelector('[name$="quantity"]');
+        const priceInput = itemForm.querySelector('[name$="estimated_unit_price"]');
+        const totalSpan = itemForm.querySelector('.item-total');
+        
+        if (qtyInput && priceInput && totalSpan) {
+            const qty = parseFloat(qtyInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const total = qty * price;
+            
+            totalSpan.textContent = 'KES ' + formatCurrency(total);
+            calculateGrandTotal();
+        }
+    }
+
+    function calculateGrandTotal() {
+        let grandTotal = 0;
+        
+        document.querySelectorAll('.item-form').forEach(itemForm => {
+            const deleteCheckbox = itemForm.querySelector('[name$="DELETE"]');
+            if (deleteCheckbox && deleteCheckbox.checked) return;
+            
+            const qtyInput = itemForm.querySelector('[name$="quantity"]');
+            const priceInput = itemForm.querySelector('[name$="estimated_unit_price"]');
+            
+            if (qtyInput && priceInput) {
+                const qty = parseFloat(qtyInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+                grandTotal += qty * price;
+            }
+        });
+        
+        document.getElementById('grand-total').textContent = 'KES ' + formatCurrency(grandTotal);
+    }
+
+    // ========================================================================
+    // ADD/REMOVE ITEMS
+    // ========================================================================
+    
+    function initializeAddRemoveItems() {
+        const addBtn = document.getElementById('add-item-btn');
+        const container = document.getElementById('items-container');
+        const totalFormsInput = document.querySelector('[name$="TOTAL_FORMS"]');
+        
+        addBtn.addEventListener('click', function() {
+            const formCount = parseInt(totalFormsInput.value);
+            const newForm = createItemForm(formCount);
+            
+            container.insertAdjacentHTML('beforeend', newForm);
+            totalFormsInput.value = formCount + 1;
+            
+            // Re-initialize for new form
+            const newFormElement = container.lastElementChild;
+            initializeItemSearchForForm(newFormElement);
+            initializeCalculationsForForm(newFormElement);
+            updateItemNumbers();
+        });
+        
+        // Remove item handlers
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-item-btn')) {
+                const itemForm = e.target.closest('.item-form');
+                const deleteCheckbox = itemForm.querySelector('[name$="DELETE"]');
+                
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    itemForm.style.display = 'none';
+                } else {
+                    itemForm.remove();
+                    totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+                }
+                
+                updateItemNumbers();
+                calculateGrandTotal();
+            }
+        });
+    }
+
+    function createItemForm(index) {
+        const prefix = 'items';
+        return `
+            <div class="item-form" data-form-index="${index}">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4>Item #<span class="item-number">${index + 1}</span></h4>
+                    <button type="button" class="btn btn-sm remove-item-btn" style="color: var(--danger-color);">
+                        <i class="bi bi-trash"></i>
+                        Remove
+                    </button>
+                </div>
+
+                <input type="hidden" name="${prefix}-${index}-id">
+                <input type="hidden" name="${prefix}-${index}-DELETE">
+
+                <div class="filter-grid">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label class="form-label">Search Item from Catalog</label>
+                        <div class="search-box">
+                            <input type="text" class="form-control item-search" placeholder="Search by name or code...">
+                            <i class="bi bi-search"></i>
+                            <div class="search-results"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Item (Optional)</label>
+                        <select class="form-control" name="${prefix}-${index}-item">
+                            <option value="">-- Select Item --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Unit of Measure <span style="color: var(--danger-color);">*</span></label>
+                        <input type="text" class="form-control" name="${prefix}-${index}-unit_of_measure" placeholder="e.g., Units, Pieces">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Quantity <span style="color: var(--danger-color);">*</span></label>
+                        <input type="number" class="form-control" name="${prefix}-${index}-quantity" step="0.01" min="0.01" placeholder="0.00">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Estimated Unit Price <span style="color: var(--danger-color);">*</span></label>
+                        <input type="number" class="form-control" name="${prefix}-${index}-estimated_unit_price" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label">Item Description <span style="color: var(--danger-color);">*</span></label>
+                    <textarea class="form-control" name="${prefix}-${index}-item_description" rows="2" placeholder="Describe the item..."></textarea>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Specifications <span style="color: var(--danger-color);">*</span></label>
+                <textarea class="form-control" name="${prefix}-${index}-specifications" rows="3" placeholder="Technical specifications..."></textarea>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Notes (Optional)</label>
+                <textarea class="form-control" name="${prefix}-${index}-notes" rows="2" placeholder="Additional notes..."></textarea>
+            </div>
+
+            <div style="background: var(--hover-bg); padding: 0.75rem; border-radius: 0.375rem; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.875rem; font-weight: 500;">Item Total:</span>
+                <span class="item-total" style="font-size: 1rem; font-weight: 600; color: var(--primary-color);">KES 0.00</span>
+            </div>
+        </div>
+    `;
+}
+
+function initializeItemSearchForForm(formElement) {
+    const searchInput = formElement.querySelector('.item-search');
+    const resultsDiv = formElement.querySelector('.search-results');
+    
+    if (!searchInput || !resultsDiv) return;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            resultsDiv.classList.remove('active');
+            return;
+        }
+        
+        resultsDiv.innerHTML = '<div class="loading-spinner"><i class="bi bi-hourglass-split"></i> Searching...</div>';
+        resultsDiv.classList.add('active');
+        
+        searchTimeout = setTimeout(() => {
+            searchItems(query, resultsDiv, searchInput);
+        }, SEARCH_DELAY);
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.classList.remove('active');
         }
     });
-});
+}
 
-// Display plan item details
-document.getElementById('id_procurement_plan_item').addEventListener('change', function() {
-    const option = this.options[this.selectedIndex];
-    const infoBox = document.getElementById('plan-item-info');
+function initializeCalculationsForForm(formElement) {
+    const qtyInput = formElement.querySelector('[name$="quantity"]');
+    const priceInput = formElement.querySelector('[name$="estimated_unit_price"]');
     
-    if (this.value) {
-        infoBox.classList.add('active');
-        
-        const cost = parseFloat(option.dataset.cost);
-        const remaining = parseFloat(option.dataset.remaining);
-        
-        document.getElementById('plan-cost').textContent = 'KES ' + cost.toLocaleString('en-KE', {minimumFractionDigits: 2});
-        document.getElementById('plan-remaining').textContent = 'KES ' + remaining.toLocaleString('en-KE', {minimumFractionDigits: 2});
-        document.getElementById('plan-quarter').textContent = option.dataset.quarter;
-        document.getElementById('plan-method').textContent = option.dataset.method;
-        document.getElementById('plan-quantity').textContent = option.dataset.quantity + ' ' + option.dataset.uom;
-    } else {
-        infoBox.classList.remove('active');
+    if (qtyInput) {
+        qtyInput.addEventListener('input', () => calculateItemTotal(formElement));
     }
-});
-
-// Initialize on page load
-const initialPlanned = document.querySelector('input[name="is_planned"]:checked');
-if (initialPlanned) {
-    initialPlanned.dispatchEvent(new Event('change'));
+    if (priceInput) {
+        priceInput.addEventListener('input', () => calculateItemTotal(formElement));
+    }
 }
 
-// Trigger plan item display if already selected
-const planItemSelect = document.getElementById('id_procurement_plan_item');
-if (planItemSelect.value) {
-    planItemSelect.dispatchEvent(new Event('change'));
+function updateItemNumbers() {
+    document.querySelectorAll('.item-form').forEach((form, index) => {
+        const deleteCheckbox = form.querySelector('[name$="DELETE"]');
+        if (!deleteCheckbox || !deleteCheckbox.checked) {
+            const numberSpan = form.querySelector('.item-number');
+            if (numberSpan) {
+                numberSpan.textContent = index + 1;
+            }
+        }
+    });
 }
 
-// Add item form functionality (basic alert - replace with proper formset cloning)
-document.getElementById('add-item-btn').addEventListener('click', function() {
-    alert('To add more items, please submit the form and edit it again, or implement dynamic formset JavaScript.');
-});
+// ========================================================================
+// ADD/REMOVE ATTACHMENTS
+// ========================================================================
 
-// Add attachment form functionality (basic alert - replace with proper formset cloning)
-document.getElementById('add-attachment-btn').addEventListener('click', function() {
-    alert('To add more documents, please submit the form and edit it again, or implement dynamic formset JavaScript.');
+function initializeAddRemoveAttachments() {
+    const addBtn = document.getElementById('add-attachment-btn');
+    const container = document.getElementById('attachments-container');
+    const totalFormsInput = document.querySelector('[name$="attachmentformset-TOTAL_FORMS"]') || 
+                            document.querySelector('[name$="attachment-TOTAL_FORMS"]');
+    
+    if (!addBtn || !container || !totalFormsInput) return;
+    
+    addBtn.addEventListener('click', function() {
+        const formCount = parseInt(totalFormsInput.value);
+        const newForm = createAttachmentForm(formCount);
+        
+        container.insertAdjacentHTML('beforeend', newForm);
+        totalFormsInput.value = formCount + 1;
+    });
+    
+    container.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-attachment-btn')) {
+            const attachmentForm = e.target.closest('.attachment-form');
+            const deleteCheckbox = attachmentForm.querySelector('[name$="DELETE"]');
+            
+            if (deleteCheckbox) {
+                deleteCheckbox.checked = true;
+                attachmentForm.style.display = 'none';
+            } else {
+                attachmentForm.remove();
+                totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+            }
+        }
+    });
+}
+
+function createAttachmentForm(index) {
+    const prefix = 'attachments';
+    return `
+        <div class="attachment-form">
+            <input type="hidden" name="${prefix}-${index}-id">
+            <input type="hidden" name="${prefix}-${index}-DELETE">
+
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                <button type="button" class="btn btn-sm remove-attachment-btn" style="color: var(--danger-color);">
+                    <i class="bi bi-trash"></i>
+                    Remove
+                </button>
+            </div>
+
+            <div class="filter-grid">
+                <div class="form-group">
+                    <label class="form-label">Document Type</label>
+                    <select class="form-control" name="${prefix}-${index}-attachment_type">
+                        <option value="QUOTATION">Quotation</option>
+                        <option value="TOR">Terms of Reference</option>
+                        <option value="SPECIFICATION">Technical Specification</option>
+                        <option value="JUSTIFICATION">Justification Document</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Document Name</label>
+                    <input type="text" class="form-control" name="${prefix}-${index}-file_name" placeholder="Document name">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">File</label>
+                    <input type="file" class="form-control" name="${prefix}-${index}-file">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" name="${prefix}-${index}-description" rows="2" placeholder="Brief description..."></textarea>
+            </div>
+        </div>
+    `;
+}
+
+// ========================================================================
+// UTILITY FUNCTIONS
+// ========================================================================
+
+function formatCurrency(amount) {
+    return amount.toLocaleString('en-KE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+// ========================================================================
+// INITIALIZATION
+// ========================================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeRequisitionType();
+    initializePlanItemDetails();
+    initializeItemSearch();
+    initializeCalculations();
+    initializeAddRemoveItems();
+    initializeAddRemoveAttachments();
+    
+    // Initial calculation
+    calculateGrandTotal();
 });
+})();
 </script>
 {% endblock %}
