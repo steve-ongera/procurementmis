@@ -3,44 +3,439 @@
 
 {% block title %}Procurement Plan Reports{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+        --progress-bg: #E2E8F0;
+        --progress-fill: #10B981;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-card i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .filter-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .filter-group label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 0.375rem;
+    }
+
+    .filter-select {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #334155;
+        transition: all 0.2s;
+        background: var(--card-bg);
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+
+    /* Stats Summary */
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.125rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-value {
+        font-size: 1.375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Card Styles */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .card-header h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    /* Progress Bar */
+    .progress-bar {
+        height: 0.75rem;
+        background: var(--progress-bg);
+        border-radius: 0.375rem;
+        overflow: hidden;
+        margin-bottom: 0.75rem;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--progress-fill);
+        border-radius: 0.375rem;
+        transition: width 0.3s ease;
+    }
+
+    .progress-label {
+        font-size: 0.8125rem;
+        color: #475569;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    /* Tables */
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.8125rem;
+        color: #334155;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .amount {
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #94A3B8;
+        font-size: 0.8125rem;
+        font-style: italic;
+    }
+
+    /* Print Styles */
+    @media print {
+        .page-header, .filter-card, .header-actions {
+            display: none;
+        }
+        
+        .card {
+            break-inside: avoid;
+            border: 1px solid #ddd;
+            margin-bottom: 1rem;
+        }
+        
+        .card-header {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        table {
+            font-size: 11px;
+        }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filter-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .filter-group {
+            min-width: 100%;
+        }
+        
+        .filter-actions {
+            width: 100%;
+        }
+        
+        .filter-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.625rem 0.75rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .stats-summary {
+            grid-template-columns: 1fr;
+        }
+        
+        .card-header h3 {
+            font-size: 0.9375rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">{{ page_title }}</h1>
+        <h1 class="page-title">Procurement Plan Reports</h1>
         <div class="breadcrumb">
-            <a href="{% url 'procurement_dashboard' %}">Dashboard</a>
+            <a href="{% url 'procurement_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
             <i class="bi bi-chevron-right"></i>
-            <a href="{% url 'procurement_plan_list' %}">Plans</a>
+            <a href="{% url 'procurement_plan_list' %}">Procurement Plans</a>
             <i class="bi bi-chevron-right"></i>
             <span>Reports</span>
         </div>
     </div>
     <div class="header-actions">
-        <button type="button" class="btn btn-primary" onclick="exportReport()">
-            <i class="bi bi-download"></i>
-            Export Report
-        </button>
-        <button type="button" class="btn" onclick="window.print()">
-            <i class="bi bi-printer"></i>
-            Print
-        </button>
         <a href="{% url 'procurement_plan_list' %}" class="btn">
             <i class="bi bi-arrow-left"></i>
             Back to Plans
         </a>
+        <button type="button" class="btn" onclick="window.print()">
+            <i class="bi bi-printer"></i>
+            Print
+        </button>
+        <button type="button" class="btn btn-primary" onclick="exportReport()">
+            <i class="bi bi-download"></i>
+            Export
+        </button>
     </div>
 </div>
 
-<!-- Filter Options -->
+<!-- Report Filters -->
 <div class="filter-card">
-    <h3 class="filter-title">
+    <h3>
         <i class="bi bi-funnel"></i>
         Report Filters
     </h3>
     
     <form method="get" class="filter-form">
         <div class="filter-group">
-            <label class="filter-label">Budget Year</label>
+            <label>Budget Year</label>
             <select name="budget_year" class="filter-select">
                 <option value="">All Years</option>
                 {% for year in budget_years %}
@@ -52,7 +447,7 @@
         </div>
         
         <div class="filter-group">
-            <label class="filter-label">Department</label>
+            <label>Department</label>
             <select name="department" class="filter-select">
                 <option value="">All Departments</option>
                 {% for dept in departments %}
@@ -64,72 +459,41 @@
         </div>
         
         <div class="filter-actions">
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-filter"></i>
-                Apply Filters
-            </button>
             {% if selected_budget_year or selected_department %}
             <a href="{% url 'procurement_plan_reports' %}" class="btn">
                 <i class="bi bi-x-circle"></i>
                 Clear
             </a>
             {% endif %}
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
         </div>
     </form>
 </div>
 
 <!-- Summary Statistics -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-info">
-                <h3>{{ total_plans|intcomma }}</h3>
-                <p>Total Plans</p>
-            </div>
-            <div class="stat-icon">
-                <i class="bi bi-file-earmark-text"></i>
-            </div>
-        </div>
+<div class="stats-summary">
+    <div class="summary-card">
+        <div class="summary-value">{{ total_plans|intcomma }}</div>
+        <div class="summary-label">Total Plans</div>
     </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-info">
-                <h3>{{ approved_plans|intcomma }}</h3>
-                <p>Approved Plans</p>
-            </div>
-            <div class="stat-icon">
-                <i class="bi bi-check-circle"></i>
-            </div>
-        </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ approved_plans|intcomma }}</div>
+        <div class="summary-label">Approved Plans</div>
     </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-info">
-                <h3>KES {{ total_estimated|floatformat:0|intcomma }}</h3>
-                <p>Total Estimated</p>
-            </div>
-            <div class="stat-icon">
-                <i class="bi bi-cash-stack"></i>
-            </div>
-        </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ total_estimated|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Estimated</div>
     </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-info">
-                <h3>KES {{ total_committed|floatformat:0|intcomma }}</h3>
-                <p>Total Committed</p>
-            </div>
-            <div class="stat-icon">
-                <i class="bi bi-check-all"></i>
-            </div>
-        </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ total_committed|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Total Committed</div>
     </div>
 </div>
 
-<!-- Utilization Rate -->
+<!-- Budget Utilization -->
 <div class="card">
     <div class="card-header">
         <h3>
@@ -147,7 +511,7 @@
     </div>
 </div>
 
-<!-- By Department -->
+<!-- Breakdown by Department -->
 <div class="card">
     <div class="card-header">
         <h3>
@@ -156,39 +520,45 @@
         </h3>
     </div>
     <div class="card-body">
-        <table>
-            <thead>
-                <tr>
-                    <th>Department</th>
-                    <th>Total Items</th>
-                    <th>Total Cost</th>
-                    <th>Committed</th>
-                    <th>Utilization</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for dept in by_department %}
-                <tr>
-                    <td>{{ dept.department__name }}</td>
-                    <td>{{ dept.total_items|intcomma }}</td>
-                    <td class="amount">KES {{ dept.total_cost|default:0|floatformat:0|intcomma }}</td>
-                    <td class="amount">KES {{ dept.total_committed|default:0|floatformat:0|intcomma }}</td>
-                    <td>
-                        {% widthratio dept.total_committed|default:0 dept.total_cost|default:1 100 as util %}
-                        {{ util }}%
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="empty-state">No data available</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Department</th>
+                        <th>Total Items</th>
+                        <th>Total Cost</th>
+                        <th>Committed</th>
+                        <th>Utilization</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dept in by_department %}
+                    <tr>
+                        <td>{{ dept.department__name }}</td>
+                        <td>{{ dept.total_items|intcomma }}</td>
+                        <td class="amount">KES {{ dept.total_cost|default:0|floatformat:0|intcomma }}</td>
+                        <td class="amount">KES {{ dept.total_committed|default:0|floatformat:0|intcomma }}</td>
+                        <td>
+                            {% if dept.total_cost %}
+                            {% widthratio dept.total_committed dept.total_cost 100 as util %}
+                            {{ util }}%
+                            {% else %}
+                            0%
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="empty-state">No data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<!-- By Quarter -->
+<!-- Breakdown by Quarter -->
 <div class="card">
     <div class="card-header">
         <h3>
@@ -197,38 +567,41 @@
         </h3>
     </div>
     <div class="card-body">
-        <table>
-            <thead>
-                <tr>
-                    <th>Quarter</th>
-                    <th>Total Items</th>
-                    <th>Total Cost</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for quarter in by_quarter %}
-                <tr>
-                    <td>
-                        {% if quarter.planned_quarter == 'Q1' %}Quarter 1 (Jul-Sep)
-                        {% elif quarter.planned_quarter == 'Q2' %}Quarter 2 (Oct-Dec)
-                        {% elif quarter.planned_quarter == 'Q3' %}Quarter 3 (Jan-Mar)
-                        {% elif quarter.planned_quarter == 'Q4' %}Quarter 4 (Apr-Jun)
-                        {% endif %}
-                    </td>
-                    <td>{{ quarter.total_items|intcomma }}</td>
-                    <td class="amount">KES {{ quarter.total_cost|default:0|floatformat:0|intcomma }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="3" class="empty-state">No data available</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Quarter</th>
+                        <th>Total Items</th>
+                        <th>Total Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for quarter in by_quarter %}
+                    <tr>
+                        <td>
+                            {% if quarter.planned_quarter == 'Q1' %}Quarter 1 (Jul-Sep)
+                            {% elif quarter.planned_quarter == 'Q2' %}Quarter 2 (Oct-Dec)
+                            {% elif quarter.planned_quarter == 'Q3' %}Quarter 3 (Jan-Mar)
+                            {% elif quarter.planned_quarter == 'Q4' %}Quarter 4 (Apr-Jun)
+                            {% else %}{{ quarter.planned_quarter }}
+                            {% endif %}
+                        </td>
+                        <td>{{ quarter.total_items|intcomma }}</td>
+                        <td class="amount">KES {{ quarter.total_cost|default:0|floatformat:0|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="empty-state">No data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<!-- By Procurement Method -->
+<!-- Breakdown by Procurement Method -->
 <div class="card">
     <div class="card-header">
         <h3>
@@ -237,44 +610,47 @@
         </h3>
     </div>
     <div class="card-body">
-        <table>
-            <thead>
-                <tr>
-                    <th>Procurement Method</th>
-                    <th>Total Items</th>
-                    <th>Total Cost</th>
-                    <th>Percentage</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for method in by_method %}
-                <tr>
-                    <td>
-                        {% if method.procurement_method == 'OPEN_TENDER' %}Open Tender
-                        {% elif method.procurement_method == 'RESTRICTED_TENDER' %}Restricted Tender
-                        {% elif method.procurement_method == 'RFQ' %}Request for Quotation
-                        {% elif method.procurement_method == 'DIRECT_PROCUREMENT' %}Direct Procurement
-                        {% elif method.procurement_method == 'FRAMEWORK' %}Framework Agreement
-                        {% endif %}
-                    </td>
-                    <td>{{ method.total_items|intcomma }}</td>
-                    <td class="amount">KES {{ method.total_cost|default:0|floatformat:0|intcomma }}</td>
-                    <td>
-                        {% if total_estimated > 0 %}
-                        {% widthratio method.total_cost|default:0 total_estimated 100 as pct %}
-                        {{ pct }}%
-                        {% else %}
-                        0%
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="empty-state">No data available</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Procurement Method</th>
+                        <th>Total Items</th>
+                        <th>Total Cost</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for method in by_method %}
+                    <tr>
+                        <td>
+                            {% if method.procurement_method == 'OPEN_TENDER' %}Open Tender
+                            {% elif method.procurement_method == 'RESTRICTED_TENDER' %}Restricted Tender
+                            {% elif method.procurement_method == 'RFQ' %}Request for Quotation
+                            {% elif method.procurement_method == 'DIRECT_PROCUREMENT' %}Direct Procurement
+                            {% elif method.procurement_method == 'FRAMEWORK' %}Framework Agreement
+                            {% else %}{{ method.procurement_method }}
+                            {% endif %}
+                        </td>
+                        <td>{{ method.total_items|intcomma }}</td>
+                        <td class="amount">KES {{ method.total_cost|default:0|floatformat:0|intcomma }}</td>
+                        <td>
+                            {% if total_estimated > 0 %}
+                            {% widthratio method.total_cost total_estimated 100 as pct %}
+                            {{ pct }}%
+                            {% else %}
+                            0%
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-state">No data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

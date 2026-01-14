@@ -3,12 +3,325 @@
 
 {% block title %}Reject {{ plan.plan_number }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --warning-bg: #FEF3C7;
+        --info-bg: #E0F2FE;
+        --danger-bg: #FEE2E2;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Card Styles */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--hover-bg);
+    }
+
+    .card-header h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header i {
+        color: var(--secondary-color);
+        font-size: 1rem;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    /* Info Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .info-item label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #64748B;
+        margin-bottom: 0.375rem;
+    }
+
+    .info-item .value {
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: #1E293B;
+    }
+
+    /* Alert Styles */
+    .alert {
+        padding: 0.875rem 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.25rem;
+        font-size: 0.8125rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .alert i {
+        font-size: 0.875rem;
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+    }
+
+    .alert-warning {
+        background: var(--warning-bg);
+        color: #92400E;
+        border: 1px solid #FDE68A;
+    }
+
+    .alert-info {
+        background: var(--info-bg);
+        color: #0369A1;
+        border: 1px solid #BAE6FD;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 0.375rem;
+    }
+
+    label.required::after {
+        content: " *";
+        color: var(--danger-color);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #334155;
+        transition: all 0.2s;
+        background: var(--card-bg);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--danger-color);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: #94A3B8;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 8rem;
+    }
+
+    .form-text {
+        display: block;
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-top: 0.375rem;
+    }
+
+    .form-text.text-danger {
+        color: var(--danger-color);
+        font-weight: 500;
+    }
+
+    /* List Styles */
+    ul {
+        margin: 0.5rem 0 0 0;
+        padding-left: 1.5rem;
+        color: #334155;
+    }
+
+    li {
+        margin-bottom: 0.375rem;
+        font-size: 0.8125rem;
+        line-height: 1.5;
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    .btn-lg {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .alert {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .alert i {
+            align-self: flex-start;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .card-header h3 {
+            font-size: 0.9375rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">{{ page_title }}</h1>
+        <h1 class="page-title">Reject Procurement Plan</h1>
         <div class="breadcrumb">
-            <a href="{% url 'procurement_dashboard' %}">Dashboard</a>
+            <a href="{% url 'procurement_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'procurement_plan_list' %}">Plans</a>
             <i class="bi bi-chevron-right"></i>
@@ -54,7 +367,7 @@
     <div class="card-header">
         <h3>
             <i class="bi bi-x-circle"></i>
-            Reject Plan
+            Reject Procurement Plan
         </h3>
     </div>
     <div class="card-body">
@@ -63,15 +376,17 @@
             
             <div class="alert alert-warning">
                 <i class="bi bi-exclamation-triangle"></i>
-                <strong>Important:</strong> Rejecting this plan will return it to draft status. 
-                The department will be able to make corrections and resubmit.
+                <div>
+                    <strong>Important:</strong> Rejecting this plan will return it to draft status. 
+                    The department will be able to make corrections and resubmit.
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="required">Rejection Reason</label>
                 <textarea name="rejection_reason" 
                           class="form-control" 
-                          rows="6"
+                          rows="5"
                           placeholder="Provide detailed reasons for rejection. Be specific about what needs to be corrected..."
                           required></textarea>
                 <small class="form-text text-danger">
@@ -80,14 +395,17 @@
             </div>
             
             <div class="alert alert-info">
-                <strong>Common Rejection Reasons:</strong>
-                <ul>
-                    <li>Budget allocations exceed available budget</li>
-                    <li>Procurement methods not appropriate for item types</li>
-                    <li>Insufficient justification for high-value items</li>
-                    <li>Items not aligned with department priorities</li>
-                    <li>Quarter distribution not realistic</li>
-                </ul>
+                <i class="bi bi-info-circle"></i>
+                <div>
+                    <strong>Common Rejection Reasons:</strong>
+                    <ul>
+                        <li>Budget allocations exceed available budget</li>
+                        <li>Procurement methods not appropriate for item types</li>
+                        <li>Insufficient justification for high-value items</li>
+                        <li>Items not aligned with department priorities</li>
+                        <li>Quarter distribution not realistic</li>
+                    </ul>
+                </div>
             </div>
             
             <div class="form-actions">
