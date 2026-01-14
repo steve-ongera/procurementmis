@@ -730,35 +730,70 @@ from .models import (
 
 
 class RequisitionForm(forms.ModelForm):
-    """Form for creating/editing requisitions"""
+    """Enhanced Requisition form with procurement plan enforcement"""
     
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
-        super().__init__(*args, **kwargs)
-        
-        # Filter budgets for user's department if available
-        if self.user and hasattr(self.user, 'department') and self.user.department:
-            self.fields['budget'].queryset = Budget.objects.filter(
-                department=self.user.department,
-                is_active=True
-            )
+    # Plan-related fields
+    is_planned = forms.BooleanField(
+        required=False,
+        initial=True,
+        label='Is this from Procurement Plan?',
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-control'
+        })
+    )
+    
+    procurement_plan_item = forms.ModelChoiceField(
+        queryset=ProcurementPlanItem.objects.none(),
+        required=False,
+        label='Select Procurement Plan Item',
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'id_procurement_plan_item'
+        }),
+        help_text='Select the approved plan item for this requisition'
+    )
+    
+    # Emergency fields
+    emergency_type = forms.ChoiceField(
+        choices=[
+            ('', '-- Select Emergency Type --'),
+            ('BREAKDOWN', 'Equipment Breakdown'),
+            ('SAFETY', 'Safety/Health Emergency'),
+            ('REGULATORY', 'Regulatory/Compliance Requirement'),
+            ('DONOR', 'New Donor Funding'),
+            ('ACADEMIC', 'New Academic Requirement'),
+            ('OTHER', 'Other Emergency'),
+        ],
+        required=False,
+        label='Emergency Type',
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        })
+    )
+    
+    emergency_justification = forms.CharField(
+        required=False,
+        label='Emergency Justification',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Provide detailed justification for unplanned/emergency procurement...'
+        }),
+        help_text='Explain why this was not planned and why it cannot wait'
+    )
     
     class Meta:
         model = Requisition
         fields = [
-            'title',
-            'budget',
-            'priority',
-            'required_date',
-            'justification',
-            'is_emergency',
-            'emergency_justification',
-            'notes',
+            'title', 'budget', 'priority', 'required_date',
+            'justification', 'notes',
+            'is_planned', 'procurement_plan_item',
+            'is_emergency', 'emergency_type', 'emergency_justification'
         ]
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Enter a clear, descriptive title for this requisition'
+                'placeholder': 'Enter requisition title'
             }),
             'budget': forms.Select(attrs={
                 'class': 'form-control'
@@ -773,113 +808,146 @@ class RequisitionForm(forms.ModelForm):
             'justification': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 4,
-                'placeholder': 'Provide detailed justification for this purchase requisition'
-            }),
-            'is_emergency': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
-            'emergency_justification': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'Explain why this is an emergency requisition'
+                'placeholder': 'Explain why this procurement is needed...'
             }),
             'notes': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'Any additional notes or special instructions'
+                'placeholder': 'Additional notes (optional)'
+            }),
+            'is_emergency': forms.CheckboxInput(attrs={
+                'class': 'form-control'
             }),
         }
-        labels = {
-            'title': 'Requisition Title',
-            'budget': 'Budget Allocation',
-            'priority': 'Priority Level',
-            'required_date': 'Required By Date',
-            'justification': 'Justification',
-            'is_emergency': 'Emergency Requisition?',
-            'emergency_justification': 'Emergency Justification',
-            'notes': 'Additional Notes',
-        }
-        help_texts = {
-            'title': 'Brief but descriptive title of what you are requesting',
-            'budget': 'Select the budget line this will be charged to',
-            'required_date': 'Date by which you need these items',
-            'justification': 'Explain why this purchase is necessary',
-            'is_emergency': 'Check if this is an urgent/emergency purchase',
-        }
+    
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.user = user
+        
+        # Set up budget queryset based on user's department
+        if user and user.department:
+            current_budget_year = BudgetYear.objects.filter(is_active=True).first()
+            if current_budget_year:
+                self.fields['budget'].queryset = Budget.objects.filter(
+                    department=user.department,
+                    budget_year=current_budget_year,
+                    is_active=True
+                ).select_related('category', 'budget_year')
+            
+            # Set up procurement plan items
+            if current_budget_year:
+                self.fields['procurement_plan_item'].queryset = ProcurementPlanItem.objects.filter(
+                    procurement_plan__department=user.department,
+                    procurement_plan__budget_year=current_budget_year,
+                    procurement_plan__status='APPROVED',
+                    status='PLANNED'
+                ).select_related(
+                    'procurement_plan', 'budget', 'item'
+                ).order_by('planned_quarter', 'description')
+        
+        # If editing existing requisition, set initial values
+        if self.instance and self.instance.pk:
+            self.fields['is_planned'].initial = self.instance.is_planned
+            if self.instance.procurement_plan_item:
+                self.fields['procurement_plan_item'].initial = self.instance.procurement_plan_item
+            if self.instance.emergency_type:
+                self.fields['emergency_type'].initial = self.instance.emergency_type
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        is_planned = cleaned_data.get('is_planned', True)
+        procurement_plan_item = cleaned_data.get('procurement_plan_item')
+        is_emergency = cleaned_data.get('is_emergency', False)
+        emergency_type = cleaned_data.get('emergency_type')
+        emergency_justification = cleaned_data.get('emergency_justification')
+        
+        # Validation for planned requisitions
+        if is_planned:
+            if not procurement_plan_item:
+                self.add_error(
+                    'procurement_plan_item',
+                    'Please select a procurement plan item for planned requisitions.'
+                )
+            else:
+                # Check if plan is approved
+                if procurement_plan_item.procurement_plan.status != 'APPROVED':
+                    self.add_error(
+                        'procurement_plan_item',
+                        f'Selected plan is not approved. Status: '
+                        f'{procurement_plan_item.procurement_plan.get_status_display()}'
+                    )
+        
+        # Validation for unplanned requisitions
+        else:
+            if not is_emergency:
+                self.add_error(
+                    'is_emergency',
+                    'Unplanned requisitions must be marked as emergency.'
+                )
+            
+            if not emergency_type:
+                self.add_error(
+                    'emergency_type',
+                    'Emergency type is required for unplanned requisitions.'
+                )
+            
+            if not emergency_justification or len(emergency_justification.strip()) < 50:
+                self.add_error(
+                    'emergency_justification',
+                    'Please provide detailed emergency justification (minimum 50 characters).'
+                )
+        
+        return cleaned_data
+
+
 
 
 class RequisitionItemForm(forms.ModelForm):
-    """Form for individual requisition items"""
+    """Form for requisition line items"""
     
     class Meta:
         model = RequisitionItem
         fields = [
-            'item',
-            'item_description',
-            'specifications',
-            'quantity',
-            'unit_of_measure',
-            'estimated_unit_price',
-            'notes',
+            'item', 'item_description', 'specifications',
+            'quantity', 'unit_of_measure', 'estimated_unit_price', 'notes'
         ]
         widgets = {
             'item': forms.Select(attrs={
-                'class': 'form-control item-select',
-                'placeholder': 'Select from catalog (optional)'
+                'class': 'form-control',
             }),
             'item_description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 2,
-                'placeholder': 'Describe the item you need'
+                'placeholder': 'Describe the item...'
             }),
             'specifications': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'Detailed technical specifications, requirements, or standards'
+                'placeholder': 'Technical specifications, brand preferences, etc.'
             }),
             'quantity': forms.NumberInput(attrs={
-                'class': 'form-control quantity-input',
-                'min': '0.01',
+                'class': 'form-control',
                 'step': '0.01',
-                'placeholder': 'Qty'
+                'min': '0.01'
             }),
             'unit_of_measure': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'e.g., Pieces, Boxes, Liters'
+                'placeholder': 'e.g., Units, Pieces, Liters, KG'
             }),
             'estimated_unit_price': forms.NumberInput(attrs={
-                'class': 'form-control price-input',
-                'min': '0',
+                'class': 'form-control',
                 'step': '0.01',
-                'placeholder': 'Unit Price'
+                'min': '0'
             }),
             'notes': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 2,
-                'placeholder': 'Any special requirements or notes for this item'
+                'placeholder': 'Additional notes (optional)'
             }),
         }
-        labels = {
-            'item': 'Catalog Item (Optional)',
-            'item_description': 'Item Description',
-            'specifications': 'Specifications',
-            'quantity': 'Quantity',
-            'unit_of_measure': 'Unit of Measure',
-            'estimated_unit_price': 'Estimated Unit Price (KES)',
-            'notes': 'Notes',
-        }
 
 
-# Formset for handling multiple requisition items
-RequisitionItemFormSet = inlineformset_factory(
-    Requisition,
-    RequisitionItem,
-    form=RequisitionItemForm,
-    extra=3,  # Show 3 empty forms initially
-    can_delete=True,
-    min_num=1,  # At least one item required
-    validate_min=True,
-)
 
 
 class RequisitionAttachmentForm(forms.ModelForm):
@@ -887,12 +955,7 @@ class RequisitionAttachmentForm(forms.ModelForm):
     
     class Meta:
         model = RequisitionAttachment
-        fields = [
-            'attachment_type',
-            'file_name',
-            'file',
-            'description',
-        ]
+        fields = ['attachment_type', 'file_name', 'file', 'description']
         widgets = {
             'attachment_type': forms.Select(attrs={
                 'class': 'form-control'
@@ -908,27 +971,32 @@ class RequisitionAttachmentForm(forms.ModelForm):
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 2,
-                'placeholder': 'Brief description of this document'
+                'placeholder': 'Brief description (optional)'
             }),
         }
-        labels = {
-            'attachment_type': 'Document Type',
-            'file_name': 'Document Name',
-            'file': 'Upload File',
-            'description': 'Description',
-        }
 
+# Formsets
+RequisitionItemFormSet = inlineformset_factory(
+    Requisition,
+    RequisitionItem,
+    form=RequisitionItemForm,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True
+)
 
-# Formset for handling multiple attachments
 RequisitionAttachmentFormSet = inlineformset_factory(
     Requisition,
     RequisitionAttachment,
     form=RequisitionAttachmentForm,
-    extra=2,  # Show 2 empty forms initially
+    extra=1,
     can_delete=True,
-    min_num=0,  # Attachments are optional
-    validate_min=False,
+    min_num=0,
+    validate_min=False
 )
+
+
 
 
 class RequisitionFilterForm(forms.Form):
@@ -1025,7 +1093,94 @@ class QuickRequisitionForm(forms.Form):
         })
     )
     
+class ProcurementPlanForm(forms.ModelForm):
+    """Form for creating/editing procurement plans"""
     
+    class Meta:
+        model = ProcurementPlanItem
+        fields = [
+            'item_type', 'description', 'specifications',
+            'quantity', 'unit_of_measure', 'estimated_cost',
+            'budget', 'procurement_method', 'planned_quarter',
+            'source_of_funds', 'notes'
+        ]
+        widgets = {
+            'item_type': forms.Select(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Item description'
+            }),
+            'specifications': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Technical specifications'
+            }),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01'
+            }),
+            'unit_of_measure': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Units, Pieces'
+            }),
+            'estimated_cost': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01'
+            }),
+            'budget': forms.Select(attrs={'class': 'form-control'}),
+            'procurement_method': forms.Select(attrs={'class': 'form-control'}),
+            'planned_quarter': forms.Select(attrs={'class': 'form-control'}),
+            'source_of_funds': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Government Budget, Donor'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2
+            }),
+        }
+
+
+class ProcurementPlanAmendmentForm(forms.ModelForm):
+    """Form for requesting plan amendments"""
+    
+    class Meta:
+        model = ProcurementPlanAmendment
+        fields = [
+            'amendment_type', 'plan_item', 'justification',
+            'old_values', 'new_values', 'supporting_document'
+        ]
+        widgets = {
+            'amendment_type': forms.Select(attrs={'class': 'form-control'}),
+            'plan_item': forms.Select(attrs={'class': 'form-control'}),
+            'justification': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Detailed justification for amendment...'
+            }),
+            'old_values': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Current values (JSON format)'
+            }),
+            'new_values': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Proposed values (JSON format)'
+            }),
+            'supporting_document': forms.FileInput(attrs={
+                'class': 'form-control'
+            }),
+        }
+    
+    def clean_justification(self):
+        justification = self.cleaned_data.get('justification')
+        if len(justification.strip()) < 100:
+            raise forms.ValidationError(
+                'Justification must be at least 100 characters long.'
+            )
+        return justification  
 
 """
 Finance Forms
@@ -1464,4 +1619,246 @@ class ReportFilterForm(forms.Form):
                 raise ValidationError('From date must be before to date.')
         
         return cleaned_data
+    
+    
+from django import forms
+from django.core.exceptions import ValidationError
+from decimal import Decimal
+from .models import (
+    ProcurementPlanItem, Budget, Item, ItemCategory,
+    ProcurementPlan
+)
+
+
+class ProcurementPlanItemForm(forms.ModelForm):
+    """Form for adding/editing procurement plan items"""
+    
+    class Meta:
+        model = ProcurementPlanItem
+        fields = [
+            'item',
+            'item_type',
+            'description',
+            'specifications',
+            'quantity',
+            'unit_of_measure',
+            'estimated_cost',
+            'budget',
+            'procurement_method',
+            'planned_quarter',
+            'source_of_funds',
+            'notes'
+        ]
+        widgets = {
+            'item': forms.Select(attrs={
+                'class': 'form-control',
+                'required': False
+            }),
+            'item_type': forms.Select(attrs={
+                'class': 'form-control',
+                'required': True
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Enter item description',
+                'required': True
+            }),
+            'specifications': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Enter technical specifications (optional)'
+            }),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+                'placeholder': '0.00',
+                'required': True
+            }),
+            'unit_of_measure': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Units, Pieces, Liters, KG',
+                'required': True
+            }),
+            'estimated_cost': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00',
+                'required': True
+            }),
+            'budget': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'procurement_method': forms.Select(attrs={
+                'class': 'form-control',
+                'required': True
+            }),
+            'planned_quarter': forms.Select(attrs={
+                'class': 'form-control',
+                'required': True
+            }),
+            'source_of_funds': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Government Budget, Donor Funds, IGR',
+                'required': True
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Additional notes (optional)'
+            })
+        }
+        labels = {
+            'item': 'Catalog Item (Optional)',
+            'item_type': 'Item Type',
+            'description': 'Item Description',
+            'specifications': 'Specifications',
+            'quantity': 'Quantity',
+            'unit_of_measure': 'Unit of Measure',
+            'estimated_cost': 'Estimated Cost',
+            'budget': 'Budget Allocation',
+            'procurement_method': 'Procurement Method',
+            'planned_quarter': 'Planned Quarter',
+            'source_of_funds': 'Source of Funds',
+            'notes': 'Notes'
+        }
+        help_texts = {
+            'item': 'Select from catalog if available, otherwise leave blank',
+            'budget': 'Assign budget line for this item',
+            'estimated_cost': 'Total estimated cost for this quantity',
+            'source_of_funds': 'Specify the funding source'
+        }
+    
+    def __init__(self, *args, procurement_plan=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.procurement_plan = procurement_plan
+        
+        # Filter budgets for the procurement plan's department and year
+        if procurement_plan:
+            self.fields['budget'].queryset = Budget.objects.filter(
+                department=procurement_plan.department,
+                budget_year=procurement_plan.budget_year,
+                is_active=True
+            ).select_related('category').order_by('category__code')
+            
+            # Set budget as required
+            self.fields['budget'].required = True
+        else:
+            self.fields['budget'].queryset = Budget.objects.none()
+        
+        # Filter active catalog items
+        self.fields['item'].queryset = Item.objects.filter(
+            is_active=True
+        ).select_related('category').order_by('category__name', 'name')
+        
+        # Make item optional
+        self.fields['item'].required = False
+    
+    def clean_quantity(self):
+        """Validate quantity"""
+        quantity = self.cleaned_data.get('quantity')
+        if quantity is not None and quantity <= 0:
+            raise ValidationError('Quantity must be greater than zero.')
+        return quantity
+    
+    def clean_estimated_cost(self):
+        """Validate estimated cost"""
+        estimated_cost = self.cleaned_data.get('estimated_cost')
+        if estimated_cost is not None and estimated_cost < 0:
+            raise ValidationError('Estimated cost cannot be negative.')
+        return estimated_cost
+    
+    def clean_source_of_funds(self):
+        """Validate and clean source of funds"""
+        source_of_funds = self.cleaned_data.get('source_of_funds')
+        if source_of_funds:
+            source_of_funds = source_of_funds.strip()
+            if len(source_of_funds) < 3:
+                raise ValidationError('Source of funds must be at least 3 characters.')
+        return source_of_funds
+    
+    def clean(self):
+        """Additional validation"""
+        cleaned_data = super().clean()
+        budget = cleaned_data.get('budget')
+        estimated_cost = cleaned_data.get('estimated_cost')
+        item = cleaned_data.get('item')
+        description = cleaned_data.get('description')
+        
+        # If catalog item selected, auto-fill description if empty
+        if item and not description:
+            cleaned_data['description'] = item.description
+        
+        # Validate budget has sufficient allocation
+        if budget and estimated_cost:
+            if budget.available_balance < estimated_cost:
+                self.add_error(
+                    'budget',
+                    f'Insufficient budget balance. Available: {budget.available_balance}, Required: {estimated_cost}'
+                )
+        
+        return cleaned_data
+
+
+class ProcurementPlanItemInlineForm(forms.ModelForm):
+    """Simplified inline form for quick item entry"""
+    
+    class Meta:
+        model = ProcurementPlanItem
+        fields = [
+            'item_type',
+            'description',
+            'quantity',
+            'unit_of_measure',
+            'estimated_cost',
+            'procurement_method',
+            'planned_quarter'
+        ]
+        widgets = {
+            'item_type': forms.Select(attrs={'class': 'form-control form-control-sm'}),
+            'description': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Description'
+            }),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control form-control-sm',
+                'step': '0.01'
+            }),
+            'unit_of_measure': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Unit'
+            }),
+            'estimated_cost': forms.NumberInput(attrs={
+                'class': 'form-control form-control-sm',
+                'step': '0.01'
+            }),
+            'procurement_method': forms.Select(attrs={'class': 'form-control form-control-sm'}),
+            'planned_quarter': forms.Select(attrs={'class': 'form-control form-control-sm'}),
+        }
+
+
+class ProcurementPlanItemBulkUploadForm(forms.Form):
+    """Form for bulk uploading plan items via CSV/Excel"""
+    
+    file = forms.FileField(
+        label='Upload File',
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': '.csv,.xlsx,.xls'
+        }),
+        help_text='Upload CSV or Excel file with plan items'
+    )
+    
+    def clean_file(self):
+        """Validate file type"""
+        file = self.cleaned_data.get('file')
+        if file:
+            extension = file.name.split('.')[-1].lower()
+            if extension not in ['csv', 'xlsx', 'xls']:
+                raise ValidationError('Only CSV and Excel files are allowed.')
+        return file
+    
     

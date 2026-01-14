@@ -406,6 +406,61 @@ urlpatterns = [
     # ============================================================================
     path('procurement-module/reports/', views.procurement_reports_view, name='procurement_reports'),
     path('procurement-module/reports/spend-analysis/', views.procurement_spend_analysis_view, name='procurement_spend_analysis'),
+    
+    # ========================================================================
+    # PROCUREMENT PLAN MANAGEMENT
+    # ========================================================================
+ 
+    # List & Detail
+    path('plans/', views.procurement_plan_list, name='procurement_plan_list'),
+    path('plans/<uuid:pk>/', views.procurement_plan_detail, name='procurement_plan_detail'),
+    
+    # Create & Edit
+    path('plans/create/', views.procurement_plan_create, name='procurement_plan_create'),
+    path('plans/<uuid:pk>/edit/', views.procurement_plan_edit, name='procurement_plan_edit'),
+    # Workflow Actions
+    path('plans/<uuid:pk>/submit/', views.procurement_plan_submit, name='procurement_plan_submit'),
+    
+    path('plans/<uuid:pk>/approve/', views.procurement_plan_approve, name='procurement_plan_approve'),
+    
+    path('plans/<uuid:pk>/reject/', views.procurement_plan_reject, name='procurement_plan_reject'),
+    
+    path('plans/<uuid:pk>/activate/', views.procurement_plan_activate, name='procurement_plan_activate'),
+    
+    # ========================================================================
+    # PLAN ITEMS MANAGEMENT
+    # ========================================================================
+    
+    # AJAX endpoints for plan items
+    path('plans/<uuid:plan_pk>/items/add/', views.plan_item_add, name='plan_item_add'), 
+    path('plans/items/<uuid:item_pk>/edit/', views.plan_item_edit, name='plan_item_edit'),
+    path('plans/items/<uuid:item_pk>/delete/', views.plan_item_delete, name='plan_item_delete'),
+    
+    # ========================================================================
+    # PLAN AMENDMENTS
+    # ========================================================================
+    
+    # List & Create
+    path('amendments/', views.plan_amendment_list, name='plan_amendment_list'),
+    path('plans/<uuid:plan_pk>/amendments/create/', views.plan_amendment_create, name='plan_amendment_create'),
+    
+    # Approve & Reject
+    path('amendments/<uuid:pk>/approve/', views.plan_amendment_approve, name='plan_amendment_approve'),
+    path('amendments/<uuid:pk>/reject/', views.plan_amendment_reject, name='plan_amendment_reject'),
+    
+    # ========================================================================
+    # REPORTS & ANALYTICS
+    # ========================================================================
+    
+    # Reports
+    path('plans/reports/', views.procurement_plan_reports, name='procurement_plan_reports'),
+
+    # ========================================================================
+    # UTILITY ENDPOINTS (AJAX)
+    # ========================================================================
+    
+    # Get plan item details (for staff requisition form)
+    path('api/plan-items/<uuid:plan_item_id>/details/', views.get_plan_item_details, name='get_plan_item_details'),
    
     
 ]

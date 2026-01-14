@@ -14750,3 +14750,869 @@ def procurement_spend_analysis_view(request):
     }
     
     return render(request, 'procurement/procurement_module/spend_analysis.html', context)
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from django.utils import timezone
+from django.db.models import Q, Sum, Count, F
+from django.http import JsonResponse, HttpResponse
+from decimal import Decimal
+from datetime import datetime
+import json
+
+from .models import (
+    ProcurementPlan, ProcurementPlanItem, ProcurementPlanAmendment,
+    BudgetYear, Department, Budget, Item, ItemCategory, User
+)
+from .forms import (
+    ProcurementPlanForm, ProcurementPlanItemForm, 
+    ProcurementPlanAmendmentForm
+)
+
+
+# ============================================================================
+# PERMISSION DECORATORS
+# ============================================================================
+
+def procurement_or_admin_required(user):
+    """Check if user is procurement officer or admin"""
+    return user.role in ['PROCUREMENT', 'ADMIN']
+
+
+def admin_required(user):
+    """Check if user is admin"""
+    return user.role == 'ADMIN'
+
+
+# ============================================================================
+# PROCUREMENT PLAN LIST & DASHBOARD
+# ============================================================================
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+def procurement_plan_list(request):
+    """List all procurement plans with filters"""
+    
+    # Get filter parameters
+    budget_year_id = request.GET.get('budget_year')
+    department_id = request.GET.get('department')
+    status = request.GET.get('status')
+    search = request.GET.get('search', '').strip()
+    
+    # Base queryset
+    plans = ProcurementPlan.objects.select_related(
+        'budget_year', 'department', 'submitted_by', 'approved_by'
+    ).annotate(
+        total_items=Count('items'),
+        total_estimated_cost=Sum('items__estimated_cost'),
+        total_committed=Sum('items__amount_committed')
+    ).order_by('-created_at')
+    
+    # Apply filters
+    if budget_year_id:
+        plans = plans.filter(budget_year_id=budget_year_id)
+    
+    if department_id:
+        plans = plans.filter(department_id=department_id)
+    
+    if status:
+        plans = plans.filter(status=status)
+    
+    if search:
+        plans = plans.filter(
+            Q(plan_number__icontains=search) |
+            Q(title__icontains=search) |
+            Q(description__icontains=search) |
+            Q(department__name__icontains=search)
+        )
+    
+    # Get filter options
+    budget_years = BudgetYear.objects.all().order_by('-start_date')
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    
+    # Statistics
+    total_plans = plans.count()
+    approved_plans = plans.filter(status='APPROVED').count()
+    active_plans = plans.filter(status='ACTIVE').count()
+    draft_plans = plans.filter(status='DRAFT').count()
+    
+    context = {
+        'plans': plans,
+        'budget_years': budget_years,
+        'departments': departments,
+        'total_plans': total_plans,
+        'approved_plans': approved_plans,
+        'active_plans': active_plans,
+        'draft_plans': draft_plans,
+        'page_title': 'Procurement Plans Management',
+        'selected_budget_year': budget_year_id,
+        'selected_department': department_id,
+        'selected_status': status,
+        'search_query': search,
+    }
+    
+    return render(request, 'procurement/plan_list.html', context)
+
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+def procurement_plan_detail(request, pk):
+    """View detailed procurement plan with items"""
+    
+    plan = get_object_or_404(
+        ProcurementPlan.objects.select_related(
+            'budget_year', 'department', 'submitted_by', 'approved_by'
+        ).prefetch_related('items__budget', 'items__item', 'amendments'),
+        pk=pk
+    )
+    
+    # Get plan items grouped by quarter
+    items_q1 = plan.items.filter(planned_quarter='Q1').select_related('budget', 'item')
+    items_q2 = plan.items.filter(planned_quarter='Q2').select_related('budget', 'item')
+    items_q3 = plan.items.filter(planned_quarter='Q3').select_related('budget', 'item')
+    items_q4 = plan.items.filter(planned_quarter='Q4').select_related('budget', 'item')
+    
+    # Calculate statistics
+    total_estimated = plan.items.aggregate(
+        total=Sum('estimated_cost')
+    )['total'] or Decimal('0')
+    
+    total_committed = plan.items.aggregate(
+        total=Sum('amount_committed')
+    )['total'] or Decimal('0')
+    
+    total_items = plan.items.count()
+    completed_items = plan.items.filter(status='COMPLETED').count()
+    in_progress_items = plan.items.filter(status='IN_PROGRESS').count()
+    
+    # Get amendments
+    amendments = plan.amendments.select_related(
+        'requested_by', 'approved_by', 'plan_item'
+    ).order_by('-requested_at')
+    
+    # Permissions
+    can_edit = plan.status in ['DRAFT', 'SUBMITTED'] and request.user.role in ['PROCUREMENT', 'ADMIN']
+    can_approve = plan.status == 'SUBMITTED' and request.user.role == 'ADMIN'
+    can_activate = plan.status == 'APPROVED' and request.user.role == 'ADMIN'
+    
+    context = {
+        'plan': plan,
+        'items_q1': items_q1,
+        'items_q2': items_q2,
+        'items_q3': items_q3,
+        'items_q4': items_q4,
+        'total_estimated': total_estimated,
+        'total_committed': total_committed,
+        'total_items': total_items,
+        'completed_items': completed_items,
+        'in_progress_items': in_progress_items,
+        'amendments': amendments,
+        'can_edit': can_edit,
+        'can_approve': can_approve,
+        'can_activate': can_activate,
+        'page_title': f'Procurement Plan: {plan.plan_number}',
+    }
+    
+    return render(request, 'procurement/plan_detail.html', context)
+
+
+# ============================================================================
+# CREATE & EDIT PROCUREMENT PLAN
+# ============================================================================
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+def procurement_plan_create(request):
+    """Create new procurement plan"""
+    
+    if request.method == 'POST':
+        plan_title = request.POST.get('title')
+        plan_description = request.POST.get('description', '')
+        budget_year_id = request.POST.get('budget_year')
+        department_id = request.POST.get('department')
+        
+        # Validation
+        if not all([plan_title, budget_year_id, department_id]):
+            messages.error(request, 'Please fill in all required fields.')
+            return redirect('procurement_plan_create')
+        
+        # Check if plan already exists for this department/year
+        existing_plan = ProcurementPlan.objects.filter(
+            budget_year_id=budget_year_id,
+            department_id=department_id
+        ).exists()
+        
+        if existing_plan:
+            messages.error(
+                request,
+                'A procurement plan already exists for this department and budget year. '
+                'Please edit the existing plan instead.'
+            )
+            return redirect('procurement_plan_list')
+        
+        # Create plan
+        plan = ProcurementPlan.objects.create(
+            budget_year_id=budget_year_id,
+            department_id=department_id,
+            title=plan_title,
+            description=plan_description,
+            status='DRAFT',
+            submitted_by=request.user
+        )
+        
+        messages.success(
+            request,
+            f'Procurement plan {plan.plan_number} created successfully! '
+            f'Now add items to the plan.'
+        )
+        return redirect('procurement_plan_edit', pk=plan.pk)
+    
+    # GET request
+    budget_years = BudgetYear.objects.all().order_by('-start_date')
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'budget_years': budget_years,
+        'departments': departments,
+        'page_title': 'Create Procurement Plan',
+    }
+    
+    return render(request, 'procurement/plan_create.html', context)
+
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+def procurement_plan_edit(request, pk):
+    """Edit procurement plan and manage items"""
+    
+    plan = get_object_or_404(
+        ProcurementPlan.objects.select_related('budget_year', 'department'),
+        pk=pk
+    )
+    
+    # Check if plan can be edited
+    if plan.status not in ['DRAFT', 'SUBMITTED']:
+        messages.error(request, 'Cannot edit an approved or active plan. Create an amendment instead.')
+        return redirect('procurement_plan_detail', pk=pk)
+    
+    # Get plan items
+    plan_items = plan.items.select_related('budget', 'item').order_by('sequence')
+    
+    # Get available budgets for this department
+    available_budgets = Budget.objects.filter(
+        department=plan.department,
+        budget_year=plan.budget_year,
+        is_active=True
+    ).select_related('category')
+    
+    # Get item catalog
+    item_categories = ItemCategory.objects.filter(is_active=True).prefetch_related('items')
+    
+    context = {
+        'plan': plan,
+        'plan_items': plan_items,
+        'available_budgets': available_budgets,
+        'item_categories': item_categories,
+        'page_title': f'Edit Plan: {plan.plan_number}',
+    }
+    
+    return render(request, 'procurement/plan_edit.html', context)
+
+
+# ============================================================================
+# PLAN ITEM MANAGEMENT
+# ============================================================================
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+def plan_item_add(request, plan_pk):
+    """Add item to procurement plan (AJAX)"""
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    plan = get_object_or_404(ProcurementPlan, pk=plan_pk)
+    
+    # Check if plan can be edited
+    if plan.status not in ['DRAFT', 'SUBMITTED']:
+        return JsonResponse({
+            'success': False,
+            'error': 'Cannot add items to approved/active plan'
+        }, status=400)
+    
+    try:
+        # Get form data
+        item_type = request.POST.get('item_type')
+        description = request.POST.get('description')
+        specifications = request.POST.get('specifications', '')
+        quantity = Decimal(request.POST.get('quantity'))
+        unit_of_measure = request.POST.get('unit_of_measure')
+        estimated_cost = Decimal(request.POST.get('estimated_cost'))
+        budget_id = request.POST.get('budget')
+        procurement_method = request.POST.get('procurement_method')
+        planned_quarter = request.POST.get('planned_quarter')
+        source_of_funds = request.POST.get('source_of_funds')
+        item_id = request.POST.get('item_id') or None  # Optional catalog item
+        
+        # Validation
+        if not all([item_type, description, quantity, unit_of_measure, 
+                   estimated_cost, procurement_method, planned_quarter, source_of_funds]):
+            return JsonResponse({
+                'success': False,
+                'error': 'Please fill in all required fields'
+            }, status=400)
+        
+        # Get next sequence number
+        last_sequence = plan.items.aggregate(
+            max_seq=Count('sequence')
+        )['max_seq'] or 0
+        
+        # Create plan item
+        plan_item = ProcurementPlanItem.objects.create(
+            procurement_plan=plan,
+            item_id=item_id,
+            item_type=item_type,
+            description=description,
+            specifications=specifications,
+            quantity=quantity,
+            unit_of_measure=unit_of_measure,
+            estimated_cost=estimated_cost,
+            budget_id=budget_id if budget_id else None,
+            procurement_method=procurement_method,
+            planned_quarter=planned_quarter,
+            source_of_funds=source_of_funds,
+            status='PLANNED',
+            sequence=last_sequence + 1
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Item added successfully',
+            'item': {
+                'id': str(plan_item.id),
+                'description': plan_item.description,
+                'estimated_cost': float(plan_item.estimated_cost),
+                'quarter': plan_item.get_planned_quarter_display()
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+def plan_item_edit(request, item_pk):
+    """Edit plan item (AJAX)"""
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    plan_item = get_object_or_404(
+        ProcurementPlanItem.objects.select_related('procurement_plan'),
+        pk=item_pk
+    )
+    
+    # Check if plan can be edited
+    if plan_item.procurement_plan.status not in ['DRAFT', 'SUBMITTED']:
+        return JsonResponse({
+            'success': False,
+            'error': 'Cannot edit items in approved/active plan'
+        }, status=400)
+    
+    try:
+        # Update fields
+        plan_item.item_type = request.POST.get('item_type', plan_item.item_type)
+        plan_item.description = request.POST.get('description', plan_item.description)
+        plan_item.specifications = request.POST.get('specifications', plan_item.specifications)
+        plan_item.quantity = Decimal(request.POST.get('quantity', plan_item.quantity))
+        plan_item.unit_of_measure = request.POST.get('unit_of_measure', plan_item.unit_of_measure)
+        plan_item.estimated_cost = Decimal(request.POST.get('estimated_cost', plan_item.estimated_cost))
+        plan_item.procurement_method = request.POST.get('procurement_method', plan_item.procurement_method)
+        plan_item.planned_quarter = request.POST.get('planned_quarter', plan_item.planned_quarter)
+        plan_item.source_of_funds = request.POST.get('source_of_funds', plan_item.source_of_funds)
+        
+        budget_id = request.POST.get('budget')
+        if budget_id:
+            plan_item.budget_id = budget_id
+        
+        plan_item.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Item updated successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+def plan_item_delete(request, item_pk):
+    """Delete plan item"""
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    plan_item = get_object_or_404(
+        ProcurementPlanItem.objects.select_related('procurement_plan'),
+        pk=item_pk
+    )
+    
+    plan_id = plan_item.procurement_plan.id
+    
+    # Check if plan can be edited
+    if plan_item.procurement_plan.status not in ['DRAFT', 'SUBMITTED']:
+        return JsonResponse({
+            'success': False,
+            'error': 'Cannot delete items from approved/active plan'
+        }, status=400)
+    
+    # Check if item has been used in requisitions
+    if plan_item.requisitions.exists():
+        return JsonResponse({
+            'success': False,
+            'error': 'Cannot delete item that has been used in requisitions'
+        }, status=400)
+    
+    plan_item.delete()
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Item deleted successfully'
+    })
+
+
+# ============================================================================
+# PLAN SUBMISSION & APPROVAL WORKFLOW
+# ============================================================================
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+def procurement_plan_submit(request, pk):
+    """Submit plan for approval"""
+    
+    plan = get_object_or_404(ProcurementPlan, pk=pk)
+    
+    # Check status
+    if plan.status != 'DRAFT':
+        messages.error(request, 'This plan has already been submitted.')
+        return redirect('procurement_plan_detail', pk=pk)
+    
+    # Validate plan has items
+    if not plan.items.exists():
+        messages.error(request, 'Cannot submit a plan without any items.')
+        return redirect('procurement_plan_edit', pk=pk)
+    
+    # Check budget allocation
+    items_without_budget = plan.items.filter(budget__isnull=True).count()
+    if items_without_budget > 0:
+        messages.warning(
+            request,
+            f'{items_without_budget} items do not have budget allocation. '
+            f'Please assign budgets before submission.'
+        )
+        return redirect('procurement_plan_edit', pk=pk)
+    
+    # Submit plan
+    plan.status = 'SUBMITTED'
+    plan.submitted_at = timezone.now()
+    plan.submitted_by = request.user
+    plan.save()
+    
+    messages.success(
+        request,
+        f'Procurement plan {plan.plan_number} submitted for approval!'
+    )
+    
+    # TODO: Send notification to admin for approval
+    
+    return redirect('procurement_plan_detail', pk=pk)
+
+
+@login_required
+@user_passes_test(admin_required)
+def procurement_plan_approve(request, pk):
+    """Approve procurement plan (Admin only)"""
+    
+    plan = get_object_or_404(ProcurementPlan, pk=pk)
+    
+    # Check status
+    if plan.status != 'SUBMITTED':
+        messages.error(request, 'Only submitted plans can be approved.')
+        return redirect('procurement_plan_detail', pk=pk)
+    
+    if request.method == 'POST':
+        comments = request.POST.get('comments', '')
+        
+        plan.status = 'APPROVED'
+        plan.approved_by = request.user
+        plan.approved_at = timezone.now()
+        plan.save()
+        
+        messages.success(
+            request,
+            f'Procurement plan {plan.plan_number} approved successfully!'
+        )
+        
+        # TODO: Send notification to department
+        
+        return redirect('procurement_plan_detail', pk=pk)
+    
+    context = {
+        'plan': plan,
+        'page_title': f'Approve Plan: {plan.plan_number}',
+    }
+    
+    return render(request, 'procurement/plan_approve.html', context)
+
+
+@login_required
+@user_passes_test(admin_required)
+def procurement_plan_reject(request, pk):
+    """Reject procurement plan (Admin only)"""
+    
+    plan = get_object_or_404(ProcurementPlan, pk=pk)
+    
+    # Check status
+    if plan.status != 'SUBMITTED':
+        messages.error(request, 'Only submitted plans can be rejected.')
+        return redirect('procurement_plan_detail', pk=pk)
+    
+    if request.method == 'POST':
+        rejection_reason = request.POST.get('rejection_reason', '')
+        
+        if not rejection_reason:
+            messages.error(request, 'Please provide a rejection reason.')
+            return redirect('procurement_plan_reject', pk=pk)
+        
+        plan.status = 'DRAFT'
+        plan.notes = f"REJECTED: {rejection_reason}\n\n{plan.notes}"
+        plan.save()
+        
+        messages.success(
+            request,
+            f'Procurement plan {plan.plan_number} rejected. '
+            f'Department can revise and resubmit.'
+        )
+        
+        # TODO: Send notification to department
+        
+        return redirect('procurement_plan_detail', pk=pk)
+    
+    context = {
+        'plan': plan,
+        'page_title': f'Reject Plan: {plan.plan_number}',
+    }
+    
+    return render(request, 'procurement/plan_reject.html', context)
+
+
+@login_required
+@user_passes_test(admin_required)
+def procurement_plan_activate(request, pk):
+    """Activate approved procurement plan"""
+    
+    plan = get_object_or_404(ProcurementPlan, pk=pk)
+    
+    # Check status
+    if plan.status != 'APPROVED':
+        messages.error(request, 'Only approved plans can be activated.')
+        return redirect('procurement_plan_detail', pk=pk)
+    
+    plan.status = 'ACTIVE'
+    plan.save()
+    
+    messages.success(
+        request,
+        f'Procurement plan {plan.plan_number} is now active! '
+        f'Departments can create requisitions from this plan.'
+    )
+    
+    return redirect('procurement_plan_detail', pk=pk)
+
+
+# ============================================================================
+# PLAN AMENDMENTS
+# ============================================================================
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+def plan_amendment_list(request):
+    """List all plan amendments"""
+    
+    amendments = ProcurementPlanAmendment.objects.select_related(
+        'procurement_plan__department',
+        'procurement_plan__budget_year',
+        'plan_item',
+        'requested_by',
+        'approved_by'
+    ).order_by('-requested_at')
+    
+    # Filter by status
+    status = request.GET.get('status')
+    if status:
+        amendments = amendments.filter(status=status)
+    
+    # Statistics
+    total_amendments = amendments.count()
+    pending_amendments = amendments.filter(status='PENDING').count()
+    approved_amendments = amendments.filter(status='APPROVED').count()
+    rejected_amendments = amendments.filter(status='REJECTED').count()
+    
+    context = {
+        'amendments': amendments,
+        'total_amendments': total_amendments,
+        'pending_amendments': pending_amendments,
+        'approved_amendments': approved_amendments,
+        'rejected_amendments': rejected_amendments,
+        'page_title': 'Plan Amendments',
+        'selected_status': status,
+    }
+    
+    return render(request, 'procurement/amendment_list.html', context)
+
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+def plan_amendment_create(request, plan_pk):
+    """Create plan amendment"""
+    
+    plan = get_object_or_404(ProcurementPlan, pk=plan_pk)
+    
+    # Only allow amendments for approved/active plans
+    if plan.status not in ['APPROVED', 'ACTIVE']:
+        messages.error(request, 'Can only amend approved or active plans.')
+        return redirect('procurement_plan_detail', pk=plan_pk)
+    
+    if request.method == 'POST':
+        amendment_type = request.POST.get('amendment_type')
+        plan_item_id = request.POST.get('plan_item')
+        justification = request.POST.get('justification')
+        old_values = request.POST.get('old_values', '{}')
+        new_values = request.POST.get('new_values', '{}')
+        
+        # Validation
+        if not all([amendment_type, justification]):
+            messages.error(request, 'Please fill in all required fields.')
+            return redirect('plan_amendment_create', plan_pk=plan_pk)
+        
+        if len(justification) < 100:
+            messages.error(request, 'Justification must be at least 100 characters.')
+            return redirect('plan_amendment_create', plan_pk=plan_pk)
+        
+        # Parse JSON fields
+        try:
+            old_values_json = json.loads(old_values) if old_values != '{}' else None
+            new_values_json = json.loads(new_values) if new_values != '{}' else None
+        except json.JSONDecodeError:
+            messages.error(request, 'Invalid JSON format in old/new values.')
+            return redirect('plan_amendment_create', plan_pk=plan_pk)
+        
+        # Create amendment
+        amendment = ProcurementPlanAmendment.objects.create(
+            procurement_plan=plan,
+            amendment_type=amendment_type,
+            plan_item_id=plan_item_id if plan_item_id else None,
+            justification=justification,
+            old_values=old_values_json,
+            new_values=new_values_json,
+            status='PENDING',
+            requested_by=request.user
+        )
+        
+        # Update plan amendment count
+        plan.amendment_count += 1
+        plan.is_amended = True
+        plan.save()
+        
+        messages.success(
+            request,
+            f'Amendment {amendment.amendment_number} created successfully and pending approval.'
+        )
+        
+        return redirect('procurement_plan_detail', pk=plan_pk)
+    
+    # GET request
+    plan_items = plan.items.all()
+    
+    context = {
+        'plan': plan,
+        'plan_items': plan_items,
+        'page_title': f'Create Amendment for {plan.plan_number}',
+    }
+    
+    return render(request, 'procurement/amendment_create.html', context)
+
+
+@login_required
+@user_passes_test(admin_required)
+def plan_amendment_approve(request, pk):
+    """Approve plan amendment (Admin only)"""
+    
+    amendment = get_object_or_404(
+        ProcurementPlanAmendment.objects.select_related('procurement_plan'),
+        pk=pk
+    )
+    
+    if amendment.status != 'PENDING':
+        messages.error(request, 'Only pending amendments can be approved.')
+        return redirect('plan_amendment_list')
+    
+    if request.method == 'POST':
+        amendment.status = 'APPROVED'
+        amendment.approved_by = request.user
+        amendment.approved_at = timezone.now()
+        amendment.save()
+        
+        # Apply the amendment based on type
+        if amendment.amendment_type == 'ADD_ITEM' and amendment.new_values:
+            # Create new plan item
+            # Implementation depends on new_values structure
+            pass
+        elif amendment.amendment_type == 'MODIFY_ITEM' and amendment.plan_item:
+            # Update plan item with new values
+            # Implementation depends on new_values structure
+            pass
+        
+        messages.success(
+            request,
+            f'Amendment {amendment.amendment_number} approved successfully!'
+        )
+        
+        return redirect('plan_amendment_list')
+    
+    context = {
+        'amendment': amendment,
+        'page_title': f'Approve Amendment: {amendment.amendment_number}',
+    }
+    
+    return render(request, 'procurement/amendment_approve.html', context)
+
+
+@login_required
+@user_passes_test(admin_required)
+def plan_amendment_reject(request, pk):
+    """Reject plan amendment (Admin only)"""
+    
+    amendment = get_object_or_404(ProcurementPlanAmendment, pk=pk)
+    
+    if amendment.status != 'PENDING':
+        messages.error(request, 'Only pending amendments can be rejected.')
+        return redirect('plan_amendment_list')
+    
+    if request.method == 'POST':
+        rejection_reason = request.POST.get('rejection_reason', '')
+        
+        if not rejection_reason:
+            messages.error(request, 'Please provide a rejection reason.')
+            return redirect('plan_amendment_reject', pk=pk)
+        
+        amendment.status = 'REJECTED'
+        amendment.rejection_reason = rejection_reason
+        amendment.save()
+        
+        messages.success(
+            request,
+            f'Amendment {amendment.amendment_number} rejected.'
+        )
+        
+        return redirect('plan_amendment_list')
+    
+    context = {
+        'amendment': amendment,
+        'page_title': f'Reject Amendment: {amendment.amendment_number}',
+    }
+    
+    return render(request, 'procurement/amendment_reject.html', context)
+
+
+# ============================================================================
+# REPORTS & ANALYTICS
+# ============================================================================
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+def procurement_plan_reports(request):
+    """Procurement plan reports and analytics"""
+    
+    budget_year_id = request.GET.get('budget_year')
+    department_id = request.GET.get('department')
+    
+    # Get active budget year if not specified
+    if not budget_year_id:
+        active_year = BudgetYear.objects.filter(is_active=True).first()
+        budget_year_id = active_year.id if active_year else None
+    
+    # Base query
+    plans = ProcurementPlan.objects.all()
+    if budget_year_id:
+        plans = plans.filter(budget_year_id=budget_year_id)
+    if department_id:
+        plans = plans.filter(department_id=department_id)
+    
+    # Overall statistics
+    total_plans = plans.count()
+    approved_plans = plans.filter(status='APPROVED').count()
+    total_estimated = ProcurementPlanItem.objects.filter(
+        procurement_plan__in=plans
+    ).aggregate(total=Sum('estimated_cost'))['total'] or Decimal('0')
+    
+    total_committed = ProcurementPlanItem.objects.filter(
+        procurement_plan__in=plans
+    ).aggregate(total=Sum('amount_committed'))['total'] or Decimal('0')
+    
+    # By department
+    by_department = plans.values(
+        'department__name'
+    ).annotate(
+        total_items=Count('items'),
+        total_cost=Sum('items__estimated_cost'),
+        total_committed=Sum('items__amount_committed')
+    ).order_by('-total_cost')
+    
+    # By quarter
+    by_quarter = ProcurementPlanItem.objects.filter(
+        procurement_plan__in=plans
+    ).values('planned_quarter').annotate(
+        total_items=Count('id'),
+        total_cost=Sum('estimated_cost')
+    ).order_by('planned_quarter')
+    
+    # By procurement method
+    by_method = ProcurementPlanItem.objects.filter(
+        procurement_plan__in=plans
+    ).values('procurement_method').annotate(
+        total_items=Count('id'),
+        total_cost=Sum('estimated_cost')
+    ).order_by('-total_cost')
+    
+    # Get filter options
+    budget_years = BudgetYear.objects.all().order_by('-start_date')
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'total_plans': total_plans,
+        'approved_plans': approved_plans,
+        'total_estimated': total_estimated,
+        'total_committed': total_committed,
+        'utilization_rate': (total_committed / total_estimated * 100) if total_estimated > 0 else 0,
+        'by_department': by_department,
+        'by_quarter': by_quarter,
+        'by_method': by_method,
+        'budget_years': budget_years,
+        'departments': departments,
+        'selected_budget_year': budget_year_id,
+        'selected_department': department_id,
+        'page_title': 'Procurement Plan Reports',
+    }
+    return render(request, 'procurement/plan_reports.html', context)
