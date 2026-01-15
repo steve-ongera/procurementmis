@@ -11557,16 +11557,21 @@ def log_action(user, action, model_name, object_id, object_repr, changes=None, r
 # ============================================================================
 # DASHBOARD & ANALYTICS
 # ============================================================================
-
 @login_required
 def hod_dashboard(request):
     """HOD Dashboard with department overview"""
-    if not check_hod_permission(request.user):
-        messages.error(request, 'You do not have HOD permissions.')
-        return redirect('dashboard')
+    
+    # Simple permission check
+    if request.user.role != 'HOD':
+        messages.error(request, 'You do not have permission to access the HOD dashboard.')
+        return redirect('login')
     
     # Get HOD's department
     department = request.user.head_of.first()
+    
+    if not department:
+        messages.error(request, 'You are not assigned as Head of any department. Please contact the administrator.')
+        return redirect('login')
     
     # Current budget year
     current_budget_year = BudgetYear.objects.filter(is_active=True).first()
@@ -11637,7 +11642,6 @@ def hod_dashboard(request):
     ).select_related('requested_by', 'budget').order_by('-submitted_at')[:5]
     
     # Monthly requisition trend (last 6 months)
-    six_months_ago = timezone.now() - timedelta(days=180)
     monthly_trend = []
     for i in range(6):
         month_start = timezone.now() - timedelta(days=30 * i)
@@ -11692,8 +11696,7 @@ def hod_dashboard(request):
         'current_budget_year': current_budget_year,
     }
     
-    return render(request, 'hod/dashboard.html', context) 
-
+    return render(request, 'hod/dashboard.html', context)
 
 @login_required
 def hod_analytics_view(request):
