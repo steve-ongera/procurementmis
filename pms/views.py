@@ -1669,18 +1669,39 @@ def requisition_detail(request, pk):
     can_approve = False
     can_submit = False
     
+    # Debug info
+    debug_info = {
+        'user_role': request.user.role,
+        'user_dept': request.user.department.name if request.user.department else 'None',
+        'req_status': requisition.status,
+        'req_dept': requisition.department.name,
+        'is_requester': request.user == requisition.requested_by,
+    }
+    
+    # ADMIN can do everything
     if request.user.role == 'ADMIN':
         can_edit = True
-        can_approve = True
+        can_approve = requisition.status == 'PROCUREMENT_APPROVED'
+        debug_info['approve_reason'] = f'User is ADMIN, status is {requisition.status}, can_approve={can_approve}'
+    
+    # Requester can edit and submit drafts
     elif request.user == requisition.requested_by and requisition.status == 'DRAFT':
         can_edit = True
         can_submit = True
+        debug_info['approve_reason'] = 'User is requester, status is DRAFT'
+    
+    # HOD can approve submitted requisitions from their department
     elif request.user.role == 'HOD' and request.user.department == requisition.department:
         can_approve = requisition.status == 'SUBMITTED'
+        debug_info['approve_reason'] = f'User is HOD, status is {requisition.status}, can_approve={can_approve}'
+    
+    # PROCUREMENT can approve any HOD_APPROVED requisition (no department restriction)
     elif request.user.role == 'PROCUREMENT':
-        can_approve = requisition.status in ['HOD_APPROVED', 'FACULTY_APPROVED', 'BUDGET_APPROVED']
-    elif request.user.role == 'FINANCE':
-        can_approve = requisition.status in ['HOD_APPROVED', 'FACULTY_APPROVED']
+        can_approve = requisition.status == 'HOD_APPROVED'
+        debug_info['approve_reason'] = f'User is PROCUREMENT, status is {requisition.status}, can_approve={can_approve}'
+    
+    else:
+        debug_info['approve_reason'] = 'No matching approval condition'
     
     # Get approval history
     approvals = requisition.approvals.all().order_by('sequence')
@@ -1695,10 +1716,111 @@ def requisition_detail(request, pk):
         'can_submit': can_submit,
         'approvals': approvals,
         'items_total': items_total,
+        'debug_info': debug_info,
     }
     
     return render(request, 'requisitions/requisition_detail.html', context)
 
+from django.contrib import messages
+from django.utils import timezone
+
+@login_required
+def requisition_approve(request, pk):
+    """Approve a requisition"""
+    requisition = get_object_or_404(Requisition, pk=pk)
+    
+    # Determine next status based on current user role
+    if request.user.role == 'HOD':
+        if requisition.status != 'SUBMITTED':
+            messages.error(request, 'This requisition cannot be approved at this stage.')
+            return redirect('requisition_detail', pk=pk)
+        
+        # Update status
+        requisition.status = 'HOD_APPROVED'
+        
+        # Create or update approval record
+        approval, created = RequisitionApproval.objects.get_or_create(
+            requisition=requisition,
+            approval_stage='HOD',
+            defaults={
+                'approver': request.user,
+                'sequence': 1
+            }
+        )
+        approval.status = 'APPROVED'
+        approval.approval_date = timezone.now()
+        approval.approver = request.user
+        approval.save()
+        
+        messages.success(request, 'Requisition approved as HOD.')
+        
+    elif request.user.role == 'PROCUREMENT':
+        if requisition.status != 'HOD_APPROVED':
+            messages.error(request, 'This requisition cannot be approved at this stage.')
+            return redirect('requisition_detail', pk=pk)
+        
+        # Update status
+        requisition.status = 'PROCUREMENT_APPROVED'
+        
+        # Create or update approval record
+        approval, created = RequisitionApproval.objects.get_or_create(
+            requisition=requisition,
+            approval_stage='PROCUREMENT',
+            defaults={
+                'approver': request.user,
+                'sequence': 2
+            }
+        )
+        approval.status = 'APPROVED'
+        approval.approval_date = timezone.now()
+        approval.approver = request.user
+        approval.save()
+        
+        messages.success(request, 'Requisition approved as Procurement Officer.')
+        
+    elif request.user.role == 'ADMIN':
+        if requisition.status != 'PROCUREMENT_APPROVED':
+            messages.error(request, 'This requisition cannot be approved at this stage.')
+            return redirect('requisition_detail', pk=pk)
+        
+        # Final approval
+        requisition.status = 'APPROVED'
+        
+        # Create or update approval record
+        approval, created = RequisitionApproval.objects.get_or_create(
+            requisition=requisition,
+            approval_stage='FINAL',
+            defaults={
+                'approver': request.user,
+                'sequence': 3
+            }
+        )
+        approval.status = 'APPROVED'
+        approval.approval_date = timezone.now()
+        approval.approver = request.user
+        approval.save()
+        
+        messages.success(request, 'Requisition fully approved! Ready for procurement.')
+        
+    else:
+        messages.error(request, 'You do not have permission to approve this requisition.')
+        return redirect('requisition_detail', pk=pk)
+    
+    # Save the requisition
+    requisition.save()
+    
+    # Create notification for next approver or requester
+    if requisition.status == 'APPROVED':
+        Notification.objects.create(
+            user=requisition.requested_by,
+            notification_type='APPROVAL',
+            priority='HIGH',
+            title='Requisition Fully Approved',
+            message=f'Your requisition {requisition.requisition_number} has been fully approved.',
+            link_url=f'/requisitions/{requisition.id}/'
+        )
+    
+    return redirect('requisition_detail', pk=pk)
 
 @login_required
 def requisition_update(request, pk):

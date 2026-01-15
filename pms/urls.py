@@ -18,6 +18,7 @@ urlpatterns = [
     path('requisitions/', views.requisition_list, name='requisition_list'),
     path('requisitions/create/', views.requisition_create, name='requisition_create'),
     path('requisitions/<uuid:pk>/', views.requisition_detail, name='requisition_detail'),
+    path('requisitions/<uuid:pk>/approve/', views.requisition_approve, name='requisition_approve'),
     path('requisitions/<uuid:pk>/update/', views.requisition_update, name='requisition_update'),
     path('requisitions/<uuid:pk>/delete/', views.requisition_delete, name='requisition_delete'),
     path('requisitions/<uuid:pk>/submit/', views.requisition_submit, name='requisition_submit'),
@@ -268,6 +269,7 @@ urlpatterns = [
     path('hod/requisitions/new/', views.hod_new_requisition_view, name='hod_new_requisition'),
     path('hod/requisitions/department/', views.hod_department_requests_view, name='hod_department_requests'),
     path('hod/requisitions/<uuid:pk>/', views.hod_requisition_detail_view, name='hod_requisition_detail'),
+    
     
     # ============================================================================
     # APPROVALS

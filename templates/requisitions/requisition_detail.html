@@ -584,6 +584,59 @@
 {% endblock %}
 
 {% block content %}
+
+{% comment %} <!-- DEBUG SECTION - REMOVE AFTER FIXING -->
+<div class="card" style="background: #fff3cd; border: 2px solid #ffc107; margin-bottom: 1.5rem;">
+    <div class="card-header" style="background: #ffc107;">
+        <h2 class="card-title" style="color: #000;">
+            <i class="bi bi-bug"></i> DEBUG INFORMATION
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Your Role</span>
+                <span class="info-value">{{ debug_info.user_role }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Your Department</span>
+                <span class="info-value">{{ debug_info.user_dept }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Requisition Status</span>
+                <span class="info-value">{{ debug_info.req_status }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Requisition Department</span>
+                <span class="info-value">{{ debug_info.req_dept }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Are You Requester?</span>
+                <span class="info-value">{{ debug_info.is_requester }}</span>
+            </div>
+            <div class="info-item" style="grid-column: 1 / -1;">
+                <span class="info-label">Approval Logic Result</span>
+                <span class="info-value">{{ debug_info.approve_reason }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">can_edit</span>
+                <span class="info-value" style="color: {% if can_edit %}green{% else %}red{% endif %}; font-weight: bold;">{{ can_edit }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">can_approve</span>
+                <span class="info-value" style="color: {% if can_approve %}green{% else %}red{% endif %}; font-weight: bold;">{{ can_approve }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">can_submit</span>
+                <span class="info-value" style="color: {% if can_submit %}green{% else %}red{% endif %}; font-weight: bold;">{{ can_submit }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- END DEBUG SECTION --> {% endcomment %}
+
+
+    <!-- rest of your template continues... -->
 <div class="page-header">
     <div>
         <div class="breadcrumb">
@@ -601,30 +654,30 @@
     </div>
     
     <div class="action-buttons">
-        {% if can_edit %}
-        <a href="{% url 'requisition_update' requisition.id %}" class="btn btn-primary">
-            <i class="bi bi-pencil"></i> Edit
-        </a>
-        {% endif %}
-        
-        {% if requisition.status == 'DRAFT' %}
-        <a href="{% url 'requisition_submit' requisition.id %}" class="btn btn-success">
-            <i class="bi bi-send"></i> Submit
-        </a>
-        {% endif %}
-        
-        {% if requisition.status != 'DRAFT' and requisition.status != 'APPROVED' %}
-        <a href="{% url 'process_approval' requisition.id %}" class="btn btn-primary">
-            <i class="bi bi-check-circle"></i> Process
-        </a>
-        {% endif %}
-        
-        {% if can_edit %}
-        <a href="{% url 'requisition_delete' requisition.id %}" class="btn btn-danger">
-            <i class="bi bi-trash"></i> Delete
-        </a>
-        {% endif %}
-    </div>
+    {% if can_edit %}
+    <a href="{% url 'requisition_update' requisition.id %}" class="btn btn-primary">
+        <i class="bi bi-pencil"></i> Edit
+    </a>
+    {% endif %}
+    
+    {% if can_submit %}
+    <a href="{% url 'requisition_submit' requisition.id %}" class="btn btn-success">
+        <i class="bi bi-send"></i> Submit
+    </a>
+    {% endif %}
+    
+    {% if can_approve %}
+    <a href="{% url 'requisition_approve' requisition.id %}" class="btn btn-success">
+        <i class="bi bi-check-circle"></i> Approve Requisition
+    </a>
+    {% endif %}
+    
+    {% if can_edit %}
+    <a href="{% url 'requisition_delete' requisition.id %}" class="btn btn-danger">
+        <i class="bi bi-trash"></i> Delete
+    </a>
+    {% endif %}
+</div>
 </div>
 
 <!-- Status Banner -->
