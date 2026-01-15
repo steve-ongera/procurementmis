@@ -1051,6 +1051,31 @@ class Tender(models.Model):
     
     invited_suppliers = models.ManyToManyField(Supplier, related_name='invited_tenders', blank=True)
     
+    # NEW FIELDS FOR EVALUATION
+    requires_technical_evaluation = models.BooleanField(
+        default=True,
+        help_text="Whether technical evaluation is required"
+    )
+    
+    technical_pass_mark = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=70,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Minimum technical score to qualify"
+    )
+    
+    evaluation_start_date = models.DateField(null=True, blank=True)
+    evaluation_end_date = models.DateField(null=True, blank=True)
+    
+    preliminary_evaluation_complete = models.BooleanField(default=False)
+    technical_evaluation_complete = models.BooleanField(default=False)
+    financial_evaluation_complete = models.BooleanField(default=False)
+    
+    award_recommendation_date = models.DateField(null=True, blank=True)
+    award_approved_date = models.DateField(null=True, blank=True)
+    
+    
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='tenders_created')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1129,6 +1154,51 @@ class Bid(models.Model):
     
     disqualification_reason = models.TextField(blank=True)
     notes = models.TextField(blank=True)
+    
+    # NEW FIELDS FOR EVALUATION
+    preliminary_evaluation_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('PENDING', 'Pending'),
+            ('RESPONSIVE', 'Responsive'),
+            ('NON_RESPONSIVE', 'Non-Responsive'),
+        ],
+        default='PENDING'
+    )
+    
+    preliminary_evaluation_notes = models.TextField(blank=True)
+    
+    technical_evaluation_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('PENDING', 'Pending'),
+            ('PASSED', 'Passed'),
+            ('FAILED', 'Failed'),
+        ],
+        default='PENDING'
+    )
+    
+    financial_evaluation_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('PENDING', 'Pending'),
+            ('EVALUATED', 'Evaluated'),
+        ],
+        default='PENDING'
+    )
+    
+    is_lowest_evaluated = models.BooleanField(
+        default=False,
+        help_text="Is this the lowest evaluated bidder"
+    )
+    
+    price_variance_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Variance from engineer's estimate"
+    )
     
     submitted_at = models.DateTimeField(auto_now_add=True)
     opened_at = models.DateTimeField(null=True, blank=True)
