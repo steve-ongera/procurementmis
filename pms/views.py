@@ -10572,6 +10572,27 @@ from .forms import (
 )
 
 
+"""
+Fixed views.py for staff requisition creation
+"""
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.http import JsonResponse
+from django.db.models import Q
+from decimal import Decimal
+import json
+
+from .models import (
+    Requisition, RequisitionItem, RequisitionAttachment,
+    ProcurementPlanItem, BudgetYear, Budget, Item, ItemCategory
+)
+from .forms import (
+    RequisitionForm, RequisitionItemFormSet, RequisitionAttachmentFormSet
+)
+
+
 @login_required
 def staff_requisition_create(request):
     """Create a new requisition with plan enforcement and enhanced UX"""
@@ -10632,19 +10653,28 @@ def staff_requisition_create(request):
                 # Mark as requiring plan amendment
                 requisition.requires_plan_amendment = True
             
-            requisition.save()
-            
-            # Save requisition items
+            # CALCULATE ESTIMATED AMOUNT BEFORE SAVING
+            # Process items first to get total
             items = formset.save(commit=False)
             total_estimated = Decimal('0')
             
             for item in items:
-                item.requisition = requisition
-                item.save()
+                # Calculate item total if not already set
+                item_qty = Decimal(str(item.quantity))
+                item_price = Decimal(str(item.estimated_unit_price))
+                item.estimated_total = item_qty * item_price
                 total_estimated += item.estimated_total
             
-            # Update estimated amount
+            # Set estimated amount BEFORE first save
             requisition.estimated_amount = total_estimated
+            
+            # Now save the requisition
+            requisition.save()
+            
+            # Save requisition items with requisition reference
+            for item in items:
+                item.requisition = requisition
+                item.save()
             
             # VALIDATE AGAINST PLAN ITEM
             if is_planned and procurement_plan_item:
@@ -10665,7 +10695,7 @@ def staff_requisition_create(request):
                 procurement_plan_item.amount_committed += total_estimated
                 procurement_plan_item.save()
             
-            requisition.save()
+            # No need to save requisition again - estimated_amount already set
             
             # Save attachments
             attachments = attachment_formset.save(commit=False)
