@@ -6,45 +6,7 @@ from django.db.models import Sum, Count
 from decimal import Decimal
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import (
-    # User & Role Management
-    User, Permission, RolePermission, AuditLog,
-    # Organizational Structure
-    Faculty, Department,
-    # Budget Management
-    BudgetYear, BudgetCategory, Budget, BudgetReallocation,
-    # Item Catalog
-    ItemCategory, Item,
-    # Supplier Management
-    Supplier, SupplierDocument, SupplierPerformance,
-    # Requisition Management
-    Requisition, RequisitionItem, RequisitionAttachment,
-    # Approval Workflow
-    ApprovalThreshold, RequisitionApproval,
-    # Tendering & Quotations
-    Tender, TenderDocument, Bid, BidItem, BidDocument, BidEvaluation, EvaluationCriteria,
-    # Purchase Orders
-    PurchaseOrder, PurchaseOrderItem, POAmendment,
-    # Contract Management
-    Contract, ContractDocument, ContractMilestone, ContractVariation,
-    # Stores & Inventory
-    Store, GoodsReceivedNote, GRNItem, StockItem, StockMovement, StockIssue, StockIssueItem, Asset,
-    # Invoice & Payment
-    Invoice, InvoiceItem, InvoiceDocument, Payment,
-    # Reporting & Analytics
-    ProcurementReport,
-    # Notifications
-    Notification, EmailLog,
-    # System Configuration
-    SystemConfiguration, ProcurementPolicy,
-)
-# Add these imports to your existing admin.py imports
-from .models import (
-    # ... your existing imports ...
-    ProcurementPlan,
-    ProcurementPlanItem,
-    ProcurementPlanAmendment,
-)
+from .models import  *
 
 
 # ============================================================================
@@ -392,6 +354,10 @@ class RequisitionAttachmentInline(admin.TabularInline):
     readonly_fields = ['uploaded_at']
 
 
+# ============================================================================
+# UPDATE REQUISITION ADMIN (Modify existing RequisitionAdmin)
+# ============================================================================
+
 # Replace the existing RequisitionAdmin fieldsets with this updated version:
 @admin.register(Requisition)
 class RequisitionAdmin(admin.ModelAdmin):
@@ -476,8 +442,8 @@ class RequisitionAdmin(admin.ModelAdmin):
         )
         self.message_user(request, f'{updated} emergency requisition(s) approved.')
     approve_emergency.short_description = 'Approve emergency procurement'
-
-
+    
+    
 @admin.register(RequisitionItem)
 class RequisitionItemAdmin(admin.ModelAdmin):
     list_display = ['requisition', 'item_description', 'quantity', 'unit_of_measure', 'estimated_unit_price', 'estimated_total']
@@ -1181,6 +1147,262 @@ class ProcurementPolicyAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+# ============================================================================
+# PROCUREMENT PLANNING (Add this new section after Item Catalog section)
+# ============================================================================
+
+class ProcurementPlanItemInline(admin.TabularInline):
+    model = ProcurementPlanItem
+    extra = 0
+    readonly_fields = ['created_at', 'updated_at', 'remaining_quantity', 'remaining_budget']
+    fields = [
+        'item', 'item_type', 'description', 'quantity', 'unit_of_measure',
+        'estimated_cost', 'budget', 'procurement_method', 'planned_quarter',
+        'source_of_funds', 'status', 'sequence'
+    ]
+    
+    def remaining_quantity(self, obj):
+        if obj.pk:
+            return f"{obj.remaining_quantity} {obj.unit_of_measure}"
+        return "-"
+    remaining_quantity.short_description = 'Remaining Qty'
+    
+    def remaining_budget(self, obj):
+        if obj.pk:
+            return format_html(
+                '<span style="color: {};">{:,.2f}</span>',
+                'green' if obj.remaining_budget > 0 else 'red',
+                obj.remaining_budget
+            )
+        return "-"
+    remaining_budget.short_description = 'Remaining Budget'
+
+
+class ProcurementPlanAmendmentInline(admin.TabularInline):
+    model = ProcurementPlanAmendment
+    extra = 0
+    readonly_fields = ['amendment_number', 'requested_at', 'approved_at']
+    fields = [
+        'amendment_number', 'amendment_type', 'status', 
+        'requested_by', 'approved_by'
+    ]
+    can_delete = False
+
+
+@admin.register(ProcurementPlan)
+class ProcurementPlanAdmin(admin.ModelAdmin):
+    list_display = [
+        'plan_number', 'budget_year', 'department', 'title', 
+        'status', 'is_amended', 'amendment_count', 
+        'submitted_by', 'approved_by', 'created_at'
+    ]
+    list_filter = [
+        'status', 'is_amended', 'budget_year', 
+        'department', 'created_at', 'submitted_at'
+    ]
+    search_fields = [
+        'plan_number', 'title', 'description',
+        'department__name', 'department__code'
+    ]
+    ordering = ['-created_at']
+    readonly_fields = [
+        'plan_number', 'created_at', 'updated_at',
+        'submitted_at', 'approved_at', 'amendment_count'
+    ]
+    inlines = [ProcurementPlanItemInline, ProcurementPlanAmendmentInline]
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Plan Information', {
+            'fields': (
+                'plan_number', 'budget_year', 'department',
+                'title', 'description'
+            )
+        }),
+        ('Status', {
+            'fields': ('status', 'is_amended', 'amendment_count')
+        }),
+        ('Submission', {
+            'fields': ('submitted_by', 'submitted_at')
+        }),
+        ('Approval', {
+            'fields': ('approved_by', 'approved_at')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['submit_plans', 'approve_plans', 'activate_plans']
+    
+    def submit_plans(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='DRAFT').update(
+            status='SUBMITTED',
+            submitted_by=request.user,
+            submitted_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} plan(s) submitted successfully.')
+    submit_plans.short_description = 'Submit selected plans'
+    
+    def approve_plans(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='SUBMITTED').update(
+            status='APPROVED',
+            approved_by=request.user,
+            approved_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} plan(s) approved successfully.')
+    approve_plans.short_description = 'Approve selected plans'
+    
+    def activate_plans(self, request, queryset):
+        updated = queryset.filter(status='APPROVED').update(status='ACTIVE')
+        self.message_user(request, f'{updated} plan(s) activated successfully.')
+    activate_plans.short_description = 'Activate selected plans'
+
+
+@admin.register(ProcurementPlanItem)
+class ProcurementPlanItemAdmin(admin.ModelAdmin):
+    list_display = [
+        'procurement_plan', 'description_short', 'item_type',
+        'quantity', 'unit_of_measure', 'estimated_cost',
+        'procurement_method', 'planned_quarter', 'status',
+        'remaining_quantity', 'remaining_budget'
+    ]
+    list_filter = [
+        'item_type', 'procurement_method', 'planned_quarter',
+        'status', 'created_at'
+    ]
+    search_fields = [
+        'procurement_plan__plan_number', 'description',
+        'specifications', 'source_of_funds'
+    ]
+    ordering = ['procurement_plan', 'sequence']
+    readonly_fields = [
+        'created_at', 'updated_at',
+        'remaining_quantity', 'remaining_budget'
+    ]
+    
+    fieldsets = (
+        ('Plan Reference', {
+            'fields': ('procurement_plan', 'item', 'sequence')
+        }),
+        ('Item Details', {
+            'fields': (
+                'item_type', 'description', 'specifications',
+                'quantity', 'unit_of_measure'
+            )
+        }),
+        ('Budget & Procurement', {
+            'fields': (
+                'estimated_cost', 'budget', 'source_of_funds',
+                'procurement_method', 'planned_quarter'
+            )
+        }),
+        ('Status & Usage', {
+            'fields': (
+                'status', 'quantity_requisitioned', 'amount_committed',
+                'remaining_quantity', 'remaining_budget'
+            )
+        }),
+        ('Additional Info', {
+            'fields': ('notes',),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def description_short(self, obj):
+        return obj.description[:50] + '...' if len(obj.description) > 50 else obj.description
+    description_short.short_description = 'Description'
+    
+    def remaining_quantity(self, obj):
+        return format_html(
+            '<span style="font-weight: 600;">{} {}</span>',
+            obj.remaining_quantity,
+            obj.unit_of_measure
+        )
+    remaining_quantity.short_description = 'Remaining Qty'
+    
+    def remaining_budget(self, obj):
+        return format_html(
+            '<span style="color: {}; font-weight: 600;">{:,.2f}</span>',
+            'green' if obj.remaining_budget > 0 else 'red',
+            obj.remaining_budget
+        )
+    remaining_budget.short_description = 'Remaining Budget'
+
+
+@admin.register(ProcurementPlanAmendment)
+class ProcurementPlanAmendmentAdmin(admin.ModelAdmin):
+    list_display = [
+        'amendment_number', 'procurement_plan', 'amendment_type',
+        'status', 'requested_by', 'requested_at',
+        'approved_by', 'approved_at'
+    ]
+    list_filter = [
+        'amendment_type', 'status', 'requested_at', 'approved_at'
+    ]
+    search_fields = [
+        'amendment_number', 'procurement_plan__plan_number',
+        'justification', 'rejection_reason'
+    ]
+    ordering = ['-requested_at']
+    readonly_fields = [
+        'amendment_number', 'requested_at', 'approved_at'
+    ]
+    
+    fieldsets = (
+        ('Amendment Information', {
+            'fields': (
+                'amendment_number', 'procurement_plan',
+                'amendment_type', 'plan_item'
+            )
+        }),
+        ('Justification', {
+            'fields': ('justification', 'supporting_document')
+        }),
+        ('Changes', {
+            'fields': ('old_values', 'new_values'),
+            'classes': ('collapse',)
+        }),
+        ('Status', {
+            'fields': ('status', 'rejection_reason')
+        }),
+        ('Request Details', {
+            'fields': ('requested_by', 'requested_at')
+        }),
+        ('Approval Details', {
+            'fields': ('approved_by', 'approved_at')
+        }),
+    )
+    
+    actions = ['approve_amendments', 'reject_amendments']
+    
+    def approve_amendments(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='PENDING').update(
+            status='APPROVED',
+            approved_by=request.user,
+            approved_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} amendment(s) approved successfully.')
+    approve_amendments.short_description = 'Approve selected amendments'
+    
+    def reject_amendments(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='PENDING').update(
+            status='REJECTED',
+            approved_by=request.user,
+            approved_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} amendment(s) rejected.')
+    reject_amendments.short_description = 'Reject selected amendments'
 
 
 # ============================================================================
