@@ -38,6 +38,13 @@ from .models import (
     # System Configuration
     SystemConfiguration, ProcurementPolicy,
 )
+# Add these imports to your existing admin.py imports
+from .models import (
+    # ... your existing imports ...
+    ProcurementPlan,
+    ProcurementPlanItem,
+    ProcurementPlanAmendment,
+)
 
 
 # ============================================================================
@@ -385,25 +392,58 @@ class RequisitionAttachmentInline(admin.TabularInline):
     readonly_fields = ['uploaded_at']
 
 
+# Replace the existing RequisitionAdmin fieldsets with this updated version:
 @admin.register(Requisition)
 class RequisitionAdmin(admin.ModelAdmin):
-    list_display = ['requisition_number', 'title', 'department', 'requested_by', 'status', 'priority', 'estimated_amount', 'required_date', 'created_at']
-    list_filter = ['status', 'priority', 'is_emergency', 'department', 'created_at']
-    search_fields = ['requisition_number', 'title', 'requested_by__username']
+    list_display = [
+        'requisition_number', 'title', 'department', 'requested_by',
+        'status', 'priority', 'estimated_amount', 'required_date',
+        'is_planned', 'is_emergency', 'created_at'
+    ]
+    list_filter = [
+        'status', 'priority', 'is_emergency', 'is_planned',
+        'department', 'created_at', 'hod_emergency_approval'
+    ]
+    search_fields = [
+        'requisition_number', 'title', 'requested_by__username',
+        'justification', 'emergency_justification'
+    ]
     ordering = ['-created_at']
-    readonly_fields = ['requisition_number', 'created_at', 'updated_at', 'submitted_at']
+    readonly_fields = [
+        'requisition_number', 'created_at', 'updated_at',
+        'submitted_at', 'plan_deviation_approved_at'
+    ]
     inlines = [RequisitionItemInline, RequisitionAttachmentInline]
     date_hierarchy = 'created_at'
     
     fieldsets = (
         ('Requisition Information', {
-            'fields': ('requisition_number', 'title', 'department', 'budget', 'requested_by')
+            'fields': (
+                'requisition_number', 'title', 'department',
+                'budget', 'requested_by'
+            )
         }),
         ('Status & Priority', {
-            'fields': ('status', 'priority', 'is_emergency', 'emergency_justification')
+            'fields': ('status', 'priority')
         }),
         ('Details', {
-            'fields': ('justification', 'estimated_amount', 'required_date')
+            'fields': (
+                'justification', 'estimated_amount', 'required_date'
+            )
+        }),
+        ('Procurement Plan', {
+            'fields': (
+                'is_planned', 'procurement_plan_item',
+                'requires_plan_amendment', 'plan_amendment'
+            )
+        }),
+        ('Emergency/Unplanned Procurement', {
+            'fields': (
+                'is_emergency', 'emergency_type', 'emergency_justification',
+                'hod_emergency_approval', 'plan_deviation_approved_by',
+                'plan_deviation_approved_at'
+            ),
+            'classes': ('collapse',)
         }),
         ('Notes & Rejection', {
             'fields': ('notes', 'rejection_reason'),
@@ -415,7 +455,7 @@ class RequisitionAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['approve_requisitions', 'reject_requisitions']
+    actions = ['approve_requisitions', 'reject_requisitions', 'approve_emergency']
     
     def approve_requisitions(self, request, queryset):
         updated = queryset.update(status='APPROVED')
@@ -426,6 +466,16 @@ class RequisitionAdmin(admin.ModelAdmin):
         updated = queryset.update(status='REJECTED')
         self.message_user(request, f'{updated} requisition(s) rejected.')
     reject_requisitions.short_description = 'Reject selected requisitions'
+    
+    def approve_emergency(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(is_emergency=True).update(
+            hod_emergency_approval=True,
+            plan_deviation_approved_by=request.user,
+            plan_deviation_approved_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} emergency requisition(s) approved.')
+    approve_emergency.short_description = 'Approve emergency procurement'
 
 
 @admin.register(RequisitionItem)
@@ -868,26 +918,46 @@ class InvoiceDocumentInline(admin.TabularInline):
     readonly_fields = ['uploaded_at']
 
 
+# Update the InvoiceAdmin list_display to include new payment tracking fields:
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ['invoice_number', 'supplier_invoice_number', 'supplier', 'purchase_order', 'invoice_date', 
-                   'due_date', 'total_amount', 'status', 'is_three_way_matched', 'created_at']
-    list_filter = ['status', 'is_three_way_matched', 'invoice_date', 'due_date', 'created_at']
-    search_fields = ['invoice_number', 'supplier_invoice_number', 'supplier__name', 'purchase_order__po_number']
+    list_display = [
+        'invoice_number', 'supplier_invoice_number', 'supplier',
+        'purchase_order', 'invoice_date', 'due_date',
+        'total_amount', 'amount_paid', 'balance_due',
+        'status', 'is_three_way_matched', 'created_at'
+    ]
+    list_filter = [
+        'status', 'is_three_way_matched', 'invoice_date',
+        'due_date', 'created_at'
+    ]
+    search_fields = [
+        'invoice_number', 'supplier_invoice_number',
+        'supplier__name', 'purchase_order__po_number'
+    ]
     ordering = ['-created_at']
-    readonly_fields = ['created_at', 'updated_at', 'verified_at', 'approved_at']
+    readonly_fields = [
+        'created_at', 'updated_at', 'verified_at',
+        'approved_at', 'amount_paid', 'balance_due'
+    ]
     inlines = [InvoiceItemInline, InvoiceDocumentInline]
     date_hierarchy = 'invoice_date'
     
     fieldsets = (
         ('Invoice Information', {
-            'fields': ('invoice_number', 'supplier_invoice_number', 'purchase_order', 'grn', 'supplier')
+            'fields': (
+                'invoice_number', 'supplier_invoice_number',
+                'purchase_order', 'grn', 'supplier'
+            )
         }),
         ('Dates', {
             'fields': ('invoice_date', 'due_date')
         }),
         ('Financial Details', {
-            'fields': ('subtotal', 'tax_amount', 'other_charges', 'total_amount')
+            'fields': (
+                'subtotal', 'tax_amount', 'other_charges',
+                'total_amount', 'amount_paid', 'balance_due'
+            )
         }),
         ('Status & Matching', {
             'fields': ('status', 'is_three_way_matched', 'matching_notes')
@@ -910,6 +980,40 @@ class InvoiceAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+    
+    def amount_paid(self, obj):
+        return format_html(
+            '<span style="color: green; font-weight: 600;">{:,.2f}</span>',
+            obj.amount_paid
+        )
+    amount_paid.short_description = 'Amount Paid'
+    
+    def balance_due(self, obj):
+        color = 'red' if obj.balance_due > 0 else 'green'
+        return format_html(
+            '<span style="color: {}; font-weight: 600;">{:,.2f}</span>',
+            color,
+            obj.balance_due
+        )
+    balance_due.short_description = 'Balance Due'
+
+
+# ============================================================================
+# ADDITIONAL UTILITY METHODS
+# ============================================================================
+
+# Add this method to help with payment status updates
+def update_invoice_payment_status(modeladmin, request, queryset):
+    """Update payment status for selected invoices"""
+    count = 0
+    for invoice in queryset:
+        invoice.update_payment_status()
+        count += 1
+    modeladmin.message_user(
+        request,
+        f'Payment status updated for {count} invoice(s).'
+    )
+update_invoice_payment_status.short_description = 'Update payment status'
 
 
 @admin.register(InvoiceItem)
