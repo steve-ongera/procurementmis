@@ -1272,6 +1272,567 @@ class EvaluationCriteria(models.Model):
         return f"{self.tender.tender_number} - {self.criterion_name}"
 
 
+class EvaluationCommittee(models.Model):
+    """Tender Evaluation Committee"""
+    COMMITTEE_TYPES = [
+        ('TECHNICAL', 'Technical Evaluation'),
+        ('FINANCIAL', 'Financial Evaluation'),
+        ('COMBINED', 'Combined Evaluation'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('ACTIVE', 'Active'),
+        ('COMPLETED', 'Completed'),
+        ('SUSPENDED', 'Suspended'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    committee_number = models.CharField(max_length=50, unique=True, editable=False)
+    tender = models.ForeignKey('Tender', on_delete=models.CASCADE, related_name='evaluation_committees')
+    
+    committee_type = models.CharField(max_length=20, choices=COMMITTEE_TYPES)
+    name = models.CharField(max_length=300)
+    
+    chairperson = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='committees_chaired'
+    )
+    
+    secretary = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='committees_secretaried'
+    )
+    
+    appointment_date = models.DateField()
+    completion_date = models.DateField(null=True, blank=True)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
+    
+    terms_of_reference = models.TextField()
+    evaluation_guidelines = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'evaluation_committees'
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.committee_number:
+            year = timezone.now().year
+            last_committee = EvaluationCommittee.objects.filter(
+                committee_number__startswith=f'EC-{year}'
+            ).order_by('-committee_number').first()
+            
+            if last_committee:
+                last_number = int(last_committee.committee_number.split('-')[-1])
+                new_number = last_number + 1
+            else:
+                new_number = 1
+            
+            self.committee_number = f'EC-{year}-{new_number:04d}'
+        
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.committee_number} - {self.tender.tender_number}"
+    
+class CommitteeMember(models.Model):
+    """Members of evaluation committee"""
+    MEMBER_ROLES = [
+        ('CHAIRPERSON', 'Chairperson'),
+        ('SECRETARY', 'Secretary'),
+        ('MEMBER', 'Member'),
+        ('OBSERVER', 'Observer'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    committee = models.ForeignKey(
+        EvaluationCommittee, 
+        on_delete=models.CASCADE, 
+        related_name='members'
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='committee_memberships')
+    
+    role = models.CharField(max_length=20, choices=MEMBER_ROLES)
+    department = models.ForeignKey(
+        'Department', 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='committee_members'
+    )
+    
+    expertise_area = models.CharField(max_length=200, blank=True)
+    
+    # Conflict of interest declaration
+    has_conflict = models.BooleanField(default=False)
+    conflict_details = models.TextField(blank=True)
+    
+    appointed_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'committee_members'
+        unique_together = ['committee', 'user']
+        ordering = ['committee', 'role']
+
+    def __str__(self):
+        return f"{self.committee.committee_number} - {self.user.get_full_name()} ({self.role})"
+    
+    
+class TechnicalEvaluationCriteria(models.Model):
+    """Technical evaluation criteria for tenders"""
+    RESPONSE_TYPES = [
+        ('YES_NO', 'Yes/No'),
+        ('DOCUMENT', 'Document Upload'),
+        ('NUMERIC', 'Numeric Value'),
+        ('TEXT', 'Text Description'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tender = models.ForeignKey(
+        'Tender', 
+        on_delete=models.CASCADE, 
+        related_name='technical_criteria'
+    )
+    
+    criterion_name = models.CharField(max_length=300)
+    description = models.TextField()
+    minimum_specification = models.TextField()
+    
+    response_type = models.CharField(max_length=20, choices=RESPONSE_TYPES)
+    
+    is_mandatory = models.BooleanField(default=True)
+    is_pass_fail = models.BooleanField(
+        default=False,
+        help_text="If true, failing this criterion disqualifies the bid"
+    )
+    
+    max_score = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        help_text="Maximum points for this criterion"
+    )
+    
+    weight_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Weight in overall technical score"
+    )
+    
+    scoring_guidelines = models.TextField(
+        blank=True,
+        help_text="How to score this criterion"
+    )
+    
+    sequence = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'technical_evaluation_criteria'
+        ordering = ['tender', 'sequence']
+
+    def __str__(self):
+        return f"{self.tender.tender_number} - {self.criterion_name}"
+    
+    
+class FinancialEvaluationCriteria(models.Model):
+    """Financial evaluation criteria"""
+    EVALUATION_METHODS = [
+        ('LOWEST_PRICE', 'Lowest Evaluated Price'),
+        ('FIXED_BUDGET', 'Fixed Budget'),
+        ('QUALITY_COST', 'Quality and Cost Based'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tender = models.OneToOneField(
+        'Tender',
+        on_delete=models.CASCADE,
+        related_name='financial_criteria'
+    )
+    
+    evaluation_method = models.CharField(max_length=20, choices=EVALUATION_METHODS)
+    
+    # Technical-Financial weighting
+    technical_weight = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=70,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    financial_weight = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=30,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    
+    # Price evaluation formula
+    uses_formula = models.BooleanField(default=True)
+    formula_description = models.TextField(
+        blank=True,
+        help_text="e.g., Score = (Lowest Price / Bid Price) × 100"
+    )
+    
+    # Price reasonability
+    check_price_reasonability = models.BooleanField(default=True)
+    acceptable_variance_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=15,
+        help_text="Acceptable variance from engineer's estimate"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'financial_evaluation_criteria'
+
+    def __str__(self):
+        return f"{self.tender.tender_number} - Financial Criteria"
+    
+class BidTechnicalResponse(models.Model):
+    """Supplier responses to technical criteria"""
+    RESPONSE_STATUS = [
+        ('PENDING', 'Pending Review'),
+        ('COMPLIANT', 'Compliant'),
+        ('NON_COMPLIANT', 'Non-Compliant'),
+        ('PARTIALLY_COMPLIANT', 'Partially Compliant'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    bid = models.ForeignKey('Bid', on_delete=models.CASCADE, related_name='technical_responses')
+    criterion = models.ForeignKey(
+        TechnicalEvaluationCriteria,
+        on_delete=models.CASCADE,
+        related_name='bid_responses'
+    )
+    
+    # Supplier's response
+    response_text = models.TextField(blank=True)
+    response_value = models.CharField(max_length=200, blank=True)
+    
+    # Supporting documents
+    supporting_document = models.FileField(
+        upload_to='bid_technical_documents/',
+        null=True,
+        blank=True
+    )
+    
+    supplier_remarks = models.TextField(blank=True)
+    
+    # Evaluation
+    compliance_status = models.CharField(
+        max_length=30,
+        choices=RESPONSE_STATUS,
+        default='PENDING'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'bid_technical_responses'
+        unique_together = ['bid', 'criterion']
+        ordering = ['bid', 'criterion__sequence']
+
+    def __str__(self):
+        return f"{self.bid.bid_number} - {self.criterion.criterion_name}"
+    
+    
+class TechnicalEvaluationScore(models.Model):
+    """Individual evaluator scores for technical criteria"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    bid = models.ForeignKey('Bid', on_delete=models.CASCADE, related_name='technical_scores')
+    criterion = models.ForeignKey(
+        TechnicalEvaluationCriteria,
+        on_delete=models.CASCADE,
+        related_name='scores'
+    )
+    evaluator = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='technical_scores_given'
+    )
+    
+    score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0)]
+    )
+    
+    weighted_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0
+    )
+    
+    is_compliant = models.BooleanField(default=True)
+    
+    comments = models.TextField(blank=True)
+    justification = models.TextField(blank=True)
+    
+    evaluated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'technical_evaluation_scores'
+        unique_together = ['bid', 'criterion', 'evaluator']
+        ordering = ['bid', 'criterion__sequence']
+
+    def save(self, *args, **kwargs):
+        # Calculate weighted score
+        self.weighted_score = (self.score / self.criterion.max_score) * self.criterion.weight_percentage
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.bid.bid_number} - {self.criterion.criterion_name} - {self.score}"
+    
+    
+    
+class FinancialEvaluationScore(models.Model):
+    """Financial evaluation scores"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    bid = models.ForeignKey('Bid', on_delete=models.CASCADE, related_name='financial_scores')
+    evaluator = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='financial_scores_given'
+    )
+    
+    # Price analysis
+    quoted_amount = models.DecimalField(max_digits=15, decimal_places=2)
+    
+    is_arithmetic_correct = models.BooleanField(default=True)
+    arithmetic_notes = models.TextField(blank=True)
+    
+    is_within_budget = models.BooleanField(default=True)
+    
+    # Price reasonability
+    is_price_reasonable = models.BooleanField(default=True)
+    variance_from_estimate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        help_text="Percentage variance"
+    )
+    
+    # Financial score
+    financial_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    
+    weighted_financial_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0
+    )
+    
+    comments = models.TextField(blank=True)
+    
+    evaluated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'financial_evaluation_scores'
+        unique_together = ['bid', 'evaluator']
+        ordering = ['bid', 'financial_score']
+
+    def __str__(self):
+        return f"{self.bid.bid_number} - Financial Score: {self.financial_score}"
+    
+    
+    
+class CombinedEvaluationResult(models.Model):
+    """Final combined technical + financial evaluation"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    bid = models.OneToOneField(
+        'Bid',
+        on_delete=models.CASCADE,
+        related_name='combined_evaluation'
+    )
+    
+    # Technical Evaluation
+    average_technical_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0
+    )
+    technical_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0
+    )
+    
+    is_technically_qualified = models.BooleanField(default=False)
+    technical_pass_mark = models.DecimalField(max_digits=5, decimal_places=2)
+    
+    # Financial Evaluation
+    average_financial_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0
+    )
+    financial_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0
+    )
+    
+    # Combined Score
+    combined_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0
+    )
+    
+    final_rank = models.IntegerField(null=True, blank=True)
+    
+    # Recommendation
+    is_recommended = models.BooleanField(default=False)
+    recommendation_notes = models.TextField(blank=True)
+    
+    # Disqualification
+    is_disqualified = models.BooleanField(default=False)
+    disqualification_reason = models.TextField(blank=True)
+    
+    evaluated_by_committee = models.ForeignKey(
+        EvaluationCommittee,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='evaluation_results'
+    )
+    
+    evaluation_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'combined_evaluation_results'
+        ordering = ['bid__tender', '-combined_score']
+
+    def calculate_combined_score(self):
+        """Calculate the final combined score"""
+        financial_criteria = self.bid.tender.financial_criteria
+        
+        self.combined_score = (
+            (self.average_technical_score * financial_criteria.technical_weight / 100) +
+            (self.average_financial_score * financial_criteria.financial_weight / 100)
+        )
+        
+        self.save()
+
+    def __str__(self):
+        return f"{self.bid.bid_number} - Score: {self.combined_score}"
+    
+    
+    
+class EvaluationReport(models.Model):
+    """Formal evaluation reports"""
+    REPORT_TYPES = [
+        ('PRELIMINARY', 'Preliminary Evaluation'),
+        ('TECHNICAL', 'Technical Evaluation'),
+        ('FINANCIAL', 'Financial Evaluation'),
+        ('COMBINED', 'Combined Evaluation'),
+        ('FINAL', 'Final Recommendation'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('SUBMITTED', 'Submitted'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    report_number = models.CharField(max_length=50, unique=True, editable=False)
+    
+    tender = models.ForeignKey('Tender', on_delete=models.CASCADE, related_name='evaluation_reports')
+    committee = models.ForeignKey(
+        EvaluationCommittee,
+        on_delete=models.CASCADE,
+        related_name='reports'
+    )
+    
+    report_type = models.CharField(max_length=20, choices=REPORT_TYPES)
+    title = models.CharField(max_length=300)
+    
+    executive_summary = models.TextField()
+    methodology = models.TextField()
+    findings = models.TextField()
+    recommendations = models.TextField()
+    
+    recommended_bidder = models.ForeignKey(
+        'Bid',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='recommended_in_reports'
+    )
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+    
+    report_document = models.FileField(
+        upload_to='evaluation_reports/',
+        null=True,
+        blank=True
+    )
+    
+    submitted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='evaluation_reports_submitted'
+    )
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='evaluation_reports_approved'
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'evaluation_reports'
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.report_number:
+            year = timezone.now().year
+            last_report = EvaluationReport.objects.filter(
+                report_number__startswith=f'ER-{year}'
+            ).order_by('-report_number').first()
+            
+            if last_report:
+                last_number = int(last_report.report_number.split('-')[-1])
+                new_number = last_number + 1
+            else:
+                new_number = 1
+            
+            self.report_number = f'ER-{year}-{new_number:04d}'
+        
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.report_number} - {self.title}"
+
 # ============================================================================
 # 9. PURCHASE ORDERS
 # ============================================================================
