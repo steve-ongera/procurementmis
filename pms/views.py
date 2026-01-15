@@ -10552,7 +10552,7 @@ from .forms import (
 
 
 """
-Enhanced views.py for staff requisition creation with improved functionality
+Fixed views.py for staff requisition creation
 """
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -10576,6 +10576,9 @@ from .forms import (
 def staff_requisition_create(request):
     """Create a new requisition with plan enforcement and enhanced UX"""
     
+    # ========================================================================
+    # POST: Handle form submission
+    # ========================================================================
     if request.method == 'POST':
         form = RequisitionForm(request.POST, user=request.user)
         formset = RequisitionItemFormSet(request.POST)
@@ -10588,6 +10591,9 @@ def staff_requisition_create(request):
             # Set department from user's department
             if request.user.department:
                 requisition.department = request.user.department
+            else:
+                messages.error(request, 'You must be assigned to a department to create requisitions.')
+                return redirect('staff_requisitions_list')
             
             requisition.status = 'DRAFT'
             
@@ -10602,12 +10608,7 @@ def staff_requisition_create(request):
                     request, 
                     'Please select a procurement plan item for planned requisitions.'
                 )
-                context = {
-                    'form': form,
-                    'formset': formset,
-                    'attachment_formset': attachment_formset,
-                    'page_title': 'Create New Requisition',
-                }
+                context = _get_context_data(request.user, form, formset, attachment_formset)
                 return render(request, 'staff/requisition_form.html', context)
             
             # Validate unplanned requisitions
@@ -10617,12 +10618,7 @@ def staff_requisition_create(request):
                         request, 
                         'Unplanned requisitions must be marked as emergency.'
                     )
-                    context = {
-                        'form': form,
-                        'formset': formset,
-                        'attachment_formset': attachment_formset,
-                        'page_title': 'Create New Requisition',
-                    }
+                    context = _get_context_data(request.user, form, formset, attachment_formset)
                     return render(request, 'staff/requisition_form.html', context)
                 
                 if not requisition.emergency_justification:
@@ -10630,12 +10626,7 @@ def staff_requisition_create(request):
                         request, 
                         'Emergency justification is required for unplanned requisitions.'
                     )
-                    context = {
-                        'form': form,
-                        'formset': formset,
-                        'attachment_formset': attachment_formset,
-                        'page_title': 'Create New Requisition',
-                    }
+                    context = _get_context_data(request.user, form, formset, attachment_formset)
                     return render(request, 'staff/requisition_form.html', context)
                 
                 # Mark as requiring plan amendment
@@ -10658,7 +10649,7 @@ def staff_requisition_create(request):
             # VALIDATE AGAINST PLAN ITEM
             if is_planned and procurement_plan_item:
                 # Check quantity (if applicable)
-                total_qty = sum(i.quantity for i in items)
+                total_qty = sum(Decimal(str(i.quantity)) for i in items)
                 
                 # Check budget
                 if total_estimated > procurement_plan_item.remaining_budget:
@@ -10697,23 +10688,92 @@ def staff_requisition_create(request):
             
             return redirect('staff_requisition_detail', pk=requisition.pk)
         else:
-            messages.error(request, 'Please correct the errors below.')
+            # Show validation errors
+            if form.errors:
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
+            if formset.errors:
+                messages.error(request, 'Please correct errors in the items section.')
+            if attachment_formset.errors:
+                messages.error(request, 'Please correct errors in the attachments section.')
+    
+    # ========================================================================
+    # GET: Display empty form
+    # ========================================================================
     else:
         form = RequisitionForm(user=request.user)
         formset = RequisitionItemFormSet()
         attachment_formset = RequisitionAttachmentFormSet()
     
+    # Get context data
+    context = _get_context_data(request.user, form, formset, attachment_formset)
+    
+    return render(request, 'staff/requisition_form.html', context)
+
+
+def _get_context_data(user, form, formset, attachment_formset):
+    """Helper function to get context data for the template"""
+    
     # Get available procurement plan items for the user's department
-    available_plan_items = None
-    if request.user.department:
+    available_plan_items = []
+    current_budget_year = None
+    debug_info = {
+        'has_department': bool(user.department),
+        'department': str(user.department) if user.department else None,
+        'budget_year': None,
+        'total_plans': 0,
+        'active_plans': 0,
+        'plan_items_count': 0,
+    }
+    
+    if user.department:
         current_budget_year = BudgetYear.objects.filter(is_active=True).first()
+        debug_info['budget_year'] = str(current_budget_year) if current_budget_year else None
+        
         if current_budget_year:
+            # Count all plans for this department and year
+            from .models import ProcurementPlan
+            all_plans = ProcurementPlan.objects.filter(
+                department=user.department,
+                budget_year=current_budget_year
+            )
+            debug_info['total_plans'] = all_plans.count()
+            
+            # Count active plans
+            active_plans = all_plans.filter(status='ACTIVE')
+            debug_info['active_plans'] = active_plans.count()
+            
+            # FIXED: Changed from 'APPROVED' to 'ACTIVE'
             available_plan_items = ProcurementPlanItem.objects.filter(
-                procurement_plan__department=request.user.department,
+                procurement_plan__department=user.department,
                 procurement_plan__budget_year=current_budget_year,
-                procurement_plan__status='APPROVED',
+                procurement_plan__status__in=['ACTIVE', 'APPROVED'],  # Allow both ACTIVE and APPROVED
                 status='PLANNED'
-            ).select_related('procurement_plan', 'budget', 'item')
+            ).select_related('procurement_plan', 'budget', 'item').order_by(
+                'planned_quarter', 'sequence'
+            )
+            
+            debug_info['plan_items_count'] = available_plan_items.count()
+            
+            # Add debug message if no items found
+            if not available_plan_items:
+                print(f"\n{'='*60}")
+                print(f"DEBUG: No procurement plan items found")
+                print(f"Department: {user.department.name} (ID: {user.department.id})")
+                print(f"Budget Year: {current_budget_year.name} (ID: {current_budget_year.id})")
+                print(f"Total Plans: {debug_info['total_plans']}")
+                print(f"Active Plans: {debug_info['active_plans']}")
+                
+                # Show all plans with their status
+                if all_plans.exists():
+                    print("\nAll Plans for this department:")
+                    for plan in all_plans:
+                        items_count = plan.items.count()
+                        print(f"  - {plan.plan_number}: {plan.status} ({items_count} items)")
+                else:
+                    print("\nNo plans exist for this department and year")
+                print(f"{'='*60}\n")
     
     context = {
         'form': form,
@@ -10721,9 +10781,11 @@ def staff_requisition_create(request):
         'attachment_formset': attachment_formset,
         'page_title': 'Create New Requisition',
         'available_plan_items': available_plan_items,
+        'current_budget_year': current_budget_year,
+        'debug_info': debug_info,  # Add debug info to context
     }
     
-    return render(request, 'staff/requisition_form.html', context)
+    return context
 
 
 @login_required
@@ -10821,7 +10883,6 @@ def api_validate_budget(request):
         return JsonResponse({'error': 'Budget not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
-
 
 @login_required
 def staff_requisition_detail(request, pk):

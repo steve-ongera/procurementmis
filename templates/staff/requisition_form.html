@@ -135,9 +135,20 @@
         color: #065F46;
     }
 
+    .alert-danger {
+        background: #FEF2F2;
+        border-color: #FCA5A5;
+        color: #DC2626;
+    }
+
     .alert i {
         font-size: 1.125rem;
         margin-top: 0.125rem;
+    }
+
+    .alert ul, .alert ol {
+        margin: 0.5rem 0 0 1.5rem;
+        padding: 0;
     }
 
     /* Table Card */
@@ -202,6 +213,11 @@
         outline: none;
         border-color: var(--primary-color);
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-control:disabled {
+        background-color: #F1F5F9;
+        cursor: not-allowed;
     }
 
     select.form-control {
@@ -445,6 +461,28 @@
         margin-top: 0.25rem;
     }
 
+    /* No plan items warning */
+    .no-plan-items {
+        padding: 1rem;
+        background: #FEF2F2;
+        border: 1px solid #FCA5A5;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+    }
+
+    .no-plan-items strong {
+        color: #DC2626;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .no-plan-items p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #7F1D1D;
+        line-height: 1.5;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .header-actions {
@@ -509,6 +547,47 @@
     </div>
 </div>
 
+<!-- DEBUG INFO (Remove after fixing) -->
+{% if debug_info %}
+<div class="alert" style="background: #FEF3C7; border-color: #FDE68A; color: #92400E;">
+    <i class="bi bi-bug"></i>
+    <div style="width: 100%;">
+        <strong>Debug Information (Remove this section in production):</strong>
+        <ul style="margin: 0.5rem 0 0 1.5rem; font-size: 0.8125rem;">
+            <li>Has Department: <strong>{{ debug_info.has_department }}</strong></li>
+            <li>Department: <strong>{{ debug_info.department|default:"Not assigned" }}</strong></li>
+            <li>Budget Year: <strong>{{ debug_info.budget_year|default:"No active year" }}</strong></li>
+            <li>Total Plans: <strong>{{ debug_info.total_plans }}</strong></li>
+            <li>Active/Approved Plans: <strong>{{ debug_info.active_plans }}</strong></li>
+            <li>Plan Items Available: <strong>{{ debug_info.plan_items_count }}</strong></li>
+        </ul>
+        {% if debug_info.plan_items_count == 0 %}
+        <div style="margin-top: 0.5rem; padding: 0.75rem; background: white; border-radius: 0.25rem; border: 1px solid #FCA5A5;">
+            <strong style="color: #DC2626;">⚠️ No plan items found!</strong><br>
+            <small style="display: block; margin-top: 0.25rem;">Possible reasons:</small>
+            <ol style="margin: 0.25rem 0 0 1.5rem; font-size: 0.75rem;">
+                {% if not debug_info.has_department %}
+                <li style="color: #DC2626; font-weight: 600;">You are not assigned to a department</li>
+                {% endif %}
+                {% if not debug_info.budget_year %}
+                <li style="color: #DC2626; font-weight: 600;">No active budget year exists</li>
+                {% endif %}
+                {% if debug_info.has_department and debug_info.budget_year %}
+                    {% if debug_info.total_plans == 0 %}
+                    <li style="color: #DC2626; font-weight: 600;">No procurement plan created for {{ debug_info.department }}</li>
+                    {% elif debug_info.active_plans == 0 %}
+                    <li style="color: #DC2626; font-weight: 600;">Plans exist but status is not ACTIVE or APPROVED (Total: {{ debug_info.total_plans }})</li>
+                    {% else %}
+                    <li style="color: #DC2626; font-weight: 600;">Plans are active but have no items with status PLANNED</li>
+                    {% endif %}
+                {% endif %}
+            </ol>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 <form method="post" enctype="multipart/form-data" id="requisitionForm">
     {% csrf_token %}
 
@@ -541,6 +620,9 @@
             <div id="planned-section" style="margin-top: 1rem;">
                 <div class="form-group">
                     <label class="form-label">{{ form.procurement_plan_item.label }} <span style="color: var(--danger-color);">*</span></label>
+                    
+                    {% if available_plan_items %}
+                    <!-- Has Plan Items -->
                     <select class="form-control" name="procurement_plan_item" id="id_procurement_plan_item">
                         <option value="">-- Select Plan Item --</option>
                         {% for plan_item in available_plan_items %}
@@ -560,6 +642,41 @@
                         </option>
                         {% endfor %}
                     </select>
+                    
+                    {% else %}
+                    <!-- No Plan Items -->
+                    <div class="no-plan-items">
+                        <strong><i class="bi bi-exclamation-triangle"></i> No Procurement Plan Items Available</strong>
+                        <p>
+                            {% if not user.department %}
+                            <strong>Issue:</strong> You are not assigned to a department.<br>
+                            <strong>Solution:</strong> Please contact your administrator to assign you to a department.
+                            
+                            {% elif not current_budget_year %}
+                            <strong>Issue:</strong> No active budget year found.<br>
+                            <strong>Solution:</strong> Please contact your administrator to activate a budget year.
+                            
+                            {% else %}
+                            <strong>Issue:</strong> No approved procurement plan items found for <strong>{{ user.department.name }}</strong> in <strong>{{ current_budget_year.name }}</strong>.<br><br>
+                            
+                            <strong>To create plan items:</strong><br>
+                            1. Go to Procurement Planning module<br>
+                            2. Create a new procurement plan for your department<br>
+                            3. Add items to the plan with specifications and budgets<br>
+                            4. Submit the plan for approval<br>
+                            5. Get HOD/Management to approve the plan<br>
+                            6. Activate the approved plan<br><br>
+                            
+                            <strong>Alternatively:</strong> If this is a genuine emergency, select "Unplanned/Emergency" above to proceed without a plan item (requires special approval).
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <select class="form-control" name="procurement_plan_item" id="id_procurement_plan_item" disabled>
+                        <option value="">-- No Plan Items Available --</option>
+                    </select>
+                    {% endif %}
+                    
                     {% if form.procurement_plan_item.errors %}
                     <div class="error-message">
                         {{ form.procurement_plan_item.errors }}
@@ -568,6 +685,7 @@
                 </div>
 
                 <!-- Plan Item Details -->
+                {% if available_plan_items %}
                 <div class="plan-item-info" id="plan-item-info">
                     <strong style="font-size: 0.875rem; color: #1E293B;">
                         <i class="bi bi-clipboard-data"></i>
@@ -596,6 +714,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
             </div>
 
             <!-- Unplanned/Emergency Section -->
@@ -855,73 +974,75 @@
 
                     <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
                         <button type="button" class="btn btn-sm remove-attachment-btn" style="color: var(--danger-color);">
-                        <i class="bi bi-trash"></i>
+                            <i class="bi bi-trash"></i>
                             Remove
                         </button>
                     </div>
-                <div class="filter-grid">
-                    <div class="form-group">
-                        <label class="form-label">{{ attachment_form.attachment_type.label }}</label>
-                        {{ attachment_form.attachment_type }}
-                        {% if attachment_form.attachment_type.errors %}
-                        <div class="error-message">
-                            {{ attachment_form.attachment_type.errors }}
+
+                    <div class="filter-grid">
+                        <div class="form-group">
+                            <label class="form-label">{{ attachment_form.attachment_type.label }}</label>
+                            {{ attachment_form.attachment_type }}
+                            {% if attachment_form.attachment_type.errors %}
+                            <div class="error-message">
+                                {{ attachment_form.attachment_type.errors }}
+                            </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
+
+                        <div class="form-group">
+                            <label class="form-label">{{ attachment_form.file_name.label }}</label>
+                            {{ attachment_form.file_name }}
+                            {% if attachment_form.file_name.errors %}
+                            <div class="error-message">
+                                {{ attachment_form.file_name.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">{{ attachment_form.file.label }}</label>
+                            {{ attachment_form.file }}
+                            {% if attachment_form.file.errors %}
+                            <div class="error-message">
+                                {{ attachment_form.file.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">{{ attachment_form.file_name.label }}</label>
-                        {{ attachment_form.file_name }}
-                        {% if attachment_form.file_name.errors %}
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label">{{ attachment_form.description.label }}</label>
+                        {{ attachment_form.description }}
+                        {% if attachment_form.description.errors %}
                         <div class="error-message">
-                            {{ attachment_form.file_name.errors }}
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">{{ attachment_form.file.label }}</label>
-                        {{ attachment_form.file }}
-                        {% if attachment_form.file.errors %}
-                        <div class="error-message">
-                            {{ attachment_form.file.errors }}
+                            {{ attachment_form.description.errors }}
                         </div>
                         {% endif %}
                     </div>
                 </div>
-
-                <div class="form-group" style="margin-top: 1rem;">
-                    <label class="form-label">{{ attachment_form.description.label }}</label>
-                    {{ attachment_form.description }}
-                    {% if attachment_form.description.errors %}
-                    <div class="error-message">
-                        {{ attachment_form.description.errors }}
-                    </div>
-                    {% endif %}
-                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </div>
-</div>
 
-<!-- Form Actions -->
-<div class="form-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-bottom: 2rem;">
-    <a href="{% url 'staff_requisitions_list' %}" class="btn">
-        <i class="bi bi-x-circle"></i>
-        Cancel
-    </a>
-    <button type="submit" name="save_draft" class="btn">
-        <i class="bi bi-save"></i>
-        Save as Draft
-    </button>
-    <button type="submit" name="submit" class="btn btn-primary">
-        <i class="bi bi-check-circle"></i>
-        {% if requisition %}Update{% else %}Create{% endif %} Requisition
-    </button>
-</div>
+    <!-- Form Actions -->
+    <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-bottom: 2rem;">
+        <a href="{% url 'staff_requisitions_list' %}" class="btn">
+            <i class="bi bi-x-circle"></i>
+            Cancel
+        </a>
+        <button type="submit" name="save_draft" class="btn">
+            <i class="bi bi-save"></i>
+            Save as Draft
+        </button>
+        <button type="submit" name="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i>
+            {% if requisition %}Update{% else %}Create{% endif %} Requisition
+        </button>
+    </div>
 </form>
+
 <script>
 // ============================================================================
 // REQUISITION FORM DYNAMIC FUNCTIONALITY
@@ -957,11 +1078,11 @@
                 if (isPlanned) {
                     plannedSection.style.display = 'block';
                     unplannedSection.style.display = 'none';
-                    planItemSelect.required = true;
+                    if (planItemSelect) planItemSelect.required = true;
                 } else {
                     plannedSection.style.display = 'none';
                     unplannedSection.style.display = 'block';
-                    planItemSelect.required = false;
+                    if (planItemSelect) planItemSelect.required = false;
                 }
             });
         });
@@ -974,6 +1095,8 @@
     function initializePlanItemDetails() {
         const planItemSelect = document.getElementById('id_procurement_plan_item');
         const infoBox = document.getElementById('plan-item-info');
+        
+        if (!planItemSelect || !infoBox) return;
         
         planItemSelect.addEventListener('change', function() {
             const option = this.options[this.selectedIndex];
@@ -1030,6 +1153,8 @@
     function initializeItemSearch() {
         document.querySelectorAll('.item-search').forEach(searchInput => {
             const resultsDiv = searchInput.nextElementSibling.nextElementSibling;
+            
+            if (!resultsDiv) return;
             
             searchInput.addEventListener('input', function() {
                 clearTimeout(searchTimeout);
@@ -1171,7 +1296,10 @@
             }
         });
         
-        document.getElementById('grand-total').textContent = 'KES ' + formatCurrency(grandTotal);
+        const grandTotalElement = document.getElementById('grand-total');
+        if (grandTotalElement) {
+            grandTotalElement.textContent = 'KES ' + formatCurrency(grandTotal);
+        }
     }
 
     // ========================================================================
@@ -1182,6 +1310,8 @@
         const addBtn = document.getElementById('add-item-btn');
         const container = document.getElementById('items-container');
         const totalFormsInput = document.querySelector('[name$="TOTAL_FORMS"]');
+        
+        if (!addBtn || !container || !totalFormsInput) return;
         
         addBtn.addEventListener('click', function() {
             const formCount = parseInt(totalFormsInput.value);
@@ -1268,187 +1398,187 @@
                 <div class="form-group" style="margin-top: 1rem;">
                     <label class="form-label">Item Description <span style="color: var(--danger-color);">*</span></label>
                     <textarea class="form-control" name="${prefix}-${index}-item_description" rows="2" placeholder="Describe the item..."></textarea>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label">Specifications <span style="color: var(--danger-color);">*</span></label>
+                    <textarea class="form-control" name="${prefix}-${index}-specifications" rows="3" placeholder="Technical specifications..."></textarea>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label">Notes (Optional)</label>
+                    <textarea class="form-control" name="${prefix}-${index}-notes" rows="2" placeholder="Additional notes..."></textarea>
+                </div>
+
+                <div style="background: var(--hover-bg); padding: 0.75rem; border-radius: 0.375rem; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.875rem; font-weight: 500;">Item Total:</span>
+                    <span class="item-total" style="font-size: 1rem; font-weight: 600; color: var(--primary-color);">KES 0.00</span>
+                </div>
             </div>
-
-            <div class="form-group" style="margin-top: 1rem;">
-                <label class="form-label">Specifications <span style="color: var(--danger-color);">*</span></label>
-                <textarea class="form-control" name="${prefix}-${index}-specifications" rows="3" placeholder="Technical specifications..."></textarea>
-            </div>
-
-            <div class="form-group" style="margin-top: 1rem;">
-                <label class="form-label">Notes (Optional)</label>
-                <textarea class="form-control" name="${prefix}-${index}-notes" rows="2" placeholder="Additional notes..."></textarea>
-            </div>
-
-            <div style="background: var(--hover-bg); padding: 0.75rem; border-radius: 0.375rem; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 0.875rem; font-weight: 500;">Item Total:</span>
-                <span class="item-total" style="font-size: 1rem; font-weight: 600; color: var(--primary-color);">KES 0.00</span>
-            </div>
-        </div>
-    `;
-}
-
-function initializeItemSearchForForm(formElement) {
-    const searchInput = formElement.querySelector('.item-search');
-    const resultsDiv = formElement.querySelector('.search-results');
-    
-    if (!searchInput || !resultsDiv) return;
-    
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        const query = this.value.trim();
-        
-        if (query.length < 2) {
-            resultsDiv.classList.remove('active');
-            return;
-        }
-        
-        resultsDiv.innerHTML = '<div class="loading-spinner"><i class="bi bi-hourglass-split"></i> Searching...</div>';
-        resultsDiv.classList.add('active');
-        
-        searchTimeout = setTimeout(() => {
-            searchItems(query, resultsDiv, searchInput);
-        }, SEARCH_DELAY);
-    });
-    
-    document.addEventListener('click', function(e) {
-        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
-            resultsDiv.classList.remove('active');
-        }
-    });
-}
-
-function initializeCalculationsForForm(formElement) {
-    const qtyInput = formElement.querySelector('[name$="quantity"]');
-    const priceInput = formElement.querySelector('[name$="estimated_unit_price"]');
-    
-    if (qtyInput) {
-        qtyInput.addEventListener('input', () => calculateItemTotal(formElement));
+        `;
     }
-    if (priceInput) {
-        priceInput.addEventListener('input', () => calculateItemTotal(formElement));
-    }
-}
 
-function updateItemNumbers() {
-    document.querySelectorAll('.item-form').forEach((form, index) => {
-        const deleteCheckbox = form.querySelector('[name$="DELETE"]');
-        if (!deleteCheckbox || !deleteCheckbox.checked) {
-            const numberSpan = form.querySelector('.item-number');
-            if (numberSpan) {
-                numberSpan.textContent = index + 1;
-            }
-        }
-    });
-}
-
-// ========================================================================
-// ADD/REMOVE ATTACHMENTS
-// ========================================================================
-
-function initializeAddRemoveAttachments() {
-    const addBtn = document.getElementById('add-attachment-btn');
-    const container = document.getElementById('attachments-container');
-    const totalFormsInput = document.querySelector('[name$="attachmentformset-TOTAL_FORMS"]') || 
-                            document.querySelector('[name$="attachment-TOTAL_FORMS"]');
-    
-    if (!addBtn || !container || !totalFormsInput) return;
-    
-    addBtn.addEventListener('click', function() {
-        const formCount = parseInt(totalFormsInput.value);
-        const newForm = createAttachmentForm(formCount);
+    function initializeItemSearchForForm(formElement) {
+        const searchInput = formElement.querySelector('.item-search');
+        const resultsDiv = formElement.querySelector('.search-results');
         
-        container.insertAdjacentHTML('beforeend', newForm);
-        totalFormsInput.value = formCount + 1;
-    });
-    
-    container.addEventListener('click', function(e) {
-        if (e.target.closest('.remove-attachment-btn')) {
-            const attachmentForm = e.target.closest('.attachment-form');
-            const deleteCheckbox = attachmentForm.querySelector('[name$="DELETE"]');
+        if (!searchInput || !resultsDiv) return;
+        
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
             
-            if (deleteCheckbox) {
-                deleteCheckbox.checked = true;
-                attachmentForm.style.display = 'none';
-            } else {
-                attachmentForm.remove();
-                totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+            if (query.length < 2) {
+                resultsDiv.classList.remove('active');
+                return;
             }
+            
+            resultsDiv.innerHTML = '<div class="loading-spinner"><i class="bi bi-hourglass-split"></i> Searching...</div>';
+            resultsDiv.classList.add('active');
+            
+            searchTimeout = setTimeout(() => {
+                searchItems(query, resultsDiv, searchInput);
+            }, SEARCH_DELAY);
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                resultsDiv.classList.remove('active');
+            }
+        });
+    }
+
+    function initializeCalculationsForForm(formElement) {
+        const qtyInput = formElement.querySelector('[name$="quantity"]');
+        const priceInput = formElement.querySelector('[name$="estimated_unit_price"]');
+        
+        if (qtyInput) {
+            qtyInput.addEventListener('input', () => calculateItemTotal(formElement));
         }
+        if (priceInput) {
+            priceInput.addEventListener('input', () => calculateItemTotal(formElement));
+        }
+    }
+
+    function updateItemNumbers() {
+        let visibleIndex = 1;
+        document.querySelectorAll('.item-form').forEach((form) => {
+            const deleteCheckbox = form.querySelector('[name$="DELETE"]');
+            if (!deleteCheckbox || !deleteCheckbox.checked) {
+                const numberSpan = form.querySelector('.item-number');
+                if (numberSpan) {
+                    numberSpan.textContent = visibleIndex++;
+                }
+            }
+        });
+    }
+
+    // ========================================================================
+    // ADD/REMOVE ATTACHMENTS
+    // ========================================================================
+
+    function initializeAddRemoveAttachments() {
+        const addBtn = document.getElementById('add-attachment-btn');
+        const container = document.getElementById('attachments-container');
+        const totalFormsInput = document.querySelector('[name$="attachments-TOTAL_FORMS"]');
+        
+        if (!addBtn || !container || !totalFormsInput) return;
+        
+        addBtn.addEventListener('click', function() {
+            const formCount = parseInt(totalFormsInput.value);
+            const newForm = createAttachmentForm(formCount);
+            
+            container.insertAdjacentHTML('beforeend', newForm);
+            totalFormsInput.value = formCount + 1;
+        });
+        
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-attachment-btn')) {
+                const attachmentForm = e.target.closest('.attachment-form');
+                const deleteCheckbox = attachmentForm.querySelector('[name$="DELETE"]');
+                
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    attachmentForm.style.display = 'none';
+                } else {
+                    attachmentForm.remove();
+                    totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+                }
+            }
+        });
+    }
+
+    function createAttachmentForm(index) {
+        const prefix = 'attachments';
+        return `
+            <div class="attachment-form">
+                <input type="hidden" name="${prefix}-${index}-id">
+                <input type="hidden" name="${prefix}-${index}-DELETE">
+
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                    <button type="button" class="btn btn-sm remove-attachment-btn" style="color: var(--danger-color);">
+                        <i class="bi bi-trash"></i>
+                        Remove
+                    </button>
+                </div>
+
+                <div class="filter-grid">
+                    <div class="form-group">
+                        <label class="form-label">Document Type</label>
+                        <select class="form-control" name="${prefix}-${index}-attachment_type">
+                            <option value="QUOTATION">Quotation</option>
+                            <option value="TOR">Terms of Reference</option>
+                            <option value="SPECIFICATION">Technical Specification</option>
+                            <option value="JUSTIFICATION">Justification Document</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Document Name</label>
+                        <input type="text" class="form-control" name="${prefix}-${index}-file_name" placeholder="Document name">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">File</label>
+                        <input type="file" class="form-control" name="${prefix}-${index}-file">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="${prefix}-${index}-description" rows="2" placeholder="Brief description..."></textarea>
+                </div>
+            </div>
+        `;
+    }
+
+    // ========================================================================
+    // UTILITY FUNCTIONS
+    // ========================================================================
+
+    function formatCurrency(amount) {
+        return amount.toLocaleString('en-KE', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    // ========================================================================
+    // INITIALIZATION
+    // ========================================================================
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeRequisitionType();
+        initializePlanItemDetails();
+        initializeItemSearch();
+        initializeCalculations();
+        initializeAddRemoveItems();
+        initializeAddRemoveAttachments();
+        
+        // Initial calculation
+        calculateGrandTotal();
     });
-}
-
-function createAttachmentForm(index) {
-    const prefix = 'attachments';
-    return `
-        <div class="attachment-form">
-            <input type="hidden" name="${prefix}-${index}-id">
-            <input type="hidden" name="${prefix}-${index}-DELETE">
-
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                <button type="button" class="btn btn-sm remove-attachment-btn" style="color: var(--danger-color);">
-                    <i class="bi bi-trash"></i>
-                    Remove
-                </button>
-            </div>
-
-            <div class="filter-grid">
-                <div class="form-group">
-                    <label class="form-label">Document Type</label>
-                    <select class="form-control" name="${prefix}-${index}-attachment_type">
-                        <option value="QUOTATION">Quotation</option>
-                        <option value="TOR">Terms of Reference</option>
-                        <option value="SPECIFICATION">Technical Specification</option>
-                        <option value="JUSTIFICATION">Justification Document</option>
-                        <option value="OTHER">Other</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Document Name</label>
-                    <input type="text" class="form-control" name="${prefix}-${index}-file_name" placeholder="Document name">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">File</label>
-                    <input type="file" class="form-control" name="${prefix}-${index}-file">
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 1rem;">
-                <label class="form-label">Description</label>
-                <textarea class="form-control" name="${prefix}-${index}-description" rows="2" placeholder="Brief description..."></textarea>
-            </div>
-        </div>
-    `;
-}
-
-// ========================================================================
-// UTILITY FUNCTIONS
-// ========================================================================
-
-function formatCurrency(amount) {
-    return amount.toLocaleString('en-KE', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-}
-
-// ========================================================================
-// INITIALIZATION
-// ========================================================================
-
-document.addEventListener('DOMContentLoaded', function() {
-    initializeRequisitionType();
-    initializePlanItemDetails();
-    initializeItemSearch();
-    initializeCalculations();
-    initializeAddRemoveItems();
-    initializeAddRemoveAttachments();
-    
-    // Initial calculation
-    calculateGrandTotal();
-});
 })();
 </script>
 {% endblock %}
