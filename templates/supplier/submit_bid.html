@@ -55,11 +55,6 @@
         text-decoration: underline;
     }
 
-    .breadcrumb i {
-        font-size: 0.75rem;
-        color: #94A3B8;
-    }
-
     .card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
@@ -82,11 +77,6 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-    }
-
-    .card-title i {
-        color: var(--secondary-color);
-        font-size: 1.125rem;
     }
 
     .card-body {
@@ -125,12 +115,6 @@
         font-size: 0.875rem;
         font-weight: 500;
         color: #1E293B;
-    }
-
-    .info-value.amount {
-        font-weight: 600;
-        color: var(--primary-color);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
     .form-grid {
@@ -222,152 +206,82 @@
         vertical-align: top;
     }
 
-    .item-row {
-        background: white;
-        transition: background 0.2s;
-    }
-
     .item-row:hover {
         background: var(--hover-bg);
     }
 
-    .item-name {
-        font-weight: 500;
-        color: #1E293B;
-        margin-bottom: 0.25rem;
+    .technical-criteria-section {
+        margin-top: 2rem;
+        border-top: 2px solid var(--border-color);
+        padding-top: 1.5rem;
     }
 
-    .item-specs {
-        font-size: 0.75rem;
-        color: #94A3B8;
-    }
-
-    .documents-section {
+    .criterion-item {
         padding: 1.5rem;
         background: #F8FAFC;
-        border-radius: 0.375rem;
-        border: 1px solid var(--border-color);
-        margin-bottom: 1.5rem;
-    }
-
-    .document-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 1rem;
-        padding: 1rem;
-        background: var(--card-bg);
         border-radius: 0.375rem;
         border: 1px solid var(--border-color);
         margin-bottom: 1rem;
     }
 
-    .document-item:last-child {
-        margin-bottom: 0;
-    }
-
-    .document-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 0.375rem;
-        background: var(--primary-light);
+    .criterion-header {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--primary-color);
-        font-size: 1.25rem;
-        flex-shrink: 0;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
     }
 
-    .document-info {
-        flex: 1;
-    }
-
-    .document-name {
-        font-size: 0.875rem;
-        font-weight: 500;
+    .criterion-name {
+        font-size: 1rem;
+        font-weight: 600;
         color: #1E293B;
-        margin-bottom: 0.25rem;
-    }
-
-    .document-description {
-        font-size: 0.75rem;
-        color: var(--secondary-color);
         margin-bottom: 0.5rem;
     }
 
-    .document-upload {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .document-upload input[type="file"] {
-        padding: 0.5rem;
-        border: 1px solid var(--border-color);
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-    }
-
-    .action-buttons {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.75rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid var(--border-color);
-    }
-
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.625rem 1rem;
-        border-radius: 0.375rem;
+    .criterion-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
         font-weight: 500;
+    }
+
+    .badge-mandatory {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .badge-optional {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .criterion-description {
         font-size: 0.875rem;
-        text-decoration: none;
+        color: #64748B;
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
+
+    .criterion-specs {
+        padding: 0.75rem;
+        background: white;
+        border-left: 3px solid var(--primary-color);
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+        color: #334155;
+    }
+
+    .document-upload-area {
+        padding: 1.5rem;
+        border: 2px dashed var(--border-color);
+        border-radius: 0.375rem;
+        background: white;
         transition: all 0.2s;
-        border: 1px solid var(--border-color);
-        cursor: pointer;
-        background: var(--card-bg);
-        color: var(--secondary-color);
     }
 
-    .btn:hover {
-        background: var(--hover-bg);
-        transform: translateY(-1px);
-    }
-
-    .btn-primary {
-        background: var(--primary-color);
-        color: white;
+    .document-upload-area:hover {
         border-color: var(--primary-color);
-    }
-
-    .btn-primary:hover {
-        background: var(--primary-dark);
-        border-color: var(--primary-dark);
-    }
-
-    .btn-secondary {
-        background: #F1F5F9;
-        color: #475569;
-        border-color: #E2E8F0;
-    }
-
-    .btn-secondary:hover {
-        background: #E2E8F0;
-        border-color: #CBD5E1;
-    }
-
-    .btn-success {
-        background: var(--success-color);
-        color: white;
-        border-color: var(--success-color);
-    }
-
-    .btn-success:hover {
-        background: #059669;
-        border-color: #059669;
+        background: var(--primary-light);
     }
 
     .alert {
@@ -386,48 +300,52 @@
         border: 1px solid #BAE6FD;
     }
 
-    .alert i {
-        font-size: 1.25rem;
+    .alert-warning {
+        background: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE68A;
     }
 
-    .expandable-section {
-        margin-top: 1rem;
-        border-top: 1px dashed var(--border-color);
-        padding-top: 1rem;
-    }
-
-    .expand-toggle {
-        background: none;
-        border: none;
-        color: var(--primary-color);
-        font-size: 0.75rem;
-        cursor: pointer;
-        padding: 0.25rem;
-        display: flex;
+    .btn {
+        display: inline-flex;
         align-items: center;
-        gap: 0.25rem;
-        transition: color 0.2s;
-    }
-
-    .expand-toggle:hover {
-        color: var(--primary-dark);
-    }
-
-    .expand-toggle i {
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
         font-size: 0.875rem;
-        transition: transform 0.2s;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
     }
 
-    .expand-toggle.expanded i {
-        transform: rotate(180deg);
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .action-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
     }
 
     @media (max-width: 768px) {
-        .page-header {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        
         .form-grid {
             grid-template-columns: 1fr;
         }
@@ -435,15 +353,6 @@
         .items-table {
             display: block;
             overflow-x: auto;
-        }
-        
-        .action-buttons {
-            flex-direction: column;
-        }
-        
-        .action-buttons .btn {
-            width: 100%;
-            justify-content: center;
         }
     }
 </style>
@@ -455,13 +364,10 @@
         <h1 class="page-title">Submit Bid</h1>
         <div class="breadcrumb">
             <a href="{% url 'supplier_dashboard' %}">
-                <i class="bi bi-house"></i>
-                Dashboard
+                <i class="bi bi-house"></i> Dashboard
             </a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'supplier_tenders_list' %}">Tenders</a>
-            <i class="bi bi-chevron-right"></i>
-            <a href="{% url 'supplier_tender_detail' tender.id %}">{{ tender.tender_number }}</a>
             <i class="bi bi-chevron-right"></i>
             <span>Submit Bid</span>
         </div>
@@ -477,6 +383,7 @@
     {% endfor %}
 {% endif %}
 
+<!-- Tender Information -->
 <div class="card">
     <div class="card-header">
         <h2 class="card-title">
@@ -496,43 +403,35 @@
                     <span class="info-value">{{ tender.title }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Type</span>
-                    <span class="info-value">{{ tender.get_tender_type_display }}</span>
-                </div>
-                <div class="info-item">
                     <span class="info-label">Closing Date</span>
                     <span class="info-value">{{ tender.closing_date|date:"M d, Y H:i" }}</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Budget</span>
-                    <span class="info-value amount">KES {{ tender.estimated_budget|floatformat:2|intcomma }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Method</span>
-                    <span class="info-value">{{ tender.get_procurement_method_display }}</span>
+                    <span class="info-value">KES {{ tender.estimated_budget|floatformat:2|intcomma }}</span>
                 </div>
             </div>
         </div>
 
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i>
+        {% if tender.requires_technical_evaluation %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
             <div>
-                <strong>Important Information</strong>
-                <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem;">
-                    <li>All fields marked with * are required</li>
-                    <li>Ensure all prices are quoted in KES</li>
-                    <li>Bids must be submitted before the closing date</li>
-                    <li>Once submitted, bids cannot be edited</li>
-                </ul>
+                <strong>Technical Evaluation Required</strong>
+                <p style="margin: 0.5rem 0 0 0;">
+                    This tender requires technical evaluation. You must score at least 
+                    <strong>{{ tender.technical_pass_mark }}%</strong> to qualify for financial evaluation.
+                </p>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 
-<form method="post" enctype="multipart/form-data" novalidate id="bidForm">
+<form method="post" enctype="multipart/form-data" id="bidForm">
     {% csrf_token %}
     
-    <!-- Bid Details Section -->
+    <!-- Bid Details -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">
@@ -543,63 +442,39 @@
         <div class="card-body">
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="id_bid_amount" class="form-label required">
-                        <i class="bi bi-cash"></i>
-                        Total Bid Amount
-                    </label>
+                    <label for="id_bid_amount" class="form-label required">Total Bid Amount</label>
                     <div class="price-input-container">
                         <span class="currency-prefix">KES</span>
                         <input type="number" name="bid_amount" id="id_bid_amount" class="form-control" 
-                               step="0.01" min="0" required placeholder="0.00">
+                               step="0.01" min="0" required>
                     </div>
-                    <small class="form-text">
-                        Total bid amount in Kenyan Shillings
-                    </small>
                 </div>
 
                 <div class="form-group">
-                    <label for="id_bid_bond_amount" class="form-label">
-                        <i class="bi bi-shield-check"></i>
-                        Bid Bond Amount
-                    </label>
+                    <label for="id_bid_bond_amount" class="form-label">Bid Bond Amount</label>
                     <div class="price-input-container">
                         <span class="currency-prefix">KES</span>
                         <input type="number" name="bid_bond_amount" id="id_bid_bond_amount" 
-                               class="form-control" step="0.01" min="0" value="0" placeholder="0.00">
+                               class="form-control" step="0.01" min="0" value="0">
                     </div>
-                    <small class="form-text">
-                        If bid bond is required for this tender
-                    </small>
                 </div>
 
                 <div class="form-group">
-                    <label for="id_delivery_period_days" class="form-label required">
-                        <i class="bi bi-calendar-check"></i>
-                        Delivery Period (Days)
-                    </label>
+                    <label for="id_delivery_period_days" class="form-label required">Delivery Period (Days)</label>
                     <input type="number" name="delivery_period_days" id="id_delivery_period_days" 
-                           class="form-control" min="1" required placeholder="90" value="30">
-                    <small class="form-text">
-                        Number of days to complete delivery after award
-                    </small>
+                           class="form-control" min="1" required value="30">
                 </div>
 
                 <div class="form-group">
-                    <label for="id_validity_period_days" class="form-label required">
-                        <i class="bi bi-clock-history"></i>
-                        Validity Period (Days)
-                    </label>
+                    <label for="id_validity_period_days" class="form-label required">Validity Period (Days)</label>
                     <input type="number" name="validity_period_days" id="id_validity_period_days" 
-                           class="form-control" min="30" value="90" required placeholder="90">
-                    <small class="form-text">
-                        Number of days your bid remains valid (minimum 30 days)
-                    </small>
+                           class="form-control" min="30" value="90" required>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bid Items Section -->
+    <!-- Bid Items -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">
@@ -611,105 +486,51 @@
             <table class="items-table">
                 <thead>
                     <tr>
-                        <th style="width: 25%;">Item Description</th>
-                        <th style="width: 10%;">Quantity</th>
-                        <th style="width: 15%;">Unit Price (KES)</th>
-                        <th style="width: 15%;">Total Price (KES)</th>
-                        <th style="width: 10%;">Delivery Days</th>
-                        <th style="width: 25%;">Additional Info</th>
+                        <th>Item</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Total</th>
+                        <th>Details</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in requisition_items %}
                     <tr class="item-row">
                         <td>
-                            <div class="item-name">
-                                {{ item.item_description }}
-                            </div>
-                            <div class="item-specs">
+                            <strong>{{ item.item_description }}</strong>
+                            <div style="font-size: 0.75rem; color: #64748B;">
                                 {{ item.specifications|truncatechars:100 }}
                             </div>
                         </td>
-                        <td>
-                            <strong>{{ item.quantity }}</strong> {{ item.unit_of_measure }}
-                        </td>
+                        <td>{{ item.quantity }} {{ item.unit_of_measure }}</td>
                         <td>
                             <div class="price-input-container">
                                 <span class="currency-prefix">KES</span>
                                 <input type="number" 
                                        name="items-{{ forloop.counter0 }}-quoted_unit_price" 
                                        class="form-control item-unit-price" 
-                                       step="0.01" 
-                                       min="0" 
                                        data-quantity="{{ item.quantity }}"
                                        data-index="{{ forloop.counter0 }}"
-                                       required 
-                                       placeholder="0.00">
+                                       step="0.01" min="0" required>
                             </div>
                         </td>
                         <td>
-                            <div class="price-input-container">
-                                <span class="currency-prefix">KES</span>
-                                <input type="number" 
-                                       name="items-{{ forloop.counter0 }}-quoted_total" 
-                                       class="form-control item-total-price" 
-                                       id="total-{{ forloop.counter0 }}"
-                                       readonly 
-                                       tabindex="-1">
-                            </div>
-                        </td>
-                        <td>
-                            <input type="number" 
-                                   name="items-{{ forloop.counter0 }}-delivery_period_days" 
+                            <input type="text" 
+                                   id="total-{{ forloop.counter0 }}"
                                    class="form-control" 
-                                   min="1" 
-                                   value="30" 
-                                   required
-                                   placeholder="30">
+                                   readonly>
+                            <input type="hidden" 
+                                   name="items-{{ forloop.counter0 }}-quoted_total"
+                                   id="total-hidden-{{ forloop.counter0 }}">
                         </td>
                         <td>
-                            <button type="button" 
-                                    class="expand-toggle" 
-                                    onclick="toggleItemDetails({{ forloop.counter0 }})">
-                                <i class="bi bi-chevron-down"></i>
-                                Optional Details
-                            </button>
-                            <div id="item-details-{{ forloop.counter0 }}" class="expandable-section" style="display: none;">
-                                <div class="form-group" style="margin-bottom: 0.5rem;">
-                                    <label class="form-label" style="font-size: 0.75rem;">Brand</label>
-                                    <input type="text" 
-                                           name="items-{{ forloop.counter0 }}-brand" 
-                                           class="form-control" 
-                                           style="font-size: 0.75rem; padding: 0.5rem;"
-                                           placeholder="e.g., Dell, HP">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0.5rem;">
-                                    <label class="form-label" style="font-size: 0.75rem;">Model</label>
-                                    <input type="text" 
-                                           name="items-{{ forloop.counter0 }}-model" 
-                                           class="form-control" 
-                                           style="font-size: 0.75rem; padding: 0.5rem;"
-                                           placeholder="e.g., XPS 15">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0.5rem;">
-                                    <label class="form-label" style="font-size: 0.75rem;">Warranty (Months)</label>
-                                    <input type="number" 
-                                           name="items-{{ forloop.counter0 }}-warranty_period_months" 
-                                           class="form-control" 
-                                           style="font-size: 0.75rem; padding: 0.5rem;"
-                                           min="0" 
-                                           value="12"
-                                           placeholder="12">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label class="form-label" style="font-size: 0.75rem;">Specifications</label>
-                                    <textarea name="items-{{ forloop.counter0 }}-specifications" 
-                                              class="form-control" 
-                                              rows="2"
-                                              style="font-size: 0.75rem; padding: 0.5rem;"
-                                              placeholder="Additional specifications..."></textarea>
-                                </div>
-                            </div>
+                            <input type="number" name="items-{{ forloop.counter0 }}-delivery_period_days" 
+                                   class="form-control" value="30" min="1" placeholder="Days">
+                            <input type="text" name="items-{{ forloop.counter0 }}-brand" 
+                                   class="form-control" placeholder="Brand" style="margin-top: 0.5rem;">
+                            <input type="number" name="items-{{ forloop.counter0 }}-warranty_period_months" 
+                                   class="form-control" value="12" min="0" placeholder="Warranty (months)" 
+                                   style="margin-top: 0.5rem;">
                         </td>
                     </tr>
                     {% endfor %}
@@ -718,144 +539,174 @@
             
             <div class="alert alert-info">
                 <i class="bi bi-calculator"></i>
-                <div>
-                    <strong>Calculated Bid Total: </strong>
-                    <span id="bid-total" style="font-weight: 600; font-size: 1.125rem;">KES 0.00</span>
-                </div>
+                <strong>Calculated Total: </strong>
+                <span id="bid-total">KES 0.00</span>
             </div>
         </div>
     </div>
 
-    <!-- Documents Section -->
+    <!-- Technical Evaluation Criteria -->
+    {% if technical_criteria %}
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-clipboard-check"></i>
+                Technical Evaluation Responses
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <div>
+                    Please provide detailed responses to all technical criteria. 
+                    Upload supporting documents where required.
+                </div>
+            </div>
+
+            {% for criterion in technical_criteria %}
+            <div class="criterion-item">
+                <div class="criterion-header">
+                    <div>
+                        <div class="criterion-name">
+                            {{ forloop.counter }}. {{ criterion.criterion_name }}
+                        </div>
+                        <div style="font-size: 0.75rem; color: #64748B;">
+                            Weight: {{ criterion.weight_percentage }}% | 
+                            Max Score: {{ criterion.max_score }}
+                        </div>
+                    </div>
+                    <span class="criterion-badge {% if criterion.is_mandatory %}badge-mandatory{% else %}badge-optional{% endif %}">
+                        {% if criterion.is_mandatory %}Mandatory{% else %}Optional{% endif %}
+                    </span>
+                </div>
+
+                <div class="criterion-description">
+                    {{ criterion.description }}
+                </div>
+
+                <div class="criterion-specs">
+                    <strong>Minimum Specification:</strong><br>
+                    {{ criterion.minimum_specification }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label {% if criterion.is_mandatory %}required{% endif %}">
+                        Your Response
+                    </label>
+                    
+                    {% if criterion.response_type == 'YES_NO' %}
+                        <select name="tech-{{ forloop.counter0 }}-response_value" 
+                                class="form-control" 
+                                {% if criterion.is_mandatory %}required{% endif %}>
+                            <option value="">Select...</option>
+                            <option value="YES">Yes</option>
+                            <option value="NO">No</option>
+                        </select>
+                    
+                    {% elif criterion.response_type == 'NUMERIC' %}
+                        <input type="number" 
+                               name="tech-{{ forloop.counter0 }}-response_value" 
+                               class="form-control" 
+                               step="0.01"
+                               {% if criterion.is_mandatory %}required{% endif %}>
+                    
+                    {% else %}
+                        <textarea name="tech-{{ forloop.counter0 }}-response_text" 
+                                  class="form-control" 
+                                  rows="4"
+                                  {% if criterion.is_mandatory %}required{% endif %}
+                                  placeholder="Provide detailed response..."></textarea>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Supporting Document</label>
+                    <input type="file" 
+                           name="tech-{{ forloop.counter0 }}-document" 
+                           class="form-control"
+                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                    <small class="form-text">Upload certificates, datasheets, or other evidence</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Additional Remarks</label>
+                    <textarea name="tech-{{ forloop.counter0 }}-remarks" 
+                              class="form-control" 
+                              rows="2"
+                              placeholder="Any additional information..."></textarea>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bid Documents -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">
                 <i class="bi bi-paperclip"></i>
-                Supporting Documents
+                Required Documents
             </h2>
         </div>
         <div class="card-body">
-            <div class="documents-section">
-                <div class="document-item">
-                    <div class="document-icon">
-                        <i class="bi bi-file-text"></i>
-                    </div>
-                    <div class="document-info">
-                        <div class="document-name">Technical Proposal</div>
-                        <div class="document-description">
-                            Detailed technical specifications, methodology, and approach
-                        </div>
-                        <div class="document-upload">
-                            <input type="text" 
-                                   name="doc_names" 
-                                   class="form-control" 
-                                   placeholder="Document name (e.g., Technical Proposal - Company Name)" 
-                                   required>
-                            <input type="hidden" name="doc_types" value="TECHNICAL">
-                            <input type="file" 
-                                   name="documents" 
-                                   accept=".pdf,.doc,.docx" 
-                                   required
-                                   class="form-control">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="document-item">
-                    <div class="document-icon">
-                        <i class="bi bi-cash-coin"></i>
-                    </div>
-                    <div class="document-info">
-                        <div class="document-name">Financial Proposal</div>
-                        <div class="document-description">
-                            Detailed cost breakdown and pricing structure
-                        </div>
-                        <div class="document-upload">
-                            <input type="text" 
-                                   name="doc_names" 
-                                   class="form-control" 
-                                   placeholder="Document name (e.g., Financial Proposal - Company Name)" 
-                                   required>
-                            <input type="hidden" name="doc_types" value="FINANCIAL">
-                            <input type="file" 
-                                   name="documents" 
-                                   accept=".pdf,.doc,.docx,.xls,.xlsx" 
-                                   required
-                                   class="form-control">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="document-item">
-                    <div class="document-icon">
-                        <i class="bi bi-check-circle"></i>
-                    </div>
-                    <div class="document-info">
-                        <div class="document-name">Compliance Documents</div>
-                        <div class="document-description">
-                            Tax compliance, business registration, and other required certificates
-                        </div>
-                        <div class="document-upload">
-                            <input type="text" 
-                                   name="doc_names" 
-                                   class="form-control" 
-                                   placeholder="Document name (e.g., Tax Compliance Certificate)" 
-                                   required>
-                            <input type="hidden" name="doc_types" value="COMPLIANCE">
-                            <input type="file" 
-                                   name="documents" 
-                                   accept=".pdf,.jpg,.jpeg,.png" 
-                                   required
-                                   class="form-control">
-                        </div>
-                    </div>
-                </div>
+            <!-- Technical Proposal -->
+            <div class="document-upload-area" style="margin-bottom: 1rem;">
+                <h4 style="margin-bottom: 0.5rem;">
+                    <i class="bi bi-file-text"></i> Technical Proposal
+                </h4>
+                <input type="text" name="doc_names" class="form-control" 
+                       placeholder="Document name" required style="margin-bottom: 0.5rem;">
+                <input type="hidden" name="doc_types" value="TECHNICAL">
+                <input type="file" name="documents" class="form-control" 
+                       accept=".pdf,.doc,.docx" required>
+                <input type="hidden" name="doc_descriptions" value="Technical Proposal">
             </div>
 
-            <div class="form-group">
-                <label for="id_notes" class="form-label">
-                    <i class="bi bi-chat-left-text"></i>
-                    Additional Notes
-                </label>
-                <textarea name="notes" 
-                          id="id_notes" 
-                          class="form-control" 
-                          rows="4" 
-                          placeholder="Any additional information about your bid, special offers, or clarifications..."></textarea>
+            <!-- Financial Proposal -->
+            <div class="document-upload-area" style="margin-bottom: 1rem;">
+                <h4 style="margin-bottom: 0.5rem;">
+                    <i class="bi bi-cash-coin"></i> Financial Proposal
+                </h4>
+                <input type="text" name="doc_names" class="form-control" 
+                       placeholder="Document name" required style="margin-bottom: 0.5rem;">
+                <input type="hidden" name="doc_types" value="FINANCIAL">
+                <input type="file" name="documents" class="form-control" 
+                       accept=".pdf,.xls,.xlsx" required>
+                <input type="hidden" name="doc_descriptions" value="Financial Proposal">
+            </div>
+
+            <!-- Compliance Documents -->
+            <div class="document-upload-area">
+                <h4 style="margin-bottom: 0.5rem;">
+                    <i class="bi bi-check-circle"></i> Compliance Documents
+                </h4>
+                <input type="text" name="doc_names" class="form-control" 
+                       placeholder="Document name" required style="margin-bottom: 0.5rem;">
+                <input type="hidden" name="doc_types" value="COMPLIANCE">
+                <input type="file" name="documents" class="form-control" 
+                       accept=".pdf,.jpg,.jpeg,.png" required>
+                <input type="hidden" name="doc_descriptions" value="Compliance Documents">
+            </div>
+
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label for="id_notes" class="form-label">Additional Notes</label>
+                <textarea name="notes" id="id_notes" class="form-control" rows="4"></textarea>
             </div>
         </div>
     </div>
 
-    <!-- Action Buttons -->
     <div class="action-buttons">
-        <a href="{% url 'supplier_tender_detail' tender.id %}" class="btn btn-secondary">
-            <i class="bi bi-x-circle"></i>
-            Cancel
+        <a href="{% url 'supplier_tender_detail' tender.id %}" class="btn">
+            <i class="bi bi-x-circle"></i> Cancel
         </a>
         <button type="submit" class="btn btn-success">
-            <i class="bi bi-send-check"></i>
-            Submit Bid
+            <i class="bi bi-send-check"></i> Submit Bid
         </button>
     </div>
 </form>
 
 <script>
-    // Toggle expandable item details
-function toggleItemDetails(index) {
-    const details = document.getElementById(`item-details-${index}`);
-    const button = event.currentTarget;
-    const icon = button.querySelector('i');
-    
-    if (details.style.display === 'none') {
-        details.style.display = 'block';
-        button.classList.add('expanded');
-    } else {
-        details.style.display = 'none';
-        button.classList.remove('expanded');
-    }
-}
-
-// Calculate item totals and bid total
 document.addEventListener('DOMContentLoaded', function() {
     const unitPriceInputs = document.querySelectorAll('.item-unit-price');
     const bidTotalElement = document.getElementById('bid-total');
@@ -867,303 +718,52 @@ document.addEventListener('DOMContentLoaded', function() {
         const quantity = parseFloat(input.dataset.quantity) || 0;
         const total = unitPrice * quantity;
         
-        const totalInput = document.getElementById(`total-${index}`);
-        totalInput.value = total.toFixed(2);
+        document.getElementById(`total-${index}`).value = `KES ${total.toFixed(2)}`;
+        document.getElementById(`total-hidden-${index}`).value = total.toFixed(2);
         
         calculateBidTotal();
     }
     
     function calculateBidTotal() {
         let bidTotal = 0;
-        
         unitPriceInputs.forEach((input) => {
             const unitPrice = parseFloat(input.value) || 0;
             const quantity = parseFloat(input.dataset.quantity) || 0;
             bidTotal += unitPrice * quantity;
         });
         
-        // Update bid total display
         bidTotalElement.textContent = `KES ${bidTotal.toLocaleString('en-US', {
-            minimumFractionDigits: 2, 
+            minimumFractionDigits: 2,
             maximumFractionDigits: 2
         })}`;
         
-        // Update bid amount input
         bidAmountInput.value = bidTotal.toFixed(2);
     }
     
-    // Add event listeners to all unit price inputs
     unitPriceInputs.forEach(input => {
         input.addEventListener('input', function() {
             calculateItemTotal(this);
         });
-        input.addEventListener('change', function() {
-            calculateItemTotal(this);
-        });
     });
     
-    // Initial calculation
-    calculateBidTotal();
-    
-    // Form validation before submit
     document.getElementById('bidForm').addEventListener('submit', function(e) {
         const bidAmount = parseFloat(bidAmountInput.value) || 0;
         
         if (bidAmount <= 0) {
             e.preventDefault();
-            alert('Please enter prices for all items before submitting.');
+            alert('Please enter prices for all items.');
             return false;
         }
         
-        // Validate that all required documents are uploaded
-        const requiredDocs = document.querySelectorAll('input[type="file"][required]');
-        let allDocsUploaded = true;
-        let missingDocs = [];
-        
-        requiredDocs.forEach(doc => {
-            if (!doc.files.length) {
-                allDocsUploaded = false;
-                // Get the document name from the previous sibling or parent
-                const docItem = doc.closest('.document-item');
-                const docName = docItem.querySelector('.document-name').textContent;
-                missingDocs.push(docName);
-            }
-        });
-        
-        if (!allDocsUploaded) {
-            e.preventDefault();
-            alert(`Please upload all required documents:\n- ${missingDocs.join('\n- ')}`);
-            return false;
-        }
-        
-        // Validate that all document names are filled
-        const docNameInputs = document.querySelectorAll('input[name="doc_names"]');
-        let allNamesProvided = true;
-        
-        docNameInputs.forEach(input => {
-            if (!input.value.trim()) {
-                allNamesProvided = false;
-            }
-        });
-        
-        if (!allNamesProvided) {
-            e.preventDefault();
-            alert('Please provide names for all uploaded documents.');
-            return false;
-        }
-        
-        // Validate delivery period
-        const deliveryPeriod = parseInt(document.getElementById('id_delivery_period_days').value);
-        if (!deliveryPeriod || deliveryPeriod < 1) {
-            e.preventDefault();
-            alert('Please enter a valid delivery period (minimum 1 day).');
-            return false;
-        }
-        
-        // Validate validity period
-        const validityPeriod = parseInt(document.getElementById('id_validity_period_days').value);
-        if (!validityPeriod || validityPeriod < 30) {
-            e.preventDefault();
-            alert('Please enter a valid validity period (minimum 30 days).');
-            return false;
-        }
-        
-        // Validate item delivery periods
-        const itemDeliveryInputs = document.querySelectorAll('input[name*="delivery_period_days"]');
-        let allItemDeliveriesValid = true;
-        
-        itemDeliveryInputs.forEach(input => {
-            const value = parseInt(input.value);
-            if (!value || value < 1) {
-                allItemDeliveriesValid = false;
-            }
-        });
-        
-        if (!allItemDeliveriesValid) {
-            e.preventDefault();
-            alert('Please ensure all items have valid delivery periods (minimum 1 day).');
-            return false;
-        }
-        
-        // Confirm submission
-        const confirmed = confirm(
-            `You are about to submit a bid for KES ${bidTotal.toLocaleString('en-US', {
-                minimumFractionDigits: 2, 
-                maximumFractionDigits: 2
-            })}.\n\n` +
-            `Please review all information carefully as bids cannot be edited once submitted.\n\n` +
-            `Do you want to proceed?`
-        );
-        
+        const confirmed = confirm('Are you sure you want to submit this bid? It cannot be edited after submission.');
         if (!confirmed) {
             e.preventDefault();
             return false;
         }
         
-        // Show loading state
         const submitButton = this.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Submitting...';
-    });
-    
-    // File upload validation
-    const fileInputs = document.querySelectorAll('input[type="file"]');
-    fileInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                // Check file size (max 10MB)
-                const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-                if (file.size > maxSize) {
-                    alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
-                    this.value = '';
-                    return;
-                }
-                
-                // Validate file type based on accept attribute
-                const acceptedTypes = this.accept.split(',').map(t => t.trim());
-                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-                
-                let isValidType = false;
-                acceptedTypes.forEach(type => {
-                    if (type === fileExtension || 
-                        (type.includes('*') && fileExtension.match(new RegExp(type.replace('*', '.*'))))) {
-                        isValidType = true;
-                    }
-                });
-                
-                if (!isValidType) {
-                    alert(`File "${file.name}" has an invalid file type. Please upload: ${this.accept}`);
-                    this.value = '';
-                    return;
-                }
-                
-                // Visual feedback
-                const docItem = this.closest('.document-item');
-                docItem.style.borderColor = '#10B981';
-                docItem.style.backgroundColor = '#F0FDF4';
-                
-                // Show file name if document name is empty
-                const nameInput = docItem.querySelector('input[name="doc_names"]');
-                if (!nameInput.value.trim()) {
-                    nameInput.value = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
-                }
-            }
-        });
-    });
-    
-    // Auto-save to localStorage (optional - for draft functionality)
-    const autoSaveInterval = 30000; // 30 seconds
-    let autoSaveTimer;
-    
-    function saveDraft() {
-        const formData = {
-            bid_amount: bidAmountInput.value,
-            bid_bond_amount: document.getElementById('id_bid_bond_amount').value,
-            delivery_period_days: document.getElementById('id_delivery_period_days').value,
-            validity_period_days: document.getElementById('id_validity_period_days').value,
-            notes: document.getElementById('id_notes').value,
-            items: [],
-            timestamp: new Date().toISOString()
-        };
-        
-        // Save item prices
-        unitPriceInputs.forEach((input, index) => {
-            formData.items.push({
-                index: index,
-                quoted_unit_price: input.value,
-                delivery_period_days: document.querySelector(`input[name="items-${index}-delivery_period_days"]`).value,
-                brand: document.querySelector(`input[name="items-${index}-brand"]`)?.value || '',
-                model: document.querySelector(`input[name="items-${index}-model"]`)?.value || '',
-                warranty_period_months: document.querySelector(`input[name="items-${index}-warranty_period_months"]`)?.value || '',
-                specifications: document.querySelector(`textarea[name="items-${index}-specifications"]`)?.value || ''
-            });
-        });
-        
-        try {
-            localStorage.setItem(`bid_draft_${window.location.pathname}`, JSON.stringify(formData));
-            console.log('Draft saved successfully');
-        } catch (e) {
-            console.error('Failed to save draft:', e);
-        }
-    }
-    
-    function loadDraft() {
-        try {
-            const savedDraft = localStorage.getItem(`bid_draft_${window.location.pathname}`);
-            if (savedDraft) {
-                const formData = JSON.parse(savedDraft);
-                
-                // Ask user if they want to load the draft
-                if (confirm(`A draft from ${new Date(formData.timestamp).toLocaleString()} was found. Do you want to load it?`)) {
-                    // Load basic fields
-                    if (formData.bid_bond_amount) document.getElementById('id_bid_bond_amount').value = formData.bid_bond_amount;
-                    if (formData.delivery_period_days) document.getElementById('id_delivery_period_days').value = formData.delivery_period_days;
-                    if (formData.validity_period_days) document.getElementById('id_validity_period_days').value = formData.validity_period_days;
-                    if (formData.notes) document.getElementById('id_notes').value = formData.notes;
-                    
-                    // Load item data
-                    formData.items.forEach(item => {
-                        if (item.quoted_unit_price) {
-                            const unitPriceInput = document.querySelector(`input[name="items-${item.index}-quoted_unit_price"]`);
-                            if (unitPriceInput) unitPriceInput.value = item.quoted_unit_price;
-                        }
-                        if (item.delivery_period_days) {
-                            const deliveryInput = document.querySelector(`input[name="items-${item.index}-delivery_period_days"]`);
-                            if (deliveryInput) deliveryInput.value = item.delivery_period_days;
-                        }
-                        if (item.brand) {
-                            const brandInput = document.querySelector(`input[name="items-${item.index}-brand"]`);
-                            if (brandInput) brandInput.value = item.brand;
-                        }
-                        if (item.model) {
-                            const modelInput = document.querySelector(`input[name="items-${item.index}-model"]`);
-                            if (modelInput) modelInput.value = item.model;
-                        }
-                        if (item.warranty_period_months) {
-                            const warrantyInput = document.querySelector(`input[name="items-${item.index}-warranty_period_months"]`);
-                            if (warrantyInput) warrantyInput.value = item.warranty_period_months;
-                        }
-                        if (item.specifications) {
-                            const specsInput = document.querySelector(`textarea[name="items-${item.index}-specifications"]`);
-                            if (specsInput) specsInput.value = item.specifications;
-                        }
-                    });
-                    
-                    // Recalculate totals
-                    calculateBidTotal();
-                }
-            }
-        } catch (e) {
-            console.error('Failed to load draft:', e);
-        }
-    }
-    
-    // Load draft on page load
-    loadDraft();
-    
-    // Auto-save draft periodically
-    const formInputs = document.querySelectorAll('#bidForm input, #bidForm textarea');
-    formInputs.forEach(input => {
-        input.addEventListener('input', function() {
-            clearTimeout(autoSaveTimer);
-            autoSaveTimer = setTimeout(saveDraft, 2000); // Save 2 seconds after last input
-        });
-    });
-    
-    // Clear draft on successful submission
-    document.getElementById('bidForm').addEventListener('submit', function() {
-        localStorage.removeItem(`bid_draft_${window.location.pathname}`);
-    });
-    
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        // Ctrl+S or Cmd+S to save draft
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            saveDraft();
-            alert('Draft saved!');
-        }
     });
 });
 </script>
