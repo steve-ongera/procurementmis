@@ -3105,7 +3105,7 @@ def bid_detail(request, pk):
     user_evaluation = None
     
     if is_committee_member:
-        from core.models import TechnicalEvaluationScore, FinancialEvaluationScore
+        from .models import TechnicalEvaluationScore, FinancialEvaluationScore
         
         # Check for technical evaluation
         technical_scores = TechnicalEvaluationScore.objects.filter(
@@ -3136,7 +3136,7 @@ def bid_detail(request, pk):
         ).count()
         
         # Count members who have submitted evaluations
-        from core.models import TechnicalEvaluationScore, FinancialEvaluationScore
+        from .models import TechnicalEvaluationScore, FinancialEvaluationScore
         
         technical_evaluators = TechnicalEvaluationScore.objects.filter(
             bid=bid
