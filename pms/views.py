@@ -9778,20 +9778,36 @@ def supplier_bid_detail(request, bid_id):
     
     return render(request, 'supplier/bid_detail.html', context)
 
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Sum
 from decimal import Decimal
+from .models import (
+    Tender, Bid, BidItem, BidDocument, Supplier,
+    TechnicalEvaluationCriteria, BidTechnicalResponse,
+    RequisitionItem
+)
 
 
 @login_required
 def supplier_submit_bid(request, tender_id):
-    """Submit a new bid for a tender"""
+    """Submit a new bid for a tender with technical responses"""
     
-    supplier = request.user.supplier_profile
+    # Get supplier profile
+    try:
+        supplier = request.user.supplier_profile
+    except Supplier.DoesNotExist:
+        messages.error(request, "You must be registered as a supplier to submit bids.")
+        return redirect('supplier_dashboard')
+    
+    # Check supplier status
+    if supplier.status != 'APPROVED':
+        messages.error(request, "Your supplier account is not approved. Please contact procurement office.")
+        return redirect('supplier_dashboard')
+    
     tender = get_object_or_404(Tender, id=tender_id)
     
     # Check if tender is still open
@@ -9799,41 +9815,71 @@ def supplier_submit_bid(request, tender_id):
         messages.error(request, "This tender has closed.")
         return redirect('supplier_tender_detail', tender_id=tender_id)
     
+    # Check if tender is published
+    if tender.status != 'PUBLISHED':
+        messages.error(request, "This tender is not open for bidding.")
+        return redirect('supplier_tender_detail', tender_id=tender_id)
+    
     # Check if already submitted
     if Bid.objects.filter(tender=tender, supplier=supplier).exists():
         messages.error(request, "You have already submitted a bid for this tender.")
         return redirect('supplier_tender_detail', tender_id=tender_id)
     
-    # Get requisition items for this tender
+    # Get requisition items and technical criteria
     requisition_items = tender.requisition.items.all()
+    technical_criteria = tender.technical_criteria.all().order_by('sequence')
+    
+    # Get required documents from tender
+    tender_documents = tender.documents.filter(is_mandatory=True)
     
     if request.method == 'POST':
         try:
             with transaction.atomic():
+                # Validate bid amount
+                bid_amount = Decimal(request.POST.get('bid_amount', 0))
+                if bid_amount <= 0:
+                    raise ValueError("Bid amount must be greater than zero")
+                
+                # Validate delivery period
+                delivery_period = int(request.POST.get('delivery_period_days', 0))
+                if delivery_period < 1:
+                    raise ValueError("Delivery period must be at least 1 day")
+                
+                # Validate validity period
+                validity_period = int(request.POST.get('validity_period_days', 0))
+                if validity_period < 30:
+                    raise ValueError("Validity period must be at least 30 days")
+                
                 # Create the bid
                 bid = Bid.objects.create(
                     tender=tender,
                     supplier=supplier,
-                    bid_amount=Decimal(request.POST.get('bid_amount', 0)),
+                    bid_amount=bid_amount,
                     bid_bond_amount=Decimal(request.POST.get('bid_bond_amount', 0)),
-                    validity_period_days=int(request.POST.get('validity_period_days', 90)),
-                    delivery_period_days=int(request.POST.get('delivery_period_days', 30)),
+                    validity_period_days=validity_period,
+                    delivery_period_days=delivery_period,
                     status='SUBMITTED',
-                    notes=request.POST.get('notes', '')
+                    notes=request.POST.get('notes', ''),
+                    preliminary_evaluation_status='PENDING',
+                    technical_evaluation_status='PENDING',
+                    financial_evaluation_status='PENDING'
                 )
+                
+                # Calculate total from items
+                total_calculated = Decimal('0')
                 
                 # Save bid items
                 for i, req_item in enumerate(requisition_items):
                     quoted_unit_price = Decimal(request.POST.get(f'items-{i}-quoted_unit_price', 0))
-                    quoted_total = Decimal(request.POST.get(f'items-{i}-quoted_total', 0))
-                    delivery_days = int(request.POST.get(f'items-{i}-delivery_period_days', 30))
                     
-                    # Optional fields
-                    brand = request.POST.get(f'items-{i}-brand', '')
-                    model = request.POST.get(f'items-{i}-model', '')
-                    specifications = request.POST.get(f'items-{i}-specifications', '')
+                    if quoted_unit_price <= 0:
+                        raise ValueError(f"Please provide valid unit price for item {i+1}")
+                    
+                    quoted_total = quoted_unit_price * req_item.quantity
+                    total_calculated += quoted_total
+                    
+                    delivery_days = int(request.POST.get(f'items-{i}-delivery_period_days', delivery_period))
                     warranty_months = int(request.POST.get(f'items-{i}-warranty_period_months', 0))
-                    item_notes = request.POST.get(f'items-{i}-notes', '')
                     
                     BidItem.objects.create(
                         bid=bid,
@@ -9841,45 +9887,150 @@ def supplier_submit_bid(request, tender_id):
                         quoted_unit_price=quoted_unit_price,
                         quoted_total=quoted_total,
                         delivery_period_days=delivery_days,
-                        brand=brand,
-                        model=model,
-                        specifications=specifications,
+                        brand=request.POST.get(f'items-{i}-brand', ''),
+                        model=request.POST.get(f'items-{i}-model', ''),
+                        specifications=request.POST.get(f'items-{i}-specifications', ''),
                         warranty_period_months=warranty_months,
-                        notes=item_notes
+                        notes=request.POST.get(f'items-{i}-notes', '')
                     )
                 
-                # Handle document uploads
+                # Verify calculated total matches submitted bid amount
+                if abs(total_calculated - bid_amount) > Decimal('0.01'):
+                    raise ValueError(
+                        f"Bid amount mismatch. Calculated: {total_calculated}, Submitted: {bid_amount}"
+                    )
+                
+                # Save technical responses if tender requires technical evaluation
+                if tender.requires_technical_evaluation and technical_criteria.exists():
+                    for i, criterion in enumerate(technical_criteria):
+                        response_text = request.POST.get(f'tech-{i}-response_text', '')
+                        response_value = request.POST.get(f'tech-{i}-response_value', '')
+                        supplier_remarks = request.POST.get(f'tech-{i}-remarks', '')
+                        
+                        # Handle file upload for this criterion
+                        doc_file = request.FILES.get(f'tech-{i}-document')
+                        
+                        # Create technical response
+                        tech_response = BidTechnicalResponse.objects.create(
+                            bid=bid,
+                            criterion=criterion,
+                            response_text=response_text,
+                            response_value=response_value,
+                            supplier_remarks=supplier_remarks,
+                            compliance_status='PENDING'
+                        )
+                        
+                        # Save supporting document if uploaded
+                        if doc_file:
+                            tech_response.supporting_document = doc_file
+                            tech_response.save()
+                
+                # Handle mandatory bid documents
+                doc_count = 0
+                uploaded_doc_types = set()
+                
+                # Get all uploaded files and their metadata
                 documents = request.FILES.getlist('documents')
                 doc_types = request.POST.getlist('doc_types')
                 doc_names = request.POST.getlist('doc_names')
+                doc_descriptions = request.POST.getlist('doc_descriptions')
                 
                 if len(documents) != len(doc_types) or len(documents) != len(doc_names):
-                    raise ValueError("Document upload data mismatch")
+                    raise ValueError("Document upload data is inconsistent")
                 
+                # Save each document
                 for i, doc_file in enumerate(documents):
                     if doc_file:
+                        doc_type = doc_types[i] if i < len(doc_types) else 'OTHER'
+                        doc_name = doc_names[i] if i < len(doc_names) else doc_file.name
+                        doc_desc = doc_descriptions[i] if i < len(doc_descriptions) else ''
+                        
                         BidDocument.objects.create(
                             bid=bid,
-                            document_type=doc_types[i],
-                            document_name=doc_names[i],
+                            document_type=doc_type,
+                            document_name=doc_name,
                             file=doc_file,
-                            description=request.POST.get(f'doc_descriptions-{i}', '')
+                            description=doc_desc
                         )
+                        
+                        uploaded_doc_types.add(doc_type)
+                        doc_count += 1
                 
-                messages.success(request, f"Bid {bid.bid_number} submitted successfully!")
+                # Verify all mandatory document types are uploaded
+                required_doc_types = ['TECHNICAL', 'FINANCIAL', 'COMPLIANCE']
+                missing_docs = [dt for dt in required_doc_types if dt not in uploaded_doc_types]
+                
+                if missing_docs:
+                    raise ValueError(
+                        f"Missing required documents: {', '.join(missing_docs)}"
+                    )
+                
+                if doc_count < 3:
+                    raise ValueError("Please upload all required documents (Technical, Financial, Compliance)")
+                
+                # Create notification for procurement team
+                from .models import Notification, User
+                procurement_users = User.objects.filter(role='PROCUREMENT', is_active=True)
+                
+                for user in procurement_users:
+                    Notification.objects.create(
+                        user=user,
+                        notification_type='TENDER',
+                        priority='MEDIUM',
+                        title=f'New Bid Submitted - {tender.tender_number}',
+                        message=f'{supplier.name} has submitted a bid for {tender.title}. '
+                                f'Bid Amount: KES {bid_amount:,.2f}',
+                        link_url=f'/procurement/bids/{bid.id}/'
+                    )
+                
+                # Log the submission
+                from .models import AuditLog
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='CREATE',
+                    model_name='Bid',
+                    object_id=str(bid.id),
+                    object_repr=str(bid),
+                    changes={
+                        'bid_number': bid.bid_number,
+                        'tender': tender.tender_number,
+                        'supplier': supplier.name,
+                        'bid_amount': str(bid_amount),
+                        'items_count': requisition_items.count(),
+                        'documents_count': doc_count,
+                        'technical_responses': technical_criteria.count()
+                    },
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT', '')[:500]
+                )
+                
+                messages.success(
+                    request, 
+                    f"Bid {bid.bid_number} submitted successfully! "
+                    f"You will be notified when the evaluation is complete."
+                )
                 return redirect('supplier_bid_detail', bid_id=bid.id)
                 
         except ValueError as e:
-            messages.error(request, f"Invalid data: {str(e)}")
+            messages.error(request, f"Validation Error: {str(e)}")
         except Exception as e:
             messages.error(request, f"Error submitting bid: {str(e)}")
+            # Log the error
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Bid submission error: {str(e)}", exc_info=True)
     
     context = {
         'tender': tender,
         'requisition_items': requisition_items,
+        'technical_criteria': technical_criteria,
+        'tender_documents': tender_documents,
+        'supplier': supplier,
     }
     
     return render(request, 'supplier/submit_bid.html', context)
+
+
 
 
 @login_required
