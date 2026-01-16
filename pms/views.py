@@ -14620,19 +14620,104 @@ def procurement_active_tenders_view(request):
     return render(request, 'procurement/procurement_module/active_tenders.html', context)
 
 
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db import transaction
+from .models import (
+    Tender, Requisition, Supplier, TenderDocument,
+    Notification
+)
+from django.utils import timezone
+
+
 @login_required
 def procurement_create_tender_view(request):
-    """Create new tender"""
+    """Create new tender with document uploads"""
     if not check_procurement_permission(request.user):
         messages.error(request, 'You do not have procurement officer permissions.')
         return redirect('dashboard')
     
     if request.method == 'POST':
-        # Handle tender creation
-        messages.success(request, 'Tender created successfully.')
-        return redirect('procurement_active_tenders')
+        try:
+            with transaction.atomic():
+                # Extract form data
+                requisition_id = request.POST.get('requisition')
+                title = request.POST.get('title')
+                tender_type = request.POST.get('tender_type')
+                procurement_method = request.POST.get('procurement_method')
+                description = request.POST.get('description')
+                estimated_budget = request.POST.get('estimated_budget')
+                closing_date = request.POST.get('closing_date')
+                bid_opening_date = request.POST.get('bid_opening_date')
+                supplier_ids = request.POST.getlist('suppliers')
+                
+                # Create tender
+                requisition = Requisition.objects.get(id=requisition_id)
+                tender = Tender.objects.create(
+                    requisition=requisition,
+                    title=title,
+                    tender_type=tender_type,
+                    procurement_method=procurement_method,
+                    description=description,
+                    estimated_budget=estimated_budget,
+                    closing_date=closing_date,
+                    bid_opening_date=bid_opening_date,
+                    status='DRAFT',
+                    created_by=request.user
+                )
+                
+                # Add invited suppliers if any
+                if supplier_ids:
+                    suppliers = Supplier.objects.filter(id__in=supplier_ids)
+                    tender.invited_suppliers.set(suppliers)
+                
+                # Handle document uploads
+                uploaded_files = request.FILES.getlist('tender_documents')
+                document_names = request.POST.getlist('document_names')
+                document_descriptions = request.POST.getlist('document_descriptions')
+                mandatory_flags = request.POST.getlist('document_mandatory')
+                
+                for i, file in enumerate(uploaded_files):
+                    doc_name = document_names[i] if i < len(document_names) else file.name
+                    doc_desc = document_descriptions[i] if i < len(document_descriptions) else ''
+                    is_mandatory = str(i) in mandatory_flags
+                    
+                    TenderDocument.objects.create(
+                        tender=tender,
+                        document_name=doc_name,
+                        file=file,
+                        description=doc_desc,
+                        is_mandatory=is_mandatory
+                    )
+                
+                # Create notifications for invited suppliers
+                if supplier_ids:
+                    for supplier_id in supplier_ids:
+                        supplier = Supplier.objects.get(id=supplier_id)
+                        if supplier.user:
+                            Notification.objects.create(
+                                user=supplier.user,
+                                notification_type='TENDER',
+                                priority='HIGH',
+                                title=f'New Tender Invitation: {tender.title}',
+                                message=f'You have been invited to submit a bid for tender {tender.tender_number}. Closing date: {tender.closing_date.strftime("%d %b %Y %H:%M")}',
+                                link_url=f'/suppliers/tenders/{tender.id}/'
+                            )
+                
+                messages.success(
+                    request, 
+                    f'Tender {tender.tender_number} created successfully with {len(uploaded_files)} document(s).'
+                )
+                return redirect('procurement_active_tenders')
+                
+        except Requisition.DoesNotExist:
+            messages.error(request, 'Selected requisition does not exist.')
+        except Exception as e:
+            messages.error(request, f'Error creating tender: {str(e)}')
+            return redirect('procurement_create_tender')
     
-    # Get approved requisitions without tenders
+    # GET request - show form
     requisitions = Requisition.objects.filter(
         status='APPROVED'
     ).exclude(
@@ -14641,11 +14726,26 @@ def procurement_create_tender_view(request):
     
     suppliers = Supplier.objects.filter(status='APPROVED')
     
+    # Common tender document types
+    document_types = [
+        'Invitation to Bid (ITB)',
+        'Terms of Reference (TOR)',
+        'Technical Specifications',
+        'Bill of Quantities (BOQ)',
+        'Bid Data Sheet',
+        'General Conditions of Contract',
+        'Special Conditions of Contract',
+        'Sample Forms (Bid Form, Performance Security)',
+        'Evaluation Criteria',
+        'Tender Drawings/Plans',
+    ]
+    
     context = {
         'requisitions': requisitions,
         'suppliers': suppliers,
         'tender_types': Tender.TENDER_TYPES,
         'methods': Tender.METHOD_CHOICES,
+        'document_types': document_types,
     }
     
     return render(request, 'procurement/procurement_module/create_tender.html', context)

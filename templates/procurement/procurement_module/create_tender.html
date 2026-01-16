@@ -1,9 +1,5 @@
-<!-- ========================================== -->
-<!-- procurement/procurement_module/create_tender.html -->
-<!-- ========================================== -->
 {% extends 'base.html' %}
 {% load humanize %}
-{% load crispy_forms_tags %}
 
 {% block title %}Create New Tender - Procurement Module{% endblock %}
 
@@ -21,10 +17,8 @@
         --border-color: #E2E8F0;
         --card-bg: #FFFFFF;
         --hover-bg: #F8FAFC;
-        --table-header: #F1F5F9;
     }
 
-    /* Reduced font sizes throughout */
     .page-header {
         display: flex;
         justify-content: space-between;
@@ -35,7 +29,7 @@
     }
 
     .page-title {
-        font-size: 1.5rem; /* Reduced from 1.75rem */
+        font-size: 1.5rem;
         font-weight: 600;
         color: #1E293B;
         margin: 0 0 0.25rem 0;
@@ -45,7 +39,7 @@
         display: flex;
         align-items: center;
         gap: 0.375rem;
-        font-size: 0.75rem; /* Reduced from 0.875rem */
+        font-size: 0.75rem;
         color: var(--secondary-color);
         margin: 0;
     }
@@ -53,17 +47,11 @@
     .breadcrumb a {
         color: var(--primary-color);
         text-decoration: none;
-        transition: color 0.2s;
     }
 
     .breadcrumb a:hover {
         color: var(--primary-dark);
         text-decoration: underline;
-    }
-
-    .breadcrumb i {
-        font-size: 0.625rem; /* Reduced from 0.75rem */
-        color: #94A3B8;
     }
 
     .form-container {
@@ -75,7 +63,7 @@
         background: var(--card-bg);
         border: 1px solid var(--border-color);
         border-radius: 0.5rem;
-        padding: 1.5rem; /* Reduced from 2rem */
+        padding: 1.5rem;
         margin-bottom: 1.5rem;
     }
 
@@ -83,12 +71,8 @@
         margin-bottom: 2rem;
     }
 
-    .form-section:last-child {
-        margin-bottom: 0;
-    }
-
     .section-title {
-        font-size: 0.875rem; /* Reduced from 0.9375rem */
+        font-size: 0.875rem;
         font-weight: 600;
         color: #1E293B;
         margin: 0 0 1rem 0;
@@ -101,7 +85,7 @@
 
     .section-title i {
         color: var(--primary-color);
-        font-size: 1rem; /* Reduced from 1.125rem */
+        font-size: 1rem;
     }
 
     .form-grid {
@@ -117,7 +101,7 @@
     }
 
     .form-label {
-        font-size: 0.75rem; /* Reduced from 0.8125rem */
+        font-size: 0.75rem;
         font-weight: 500;
         color: #475569;
     }
@@ -133,7 +117,7 @@
         padding: 0.5rem 0.75rem;
         border: 1px solid var(--border-color);
         border-radius: 0.375rem;
-        font-size: 0.8125rem; /* Reduced from 0.875rem */
+        font-size: 0.8125rem;
         color: #1E293B;
         background: white;
         width: 100%;
@@ -151,24 +135,6 @@
     .form-textarea {
         min-height: 100px;
         resize: vertical;
-        font-family: inherit;
-        line-height: 1.5;
-    }
-
-    .form-select[multiple] {
-        min-height: 120px;
-        padding: 0.5rem;
-    }
-
-    .form-select option {
-        padding: 0.375rem 0.5rem;
-        margin: 0.125rem 0;
-        border-radius: 0.25rem;
-        font-size: 0.8125rem;
-    }
-
-    .form-select option:hover {
-        background: var(--primary-light);
     }
 
     .currency-input {
@@ -190,10 +156,194 @@
         padding-left: 2.5rem;
     }
 
-    .datetime-inputs {
+    .form-help {
+        font-size: 0.6875rem;
+        color: var(--secondary-color);
+        margin-top: 0.25rem;
+        font-style: italic;
+    }
+
+    /* Document Upload Styles */
+    .documents-upload-section {
+        background: var(--primary-light);
+        border: 2px dashed #93C5FD;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .documents-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .documents-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E40AF;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .add-document-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .add-document-btn:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .document-row {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1rem;
+        grid-template-columns: 1fr 2fr 3fr auto auto;
+        gap: 0.75rem;
+        align-items: start;
+    }
+
+    .document-row .form-group {
+        margin: 0;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+
+    .file-input-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: var(--secondary-color);
+    }
+
+    .file-input-label:hover {
+        background: var(--hover-bg);
+        border-color: var(--primary-color);
+    }
+
+    .file-input-label i {
+        color: var(--primary-color);
+    }
+
+    .file-name {
+        font-size: 0.6875rem;
+        color: var(--secondary-color);
+        margin-top: 0.25rem;
+        font-style: italic;
+    }
+
+    .mandatory-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem;
+    }
+
+    .mandatory-checkbox input[type="checkbox"] {
+        width: 1rem;
+        height: 1rem;
+        cursor: pointer;
+    }
+
+    .mandatory-checkbox label {
+        font-size: 0.75rem;
+        color: #475569;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .remove-document-btn {
+        padding: 0.5rem;
+        background: transparent;
+        color: var(--danger-color);
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.875rem;
+    }
+
+    .remove-document-btn:hover {
+        background: #FEE2E2;
+        border-color: var(--danger-color);
+    }
+
+    .suggested-documents {
+        background: #F1F5F9;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .suggested-documents-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .suggested-documents-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+    }
+
+    .suggested-doc-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        font-size: 0.6875rem;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .suggested-doc-tag:hover {
+        background: var(--primary-light);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
     }
 
     .requisition-info {
@@ -209,79 +359,6 @@
         display: block;
     }
 
-    .requisition-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 0.75rem;
-    }
-
-    .requisition-title {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #1E40AF;
-        margin: 0;
-    }
-
-    .requisition-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.75rem;
-        font-size: 0.6875rem;
-        font-weight: 600;
-        background: var(--success-color);
-        color: white;
-        border: none;
-    }
-
-    .requisition-details {
-        font-size: 0.75rem;
-        color: #475569;
-        line-height: 1.4;
-    }
-
-    .requisition-details p {
-        margin: 0.25rem 0;
-    }
-
-    .suppliers-select-container {
-        position: relative;
-    }
-
-    .selected-suppliers {
-        margin-top: 0.75rem;
-        padding: 0.75rem;
-        background: #F8FAFC;
-        border: 1px solid var(--border-color);
-        border-radius: 0.375rem;
-        font-size: 0.75rem;
-        min-height: 60px;
-    }
-
-    .selected-supplier {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        padding: 0.25rem 0.5rem;
-        margin: 0.125rem;
-        background: white;
-        border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
-        font-size: 0.6875rem;
-    }
-
-    .selected-supplier i {
-        font-size: 0.625rem;
-        color: var(--secondary-color);
-        cursor: pointer;
-    }
-
-    .selected-supplier i:hover {
-        color: var(--danger-color);
-    }
-
     .form-actions {
         display: flex;
         justify-content: flex-end;
@@ -295,21 +372,14 @@
         display: inline-flex;
         align-items: center;
         gap: 0.375rem;
-        padding: 0.5rem 1rem; /* Reduced padding */
+        padding: 0.5rem 1rem;
         border-radius: 0.375rem;
         font-weight: 500;
-        font-size: 0.75rem; /* Reduced from 0.875rem */
+        font-size: 0.75rem;
         text-decoration: none;
         transition: all 0.2s;
         border: 1px solid var(--border-color);
         cursor: pointer;
-        background: var(--card-bg);
-        color: var(--secondary-color);
-    }
-
-    .btn:hover {
-        background: var(--hover-bg);
-        transform: translateY(-1px);
     }
 
     .btn-primary {
@@ -320,7 +390,6 @@
 
     .btn-primary:hover {
         background: var(--primary-dark);
-        border-color: var(--primary-dark);
     }
 
     .btn-secondary {
@@ -331,18 +400,6 @@
 
     .btn-secondary:hover {
         background: #E2E8F0;
-        border-color: #CBD5E1;
-    }
-
-    .btn i {
-        font-size: 0.875rem; /* Reduced from 1rem */
-    }
-
-    .form-help {
-        font-size: 0.6875rem; /* Reduced from 0.75rem */
-        color: var(--secondary-color);
-        margin-top: 0.25rem;
-        font-style: italic;
     }
 
     .error-message {
@@ -354,32 +411,17 @@
         gap: 0.25rem;
     }
 
-    .error-message i {
-        font-size: 0.75rem;
-    }
-
-    .form-group.has-error .form-input,
-    .form-group.has-error .form-select,
-    .form-group.has-error .form-textarea {
-        border-color: var(--danger-color);
-    }
-
     @media (max-width: 768px) {
         .form-grid {
             grid-template-columns: 1fr;
         }
         
-        .datetime-inputs {
+        .document-row {
             grid-template-columns: 1fr;
         }
         
         .form-actions {
             flex-direction: column;
-        }
-        
-        .form-actions .btn {
-            width: 100%;
-            justify-content: center;
         }
     }
 </style>
@@ -402,17 +444,11 @@
             <span>Create New Tender</span>
         </div>
     </div>
-    <div class="header-actions">
-        <a href="{% url 'procurement_active_tenders' %}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i>
-            Back to Tenders
-        </a>
-    </div>
 </div>
 
 <div class="form-container">
     <div class="form-card">
-        <form method="post" id="tenderForm">
+        <form method="post" id="tenderForm" enctype="multipart/form-data">
             {% csrf_token %}
             
             <!-- Tender Basics Section -->
@@ -432,22 +468,16 @@
                                     data-title="{{ req.title }}"
                                     data-department="{{ req.department.name }}"
                                     data-amount="{{ req.estimated_amount }}"
-                                    data-description="{{ req.description }}">
+                                    data-description="{{ req.justification }}">
                                 {{ req.requisition_number }} - {{ req.title|truncatechars:40 }}
                             </option>
                             {% endfor %}
                         </select>
-                        <div class="form-help">Select the approved requisition for this tender</div>
                     </div>
                     
                     <div class="form-group">
                         <label for="title" class="form-label required">Tender Title</label>
-                        <input type="text" 
-                               name="title" 
-                               id="title" 
-                               class="form-input" 
-                               required
-                               placeholder="Enter tender title...">
+                        <input type="text" name="title" id="title" class="form-input" required>
                     </div>
                     
                     <div class="form-group">
@@ -469,20 +499,7 @@
                     </div>
                 </div>
                 
-                <div id="requisitionInfo" class="requisition-info">
-                    <div class="requisition-header">
-                        <h4 class="requisition-title" id="selectedRequisitionTitle"></h4>
-                        <span class="requisition-badge">
-                            <i class="bi bi-check-circle"></i>
-                            Approved
-                        </span>
-                    </div>
-                    <div class="requisition-details">
-                        <p><strong>Department:</strong> <span id="selectedRequisitionDept"></span></p>
-                        <p><strong>Amount:</strong> KES <span id="selectedRequisitionAmount"></span></p>
-                        <p><strong>Description:</strong> <span id="selectedRequisitionDesc"></span></p>
-                    </div>
-                </div>
+                <div id="requisitionInfo" class="requisition-info"></div>
             </div>
             
             <!-- Financial Details Section -->
@@ -497,16 +514,9 @@
                         <label for="estimated_budget" class="form-label required">Estimated Budget</label>
                         <div class="currency-input">
                             <span class="prefix">KES</span>
-                            <input type="number" 
-                                   name="estimated_budget" 
-                                   id="estimated_budget" 
-                                   class="form-input" 
-                                   step="0.01"
-                                   min="0"
-                                   required
-                                   placeholder="0.00">
+                            <input type="number" name="estimated_budget" id="estimated_budget" 
+                                   class="form-input" step="0.01" min="0" required>
                         </div>
-                        <div class="form-help">Estimated budget for this tender</div>
                     </div>
                 </div>
             </div>
@@ -520,12 +530,7 @@
                 
                 <div class="form-group">
                     <label for="description" class="form-label required">Description</label>
-                    <textarea name="description" 
-                              id="description" 
-                              class="form-textarea" 
-                              required
-                              placeholder="Provide detailed description of the tender including scope of work, deliverables, and requirements..."></textarea>
-                    <div class="form-help">Detailed description helps suppliers understand requirements</div>
+                    <textarea name="description" id="description" class="form-textarea" required></textarea>
                 </div>
             </div>
             
@@ -536,25 +541,57 @@
                     Timeline
                 </h3>
                 
-                <div class="datetime-inputs">
+                <div class="form-grid">
                     <div class="form-group">
                         <label for="closing_date" class="form-label required">Closing Date & Time</label>
-                        <input type="datetime-local" 
-                               name="closing_date" 
-                               id="closing_date" 
-                               class="form-input" 
-                               required>
-                        <div class="form-help">Deadline for bid submission</div>
+                        <input type="datetime-local" name="closing_date" id="closing_date" 
+                               class="form-input" required>
                     </div>
                     
                     <div class="form-group">
                         <label for="bid_opening_date" class="form-label required">Bid Opening Date & Time</label>
-                        <input type="datetime-local" 
-                               name="bid_opening_date" 
-                               id="bid_opening_date" 
-                               class="form-input" 
-                               required>
-                        <div class="form-help">When bids will be opened</div>
+                        <input type="datetime-local" name="bid_opening_date" id="bid_opening_date" 
+                               class="form-input" required>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tender Documents Section -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="bi bi-file-earmark-text"></i>
+                    Tender Documents
+                </h3>
+                
+                <div class="documents-upload-section">
+                    <div class="documents-header">
+                        <span class="documents-title">
+                            <i class="bi bi-paperclip"></i>
+                            Upload Tender Documents
+                        </span>
+                        <button type="button" class="add-document-btn" id="addDocumentBtn">
+                            <i class="bi bi-plus-circle"></i>
+                            Add Document
+                        </button>
+                    </div>
+                    
+                    <div id="documentsContainer">
+                        <!-- Document rows will be added here -->
+                    </div>
+                    
+                    <div class="suggested-documents">
+                        <div class="suggested-documents-title">
+                            <i class="bi bi-lightbulb"></i>
+                            Suggested Documents:
+                        </div>
+                        <div class="suggested-documents-list">
+                            {% for doc_type in document_types %}
+                            <span class="suggested-doc-tag" data-doc-name="{{ doc_type }}">
+                                <i class="bi bi-plus"></i>
+                                {{ doc_type }}
+                            </span>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -568,22 +605,12 @@
                 
                 <div class="form-group">
                     <label for="suppliers" class="form-label">Invited Suppliers</label>
-                    <div class="suppliers-select-container">
-                        <select name="suppliers" 
-                                id="suppliers" 
-                                class="form-select" 
-                                multiple
-                                size="5">
-                            {% for supplier in suppliers %}
-                            <option value="{{ supplier.id }}">{{ supplier.name }} - {{ supplier.category|default:"General" }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-help">Hold Ctrl/Cmd to select multiple suppliers. Leave empty to make tender open to all registered suppliers.</div>
-                    </div>
-                    
-                    <div class="selected-suppliers" id="selectedSuppliersDisplay">
-                        <div class="form-help">No suppliers selected</div>
-                    </div>
+                    <select name="suppliers" id="suppliers" class="form-select" multiple size="5">
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-help">Hold Ctrl/Cmd to select multiple suppliers</div>
                 </div>
             </div>
             
@@ -605,181 +632,158 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const requisitionSelect = document.getElementById('requisition');
-        const requisitionInfo = document.getElementById('requisitionInfo');
-        const titleInput = document.getElementById('title');
-        const budgetInput = document.getElementById('estimated_budget');
-        const descriptionTextarea = document.getElementById('description');
-        const suppliersSelect = document.getElementById('suppliers');
-        const selectedSuppliersDisplay = document.getElementById('selectedSuppliersDisplay');
-        
-        // Requisition selection handler
-        requisitionSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
+document.addEventListener('DOMContentLoaded', function() {
+    let documentCounter = 0;
+    const documentsContainer = document.getElementById('documentsContainer');
+    const addDocumentBtn = document.getElementById('addDocumentBtn');
+    
+    // Add document row
+    function addDocumentRow(documentName = '') {
+        documentCounter++;
+        const row = document.createElement('div');
+        row.className = 'document-row';
+        row.id = `document-row-${documentCounter}`;
+        row.innerHTML = `
+            <div class="form-group">
+                <label class="form-label">File</label>
+                <div class="file-input-wrapper">
+                    <input type="file" 
+                           name="tender_documents" 
+                           id="file-${documentCounter}"
+                           accept=".pdf,.doc,.docx,.xls,.xlsx"
+                           required>
+                    <label for="file-${documentCounter}" class="file-input-label">
+                        <i class="bi bi-cloud-upload"></i>
+                        <span class="file-label-text">Choose File</span>
+                    </label>
+                    <div class="file-name"></div>
+                </div>
+            </div>
             
-            if (selectedOption.value) {
-                // Show requisition info
-                requisitionInfo.classList.add('active');
-                document.getElementById('selectedRequisitionTitle').textContent = selectedOption.dataset.title;
-                document.getElementById('selectedRequisitionDept').textContent = selectedOption.dataset.department;
-                document.getElementById('selectedRequisitionAmount').textContent = 
-                    parseInt(selectedOption.dataset.amount).toLocaleString();
-                document.getElementById('selectedRequisitionDesc').textContent = 
-                    selectedOption.dataset.description || 'No description available';
-                
-                // Auto-fill some fields
-                if (!titleInput.value) {
-                    titleInput.value = 'Tender for ' + selectedOption.dataset.title;
-                }
-                
-                if (!budgetInput.value) {
-                    budgetInput.value = selectedOption.dataset.amount;
-                }
-                
-                if (!descriptionTextarea.value) {
-                    descriptionTextarea.value = 'Tender based on requisition ' + selectedOption.textContent + '. ' + 
-                                               (selectedOption.dataset.description || '');
-                }
-            } else {
-                requisitionInfo.classList.remove('active');
+            <div class="form-group">
+                <label class="form-label">Document Name</label>
+                <input type="text" 
+                       name="document_names" 
+                       class="form-input" 
+                       placeholder="e.g., Terms of Reference"
+                       value="${documentName}"
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <input type="text" 
+                       name="document_descriptions" 
+                       class="form-input" 
+                       placeholder="Brief description">
+            </div>
+            
+            <div class="mandatory-checkbox">
+                <input type="checkbox" 
+                       name="document_mandatory" 
+                       value="${documentCounter}"
+                       id="mandatory-${documentCounter}"
+                       checked>
+                <label for="mandatory-${documentCounter}">Mandatory</label>
+            </div>
+            
+            <button type="button" class="remove-document-btn" onclick="removeDocumentRow(${documentCounter})">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+        
+        documentsContainer.appendChild(row);
+        
+        // File input change handler
+        const fileInput = row.querySelector('input[type="file"]');
+        const fileNameDisplay = row.querySelector('.file-name');
+        const fileLabelText = row.querySelector('.file-label-text');
+        
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                const fileName = this.files[0].name;
+                fileNameDisplay.textContent = fileName;
+                fileLabelText.textContent = fileName;
             }
         });
-        
-        // Suppliers selection handler
-        function updateSelectedSuppliers() {
-            const selectedOptions = Array.from(suppliersSelect.selectedOptions);
-            
-            if (selectedOptions.length > 0) {
-                selectedSuppliersDisplay.innerHTML = '';
-                selectedOptions.forEach(option => {
-                    const supplierDiv = document.createElement('div');
-                    supplierDiv.className = 'selected-supplier';
-                    supplierDiv.innerHTML = `
-                        ${option.textContent}
-                        <i class="bi bi-x" data-value="${option.value}"></i>
-                    `;
-                    selectedSuppliersDisplay.appendChild(supplierDiv);
-                });
-            } else {
-                selectedSuppliersDisplay.innerHTML = '<div class="form-help">No suppliers selected</div>';
-            }
-            
-            // Add remove functionality
-            selectedSuppliersDisplay.querySelectorAll('.selected-supplier i').forEach(icon => {
-                icon.addEventListener('click', function() {
-                    const valueToRemove = this.dataset.value;
-                    const optionToRemove = Array.from(suppliersSelect.options).find(opt => opt.value === valueToRemove);
-                    if (optionToRemove) {
-                        optionToRemove.selected = false;
-                        updateSelectedSuppliers();
-                    }
-                });
-            });
+    }
+    
+    // Remove document row
+    window.removeDocumentRow = function(id) {
+        const row = document.getElementById(`document-row-${id}`);
+        if (row) {
+            row.remove();
         }
-        
-        suppliersSelect.addEventListener('change', updateSelectedSuppliers);
-        
-        // Set minimum dates for closing and opening
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        const closingDateInput = document.getElementById('closing_date');
-        const bidOpeningInput = document.getElementById('bid_opening_date');
-        
-        // Format dates for datetime-local input
-        function formatDateTime(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            return `${year}-${month}-${day}T${hours}:${minutes}`;
-        }
-        
-        // Set minimum closing date to tomorrow
-        const minClosingDate = new Date(tomorrow);
-        minClosingDate.setHours(9, 0, 0, 0); // 9 AM tomorrow
-        closingDateInput.min = formatDateTime(minClosingDate);
-        closingDateInput.value = formatDateTime(minClosingDate);
-        
-        // Set minimum bid opening date to closing date + 1 hour
-        closingDateInput.addEventListener('change', function() {
-            const closingDate = new Date(this.value);
-            const minOpeningDate = new Date(closingDate);
-            minOpeningDate.setHours(minOpeningDate.getHours() + 1);
-            
-            bidOpeningInput.min = formatDateTime(minOpeningDate);
-            
-            // If current bid opening date is before new minimum, update it
-            const currentOpeningDate = new Date(bidOpeningInput.value);
-            if (currentOpeningDate < minOpeningDate) {
-                bidOpeningInput.value = formatDateTime(minOpeningDate);
-            }
-        });
-        
-        // Set initial bid opening date
-        const initialBidOpeningDate = new Date(minClosingDate);
-        initialBidOpeningDate.setHours(initialBidOpeningDate.getHours() + 2); // 2 hours after closing
-        bidOpeningInput.min = formatDateTime(initialBidOpeningDate);
-        bidOpeningInput.value = formatDateTime(initialBidOpeningDate);
-        
-        // Form validation
-        const tenderForm = document.getElementById('tenderForm');
-        tenderForm.addEventListener('submit', function(e) {
-            let isValid = true;
-            
-            // Clear previous errors
-            document.querySelectorAll('.form-group').forEach(group => {
-                group.classList.remove('has-error');
-                const errorMsg = group.querySelector('.error-message');
-                if (errorMsg) errorMsg.remove();
-            });
-            
-            // Validate closing date is in the future
-            const closingDate = new Date(closingDateInput.value);
-            if (closingDate <= now) {
-                showError(closingDateInput, 'Closing date must be in the future');
-                isValid = false;
-            }
-            
-            // Validate bid opening date is after closing date
-            const bidOpeningDate = new Date(bidOpeningInput.value);
-            if (bidOpeningDate <= closingDate) {
-                showError(bidOpeningInput, 'Bid opening must be after closing date');
-                isValid = false;
-            }
-            
-            // Validate budget is positive
-            if (parseFloat(budgetInput.value) <= 0) {
-                showError(budgetInput, 'Budget must be greater than 0');
-                isValid = false;
-            }
-            
-            if (!isValid) {
-                e.preventDefault();
-                // Scroll to first error
-                const firstError = document.querySelector('.has-error');
-                if (firstError) {
-                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }
-        });
-        
-        function showError(input, message) {
-            const formGroup = input.closest('.form-group');
-            formGroup.classList.add('has-error');
-            
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-message';
-            errorDiv.innerHTML = `<i class="bi bi-exclamation-circle"></i> ${message}`;
-            
-            input.parentNode.insertBefore(errorDiv, input.nextSibling);
-        }
-        
-        // Initialize suppliers display
-        updateSelectedSuppliers();
+    };
+    
+    // Add document button handler
+    addDocumentBtn.addEventListener('click', function() {
+        addDocumentRow();
     });
+    
+    // Suggested documents click handler
+    document.querySelectorAll('.suggested-doc-tag').forEach(tag => {
+        tag.addEventListener('click', function() {
+            const docName = this.dataset.docName;
+            addDocumentRow(docName);
+        });
+    });
+    
+    // Add at least one document row on load
+    addDocumentRow('Invitation to Bid (ITB)');
+    
+    // Form validation
+    const tenderForm = document.getElementById('tenderForm');
+    tenderForm.addEventListener('submit', function(e) {
+        const documentRows = documentsContainer.querySelectorAll('.document-row');
+        
+        if (documentRows.length === 0) {
+            e.preventDefault();
+            alert('Please add at least one tender document.');
+            return false;
+        }
+        
+        // Validate each document row has a file
+        let hasEmptyFiles = false;
+        documentRows.forEach(row => {
+            const fileInput = row.querySelector('input[type="file"]');
+            if (!fileInput.files.length) {
+                hasEmptyFiles = true;
+            }
+        });
+        
+        if (hasEmptyFiles) {
+            e.preventDefault();
+            alert('Please select a file for all document rows.');
+            return false;
+        }
+    });
+    
+    // Requisition selection handler
+    const requisitionSelect = document.getElementById('requisition');
+    requisitionSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const requisitionInfo = document.getElementById('requisitionInfo');
+        
+        if (selectedOption.value) {
+            requisitionInfo.classList.add('active');
+            requisitionInfo.innerHTML = `
+                <div><strong>Department:</strong> ${selectedOption.dataset.department}</div>
+                <div><strong>Amount:</strong> KES ${parseFloat(selectedOption.dataset.amount).toLocaleString()}</div>
+                <div><strong>Description:</strong> ${selectedOption.dataset.description}</div>
+            `;
+            
+            // Auto-fill fields
+            if (!document.getElementById('title').value) {
+                document.getElementById('title').value = 'Tender for ' + selectedOption.dataset.title;
+            }
+            if (!document.getElementById('estimated_budget').value) {
+                document.getElementById('estimated_budget').value = selectedOption.dataset.amount;
+            }
+        } else {
+            requisitionInfo.classList.remove('active');
+        }
+    });
+});
 </script>
 {% endblock %}
