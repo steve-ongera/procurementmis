@@ -2998,7 +2998,7 @@ def bid_list(request):
 
 @login_required
 def bid_detail(request, pk):
-    """View detailed bid information"""
+    """View detailed bid information with committee evaluation support"""
     bid = get_object_or_404(
         Bid.objects.select_related(
             'tender',
@@ -3007,7 +3007,8 @@ def bid_detail(request, pk):
         ).prefetch_related(
             'items__requisition_item__item',
             'documents',
-            'evaluations__evaluator'
+            'evaluations__evaluator',
+            'tender__evaluation_committees__members__user'
         ),
         pk=pk
     )
@@ -3045,12 +3046,37 @@ def bid_detail(request, pk):
     variance = bid.bid_amount - bid.tender.estimated_budget
     variance_percentage = (variance / bid.tender.estimated_budget * 100) if bid.tender.estimated_budget > 0 else 0
     
+    # Check if user is a committee member for this tender
+    is_committee_member = False
+    committee_role = None
+    active_committee = None
+    
+    if request.user.role in ['PROCUREMENT', 'ADMIN']:
+        # Get active evaluation committee for this tender
+        active_committee = bid.tender.evaluation_committees.filter(
+            status='ACTIVE'
+        ).first()
+        
+        if active_committee:
+            # Check if user is a member
+            membership = active_committee.members.filter(
+                user=request.user,
+                is_active=True
+            ).first()
+            
+            if membership:
+                is_committee_member = True
+                committee_role = membership.role
+    
     # Check if bid can be awarded
     can_award = (
         request.user.role in ['PROCUREMENT', 'ADMIN'] and
         bid.status in ['QUALIFIED'] and
         bid.tender.status in ['EVALUATING', 'CLOSED'] and
-        not PurchaseOrder.objects.filter(bid=bid).exists()
+        not PurchaseOrder.objects.filter(bid=bid).exists() and
+        # Ensure evaluation is complete
+        bid.tender.technical_evaluation_complete and
+        bid.tender.financial_evaluation_complete
     )
     
     # Check if bid can be opened
@@ -3060,17 +3086,73 @@ def bid_detail(request, pk):
         bid.tender.closing_date <= timezone.now()
     )
     
-    # Check if bid can be evaluated
+    # Check if bid can be evaluated (must be committee member)
     can_evaluate = (
-        request.user.role in ['PROCUREMENT', 'ADMIN'] and
-        bid.status in ['OPENED', 'EVALUATING']
+        is_committee_member and
+        bid.status in ['OPENED', 'EVALUATING'] and
+        active_committee and
+        active_committee.status == 'ACTIVE'
     )
     
-    # Check if bid can be disqualified
+    # Check if bid can be disqualified (committee chairperson or admin)
     can_disqualify = (
-        request.user.role in ['PROCUREMENT', 'ADMIN'] and
+        (committee_role == 'CHAIRPERSON' or request.user.role == 'ADMIN') and
         bid.status not in ['DISQUALIFIED', 'AWARDED', 'REJECTED']
     )
+    
+    # Check if user has already evaluated this bid
+    user_has_evaluated = False
+    user_evaluation = None
+    
+    if is_committee_member:
+        from core.models import TechnicalEvaluationScore, FinancialEvaluationScore
+        
+        # Check for technical evaluation
+        technical_scores = TechnicalEvaluationScore.objects.filter(
+            bid=bid,
+            evaluator=request.user
+        ).exists()
+        
+        # Check for financial evaluation
+        financial_scores = FinancialEvaluationScore.objects.filter(
+            bid=bid,
+            evaluator=request.user
+        ).exists()
+        
+        user_has_evaluated = technical_scores or financial_scores
+        
+        if user_has_evaluated:
+            user_evaluation = {
+                'technical_complete': technical_scores,
+                'financial_complete': financial_scores,
+            }
+    
+    # Get committee evaluation progress
+    committee_progress = None
+    if active_committee:
+        total_members = active_committee.members.filter(
+            is_active=True,
+            role__in=['CHAIRPERSON', 'MEMBER']  # Exclude observers
+        ).count()
+        
+        # Count members who have submitted evaluations
+        from core.models import TechnicalEvaluationScore, FinancialEvaluationScore
+        
+        technical_evaluators = TechnicalEvaluationScore.objects.filter(
+            bid=bid
+        ).values('evaluator').distinct().count()
+        
+        financial_evaluators = FinancialEvaluationScore.objects.filter(
+            bid=bid
+        ).values('evaluator').distinct().count()
+        
+        committee_progress = {
+            'total_members': total_members,
+            'technical_completed': technical_evaluators,
+            'financial_completed': financial_evaluators,
+            'technical_percentage': (technical_evaluators / total_members * 100) if total_members > 0 else 0,
+            'financial_percentage': (financial_evaluators / total_members * 100) if total_members > 0 else 0,
+        }
     
     context = {
         'bid': bid,
@@ -3083,6 +3165,12 @@ def bid_detail(request, pk):
         'can_open': can_open,
         'can_evaluate': can_evaluate,
         'can_disqualify': can_disqualify,
+        'is_committee_member': is_committee_member,
+        'committee_role': committee_role,
+        'active_committee': active_committee,
+        'user_has_evaluated': user_has_evaluated,
+        'user_evaluation': user_evaluation,
+        'committee_progress': committee_progress,
     }
     
     return render(request, 'bids/bid_detail.html', context)
