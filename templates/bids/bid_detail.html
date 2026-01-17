@@ -433,6 +433,18 @@
         color: #991B1B;
     }
 
+    .alert-success {
+        background: #D1FAE5;
+        border-color: #A7F3D0;
+        color: #047857;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
     .alert h4 {
         font-size: 0.875rem;
         font-weight: 600;
@@ -445,7 +457,6 @@
     .alert p {
         font-size: 0.875rem;
         margin: 0;
-        color: #7F1D1D;
     }
 
     /* Evaluation Styles */
@@ -537,6 +548,80 @@
         color: #F59E0B;
     }
 
+    /* Progress Bar */
+    .progress-bar-container {
+        margin-bottom: 1.5rem;
+    }
+
+    .progress-bar-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .progress-bar-label strong {
+        font-size: 0.875rem;
+    }
+
+    .progress-bar-label span {
+        font-size: 0.875rem;
+        color: #64748B;
+    }
+
+    .progress-bar-track {
+        width: 100%;
+        height: 8px;
+        background: #E2E8F0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        transition: width 0.3s;
+        border-radius: 4px;
+    }
+
+    .progress-technical {
+        background: #2563EB;
+    }
+
+    .progress-financial {
+        background: #10B981;
+    }
+
+    /* Status Box */
+    .status-box {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid;
+    }
+
+    .status-box-success {
+        background: #D1FAE5;
+        border-color: #A7F3D0;
+        color: #047857;
+    }
+
+    .status-box-warning {
+        background: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .status-box-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+    }
+
+    .status-box-content {
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .header-actions {
@@ -611,41 +696,79 @@
         </div>
     </div>
     <div class="header-actions">
-       
-        {% if user.role in 'PROCUREMENT,ADMIN' %}
+        {% if is_committee_member %}
+            <!-- Committee Member Actions -->
+            {% if can_evaluate %}
+                {% if not user_has_evaluated %}
+                    <a href="{% url 'bid_evaluate_technical' bid.id %}" class="btn btn-primary">
+                        <i class="bi bi-clipboard-check"></i>
+                        Technical Evaluation
+                    </a>
+                    <a href="{% url 'bid_evaluate_financial' bid.id %}" class="btn btn-primary">
+                        <i class="bi bi-currency-dollar"></i>
+                        Financial Evaluation
+                    </a>
+                {% else %}
+                    <a href="{% url 'bid_view_evaluation' bid.id %}" class="btn">
+                        <i class="bi bi-eye"></i>
+                        View My Evaluation
+                    </a>
+                    {% if user_evaluation.technical_complete and not user_evaluation.financial_complete %}
+                        <a href="{% url 'bid_evaluate_financial' bid.id %}" class="btn btn-primary">
+                            <i class="bi bi-currency-dollar"></i>
+                            Complete Financial Evaluation
+                        </a>
+                    {% elif user_evaluation.financial_complete and not user_evaluation.technical_complete %}
+                        <a href="{% url 'bid_evaluate_technical' bid.id %}" class="btn btn-primary">
+                            <i class="bi bi-clipboard-check"></i>
+                            Complete Technical Evaluation
+                        </a>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
             
+            {% if committee_role == 'CHAIRPERSON' %}
+                <a href="{% url 'committee_evaluation_summary' bid.tender.id %}" class="btn">
+                    <i class="bi bi-bar-chart"></i>
+                    Committee Summary
+                </a>
+                
+                {% if can_disqualify %}
+                <a href="{% url 'bid_disqualify' bid.id %}" class="btn btn-danger">
+                    <i class="bi bi-x-circle"></i>
+                    Disqualify
+                </a>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+        
+        {% if user.role == 'ADMIN' %}
+            <!-- Admin Actions -->
+            {% if can_open %}
             <a href="{% url 'bid_open' bid.id %}" class="btn btn-primary">
                 <i class="bi bi-envelope-open"></i>
                 Open Bid
             </a>
-           
-            <a href="{% url 'bid_evaluate' bid.id %}" class="btn btn-primary">
-                <i class="bi bi-clipboard-check"></i>
-                Evaluate Bid
+            {% endif %}
+            
+            {% if can_award %}
+            <a href="{% url 'bid_award' bid.id %}" class="btn btn-success">
+                <i class="bi bi-trophy"></i>
+                Award Tender
+            </a>
+            {% endif %}
+            
+            <a href="{% url 'bid_comparison' bid.tender.id %}" class="btn">
+                <i class="bi bi-table"></i>
+                Compare Bids
             </a>
             
-          
-            <a href="{% url 'bid_qualify' bid.id %}" class="btn btn-success">
-                <i class="bi bi-check-circle"></i>
-                Qualify Bid
-            </a>
-           
             {% if can_disqualify %}
             <a href="{% url 'bid_disqualify' bid.id %}" class="btn btn-danger">
                 <i class="bi bi-x-circle"></i>
                 Disqualify
             </a>
             {% endif %}
-            
-            <a href="{% url 'bid_award' bid.id %}" class="btn btn-success">
-                <i class="bi bi-trophy"></i>
-                Award Tender
-            </a>
-            
-            <a href="{% url 'bid_comparison' bid.tender.id %}" class="btn">
-                <i class="bi bi-table"></i>
-                Compare Bids
-            </a>
         {% endif %}
     </div>
 </div>
@@ -720,7 +843,7 @@
                 <label>Delivery Period</label>
                 <value>{{ bid.delivery_period_days }} days</value>
             </div>
-            {% if user.role in 'PROCUREMENT,ADMIN' %}
+            {% if user.role == 'PROCUREMENT' or user.role == 'ADMIN' or is_committee_member %}
             <div class="info-item">
                 <label>Rank</label>
                 <value>
@@ -806,7 +929,7 @@
             <div class="info-item">
                 <label>Supplier Name</label>
                 <value>
-                    {% if user.role in 'PROCUREMENT,ADMIN' %}
+                    {% if user.role == 'PROCUREMENT' or user.role == 'ADMIN' or is_committee_member %}
                     <a href="{% url 'supplier_detail' bid.supplier.id %}" style="color: var(--primary-color); text-decoration: none;">
                         {{ bid.supplier.name }}
                     </a>
@@ -831,7 +954,7 @@
                 <label>Email</label>
                 <value>{{ bid.supplier.contact_person_email }}</value>
             </div>
-            {% if user.role in 'PROCUREMENT,ADMIN' %}
+            {% if user.role == 'PROCUREMENT' or user.role == 'ADMIN' or is_committee_member %}
             <div class="info-item">
                 <label>Supplier Rating</label>
                 <value>
@@ -954,8 +1077,123 @@
 </div>
 {% endif %}
 
+<!-- Evaluation Committee Information -->
+{% if active_committee and is_committee_member %}
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-people"></i>
+            Evaluation Committee
+        </h2>
+        <span class="badge badge-evaluating">
+            <i class="bi bi-shield-check"></i>
+            {{ committee_role }}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Committee Number</label>
+                <value>{{ active_committee.committee_number }}</value>
+            </div>
+            <div class="info-item">
+                <label>Committee Type</label>
+                <value>{{ active_committee.get_committee_type_display }}</value>
+            </div>
+            <div class="info-item">
+                <label>Chairperson</label>
+                <value>{{ active_committee.chairperson.get_full_name }}</value>
+            </div>
+            <div class="info-item">
+                <label>Total Members</label>
+                <value>{{ active_committee.members.count }}</value>
+            </div>
+        </div>
+
+        {% if user_has_evaluated %}
+        <div class="status-box status-box-success">
+            <div class="status-box-header">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>You have submitted your evaluation for this bid</span>
+            </div>
+            {% if user_evaluation %}
+            <div class="status-box-content">
+                {% if user_evaluation.technical_complete %}
+                <div><i class="bi bi-check"></i> Technical Evaluation Complete</div>
+                {% endif %}
+                {% if user_evaluation.financial_complete %}
+                <div><i class="bi bi-check"></i> Financial Evaluation Complete</div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="status-box status-box-warning">
+            <div class="status-box-header">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>Evaluation Pending</span>
+            </div>
+            <p class="status-box-content">
+                Please complete both technical and financial evaluations for this bid.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Committee Evaluation Progress -->
+{% if committee_progress %}
+{% if is_committee_member or user.role == 'ADMIN' %}
+<div class="info-card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="bi bi-graph-up"></i>
+            Committee Evaluation Progress
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="progress-bar-container">
+            <div class="progress-bar-label">
+                <strong>Technical Evaluation</strong>
+                <span>{{ committee_progress.technical_completed }} / {{ committee_progress.total_members }} Members</span>
+            </div>
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill progress-technical" style="width: {{ committee_progress.technical_percentage }}%;"></div>
+            </div>
+        </div>
+
+        <div class="progress-bar-container">
+            <div class="progress-bar-label">
+                <strong>Financial Evaluation</strong>
+                <span>{{ committee_progress.financial_completed }} / {{ committee_progress.total_members }} Members</span>
+            </div>
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill progress-financial" style="width: {{ committee_progress.financial_percentage }}%;"></div>
+            </div>
+        </div>
+
+        {% if committee_progress.technical_percentage == 100 and committee_progress.financial_percentage == 100 %}
+        <div class="status-box status-box-success">
+            <div class="status-box-header">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>All committee members have completed their evaluations</span>
+            </div>
+            {% if committee_role == 'CHAIRPERSON' %}
+            <p class="status-box-content">
+                As chairperson, you can now review the consolidated results and prepare the evaluation report.
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
 <!-- Evaluation Summary -->
-{% if user.role in 'PROCUREMENT,ADMIN' and evaluation_summary.count > 0 %}
+{% if user.role == 'PROCUREMENT' or user.role == 'ADMIN' %}
+{% if evaluation_summary.count > 0 %}
 <div class="info-card">
     <div class="card-header">
         <h2 class="card-title">
@@ -1050,6 +1288,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endif %}
 
 <!-- Disqualification Reason -->
