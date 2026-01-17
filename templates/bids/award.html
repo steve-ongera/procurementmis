@@ -1,0 +1,93 @@
+<!-- ============================================== -->
+<!-- TEMPLATE 3: award.html -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Award Tender - {{ bid.bid_number }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <h1 style="font-size: 1.75rem; font-weight: 600; margin-bottom: 2rem;">
+        <i class="bi bi-trophy"></i>
+        Award Tender
+    </h1>
+    
+    <div style="background: white; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 1rem 0;">Award Details</h3>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <div>
+                <div style="font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase;">Tender</div>
+                <div style="font-size: 0.875rem; margin-top: 0.25rem;">{{ bid.tender.tender_number }}</div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase;">Winning Supplier</div>
+                <div style="font-size: 0.875rem; margin-top: 0.25rem; font-weight: 600;">{{ bid.supplier.name }}</div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase;">Award Amount</div>
+                <div style="font-size: 1.25rem; margin-top: 0.25rem; font-weight: 600; color: #10B981;">
+                    KES {{ bid.bid_amount|floatformat:0|intcomma }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase;">Bid Rank</div>
+                <div style="font-size: 0.875rem; margin-top: 0.25rem;">
+                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; background: #FEF3C7; color: #92400E; border-radius: 50%; font-weight: 600;">
+                        {{ bid.rank }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if combined %}
+    <div style="background: white; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 1rem 0;">Evaluation Summary</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+            <div style="background: #F8FAFC; padding: 1rem; border-radius: 0.375rem;">
+                <div style="font-size: 0.75rem; font-weight: 600; color: #64748B;">Technical Score</div>
+                <div style="font-size: 1.5rem; font-weight: 600; color: #2563EB; margin-top: 0.25rem;">
+                    {{ combined.average_technical_score|floatformat:2 }}
+                </div>
+            </div>
+            <div style="background: #F8FAFC; padding: 1rem; border-radius: 0.375rem;">
+                <div style="font-size: 0.75rem; font-weight: 600; color: #64748B;">Financial Score</div>
+                <div style="font-size: 1.5rem; font-weight: 600; color: #10B981; margin-top: 0.25rem;">
+                    {{ combined.average_financial_score|floatformat:2 }}
+                </div>
+            </div>
+            <div style="background: #F8FAFC; padding: 1rem; border-radius: 0.375rem;">
+                <div style="font-size: 0.75rem; font-weight: 600; color: #64748B;">Combined Score</div>
+                <div style="font-size: 1.5rem; font-weight: 600; color: #7C3AED; margin-top: 0.25rem;">
+                    {{ combined.combined_score|floatformat:2 }}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div style="background: #D1FAE5; border: 1px solid #A7F3D0; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: #047857;">
+            <i class="bi bi-check-circle-fill"></i>
+            <strong>Confirmation</strong>
+        </div>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #065F46;">
+            Awarding this tender will mark it as awarded and reject all other bids. This action will initiate the contract creation process.
+        </p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <a href="{% url 'bid_detail' bid.id %}" style="padding: 0.75rem 1.5rem; background: #64748B; color: white; border-radius: 0.375rem; text-decoration: none;">
+                Cancel
+            </a>
+            <button type="submit" style="padding: 0.75rem 1.5rem; background: #10B981; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-weight: 500;">
+                <i class="bi bi-trophy"></i>
+                Confirm Award
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

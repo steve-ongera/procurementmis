@@ -58,11 +58,21 @@ urlpatterns = [
     # Bid Management
     path('bids/', views.bid_list, name='bid_list'),
     path('bids/<uuid:pk>/', views.bid_detail, name='bid_detail'),
+    
+    # Bid Evaluation URLs
+    path('bids/<uuid:pk>/evaluate/technical/', views.bid_evaluate_technical, name='bid_evaluate_technical'),
+    path('bids/<uuid:pk>/evaluate/financial/', views.bid_evaluate_financial, name='bid_evaluate_financial'),
+    path('bids/<uuid:pk>/evaluation/view/', views.bid_view_evaluation, name='bid_view_evaluation'),
+    
+    # Committee URLs
+    path('tenders/<uuid:tender_id>/committee/summary/', views.committee_evaluation_summary, name='committee_evaluation_summary'),
+    
+    # Bid Actions
     path('bids/<uuid:pk>/open/', views.bid_open, name='bid_open'),
-    path('bids/<uuid:pk>/evaluate/', views.bid_evaluate, name='bid_evaluate'),
-    path('bids/<uuid:pk>/qualify/', views.bid_qualify, name='bid_qualify'),
     path('bids/<uuid:pk>/disqualify/', views.bid_disqualify, name='bid_disqualify'),
     path('bids/<uuid:pk>/award/', views.bid_award, name='bid_award'),
+    
+    # Comparison
     path('tenders/<uuid:tender_id>/bids/comparison/', views.bid_comparison, name='bid_comparison'),
     
     # API Endpoints

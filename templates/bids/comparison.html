@@ -1,0 +1,84 @@
+<!-- ============================================== -->
+<!-- TEMPLATE 4: comparison.html -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Bid Comparison - {{ tender.tender_number }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 1400px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+        <div>
+            <h1 style="font-size: 1.75rem; font-weight: 600; margin: 0 0 0.5rem 0;">
+                <i class="bi bi-table"></i>
+                Bid Comparison
+            </h1>
+            <p style="color: #64748B;">{{ tender.tender_number }} - {{ tender.title }}</p>
+        </div>
+        <a href="{% url 'tender_detail' tender.id %}" style="padding: 0.75rem 1.5rem; background: #64748B; color: white; border-radius: 0.375rem; text-decoration: none;">
+            <i class="bi bi-arrow-left"></i>
+            Back to Tender
+        </a>
+    </div>
+    
+    <div style="background: white; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1.5rem;">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #F1F5F9;">
+                        <th style="padding: 1rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; border-bottom: 1px solid #E2E8F0;">Rank</th>
+                        <th style="padding: 1rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; border-bottom: 1px solid #E2E8F0;">Supplier</th>
+                        <th style="padding: 1rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; border-bottom: 1px solid #E2E8F0;">Bid Number</th>
+                        <th style="padding: 1rem; text-align: right; font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; border-bottom: 1px solid #E2E8F0;">Bid Amount</th>
+                        <th style="padding: 1rem; text-align: right; font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; border-bottom: 1px solid #E2E8F0;">Variance</th>
+                        <th style="padding: 1rem; text-align: center; font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; border-bottom: 1px solid #E2E8F0;">Tech Score</th>
+                        <th style="padding: 1rem; text-align: center; font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; border-bottom: 1px solid #E2E8F0;">Fin Score</th>
+                        <th style="padding: 1rem; text-align: center; font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; border-bottom: 1px solid #E2E8F0;">Combined</th>
+                        <th style="padding: 1rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; border-bottom: 1px solid #E2E8F0;">Status</th>
+                        <th style="padding: 1rem; text-align: center; font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase; border-bottom: 1px solid #E2E8F0;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in comparison_data %}
+                    <tr style="border-bottom: 1px solid #E2E8F0;">
+                        <td style="padding: 1rem;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 50%; background: {% if forloop.counter == 1 %}#FEF3C7; color: #92400E{% elif forloop.counter == 2 %}#E0E7FF; color: #3730A3{% elif forloop.counter == 3 %}#DBEAFE; color: #1E40AF{% else %}#F1F5F9; color: #475569{% endif %}; font-weight: 600;">
+                                {{ forloop.counter }}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem; font-weight: 500;">{{ item.bid.supplier.name }}</td>
+                        <td style="padding: 1rem; font-size: 0.875rem; color: #64748B;">{{ item.bid.bid_number }}</td>
+                        <td style="padding: 1rem; text-align: right; font-family: monospace; font-weight: 600;">
+                            KES {{ item.bid.bid_amount|floatformat:0|intcomma }}
+                        </td>
+                        <td style="padding: 1rem; text-align: right; color: {% if item.variance > 0 %}#EF4444{% else %}#10B981{% endif %};">
+                            {% if item.variance > 0 %}+{% endif %}{{ item.variance_pct|floatformat:1 }}%
+                        </td>
+                        <td style="padding: 1rem; text-align: center; font-family: monospace; font-weight: 600; color: #2563EB;">
+                            {% if item.combined %}{{ item.combined.average_technical_score|floatformat:2 }}{% else %}-{% endif %}
+                        </td>
+                        <td style="padding: 1rem; text-align: center; font-family: monospace; font-weight: 600; color: #10B981;">
+                            {% if item.combined %}{{ item.combined.average_financial_score|floatformat:2 }}{% else %}-{% endif %}
+                        </td>
+                        <td style="padding: 1rem; text-align: center; font-family: monospace; font-weight: 600; font-size: 1rem; color: #7C3AED;">
+                            {% if item.combined %}{{ item.combined.combined_score|floatformat:2 }}{% else %}-{% endif %}
+                        </td>
+                        <td style="padding: 1rem;">
+                            <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.375rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; background: {% if item.bid.status == 'QUALIFIED' %}#D1FAE5; color: #047857{% elif item.bid.status == 'AWARDED' %}#10B981; color: white{% elif item.bid.status == 'DISQUALIFIED' %}#FEE2E2; color: #991B1B{% else %}#F1F5F9; color: #475569{% endif %};">
+                                {{ item.bid.get_status_display }}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem; text-align: center;">
+                            <a href="{% url 'bid_detail' item.bid.id %}" style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.5rem 0.75rem; background: #EFF6FF; color: #2563EB; border-radius: 0.375rem; text-decoration: none; font-size: 0.75rem; font-weight: 500;">
+                                <i class="bi bi-eye"></i>
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

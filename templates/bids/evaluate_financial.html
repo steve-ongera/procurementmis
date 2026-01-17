@@ -1,0 +1,362 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Financial Evaluation - {{ bid.bid_number }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    .evaluation-form {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .info-card {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+    }
+    
+    .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+    }
+    
+    .comparison-table th,
+    .comparison-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    
+    .comparison-table th {
+        background: #F1F5F9;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+    }
+    
+    .highlight-row {
+        background: #EFF6FF;
+        font-weight: 600;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.625rem 1rem;
+        border: 1px solid #E2E8F0;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #2563EB;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+    
+    .checkbox-group {
+        background: #F8FAFC;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+    }
+    
+    .checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 0;
+    }
+    
+    .checkbox-wrapper input[type="checkbox"] {
+        width: 1.25rem;
+        height: 1.25rem;
+        cursor: pointer;
+    }
+    
+    .checkbox-wrapper label {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #334155;
+        cursor: pointer;
+    }
+    
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-primary {
+        background: #2563EB;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #1D4ED8;
+    }
+    
+    .btn-secondary {
+        background: #64748B;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #475569;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #E2E8F0;
+    }
+    
+    .stat-box {
+        background: #F8FAFC;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        border: 1px solid #E2E8F0;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+    }
+    
+    .text-success {
+        color: #10B981;
+    }
+    
+    .text-danger {
+        color: #EF4444;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="evaluation-form">
+    <div style="margin-bottom: 2rem;">
+        <h1 style="font-size: 1.75rem; font-weight: 600; color: #1E293B; margin: 0 0 0.5rem 0;">
+            <i class="bi bi-currency-dollar"></i>
+            Financial Evaluation
+        </h1>
+        <p style="color: #64748B;">Evaluate bid {{ bid.bid_number }} from {{ bid.supplier.name }}</p>
+    </div>
+    
+    <!-- Bid Financial Summary -->
+    <div class="info-card">
+        <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 1rem 0;">Financial Overview</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="stat-box">
+                <div class="stat-label">Bid Amount</div>
+                <div class="stat-value">KES {{ bid.bid_amount|floatformat:0|intcomma }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Tender Estimate</div>
+                <div class="stat-value">KES {{ bid.tender.estimated_budget|floatformat:0|intcomma }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Variance</div>
+                <div class="stat-value {% if variance > 0 %}text-danger{% else %}text-success{% endif %}">
+                    {% if variance > 0 %}+{% endif %}{{ variance|floatformat:1 }}%
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Delivery Period</div>
+                <div class="stat-value">{{ bid.delivery_period_days }} days</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bid Comparison -->
+    <div class="info-card">
+        <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 1rem 0;">Price Comparison</h3>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Supplier</th>
+                    <th>Bid Amount</th>
+                    <th>Variance from Estimate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for other_bid in all_bids %}
+                <tr {% if other_bid.id == bid.id %}class="highlight-row"{% endif %}>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        {{ other_bid.supplier.name }}
+                        {% if other_bid.id == bid.id %}
+                        <span style="color: #2563EB; font-weight: 600;">(This Bid)</span>
+                        {% endif %}
+                    </td>
+                    <td>KES {{ other_bid.bid_amount|floatformat:0|intcomma }}</td>
+                    <td class="{% if other_bid.bid_amount > bid.tender.estimated_budget %}text-danger{% else %}text-success{% endif %}">
+                        {% widthratio other_bid.bid_amount bid.tender.estimated_budget 100 as var_pct %}
+                        {{ var_pct|add:"-100"|floatformat:1 }}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Evaluation Criteria Information -->
+    <div class="info-card">
+        <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 1rem 0;">Evaluation Method</h3>
+        <div style="background: #EFF6FF; padding: 1rem; border-radius: 0.375rem;">
+            <p style="margin: 0; font-size: 0.875rem; color: #1E40AF;">
+                <strong>Method:</strong> {{ financial_criteria.get_evaluation_method_display }}
+            </p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #1E40AF;">
+                <strong>Weighting:</strong> Technical {{ financial_criteria.technical_weight }}% / Financial {{ financial_criteria.financial_weight }}%
+            </p>
+            {% if financial_criteria.formula_description %}
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #1E40AF;">
+                <strong>Formula:</strong> {{ financial_criteria.formula_description }}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if existing_score %}
+    <div style="background: #FEF3C7; border: 1px solid #FDE68A; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: #92400E;">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>Re-evaluation Mode</strong>
+        </div>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #78350F;">
+            You have already evaluated this bid. Submitting this form will replace your previous evaluation.
+        </p>
+    </div>
+    {% endif %}
+    
+    <!-- Evaluation Form -->
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="info-card">
+            <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 1rem 0;">Financial Compliance Checks</h3>
+            
+            <div class="checkbox-group">
+                <div class="checkbox-wrapper">
+                    <input 
+                        type="checkbox" 
+                        id="arithmetic_correct" 
+                        name="arithmetic_correct"
+                        {% if existing_score %}{% if existing_score.is_arithmetic_correct %}checked{% endif %}{% else %}checked{% endif %}
+                    >
+                    <label for="arithmetic_correct">
+                        <strong>Arithmetic Calculations are Correct</strong><br>
+                        <span style="font-size: 0.75rem; color: #64748B;">All unit prices, quantities, and totals are correctly calculated</span>
+                    </label>
+                </div>
+                
+                <div class="checkbox-wrapper">
+                    <input 
+                        type="checkbox" 
+                        id="within_budget" 
+                        name="within_budget"
+                        {% if existing_score %}{% if existing_score.is_within_budget %}checked{% endif %}{% else %}{% if bid.bid_amount <= bid.tender.estimated_budget %}checked{% endif %}{% endif %}
+                    >
+                    <label for="within_budget">
+                        <strong>Bid is Within Budget</strong><br>
+                        <span style="font-size: 0.75rem; color: #64748B;">Bid amount does not exceed the tender estimate</span>
+                    </label>
+                </div>
+                
+                <div class="checkbox-wrapper">
+                    <input 
+                        type="checkbox" 
+                        id="price_reasonable" 
+                        name="price_reasonable"
+                        {% if existing_score %}{% if existing_score.is_price_reasonable %}checked{% endif %}{% else %}checked{% endif %}
+                    >
+                    <label for="price_reasonable">
+                        <strong>Price is Reasonable</strong><br>
+                        <span style="font-size: 0.75rem; color: #64748B;">Price is within acceptable variance (±{{ financial_criteria.acceptable_variance_percentage }}%)</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="arithmetic_notes">Arithmetic Verification Notes</label>
+                <textarea 
+                    class="form-control" 
+                    id="arithmetic_notes" 
+                    name="arithmetic_notes"
+                    placeholder="Note any arithmetic errors or discrepancies found..."
+                >{% if existing_score %}{{ existing_score.arithmetic_notes }}{% endif %}</textarea>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 1rem 0;">Overall Financial Assessment</h3>
+            
+            <div class="form-group">
+                <label class="form-label" for="comments">Comments and Observations</label>
+                <textarea 
+                    class="form-control" 
+                    id="comments" 
+                    name="comments"
+                    placeholder="Provide your overall financial assessment, value for money analysis, any concerns..."
+                    required
+                >{% if existing_score %}{{ existing_score.comments }}{% endif %}</textarea>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{% url 'bid_detail' bid.id %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i>
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i>
+                Submit Financial Evaluation
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

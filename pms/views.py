@@ -3176,6 +3176,460 @@ def bid_detail(request, pk):
     return render(request, 'bids/bid_detail.html', context)
 
 
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Avg, Sum, Count, Q
+from django.utils import timezone
+from decimal import Decimal
+from pms.models import (
+    Bid, Tender, TechnicalEvaluationCriteria, FinancialEvaluationCriteria,
+    TechnicalEvaluationScore, FinancialEvaluationScore, BidTechnicalResponse,
+    EvaluationCommittee, CommitteeMember, CombinedEvaluationResult,
+    PurchaseOrder, EvaluationReport
+)
+
+# ============================================================================
+# TECHNICAL EVALUATION
+# ============================================================================
+
+@login_required
+def bid_evaluate_technical(request, pk):
+    """Technical evaluation of a bid by committee member"""
+    bid = get_object_or_404(
+        Bid.objects.select_related('tender', 'supplier'),
+        pk=pk
+    )
+    
+    # Check if user is committee member
+    active_committee = bid.tender.evaluation_committees.filter(
+        status='ACTIVE'
+    ).first()
+    
+    if not active_committee:
+        messages.error(request, 'No active evaluation committee for this tender.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    membership = active_committee.members.filter(
+        user=request.user,
+        is_active=True
+    ).first()
+    
+    if not membership:
+        messages.error(request, 'You are not a member of the evaluation committee.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    # Check if already evaluated
+    existing_scores = TechnicalEvaluationScore.objects.filter(
+        bid=bid,
+        evaluator=request.user
+    )
+    
+    # Get technical criteria for this tender
+    criteria = bid.tender.technical_criteria.all().order_by('sequence')
+    
+    if not criteria.exists():
+        messages.error(request, 'No technical evaluation criteria defined for this tender.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    # Get bid's technical responses
+    responses = BidTechnicalResponse.objects.filter(bid=bid)
+    
+    if request.method == 'POST':
+        # Process technical evaluation
+        try:
+            # Delete existing scores to allow re-evaluation
+            existing_scores.delete()
+            
+            total_weighted_score = Decimal('0')
+            all_compliant = True
+            
+            for criterion in criteria:
+                score_value = request.POST.get(f'score_{criterion.id}')
+                is_compliant = request.POST.get(f'compliant_{criterion.id}') == 'on'
+                comments = request.POST.get(f'comments_{criterion.id}', '')
+                justification = request.POST.get(f'justification_{criterion.id}', '')
+                
+                if not score_value:
+                    messages.error(request, f'Please provide score for: {criterion.criterion_name}')
+                    return redirect('bid_evaluate_technical', pk=bid.id)
+                
+                score = Decimal(score_value)
+                
+                # Validate score
+                if score < 0 or score > criterion.max_score:
+                    messages.error(request, f'Score for {criterion.criterion_name} must be between 0 and {criterion.max_score}')
+                    return redirect('bid_evaluate_technical', pk=bid.id)
+                
+                # Check pass/fail criteria
+                if criterion.is_pass_fail and not is_compliant:
+                    all_compliant = False
+                
+                # Create score record
+                eval_score = TechnicalEvaluationScore.objects.create(
+                    bid=bid,
+                    criterion=criterion,
+                    evaluator=request.user,
+                    score=score,
+                    is_compliant=is_compliant,
+                    comments=comments,
+                    justification=justification
+                )
+                
+                total_weighted_score += eval_score.weighted_score
+            
+            # Update bid status
+            if bid.status == 'OPENED':
+                bid.status = 'EVALUATING'
+                bid.save()
+            
+            messages.success(request, 'Technical evaluation submitted successfully.')
+            return redirect('bid_detail', pk=bid.id)
+            
+        except Exception as e:
+            messages.error(request, f'Error submitting evaluation: {str(e)}')
+            return redirect('bid_evaluate_technical', pk=bid.id)
+    
+    # Prepare criteria with existing scores
+    criteria_data = []
+    for criterion in criteria:
+        existing_score = existing_scores.filter(criterion=criterion).first()
+        response = responses.filter(criterion=criterion).first()
+        
+        criteria_data.append({
+            'criterion': criterion,
+            'response': response,
+            'existing_score': existing_score,
+        })
+    
+    context = {
+        'bid': bid,
+        'committee': active_committee,
+        'membership': membership,
+        'criteria_data': criteria_data,
+        'is_reevaluation': existing_scores.exists(),
+    }
+    
+    return render(request, 'bids/evaluate_technical.html', context)
+
+
+# ============================================================================
+# FINANCIAL EVALUATION
+# ============================================================================
+
+@login_required
+def bid_evaluate_financial(request, pk):
+    """Financial evaluation of a bid by committee member"""
+    bid = get_object_or_404(
+        Bid.objects.select_related('tender', 'supplier'),
+        pk=pk
+    )
+    
+    # Check if user is committee member
+    active_committee = bid.tender.evaluation_committees.filter(
+        status='ACTIVE'
+    ).first()
+    
+    if not active_committee:
+        messages.error(request, 'No active evaluation committee for this tender.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    membership = active_committee.members.filter(
+        user=request.user,
+        is_active=True
+    ).first()
+    
+    if not membership:
+        messages.error(request, 'You are not a member of the evaluation committee.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    # Get financial criteria
+    try:
+        financial_criteria = bid.tender.financial_criteria
+    except:
+        messages.error(request, 'No financial evaluation criteria defined for this tender.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    # Check if already evaluated
+    existing_score = FinancialEvaluationScore.objects.filter(
+        bid=bid,
+        evaluator=request.user
+    ).first()
+    
+    # Get all bids for this tender to calculate lowest price
+    all_bids = Bid.objects.filter(
+        tender=bid.tender,
+        status__in=['OPENED', 'EVALUATING', 'QUALIFIED']
+    ).order_by('bid_amount')
+    
+    lowest_bid = all_bids.first()
+    
+    if request.method == 'POST':
+        try:
+            # Get form data
+            is_arithmetic_correct = request.POST.get('arithmetic_correct') == 'on'
+            arithmetic_notes = request.POST.get('arithmetic_notes', '')
+            is_within_budget = request.POST.get('within_budget') == 'on'
+            is_price_reasonable = request.POST.get('price_reasonable') == 'on'
+            comments = request.POST.get('comments', '')
+            
+            # Calculate variance from estimate
+            variance = ((bid.bid_amount - bid.tender.estimated_budget) / bid.tender.estimated_budget * 100)
+            
+            # Calculate financial score based on evaluation method
+            if financial_criteria.evaluation_method == 'LOWEST_PRICE':
+                # Formula: (Lowest Price / Bid Price) × 100
+                if lowest_bid and bid.bid_amount > 0:
+                    financial_score = (lowest_bid.bid_amount / bid.bid_amount * 100)
+                else:
+                    financial_score = Decimal('100')
+            elif financial_criteria.evaluation_method == 'FIXED_BUDGET':
+                # Score based on how close to budget
+                if is_within_budget:
+                    financial_score = Decimal('100')
+                else:
+                    financial_score = Decimal('0')
+            else:  # QUALITY_COST
+                # Will be calculated later based on technical score
+                financial_score = Decimal('100')
+            
+            # Cap at 100
+            if financial_score > 100:
+                financial_score = Decimal('100')
+            
+            # Delete existing score if re-evaluating
+            if existing_score:
+                existing_score.delete()
+            
+            # Create financial evaluation score
+            eval_score = FinancialEvaluationScore.objects.create(
+                bid=bid,
+                evaluator=request.user,
+                quoted_amount=bid.bid_amount,
+                is_arithmetic_correct=is_arithmetic_correct,
+                arithmetic_notes=arithmetic_notes,
+                is_within_budget=is_within_budget,
+                is_price_reasonable=is_price_reasonable,
+                variance_from_estimate=variance,
+                financial_score=financial_score,
+                weighted_financial_score=financial_score * financial_criteria.financial_weight / 100,
+                comments=comments
+            )
+            
+            messages.success(request, 'Financial evaluation submitted successfully.')
+            return redirect('bid_detail', pk=bid.id)
+            
+        except Exception as e:
+            messages.error(request, f'Error submitting evaluation: {str(e)}')
+            return redirect('bid_evaluate_financial', pk=bid.id)
+    
+    # Calculate variance
+    variance = ((bid.bid_amount - bid.tender.estimated_budget) / bid.tender.estimated_budget * 100) if bid.tender.estimated_budget > 0 else 0
+    
+    context = {
+        'bid': bid,
+        'committee': active_committee,
+        'membership': membership,
+        'financial_criteria': financial_criteria,
+        'existing_score': existing_score,
+        'lowest_bid': lowest_bid,
+        'variance': variance,
+        'all_bids': all_bids,
+    }
+    
+    return render(request, 'bids/evaluate_financial.html', context)
+
+
+# ============================================================================
+# VIEW EVALUATION
+# ============================================================================
+
+@login_required
+def bid_view_evaluation(request, pk):
+    """View user's submitted evaluation"""
+    bid = get_object_or_404(Bid, pk=pk)
+    
+    # Get user's technical scores
+    technical_scores = TechnicalEvaluationScore.objects.filter(
+        bid=bid,
+        evaluator=request.user
+    ).select_related('criterion')
+    
+    # Get user's financial score
+    financial_score = FinancialEvaluationScore.objects.filter(
+        bid=bid,
+        evaluator=request.user
+    ).first()
+    
+    # Calculate totals
+    total_technical = technical_scores.aggregate(
+        total=Sum('weighted_score')
+    )['total'] or 0
+    
+    context = {
+        'bid': bid,
+        'technical_scores': technical_scores,
+        'financial_score': financial_score,
+        'total_technical': total_technical,
+    }
+    
+    return render(request, 'bids/view_evaluation.html', context)
+
+
+# ============================================================================
+# COMMITTEE EVALUATION SUMMARY
+# ============================================================================
+
+@login_required
+def committee_evaluation_summary(request, tender_id):
+    """Committee chairperson view of all evaluations"""
+    tender = get_object_or_404(Tender, pk=tender_id)
+    
+    # Check if user is chairperson
+    active_committee = tender.evaluation_committees.filter(
+        status='ACTIVE'
+    ).first()
+    
+    if not active_committee:
+        messages.error(request, 'No active evaluation committee for this tender.')
+        return redirect('tender_detail', pk=tender.id)
+    
+    if active_committee.chairperson != request.user and request.user.role != 'ADMIN':
+        messages.error(request, 'Only the committee chairperson can view this summary.')
+        return redirect('tender_detail', pk=tender.id)
+    
+    # Get all bids for this tender
+    bids = Bid.objects.filter(tender=tender).select_related('supplier')
+    
+    # Get evaluation statistics for each bid
+    bid_evaluations = []
+    for bid in bids:
+        # Technical evaluation stats
+        tech_scores = TechnicalEvaluationScore.objects.filter(bid=bid)
+        tech_avg = tech_scores.aggregate(
+            avg_score=Avg('weighted_score')
+        )['avg_score'] or 0
+        
+        # Financial evaluation stats
+        fin_scores = FinancialEvaluationScore.objects.filter(bid=bid)
+        fin_avg = fin_scores.aggregate(
+            avg_score=Avg('financial_score')
+        )['avg_score'] or 0
+        
+        # Count evaluators
+        tech_evaluators = tech_scores.values('evaluator').distinct().count()
+        fin_evaluators = fin_scores.values('evaluator').distinct().count()
+        
+        # Get or create combined result
+        combined, created = CombinedEvaluationResult.objects.get_or_create(
+            bid=bid,
+            defaults={
+                'average_technical_score': tech_avg,
+                'average_financial_score': fin_avg,
+                'technical_pass_mark': tender.technical_pass_mark,
+                'evaluated_by_committee': active_committee,
+                'evaluation_date': timezone.now().date()
+            }
+        )
+        
+        # Update if not created
+        if not created:
+            combined.average_technical_score = tech_avg
+            combined.average_financial_score = fin_avg
+            combined.save()
+            combined.calculate_combined_score()
+        
+        bid_evaluations.append({
+            'bid': bid,
+            'tech_avg': tech_avg,
+            'fin_avg': fin_avg,
+            'combined_score': combined.combined_score,
+            'tech_evaluators': tech_evaluators,
+            'fin_evaluators': fin_evaluators,
+            'is_qualified': combined.is_technically_qualified,
+            'combined_result': combined,
+        })
+    
+    # Sort by combined score
+    bid_evaluations.sort(key=lambda x: x['combined_score'], reverse=True)
+    
+    # Assign ranks
+    for rank, item in enumerate(bid_evaluations, start=1):
+        item['bid'].rank = rank
+        item['bid'].save()
+        item['rank'] = rank
+    
+    context = {
+        'tender': tender,
+        'committee': active_committee,
+        'bid_evaluations': bid_evaluations,
+        'total_members': active_committee.members.filter(is_active=True).count(),
+    }
+    
+    return render(request, 'bids/committee_summary.html', context)
+
+
+# ============================================================================
+# BID DISQUALIFICATION
+# ============================================================================
+
+@login_required
+def bid_disqualify(request, pk):
+    """Disqualify a bid"""
+    bid = get_object_or_404(Bid, pk=pk)
+    
+    # Permission check
+    active_committee = bid.tender.evaluation_committees.filter(
+        status='ACTIVE'
+    ).first()
+    
+    is_chairperson = active_committee and active_committee.chairperson == request.user
+    is_admin = request.user.role == 'ADMIN'
+    
+    if not (is_chairperson or is_admin):
+        messages.error(request, 'Only committee chairperson or admin can disqualify bids.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    if bid.status in ['AWARDED', 'DISQUALIFIED']:
+        messages.error(request, f'Cannot disqualify a bid that is {bid.get_status_display()}.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    if request.method == 'POST':
+        reason = request.POST.get('reason')
+        
+        if not reason:
+            messages.error(request, 'Please provide a reason for disqualification.')
+            return redirect('bid_disqualify', pk=bid.id)
+        
+        bid.status = 'DISQUALIFIED'
+        bid.disqualification_reason = reason
+        bid.save()
+        
+        # Update combined evaluation result
+        try:
+            combined = CombinedEvaluationResult.objects.get(bid=bid)
+            combined.is_disqualified = True
+            combined.disqualification_reason = reason
+            combined.save()
+        except:
+            pass
+        
+        messages.success(request, f'Bid {bid.bid_number} has been disqualified.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    context = {
+        'bid': bid,
+        'committee': active_committee,
+    }
+    
+    return render(request, 'bids/disqualify.html', context)
+
+
+# ============================================================================
+# BID OPENING
+# ============================================================================
+
 @login_required
 def bid_open(request, pk):
     """Open a submitted bid"""
@@ -3184,39 +3638,155 @@ def bid_open(request, pk):
     # Permission check
     if request.user.role not in ['PROCUREMENT', 'ADMIN']:
         messages.error(request, 'You do not have permission to open bids.')
-        return redirect('bid_detail', pk=pk)
+        return redirect('bid_detail', pk=bid.id)
     
-    # Check if bid can be opened
     if bid.status != 'SUBMITTED':
         messages.error(request, 'Only submitted bids can be opened.')
-        return redirect('bid_detail', pk=pk)
+        return redirect('bid_detail', pk=bid.id)
     
-    # Check if tender closing date has passed
     if bid.tender.closing_date > timezone.now():
         messages.error(request, 'Cannot open bids before tender closing date.')
-        return redirect('bid_detail', pk=pk)
+        return redirect('bid_detail', pk=bid.id)
     
     if request.method == 'POST':
         bid.status = 'OPENED'
-        bid.opened_by = request.user
         bid.opened_at = timezone.now()
+        bid.opened_by = request.user
         bid.save()
         
-        # Create audit log
-        AuditLog.objects.create(
-            user=request.user,
-            action='APPROVE',
-            model_name='Bid',
-            object_id=str(bid.id),
-            object_repr=str(bid),
-            changes={'status': 'OPENED', 'opened_at': str(timezone.now())},
-            ip_address=request.META.get('REMOTE_ADDR'),
+        messages.success(request, f'Bid {bid.bid_number} has been opened.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    context = {
+        'bid': bid,
+    }
+    
+    return render(request, 'bids/open_bid.html', context)
+
+
+# ============================================================================
+# BID AWARD
+# ============================================================================
+
+@login_required
+def bid_award(request, pk):
+    """Award tender to a bid"""
+    bid = get_object_or_404(Bid, pk=pk)
+    
+    # Permission check
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        messages.error(request, 'You do not have permission to award tenders.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    if bid.status != 'QUALIFIED':
+        messages.error(request, 'Only qualified bids can be awarded.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    # Check if evaluations are complete
+    if not bid.tender.technical_evaluation_complete or not bid.tender.financial_evaluation_complete:
+        messages.error(request, 'Evaluations must be complete before awarding.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    # Check if already awarded to another bid
+    existing_award = Bid.objects.filter(
+        tender=bid.tender,
+        status='AWARDED'
+    ).first()
+    
+    if existing_award and existing_award.id != bid.id:
+        messages.error(request, f'Tender already awarded to {existing_award.supplier.name}.')
+        return redirect('bid_detail', pk=bid.id)
+    
+    if request.method == 'POST':
+        # Award the bid
+        bid.status = 'AWARDED'
+        bid.save()
+        
+        # Update tender status
+        bid.tender.status = 'AWARDED'
+        bid.tender.save()
+        
+        # Mark other bids as rejected
+        Bid.objects.filter(tender=bid.tender).exclude(id=bid.id).update(
+            status='REJECTED'
         )
         
-        messages.success(request, f'Bid {bid.bid_number} has been opened successfully.')
-        return redirect('bid_detail', pk=pk)
+        # Update combined evaluation
+        try:
+            combined = CombinedEvaluationResult.objects.get(bid=bid)
+            combined.is_recommended = True
+            combined.save()
+        except:
+            pass
+        
+        messages.success(request, f'Tender awarded to {bid.supplier.name}.')
+        return redirect('bid_detail', pk=bid.id)
     
-    return render(request, 'bids/bid_open_confirm.html', {'bid': bid})
+    # Get combined evaluation result
+    try:
+        combined = CombinedEvaluationResult.objects.get(bid=bid)
+    except:
+        combined = None
+    
+    context = {
+        'bid': bid,
+        'combined': combined,
+    }
+    
+    return render(request, 'bids/award.html', context)
+
+
+# ============================================================================
+# BID COMPARISON
+# ============================================================================
+
+@login_required
+def bid_comparison(request, tender_id):
+    """Compare all bids for a tender"""
+    tender = get_object_or_404(Tender, pk=tender_id)
+    
+    # Permission check
+    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
+        # Check if committee member
+        is_member = tender.evaluation_committees.filter(
+            status='ACTIVE',
+            members__user=request.user,
+            members__is_active=True
+        ).exists()
+        
+        if not is_member:
+            messages.error(request, 'You do not have permission to view this comparison.')
+            return redirect('tender_detail', pk=tender.id)
+    
+    # Get all bids with evaluations
+    bids = Bid.objects.filter(tender=tender).select_related('supplier')
+    
+    comparison_data = []
+    for bid in bids:
+        # Get combined evaluation
+        try:
+            combined = CombinedEvaluationResult.objects.get(bid=bid)
+        except:
+            combined = None
+        
+        comparison_data.append({
+            'bid': bid,
+            'combined': combined,
+            'variance': bid.bid_amount - tender.estimated_budget,
+            'variance_pct': ((bid.bid_amount - tender.estimated_budget) / tender.estimated_budget * 100) if tender.estimated_budget > 0 else 0,
+        })
+    
+    # Sort by rank or combined score
+    comparison_data.sort(key=lambda x: x['combined'].combined_score if x['combined'] else 0, reverse=True)
+    
+    context = {
+        'tender': tender,
+        'comparison_data': comparison_data,
+    }
+    
+    return render(request, 'bids/comparison.html', context)
+
+
 
 from decimal import Decimal, InvalidOperation
 from django.shortcuts import render, redirect, get_object_or_404
@@ -3399,245 +3969,7 @@ def bid_qualify(request, pk):
     return render(request, 'bids/bid_qualify_confirm.html', {'bid': bid})
 
 
-@login_required
-def bid_disqualify(request, pk):
-    """Disqualify a bid"""
-    bid = get_object_or_404(Bid, pk=pk)
-    
-    # Permission check
-    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
-        messages.error(request, 'You do not have permission to disqualify bids.')
-        return redirect('bid_detail', pk=pk)
-    
-    # Check if bid can be disqualified
-    if bid.status in ['DISQUALIFIED', 'AWARDED']:
-        messages.error(request, 'This bid cannot be disqualified.')
-        return redirect('bid_detail', pk=pk)
-    
-    if request.method == 'POST':
-        reason = request.POST.get('disqualification_reason', '')
-        
-        if not reason:
-            messages.error(request, 'Please provide a reason for disqualification.')
-            return redirect('bid_disqualify', pk=pk)
-        
-        bid.status = 'DISQUALIFIED'
-        bid.disqualification_reason = reason
-        bid.rank = None
-        bid.save()
-        
-        # Create audit log
-        AuditLog.objects.create(
-            user=request.user,
-            action='REJECT',
-            model_name='Bid',
-            object_id=str(bid.id),
-            object_repr=str(bid),
-            changes={'status': 'DISQUALIFIED', 'reason': reason},
-            ip_address=request.META.get('REMOTE_ADDR'),
-        )
-        
-        # Notify supplier
-        if hasattr(bid.supplier, 'user') and bid.supplier.user:
-            Notification.objects.create(
-                user=bid.supplier.user,
-                notification_type='TENDER',
-                priority='HIGH',
-                title=f'Bid Disqualified - {bid.tender.tender_number}',
-                message=f'Your bid {bid.bid_number} has been disqualified. Reason: {reason}',
-                link_url=f'/bids/{bid.id}/'
-            )
-        
-        messages.success(request, f'Bid {bid.bid_number} has been disqualified.')
-        return redirect('bid_detail', pk=pk)
-    
-    context = {'bid': bid}
-    return render(request, 'bids/bid_disqualify.html', context)
 
-
-@login_required
-def bid_award(request, pk):
-    """Award tender to a bid (creates Purchase Order)"""
-    bid = get_object_or_404(Bid, pk=pk)
-    
-    # Permission check
-    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
-        messages.error(request, 'You do not have permission to award tenders.')
-        return redirect('bid_detail', pk=pk)
-    
-    # Check if bid can be awarded
-    if bid.status != 'QUALIFIED':
-        messages.error(request, 'Only qualified bids can be awarded.')
-        return redirect('bid_detail', pk=pk)
-    
-    # Check if tender already awarded
-    if PurchaseOrder.objects.filter(bid__tender=bid.tender, status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED']).exists():
-        messages.error(request, 'This tender has already been awarded.')
-        return redirect('bid_detail', pk=pk)
-    
-    if request.method == 'POST':
-        delivery_date = request.POST.get('delivery_date')
-        delivery_address = request.POST.get('delivery_address')
-        payment_terms = request.POST.get('payment_terms')
-        warranty_terms = request.POST.get('warranty_terms', '')
-        special_instructions = request.POST.get('special_instructions', '')
-        
-        if not all([delivery_date, delivery_address, payment_terms]):
-            messages.error(request, 'Please fill in all required fields.')
-            return redirect('bid_award', pk=pk)
-        
-        try:
-            # Calculate totals
-            items_total = bid.items.aggregate(Sum('quoted_total'))['quoted_total__sum'] or 0
-            tax_rate = Decimal('0.16')  # 16% VAT - adjust as needed
-            tax_amount = items_total * tax_rate
-            total_amount = items_total + tax_amount
-            
-            # Create Purchase Order
-            po = PurchaseOrder.objects.create(
-                requisition=bid.tender.requisition,
-                supplier=bid.supplier,
-                bid=bid,
-                delivery_date=delivery_date,
-                delivery_address=delivery_address,
-                subtotal=items_total,
-                tax_amount=tax_amount,
-                total_amount=total_amount,
-                payment_terms=payment_terms,
-                warranty_terms=warranty_terms,
-                special_instructions=special_instructions,
-                status='DRAFT',
-                created_by=request.user
-            )
-            
-            # Create PO items from bid items
-            from .models import PurchaseOrderItem
-            for bid_item in bid.items.all():
-                PurchaseOrderItem.objects.create(
-                    purchase_order=po,
-                    requisition_item=bid_item.requisition_item,
-                    item_description=bid_item.requisition_item.item_description,
-                    specifications=bid_item.specifications,
-                    quantity=bid_item.requisition_item.quantity,
-                    unit_of_measure=bid_item.requisition_item.unit_of_measure,
-                    unit_price=bid_item.quoted_unit_price,
-                )
-            
-            # Update bid status
-            bid.status = 'AWARDED'
-            bid.save()
-            
-            # Update tender status
-            bid.tender.status = 'AWARDED'
-            bid.tender.save()
-            
-            # Update other bids as rejected
-            Bid.objects.filter(
-                tender=bid.tender
-            ).exclude(id=bid.id).update(status='REJECTED')
-            
-            # Create audit log
-            AuditLog.objects.create(
-                user=request.user,
-                action='APPROVE',
-                model_name='Bid',
-                object_id=str(bid.id),
-                object_repr=str(bid),
-                changes={'status': 'AWARDED', 'po_created': str(po.po_number)},
-                ip_address=request.META.get('REMOTE_ADDR'),
-            )
-            
-            # Notify supplier
-            if hasattr(bid.supplier, 'user') and bid.supplier.user:
-                Notification.objects.create(
-                    user=bid.supplier.user,
-                    notification_type='PO',
-                    priority='HIGH',
-                    title=f'Tender Awarded - PO {po.po_number}',
-                    message=f'Congratulations! Your bid has been awarded. PO Number: {po.po_number}',
-                    link_url=f'/purchase-orders/{po.id}/'
-                )
-            
-            messages.success(request, f'Tender awarded successfully. Purchase Order {po.po_number} created.')
-            return redirect('purchase_order_detail', pk=po.id)
-            
-        except Exception as e:
-            messages.error(request, f'Error creating purchase order: {str(e)}')
-            return redirect('bid_award', pk=pk)
-    
-    # Calculate estimated totals
-    items_total = bid.items.aggregate(Sum('quoted_total'))['quoted_total__sum'] or 0
-    tax_amount = items_total * Decimal('0.16')
-    total_amount = items_total + tax_amount
-    
-    context = {
-        'bid': bid,
-        'items_total': items_total,
-        'tax_amount': tax_amount,
-        'total_amount': total_amount,
-    }
-    
-    return render(request, 'bids/bid_award.html', context)
-
-
-@login_required
-def bid_comparison(request, tender_id):
-    """Compare all bids for a tender side by side"""
-    tender = get_object_or_404(Tender, pk=tender_id)
-    
-    # Permission check
-    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
-        messages.error(request, 'You do not have permission to compare bids.')
-        return redirect('tender_detail', pk=tender_id)
-    
-    # Get all bids that are not disqualified
-    bids = tender.bids.exclude(status='DISQUALIFIED').select_related(
-        'supplier'
-    ).prefetch_related(
-        'items__requisition_item',
-        'evaluations'
-    ).order_by('rank', 'bid_amount')
-    
-    if not bids.exists():
-        messages.info(request, 'No bids available for comparison.')
-        return redirect('tender_detail', pk=tender_id)
-    
-    # Get all requisition items
-    requisition_items = tender.requisition.items.all()
-    
-    # Build comparison data
-    comparison_data = []
-    for req_item in requisition_items:
-        item_data = {
-            'requisition_item': req_item,
-            'bids': []
-        }
-        
-        for bid in bids:
-            bid_item = bid.items.filter(requisition_item=req_item).first()
-            item_data['bids'].append({
-                'bid': bid,
-                'bid_item': bid_item
-            })
-        
-        comparison_data.append(item_data)
-    
-    # Calculate statistics
-    stats = {
-        'total_bids': bids.count(),
-        'average_amount': bids.aggregate(Avg('bid_amount'))['bid_amount__avg'] or 0,
-        'lowest_bid': bids.order_by('bid_amount').first(),
-        'highest_bid': bids.order_by('-bid_amount').first(),
-    }
-    
-    context = {
-        'tender': tender,
-        'bids': bids,
-        'comparison_data': comparison_data,
-        'stats': stats,
-    }
-    
-    return render(request, 'bids/bid_comparison.html', context)
 
 
 # API ENDPOINTS

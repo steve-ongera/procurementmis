@@ -503,9 +503,24 @@ class BidInline(admin.TabularInline):
 
 @admin.register(Tender)
 class TenderAdmin(admin.ModelAdmin):
-    list_display = ['tender_number', 'title', 'tender_type', 'procurement_method', 'status', 'closing_date', 'estimated_budget', 'created_at']
-    list_filter = ['tender_type', 'procurement_method', 'status', 'created_at']
-    search_fields = ['tender_number', 'title', 'requisition__requisition_number']
+    list_display = [
+        'tender_number', 'title', 'tender_type',
+        'procurement_method', 'status', 'closing_date',
+        'estimated_budget',
+        'technical_evaluation_complete',
+        'financial_evaluation_complete',
+        'created_at'
+    ]
+    list_filter = [
+        'tender_type', 'procurement_method', 'status',
+        'requires_technical_evaluation',
+        'technical_evaluation_complete',
+        'financial_evaluation_complete',
+        'created_at'
+    ]
+    search_fields = [
+        'tender_number', 'title', 'requisition__requisition_number'
+    ]
     ordering = ['-created_at']
     readonly_fields = ['tender_number', 'created_at', 'updated_at']
     inlines = [TenderDocumentInline, BidInline]
@@ -514,13 +529,38 @@ class TenderAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Tender Information', {
-            'fields': ('tender_number', 'requisition', 'title', 'tender_type', 'procurement_method')
+            'fields': (
+                'tender_number', 'requisition', 'title',
+                'tender_type', 'procurement_method'
+            )
         }),
         ('Description & Dates', {
-            'fields': ('description', 'publish_date', 'closing_date', 'bid_opening_date')
+            'fields': (
+                'description', 'publish_date', 'closing_date',
+                'bid_opening_date'
+            )
         }),
         ('Budget & Status', {
             'fields': ('estimated_budget', 'status')
+        }),
+        ('Evaluation Settings', {
+            'fields': (
+                'requires_technical_evaluation', 'technical_pass_mark',
+                'evaluation_start_date', 'evaluation_end_date'
+            )
+        }),
+        ('Evaluation Status', {
+            'fields': (
+                'preliminary_evaluation_complete',
+                'technical_evaluation_complete',
+                'financial_evaluation_complete'
+            )
+        }),
+        ('Award Information', {
+            'fields': (
+                'award_recommendation_date', 'award_approved_date'
+            ),
+            'classes': ('collapse',)
         }),
         ('Suppliers', {
             'fields': ('invited_suppliers',)
@@ -531,6 +571,32 @@ class TenderAdmin(admin.ModelAdmin):
         }),
     )
 
+
+@admin.register(BidDocument)
+class BidDocumentAdmin(admin.ModelAdmin):
+    list_display = [
+        'bid', 'document_type', 'document_name',
+        'uploaded_at'
+    ]
+    list_filter = ['document_type', 'uploaded_at']
+    search_fields = [
+        'bid__bid_number', 'document_name', 'description'
+    ]
+    ordering = ['-uploaded_at']
+    readonly_fields = ['uploaded_at']
+    
+    fieldsets = (
+        ('Document Information', {
+            'fields': ('bid', 'document_type', 'document_name')
+        }),
+        ('File & Description', {
+            'fields': ('file', 'description')
+        }),
+        ('Metadata', {
+            'fields': ('uploaded_at',),
+            'classes': ('collapse',)
+        }),
+    )
 
 @admin.register(TenderDocument)
 class TenderDocumentAdmin(admin.ModelAdmin):
@@ -554,11 +620,24 @@ class BidDocumentInline(admin.TabularInline):
 
 @admin.register(Bid)
 class BidAdmin(admin.ModelAdmin):
-    list_display = ['bid_number', 'tender', 'supplier', 'bid_amount', 'status', 'evaluation_score', 'rank', 'submitted_at']
-    list_filter = ['status', 'submitted_at', 'opened_at']
-    search_fields = ['bid_number', 'tender__tender_number', 'supplier__name']
+    list_display = [
+        'bid_number', 'tender', 'supplier', 'bid_amount',
+        'status', 'evaluation_score', 'rank',
+        'technical_evaluation_status', 'financial_evaluation_status',
+        'is_lowest_evaluated', 'submitted_at'
+    ]
+    list_filter = [
+        'status', 'preliminary_evaluation_status',
+        'technical_evaluation_status', 'financial_evaluation_status',
+        'is_lowest_evaluated', 'submitted_at', 'opened_at'
+    ]
+    search_fields = [
+        'bid_number', 'tender__tender_number', 'supplier__name'
+    ]
     ordering = ['tender', 'rank']
-    readonly_fields = ['bid_number', 'submitted_at', 'opened_at']
+    readonly_fields = [
+        'bid_number', 'submitted_at', 'opened_at'
+    ]
     inlines = [BidItemInline, BidDocumentInline]
     
     fieldsets = (
@@ -566,19 +645,45 @@ class BidAdmin(admin.ModelAdmin):
             'fields': ('bid_number', 'tender', 'supplier')
         }),
         ('Bid Details', {
-            'fields': ('bid_amount', 'bid_bond_amount', 'validity_period_days', 'delivery_period_days')
+            'fields': (
+                'bid_amount', 'bid_bond_amount',
+                'validity_period_days', 'delivery_period_days'
+            )
         }),
-        ('Evaluation', {
-            'fields': ('status', 'evaluation_score', 'rank', 'technical_score', 'financial_score')
+        ('Preliminary Evaluation', {
+            'fields': (
+                'preliminary_evaluation_status',
+                'preliminary_evaluation_notes'
+            )
+        }),
+        ('Technical Evaluation', {
+            'fields': (
+                'technical_evaluation_status', 'technical_score'
+            )
+        }),
+        ('Financial Evaluation', {
+            'fields': (
+                'financial_evaluation_status', 'financial_score',
+                'is_lowest_evaluated', 'price_variance_percentage'
+            )
+        }),
+        ('Overall Evaluation', {
+            'fields': ('status', 'evaluation_score', 'rank')
+        }),
+        ('Disqualification', {
+            'fields': ('disqualification_reason',),
+            'classes': ('collapse',)
         }),
         ('Additional Information', {
-            'fields': ('disqualification_reason', 'notes')
+            'fields': ('notes',)
         }),
         ('Timestamps', {
             'fields': ('submitted_at', 'opened_at', 'opened_by'),
             'classes': ('collapse',)
         }),
     )
+
+
 
 
 @admin.register(BidItem)
@@ -604,6 +709,492 @@ class EvaluationCriteriaAdmin(admin.ModelAdmin):
     search_fields = ['tender__tender_number', 'criterion_name']
     ordering = ['tender', 'sequence']
 
+
+# ============================================================================
+# EVALUATION COMMITTEE MANAGEMENT (NEW SECTION)
+# ============================================================================
+
+class CommitteeMemberInline(admin.TabularInline):
+    model = CommitteeMember
+    extra = 1
+    readonly_fields = ['appointed_at']
+    fields = [
+        'user', 'role', 'department', 'expertise_area',
+        'has_conflict', 'conflict_details', 'is_active'
+    ]
+
+
+@admin.register(EvaluationCommittee)
+class EvaluationCommitteeAdmin(admin.ModelAdmin):
+    list_display = [
+        'committee_number', 'tender', 'committee_type',
+        'chairperson', 'secretary', 'status',
+        'appointment_date', 'completion_date', 'created_at'
+    ]
+    list_filter = [
+        'committee_type', 'status', 'appointment_date',
+        'completion_date', 'created_at'
+    ]
+    search_fields = [
+        'committee_number', 'name', 'tender__tender_number',
+        'chairperson__username', 'secretary__username'
+    ]
+    ordering = ['-created_at']
+    readonly_fields = ['committee_number', 'created_at', 'updated_at']
+    inlines = [CommitteeMemberInline]
+    date_hierarchy = 'appointment_date'
+    
+    fieldsets = (
+        ('Committee Information', {
+            'fields': (
+                'committee_number', 'tender', 'committee_type', 'name'
+            )
+        }),
+        ('Leadership', {
+            'fields': ('chairperson', 'secretary')
+        }),
+        ('Dates & Status', {
+            'fields': (
+                'appointment_date', 'completion_date', 'status'
+            )
+        }),
+        ('Terms of Reference', {
+            'fields': ('terms_of_reference', 'evaluation_guidelines')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['complete_committees', 'suspend_committees']
+    
+    def complete_committees(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='ACTIVE').update(
+            status='COMPLETED',
+            completion_date=timezone.now().date()
+        )
+        self.message_user(request, f'{updated} committee(s) marked as completed.')
+    complete_committees.short_description = 'Mark committees as completed'
+    
+    def suspend_committees(self, request, queryset):
+        updated = queryset.update(status='SUSPENDED')
+        self.message_user(request, f'{updated} committee(s) suspended.')
+    suspend_committees.short_description = 'Suspend selected committees'
+
+
+@admin.register(CommitteeMember)
+class CommitteeMemberAdmin(admin.ModelAdmin):
+    list_display = [
+        'committee', 'user', 'role', 'department',
+        'expertise_area', 'has_conflict', 'is_active', 'appointed_at'
+    ]
+    list_filter = [
+        'role', 'has_conflict', 'is_active',
+        'appointed_at', 'committee__status'
+    ]
+    search_fields = [
+        'committee__committee_number', 'user__username',
+        'user__first_name', 'user__last_name', 'expertise_area'
+    ]
+    ordering = ['committee', 'role', 'user']
+    readonly_fields = ['appointed_at']
+    
+    fieldsets = (
+        ('Committee Assignment', {
+            'fields': ('committee', 'user', 'role')
+        }),
+        ('Details', {
+            'fields': ('department', 'expertise_area')
+        }),
+        ('Conflict of Interest', {
+            'fields': ('has_conflict', 'conflict_details')
+        }),
+        ('Status', {
+            'fields': ('is_active', 'appointed_at')
+        }),
+    )
+
+
+# ============================================================================
+# TECHNICAL EVALUATION CRITERIA
+# ============================================================================
+
+class TechnicalEvaluationScoreInline(admin.TabularInline):
+    model = TechnicalEvaluationScore
+    extra = 0
+    readonly_fields = ['weighted_score', 'evaluated_at']
+    fields = [
+        'bid', 'evaluator', 'score', 'weighted_score',
+        'is_compliant', 'comments'
+    ]
+
+
+@admin.register(TechnicalEvaluationCriteria)
+class TechnicalEvaluationCriteriaAdmin(admin.ModelAdmin):
+    list_display = [
+        'tender', 'criterion_name', 'sequence',
+        'max_score', 'weight_percentage',
+        'is_mandatory', 'is_pass_fail', 'response_type', 'created_at'
+    ]
+    list_filter = [
+        'is_mandatory', 'is_pass_fail', 'response_type', 'created_at'
+    ]
+    search_fields = [
+        'tender__tender_number', 'criterion_name',
+        'description', 'minimum_specification'
+    ]
+    ordering = ['tender', 'sequence']
+    readonly_fields = ['created_at']
+    inlines = [TechnicalEvaluationScoreInline]
+    
+    fieldsets = (
+        ('Criterion Information', {
+            'fields': (
+                'tender', 'criterion_name', 'description',
+                'minimum_specification', 'sequence'
+            )
+        }),
+        ('Response Type', {
+            'fields': ('response_type',)
+        }),
+        ('Scoring', {
+            'fields': (
+                'max_score', 'weight_percentage',
+                'scoring_guidelines'
+            )
+        }),
+        ('Requirements', {
+            'fields': ('is_mandatory', 'is_pass_fail')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(BidTechnicalResponse)
+class BidTechnicalResponseAdmin(admin.ModelAdmin):
+    list_display = [
+        'bid', 'criterion', 'compliance_status',
+        'response_value', 'has_document', 'created_at'
+    ]
+    list_filter = [
+        'compliance_status', 'created_at', 'updated_at'
+    ]
+    search_fields = [
+        'bid__bid_number', 'criterion__criterion_name',
+        'response_text', 'response_value'
+    ]
+    ordering = ['bid', 'criterion__sequence']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Response Information', {
+            'fields': ('bid', 'criterion')
+        }),
+        ('Supplier Response', {
+            'fields': (
+                'response_text', 'response_value',
+                'supporting_document', 'supplier_remarks'
+            )
+        }),
+        ('Evaluation', {
+            'fields': ('compliance_status',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def has_document(self, obj):
+        return format_html(
+            '<span style="color: {};">{}</span>',
+            'green' if obj.supporting_document else 'red',
+            '✓' if obj.supporting_document else '✗'
+        )
+    has_document.short_description = 'Document'
+
+
+@admin.register(TechnicalEvaluationScore)
+class TechnicalEvaluationScoreAdmin(admin.ModelAdmin):
+    list_display = [
+        'bid', 'criterion', 'evaluator',
+        'score', 'weighted_score', 'is_compliant', 'evaluated_at'
+    ]
+    list_filter = [
+        'is_compliant', 'evaluated_at', 'evaluator'
+    ]
+    search_fields = [
+        'bid__bid_number', 'criterion__criterion_name',
+        'evaluator__username', 'comments', 'justification'
+    ]
+    ordering = ['bid', 'criterion__sequence', 'evaluator']
+    readonly_fields = ['weighted_score', 'evaluated_at']
+    
+    fieldsets = (
+        ('Score Information', {
+            'fields': ('bid', 'criterion', 'evaluator')
+        }),
+        ('Scoring', {
+            'fields': ('score', 'weighted_score', 'is_compliant')
+        }),
+        ('Evaluation Notes', {
+            'fields': ('comments', 'justification')
+        }),
+        ('Timestamp', {
+            'fields': ('evaluated_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+# ============================================================================
+# FINANCIAL EVALUATION CRITERIA
+# ============================================================================
+
+@admin.register(FinancialEvaluationCriteria)
+class FinancialEvaluationCriteriaAdmin(admin.ModelAdmin):
+    list_display = [
+        'tender', 'evaluation_method',
+        'technical_weight', 'financial_weight',
+        'acceptable_variance_percentage',
+        'uses_formula', 'check_price_reasonability', 'created_at'
+    ]
+    list_filter = [
+        'evaluation_method', 'uses_formula',
+        'check_price_reasonability', 'created_at'
+    ]
+    search_fields = [
+        'tender__tender_number', 'formula_description'
+    ]
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Tender Reference', {
+            'fields': ('tender',)
+        }),
+        ('Evaluation Method', {
+            'fields': ('evaluation_method',)
+        }),
+        ('Weighting', {
+            'fields': ('technical_weight', 'financial_weight')
+        }),
+        ('Formula', {
+            'fields': ('uses_formula', 'formula_description')
+        }),
+        ('Price Reasonability', {
+            'fields': (
+                'check_price_reasonability',
+                'acceptable_variance_percentage'
+            )
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(FinancialEvaluationScore)
+class FinancialEvaluationScoreAdmin(admin.ModelAdmin):
+    list_display = [
+        'bid', 'evaluator', 'quoted_amount',
+        'financial_score', 'weighted_financial_score',
+        'is_arithmetic_correct', 'is_within_budget',
+        'is_price_reasonable', 'evaluated_at'
+    ]
+    list_filter = [
+        'is_arithmetic_correct', 'is_within_budget',
+        'is_price_reasonable', 'evaluated_at', 'evaluator'
+    ]
+    search_fields = [
+        'bid__bid_number', 'evaluator__username',
+        'comments', 'arithmetic_notes'
+    ]
+    ordering = ['bid', 'financial_score']
+    readonly_fields = ['weighted_financial_score', 'evaluated_at']
+    
+    fieldsets = (
+        ('Evaluation Information', {
+            'fields': ('bid', 'evaluator')
+        }),
+        ('Price Analysis', {
+            'fields': (
+                'quoted_amount', 'variance_from_estimate',
+                'is_within_budget', 'is_price_reasonable'
+            )
+        }),
+        ('Arithmetic Verification', {
+            'fields': ('is_arithmetic_correct', 'arithmetic_notes')
+        }),
+        ('Scoring', {
+            'fields': ('financial_score', 'weighted_financial_score')
+        }),
+        ('Comments', {
+            'fields': ('comments',)
+        }),
+        ('Timestamp', {
+            'fields': ('evaluated_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+# ============================================================================
+# COMBINED EVALUATION RESULTS
+# ============================================================================
+
+@admin.register(CombinedEvaluationResult)
+class CombinedEvaluationResultAdmin(admin.ModelAdmin):
+    list_display = [
+        'bid', 'combined_score', 'final_rank',
+        'average_technical_score', 'average_financial_score',
+        'is_technically_qualified', 'is_recommended',
+        'is_disqualified', 'evaluation_date'
+    ]
+    list_filter = [
+        'is_technically_qualified', 'is_recommended',
+        'is_disqualified', 'evaluation_date', 'created_at'
+    ]
+    search_fields = [
+        'bid__bid_number', 'bid__supplier__name',
+        'recommendation_notes', 'disqualification_reason'
+    ]
+    ordering = ['bid__tender', '-combined_score']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Bid Reference', {
+            'fields': ('bid', 'evaluated_by_committee')
+        }),
+        ('Technical Evaluation', {
+            'fields': (
+                'average_technical_score', 'technical_percentage',
+                'is_technically_qualified', 'technical_pass_mark'
+            )
+        }),
+        ('Financial Evaluation', {
+            'fields': (
+                'average_financial_score', 'financial_percentage'
+            )
+        }),
+        ('Combined Results', {
+            'fields': ('combined_score', 'final_rank')
+        }),
+        ('Recommendation', {
+            'fields': (
+                'is_recommended', 'recommendation_notes'
+            )
+        }),
+        ('Disqualification', {
+            'fields': (
+                'is_disqualified', 'disqualification_reason'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('evaluation_date', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['recalculate_scores']
+    
+    def recalculate_scores(self, request, queryset):
+        count = 0
+        for result in queryset:
+            result.calculate_combined_score()
+            count += 1
+        self.message_user(
+            request,
+            f'Combined scores recalculated for {count} result(s).'
+        )
+    recalculate_scores.short_description = 'Recalculate combined scores'
+
+
+# ============================================================================
+# EVALUATION REPORTS
+# ============================================================================
+
+@admin.register(EvaluationReport)
+class EvaluationReportAdmin(admin.ModelAdmin):
+    list_display = [
+        'report_number', 'tender', 'report_type',
+        'status', 'recommended_bidder',
+        'submitted_by', 'submitted_at',
+        'approved_by', 'approved_at', 'created_at'
+    ]
+    list_filter = [
+        'report_type', 'status', 'submitted_at',
+        'approved_at', 'created_at'
+    ]
+    search_fields = [
+        'report_number', 'title', 'tender__tender_number',
+        'executive_summary', 'findings', 'recommendations'
+    ]
+    ordering = ['-created_at']
+    readonly_fields = [
+        'report_number', 'created_at', 'updated_at',
+        'submitted_at', 'approved_at'
+    ]
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Report Information', {
+            'fields': (
+                'report_number', 'tender', 'committee',
+                'report_type', 'title'
+            )
+        }),
+        ('Report Content', {
+            'fields': (
+                'executive_summary', 'methodology',
+                'findings', 'recommendations'
+            )
+        }),
+        ('Recommendation', {
+            'fields': ('recommended_bidder',)
+        }),
+        ('Status & Document', {
+            'fields': ('status', 'report_document')
+        }),
+        ('Submission', {
+            'fields': ('submitted_by', 'submitted_at')
+        }),
+        ('Approval', {
+            'fields': ('approved_by', 'approved_at')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['approve_reports', 'submit_reports']
+    
+    def submit_reports(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='DRAFT').update(
+            status='SUBMITTED',
+            submitted_by=request.user,
+            submitted_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} report(s) submitted successfully.')
+    submit_reports.short_description = 'Submit selected reports'
+    
+    def approve_reports(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='SUBMITTED').update(
+            status='APPROVED',
+            approved_by=request.user,
+            approved_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} report(s) approved successfully.')
+    approve_reports.short_description = 'Approve selected reports'
 
 # ============================================================================
 # 9. PURCHASE ORDERS
