@@ -2381,6 +2381,7 @@ def edit_tender(request, tender_id):
     if request.method == 'POST':
         try:
             with transaction.atomic():
+                # Update basic fields
                 tender.title = request.POST.get('title')
                 tender.tender_type = request.POST.get('tender_type')
                 tender.procurement_method = request.POST.get('procurement_method')
@@ -2396,15 +2397,30 @@ def edit_tender(request, tender_id):
 
                 tender.save()
 
-                # Update invited suppliers (ManyToMany)
+                # Update invited suppliers - Filter out empty strings
                 supplier_ids = request.POST.getlist('invited_suppliers')
-                tender.invited_suppliers.set(supplier_ids)
+                # Remove empty strings and invalid UUIDs
+                valid_supplier_ids = [
+                    sid for sid in supplier_ids 
+                    if sid and sid.strip()  # Only non-empty values
+                ]
+                
+                if valid_supplier_ids:
+                    tender.invited_suppliers.set(valid_supplier_ids)
+                else:
+                    # Clear all suppliers if none selected
+                    tender.invited_suppliers.clear()
 
                 # Handle document deletion
                 delete_doc_ids = request.POST.getlist('delete_documents')
-                if delete_doc_ids:
+                # Filter out empty strings from delete_doc_ids too
+                valid_delete_ids = [
+                    did for did in delete_doc_ids 
+                    if did and did.strip()
+                ]
+                if valid_delete_ids:
                     TenderDocument.objects.filter(
-                        id__in=delete_doc_ids,
+                        id__in=valid_delete_ids,
                         tender=tender
                     ).delete()
 
@@ -2412,7 +2428,12 @@ def edit_tender(request, tender_id):
                 document_count = 0
                 for key in request.POST.keys():
                     if key.startswith('document_') and key.endswith('_file'):
-                        document_count += 1
+                        try:
+                            # Extract index from key like 'document_1_file'
+                            index = key.replace('document_', '').replace('_file', '')
+                            document_count = max(document_count, int(index))
+                        except ValueError:
+                            continue
                 
                 for i in range(1, document_count + 1):
                     file_key = f'document_{i}_file'
@@ -2436,7 +2457,11 @@ def edit_tender(request, tender_id):
                     model_name='Tender',
                     object_id=str(tender.id),
                     object_repr=tender.tender_number,
-                    changes={'updated': True}
+                    changes={
+                        'title': tender.title,
+                        'status': tender.status,
+                        'suppliers_count': tender.invited_suppliers.count()
+                    }
                 )
 
                 messages.success(request, 'Tender updated successfully.')
@@ -2447,6 +2472,7 @@ def edit_tender(request, tender_id):
             import traceback
             print(traceback.format_exc())  # For debugging
 
+    # GET request context
     context = {
         'tender': tender,
         'existing_documents': tender.documents.all(),
