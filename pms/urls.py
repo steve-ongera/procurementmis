@@ -5,6 +5,7 @@ urlpatterns = [
     # Authentication URLs
     path('', views.login_view, name='login'),
     path('login/', views.login_view, name='login'),
+    path('register/supplier/', views.register_supplier, name='register_supplier'),
     path('logout/', views.logout_view, name='logout'),
     
     # Dashboard URL

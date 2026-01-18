@@ -111,6 +111,222 @@ def dashboard_view(request):
         return redirect('login')
 
 
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.db import transaction
+from django.contrib.auth.hashers import make_password
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils.crypto import get_random_string
+from .models import User, Supplier, ItemCategory, AuditLog
+import logging
+
+logger = logging.getLogger(__name__)
+
+def register_supplier(request):
+    """
+    Supplier self-registration view.
+    Only suppliers can register themselves; other user types are created by admin.
+    """
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Extract form data
+                company_name = request.POST.get('company_name')
+                registration_number = request.POST.get('registration_number')
+                tax_id = request.POST.get('tax_id', '')
+                email = request.POST.get('email')
+                phone_number = request.POST.get('phone_number')
+                physical_address = request.POST.get('physical_address')
+                postal_address = request.POST.get('postal_address', '')
+                website = request.POST.get('website', '')
+                
+                # Contact person details
+                contact_person = request.POST.get('contact_person')
+                contact_person_phone = request.POST.get('contact_person_phone')
+                contact_person_email = request.POST.get('contact_person_email')
+                
+                # Banking details
+                bank_name = request.POST.get('bank_name')
+                bank_branch = request.POST.get('bank_branch')
+                account_number = request.POST.get('account_number')
+                account_name = request.POST.get('account_name')
+                swift_code = request.POST.get('swift_code', '')
+                
+                # Categories
+                category_ids = request.POST.getlist('categories')
+                
+                # Validation
+                if User.objects.filter(email=email).exists():
+                    messages.error(request, 'A user with this email already exists.')
+                    return redirect('register_supplier')
+                
+                if Supplier.objects.filter(registration_number=registration_number).exists():
+                    messages.error(request, 'A supplier with this registration number already exists.')
+                    return redirect('register_supplier')
+                
+                # Generate username and password
+                username = email.split('@')[0] + '_' + get_random_string(4)
+                temp_password = get_random_string(12)
+                
+                # Create User account
+                user = User.objects.create(
+                    username=username,
+                    email=email,
+                    first_name=contact_person.split()[0] if contact_person else '',
+                    last_name=' '.join(contact_person.split()[1:]) if contact_person and len(contact_person.split()) > 1 else '',
+                    role='SUPPLIER',
+                    phone_number=contact_person_phone,
+                    is_active=False,  # Inactive until admin approval
+                    password=make_password(temp_password)
+                )
+                
+                # Generate supplier number
+                year = timezone.now().year
+                last_supplier = Supplier.objects.filter(
+                    supplier_number__startswith=f'SUP-{year}'
+                ).order_by('-supplier_number').first()
+                
+                if last_supplier:
+                    last_number = int(last_supplier.supplier_number.split('-')[-1])
+                    new_number = last_number + 1
+                else:
+                    new_number = 1
+                
+                supplier_number = f'SUP-{year}-{new_number:06d}'
+                
+                # Create Supplier profile
+                supplier = Supplier.objects.create(
+                    user=user,
+                    supplier_number=supplier_number,
+                    name=company_name,
+                    registration_number=registration_number,
+                    tax_id=tax_id,
+                    email=email,
+                    phone_number=phone_number,
+                    physical_address=physical_address,
+                    postal_address=postal_address,
+                    website=website,
+                    contact_person=contact_person,
+                    contact_person_phone=contact_person_phone,
+                    contact_person_email=contact_person_email,
+                    bank_name=bank_name,
+                    bank_branch=bank_branch,
+                    account_number=account_number,
+                    account_name=account_name,
+                    swift_code=swift_code,
+                    status='PENDING',
+                    created_by=None
+                )
+                
+                # Add categories
+                if category_ids:
+                    valid_categories = [cid for cid in category_ids if cid and cid.strip()]
+                    if valid_categories:
+                        supplier.categories.set(valid_categories)
+                
+                # Handle document uploads
+                documents = {
+                    'REGISTRATION': request.FILES.get('registration_cert'),
+                    'TAX': request.FILES.get('tax_cert'),
+                    'BANK': request.FILES.get('bank_statement'),
+                }
+                
+                from .models import SupplierDocument
+                for doc_type, file in documents.items():
+                    if file:
+                        SupplierDocument.objects.create(
+                            supplier=supplier,
+                            document_type=doc_type,
+                            document_name=file.name,
+                            file=file,
+                            is_verified=False
+                        )
+                
+                # Create audit log
+                AuditLog.objects.create(
+                    user=user,
+                    action='CREATE',
+                    model_name='Supplier',
+                    object_id=str(supplier.id),
+                    object_repr=supplier.supplier_number,
+                    changes={'status': 'Self-registered, pending approval'}
+                )
+                
+                # Send welcome email with credentials
+                try:
+                    email_subject = 'Welcome to University Procurement System'
+                    email_body = f"""
+Dear {contact_person},
+
+Thank you for registering with the University Procurement System!
+
+Your supplier account has been created successfully. Here are your login credentials:
+
+Supplier Number: {supplier_number}
+Username: {username}
+Temporary Password: {temp_password}
+Login URL: {request.build_absolute_uri('/login/')}
+
+IMPORTANT SECURITY NOTICE:
+- Please change your password immediately after your first login
+- Keep your credentials confidential
+- Your account is currently pending approval by our procurement team
+
+NEXT STEPS:
+1. Your account will be reviewed by our procurement team
+2. You may be contacted for additional verification documents
+3. Once approved, you will receive a confirmation email
+4. You can then participate in tenders and quotations
+
+If you have any questions, please contact us at:
+Email: procurement@university.edu
+Phone: [Your Contact Number]
+
+Best regards,
+University Procurement Team
+
+---
+This is an automated message. Please do not reply to this email.
+                    """
+                    
+                    send_mail(
+                        email_subject,
+                        email_body,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [email, contact_person_email],
+                        fail_silently=False,
+                    )
+                    
+                    logger.info(f'Registration email sent to {email}')
+                    
+                except Exception as e:
+                    logger.error(f'Failed to send registration email: {str(e)}')
+                    # Don't fail registration if email fails
+                
+                messages.success(
+                    request, 
+                    f'Registration successful! Your supplier number is {supplier_number}. '
+                    f'Login credentials have been sent to {email}. '
+                    f'Your account is pending approval by the procurement team.'
+                )
+                return redirect('login')
+                
+        except Exception as e:
+            messages.error(request, f'Registration failed: {str(e)}')
+            logger.error(f'Supplier registration error: {str(e)}')
+            import traceback
+            logger.error(traceback.format_exc())
+    
+    # GET request - show registration form
+    context = {
+        'categories': ItemCategory.objects.filter(is_active=True).order_by('name'),
+    }
+    
+    return render(request, 'accounts/register_supplier.html', context)
+
+
 from django.shortcuts import render
 from django.db.models import Sum, Count, Avg, Q, F
 from django.db.models.functions import TruncMonth, TruncDate
