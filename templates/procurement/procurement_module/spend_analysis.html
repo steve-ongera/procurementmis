@@ -1,134 +1,1369 @@
-<!-- ========================================== -->
-<!-- 21. procurement/procurement_module/spend_analysis.html -->
-<!-- ========================================== -->
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block content %}
-<h1>Spend Analysis Report</h1>
+{% block title %}Spend Analysis - Procurement Module{% endblock %}
 
-<form method="get">
-    <label>From Date:</label>
-    <input type="date" name="date_from" value="{{ date_from }}">
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #F8FAFC;
+        color: #1E293B;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.625rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    /* Filter Section */
+    .filter-section {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .filter-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-title i {
+        color: var(--primary-color);
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .filter-label {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .filter-input,
+    .filter-select {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #1E293B;
+        background: white;
+        transition: all 0.2s;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .stat-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-icon.blue { background: #EFF6FF; color: #2563EB; }
+    .stat-icon.green { background: #ECFDF5; color: #10B981; }
+    .stat-icon.orange { background: #FEF3C7; color: #F59E0B; }
+    .stat-icon.purple { background: #F3E8FF; color: #8B5CF6; }
+    .stat-icon.red { background: #FEE2E2; color: #EF4444; }
+    .stat-icon.teal { background: #CCFBF1; color: #14B8A6; }
+
+    .stat-info h3 {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .stat-change {
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .stat-change.positive {
+        color: var(--success-color);
+    }
+
+    .stat-change.negative {
+        color: var(--danger-color);
+    }
+
+    .stat-change.neutral {
+        color: var(--secondary-color);
+    }
+
+    /* Charts Grid */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+
+    .chart-card.full { grid-column: span 12; }
+    .chart-card.half { grid-column: span 6; }
+    .chart-card.third { grid-column: span 4; }
+    .chart-card.two-thirds { grid-column: span 8; }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chart-title i {
+        color: var(--primary-color);
+    }
+
+    .chart-subtitle {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-top: 0.25rem;
+    }
+
+    .chart-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+
+    .chart-container.tall {
+        height: 400px;
+    }
+
+    .chart-container.short {
+        height: 250px;
+    }
+
+    .chart-container.very-tall {
+        height: 500px;
+    }
+
+    .export-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
+        border-radius: 0.25rem;
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        color: var(--secondary-color);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .export-btn:hover {
+        background: var(--card-bg);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    /* Tables */
+    .table-section {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--primary-color);
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8125rem;
+    }
+
+    .data-table thead {
+        background: #F1F5F9;
+    }
+
+    .data-table th {
+        text-align: left;
+        padding: 0.75rem;
+        font-weight: 600;
+        color: #475569;
+        border-bottom: 2px solid var(--border-color);
+}
+.data-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    color: #1E293B;
+}
+
+.data-table tbody tr:hover {
+    background: var(--hover-bg);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Badge */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.badge.success {
+    background: #ECFDF5;
+    color: #10B981;
+}
+
+.badge.warning {
+    background: #FEF3C7;
+    color: #F59E0B;
+}
+
+.badge.danger {
+    background: #FEE2E2;
+    color: #EF4444;
+}
+
+.badge.info {
+    background: #EFF6FF;
+    color: #2563EB;
+}
+
+.badge.secondary {
+    background: #F1F5F9;
+    color: #64748B;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .chart-card.half,
+    .chart-card.third,
+    .chart-card.two-thirds {
+        grid-column: span 12;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
     
-    <label>To Date:</label>
-    <input type="date" name="date_to" value="{{ date_to }}">
-    
-    <button type="submit">Apply</button>
-</form>
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
 
-<h2>Total Spend: KES {{ total_spend|floatformat:0|intcomma }}</h2>
-<p>Period: {{ date_from }} to {{ date_to }}</p>
+    .data-table {
+        font-size: 0.75rem;
+    }
 
-<h3>Spending by Department</h3>
-<table>
-    <thead>
-        <tr>
-            <th>Department</th>
-            <th>Number of Orders</th>
-            <th>Total Spend</th>
-            <th>% of Total</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for dept in dept_spending %}
-        <tr>
-            <td>{{ dept.requisition__department__name }}</td>
-            <td>{{ dept.count }}</td>
-            <td>KES {{ dept.total|floatformat:0|intcomma }}</td>
-            <td>
-                {% if total_spend > 0 %}
-                {{ dept.total|floatformat:0|intcomma|add:"0"|floatformat:0|default:"0" }}%
-                {% else %}
-                0%
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+    .data-table th,
+    .data-table td {
+        padding: 0.5rem;
+    }
+}
 
-<h3>Top 10 Spending Categories</h3>
-<table>
-    <thead>
-        <tr>
-            <th>Category</th>
-            <th>Total Spend</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for cat in category_spending %}
-        <tr>
-            <td>{{ cat.requisition__budget__category__name|default:"Uncategorized" }}</td>
-            <td>KES {{ cat.total|floatformat:0|intcomma }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--secondary-color);
+}
 
-<a href="{% url 'procurement_reports' %}">Back to Reports</a>
-{% endblock %}>Date</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for req in recent_requisitions %}
-        <tr>
-            <td>{{ req.requisition_number }}</td>
-            <td>{{ req.title }}</td>
-            <td>{{ req.department.name }}</td>
-            <td>KES {{ req.estimated_amount|floatformat:0|intcomma }}</td>
-            <td>{{ req.get_status_display }}</td>
-            <td>{{ req.created_at|date:"M d, Y" }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+.empty-state i {
+    font-size: 3rem;
+    color: #CBD5E1;
+    margin-bottom: 1rem;
+}
 
-<h2>Recent Tenders</h2>
-<table>
-    <thead>
-        <tr>
-            <th>Tender #</th>
-            <th>Title</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Closing Date</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for tender in recent_tenders %}
-        <tr>
-            <td>{{ tender.tender_number }}</td>
-            <td>{{ tender.title }}</td>
-            <td>{{ tender.get_tender_type_display }}</td>
-            <td>{{ tender.get_status_display }}</td>
-            <td>{{ tender.closing_date|date:"M d, Y" }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<h2>Recent Purchase Orders</h2>
-<table>
-    <thead>
-        <tr>
-            <th>PO #</th>
-            <th>Supplier</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Date</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for po in recent_pos %}
-        <tr>
-            <td>{{ po.po_number }}</td>
-            <td>{{ po.supplier.name }}</td>
-            <td>KES {{ po.total_amount|floatformat:0|intcomma }}</td>
-            <td>{{ po.get_status_display }}</td>
-            <td>{{ po.po_date|date:"M d, Y" }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+.empty-state p {
+    font-size: 0.875rem;
+    margin: 0;
+}
+</style>
 {% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart configurations
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = '#64748B';
+
+    // ==========================================
+    // 1. LINE CHART - Spend Trend
+    // ==========================================
+    const trendData = JSON.parse('{{ trend_data|safe }}');
+    
+    const trendCtx = document.getElementById('trendChart');
+    if (trendCtx && trendData.labels.length > 0) {
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: trendData.labels,
+                datasets: [
+                    {
+                        label: 'Total Spend (KES)',
+                        data: trendData.amounts,
+                        borderColor: '#2563EB',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#2563EB',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    },
+                    {
+                        label: 'Average Order Value',
+                        data: trendData.averages,
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        yAxisID: 'y1',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#10B981',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += 'KES ' + context.parsed.y.toLocaleString();
+                                return label;
+                            },
+                            footer: function(tooltipItems) {
+                                const index = tooltipItems[0].dataIndex;
+                                return 'Orders: ' + trendData.counts[index];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + (value/1000000).toFixed(1) + 'M';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + (value/1000).toFixed(0) + 'K';
+                            }
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 2. BAR CHART - Department Spend
+    // ==========================================
+    const deptData = JSON.parse('{{ department_data|safe }}');
+    
+    const deptCtx = document.getElementById('departmentChart');
+    if (deptCtx && deptData.labels.length > 0) {
+        new Chart(deptCtx, {
+            type: 'bar',
+            data: {
+                labels: deptData.labels,
+                datasets: [{
+                    label: 'Total Spend (KES)',
+                    data: deptData.amounts,
+                    backgroundColor: deptData.colors,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return 'KES ' + context.parsed.x.toLocaleString();
+                            },
+                            afterLabel: function(context) {
+                                const index = context.dataIndex;
+                                return 'Orders: ' + deptData.counts[index];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + (value/1000000).toFixed(1) + 'M';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 3. HORIZONTAL BAR - Category Spend
+    // ==========================================
+    const categoryData = JSON.parse('{{ category_data|safe }}');
+    
+    const categoryCtx = document.getElementById('categoryChart');
+    if (categoryCtx && categoryData.labels.length > 0) {
+        new Chart(categoryCtx, {
+            type: 'bar',
+            data: {
+                labels: categoryData.labels,
+                datasets: [{
+                    label: 'Spend Amount',
+                    data: categoryData.amounts,
+                    backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return 'KES ' + context.parsed.x.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + (value/1000000).toFixed(1) + 'M';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 4. DONUT CHART - Supplier Concentration
+    // ==========================================
+    const supplierData = JSON.parse('{{ supplier_data|safe }}');
+    
+    const supplierCtx = document.getElementById('supplierChart');
+    if (supplierCtx && supplierData.labels.length > 0) {
+        new Chart(supplierCtx, {
+            type: 'doughnut',
+            data: {
+                labels: supplierData.labels,
+                datasets: [{
+                    data: supplierData.amounts,
+                    backgroundColor: supplierData.colors,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 10
+                            },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return {
+                                            text: label + ' (' + percentage + '%)',
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            hidden: false,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': KES ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 5. RADAR CHART - Spending Dimensions
+    // ==========================================
+    const radarData = JSON.parse('{{ radar_data|safe }}');
+    
+    const radarCtx = document.getElementById('radarChart');
+    if (radarCtx && radarData.datasets.length > 0) {
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: radarData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 11,
+                                weight: '500'
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed.r.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 6. STACKED BAR - Monthly by Type
+    // ==========================================
+    const stackedData = JSON.parse('{{ stacked_data|safe }}');
+    
+    const stackedCtx = document.getElementById('stackedChart');
+    if (stackedCtx && stackedData.labels.length > 0) {
+        new Chart(stackedCtx, {
+            type: 'bar',
+            data: {
+                labels: stackedData.labels,
+                datasets: [
+                    {
+                        label: 'Goods',
+                        data: stackedData.goods,
+                        backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                        borderRadius: {
+                            topLeft: 6,
+                            topRight: 6
+                        },
+                    },
+                    {
+                        label: 'Services',
+                        data: stackedData.services,
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    },
+                    {
+                        label: 'Works',
+                        data: stackedData.works,
+                        backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                        borderRadius: {
+                            bottomLeft: 6,
+                            bottomRight: 6
+                        },
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': KES ' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + (value/1000000).toFixed(1) + 'M';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 7. BUBBLE CHART - Supplier Performance
+    // ==========================================
+    const bubbleData = JSON.parse('{{ bubble_data|safe }}');
+    
+    const bubbleCtx = document.getElementById('bubbleChart');
+    if (bubbleCtx && bubbleData.length > 0) {
+        new Chart(bubbleCtx, {
+            type: 'bubble',
+            data: {
+                datasets: [{
+                    label: 'Suppliers',
+                    data: bubbleData,
+                    backgroundColor: 'rgba(139, 92, 246, 0.6)',
+                    borderColor: 'rgb(139, 92, 246)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].raw.label;
+                            },
+                            label: function(context) {
+                                return [
+                                    'Spend: KES ' + context.parsed.x.toLocaleString(),
+                                    'Rating: ' + context.parsed.y.toFixed(1) + '/5',
+                                    'Orders: ' + (context.raw.r / 2)
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Total Spend (KES)',
+                            font: {
+                                weight: '600'
+                            }
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + (value/1000000).toFixed(1) + 'M';
+                            }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Average Rating',
+                            font: {
+                                weight: '600'
+                            }
+                        },
+                        min: 0,
+                        max: 5,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 8. POLAR AREA - Procurement Methods
+    // ==========================================
+    const polarData = JSON.parse('{{ polar_data|safe }}');
+    
+    const polarCtx = document.getElementById('polarChart');
+    if (polarCtx && polarData.labels.length > 0) {
+        new Chart(polarCtx, {
+            type: 'polarArea',
+            data: {
+                labels: polarData.labels,
+                datasets: [{
+                    data: polarData.values,
+                    backgroundColor: polarData.colors.map(color => color + '80'),
+                    borderColor: polarData.colors,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': KES ' + context.parsed.r.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        ticks: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 9. PIE CHART - Order Status
+    // ==========================================
+    const statusData = JSON.parse('{{ status_data|safe }}');
+    
+    const statusCtx = document.getElementById('statusChart');
+    if (statusCtx && statusData.labels.length > 0) {
+        new Chart(statusCtx, {
+            type: 'pie',
+            data: {
+                labels: statusData.labels,
+                datasets: [{
+                    data: statusData.counts,
+                    backgroundColor: statusData.colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                const index = context.dataIndex;
+                                const count = context.parsed;
+                                const amount = statusData.amounts[index];
+                                return [
+                                    context.label + ': ' + count + ' orders',
+                                    'Value: KES ' + amount.toLocaleString()
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Export chart functionality
+    window.exportChart = function(chartId, filename) {
+        const canvas = document.getElementById(chartId);
+        if (canvas) {
+            const url = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = filename || 'chart.png';
+            link.href = url;
+            link.click();
+        }
+    };
+
+    // Print functionality
+    window.printReport = function() {
+        window.print();
+    };
+});
+</script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Spend Analysis Report</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_reports' %}">
+                Reports
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Spend Analysis</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <button onclick="printReport()" class="btn">
+            <i class="bi bi-printer"></i>
+            Print
+        </button>
+        <a href="{% url 'procurement_reports' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back
+        </a>
+    </div>
+</div>
+<!-- Filter Section -->
+<div class="filter-section">
+    <div class="filter-header">
+        <h3 class="filter-title">
+            <i class="bi bi-funnel"></i>
+            Filters
+        </h3>
+    </div>
+    <form method="get" class="filter-grid">
+        <div class="filter-group">
+            <label class="filter-label">
+                <i class="bi bi-calendar"></i>
+                Date From
+            </label>
+            <input type="date" 
+                   name="date_from" 
+                   class="filter-input" 
+                   value="{{ date_from }}">
+        </div>
+    <div class="filter-group">
+        <label class="filter-label">
+            <i class="bi bi-calendar"></i>
+            Date To
+        </label>
+        <input type="date" 
+               name="date_to" 
+               class="filter-input" 
+               value="{{ date_to }}">
+    </div>
+    
+    <div class="filter-group">
+        <label class="filter-label">
+            <i class="bi bi-building"></i>
+            Department
+        </label>
+        <select name="department" class="filter-select">
+            <option value="">All Departments</option>
+            {% for dept in departments %}
+            <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>
+                {{ dept.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="filter-group">
+        <label class="filter-label">
+            <i class="bi bi-tag"></i>
+            Category
+        </label>
+        <select name="category" class="filter-select">
+            <option value="">All Categories</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="filter-group">
+        <label class="filter-label">
+            <i class="bi bi-shop"></i>
+            Supplier
+        </label>
+        <select name="supplier" class="filter-select">
+            <option value="">All Suppliers</option>
+            {% for supplier in suppliers %}
+            <option value="{{ supplier.id }}" {% if selected_supplier == supplier.id|stringformat:"s" %}selected{% endif %}>
+                {{ supplier.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="filter-group">
+        <label class="filter-label" style="opacity: 0;">Action</label>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+            <i class="bi bi-funnel"></i>
+            Apply Filters
+        </button>
+    </div>
+    
+    <div class="filter-group">
+        <label class="filter-label" style="opacity: 0;">Reset</label>
+        <a href="{% url 'procurement_spend_analysis' %}" class="btn" style="width: 100%; justify-content: center;">
+            <i class="bi bi-x-circle"></i>
+            Clear
+        </a>
+    </div>
+</form>
+</div>
+<!-- Summary Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon blue">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Total Spend</h3>
+            </div>
+        </div>
+        <p class="stat-value">KES {{ total_spend|floatformat:0|intcomma }}</p>
+        <div class="stat-change {% if spend_change > 0 %}positive{% elif spend_change < 0 %}negative{% else %}neutral{% endif %}">
+            <i class="bi bi-{% if spend_change > 0 %}arrow-up{% elif spend_change < 0 %}arrow-down{% else %}dash{% endif %}"></i>
+            {{ spend_change|floatformat:1 }}% vs previous period
+        </div>
+    </div>
+<div class="stat-card">
+    <div class="stat-header">
+        <div class="stat-icon green">
+            <i class="bi bi-cart-check"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Total Orders</h3>
+        </div>
+    </div>
+    <p class="stat-value">{{ total_orders|intcomma }}</p>
+    <div class="stat-change neutral">
+        <i class="bi bi-check-circle"></i>
+        {{ completed_orders }} completed
+    </div>
+</div>
+
+<div class="stat-card">
+    <div class="stat-header">
+        <div class="stat-icon orange">
+            <i class="bi bi-calculator"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Avg Order Value</h3>
+        </div>
+    </div>
+    <p class="stat-value">KES {{ avg_order_value|floatformat:0|intcomma }}</p>
+</div>
+
+<div class="stat-card">
+    <div class="stat-header">
+        <div class="stat-icon purple">
+            <i class="bi bi-shop"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Active Suppliers</h3>
+        </div>
+    </div>
+    <p class="stat-value">{{ unique_suppliers }}</p>
+    <div class="stat-change neutral">
+        <i class="bi bi-building"></i>
+        {{ unique_departments }} departments
+    </div>
+</div>
+
+<div class="stat-card">
+    <div class="stat-header">
+        <div class="stat-icon teal">
+            <i class="bi bi-piggy-bank"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Total Savings</h3>
+        </div>
+    </div>
+    <p class="stat-value">KES {{ total_savings|floatformat:0|intcomma }}</p>
+    <div class="stat-change {% if savings_percentage > 0 %}positive{% else %}negative{% endif %}">
+        <i class="bi bi-percent"></i>
+        {{ savings_percentage|floatformat:1 }}% savings rate
+    </div>
+</div>
+
+<div class="stat-card">
+    <div class="stat-header">
+        <div class="stat-icon red">
+            <i class="bi bi-clock-history"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Pending Orders</h3>
+        </div>
+    </div>
+    <p class="stat-value">{{ pending_orders }}</p>
+</div>
+</div>
+<!-- Charts Grid -->
+<div class="charts-grid">
+    <!-- Spend Trend - Line Chart -->
+    <div class="chart-card full">
+        <div class="chart-header">
+            <div>
+                <h2 class="chart-title">
+                    <i class="bi bi-graph-up"></i>
+                    Spending Trend Analysis
+                </h2>
+                <p class="chart-subtitle">Monthly spend and average order values</p>
+            </div>
+            <div class="chart-actions">
+                <button onclick="exportChart('trendChart', 'spend-trend.png')" class="export-btn">
+                    <i class="bi bi-download"></i>
+                    Export
+                </button>
+            </div>
+        </div>
+        <div class="chart-container very-

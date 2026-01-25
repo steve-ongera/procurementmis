@@ -16272,50 +16272,468 @@ def procurement_reports_view(request):
 
 @login_required
 def procurement_spend_analysis_view(request):
-    """Spend analysis report"""
+    """Comprehensive spend analysis report with advanced analytics"""
     if not check_procurement_permission(request.user):
         messages.error(request, 'You do not have procurement officer permissions.')
         return redirect('dashboard')
     
+    from django.db.models import Sum, Count, Avg, Q, F, Case, When, DecimalField
+    from django.db.models.functions import TruncMonth, TruncWeek, TruncQuarter
+    from decimal import Decimal
+    import json
+    
+    # Date filters with defaults
     date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=365)).strftime('%Y-%m-%d'))
     date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
     
-    # Department spending
-    dept_spending = PurchaseOrder.objects.filter(
+    # Additional filters
+    selected_department = request.GET.get('department', '')
+    selected_category = request.GET.get('category', '')
+    selected_supplier = request.GET.get('supplier', '')
+    
+    # Base queryset
+    pos_qs = PurchaseOrder.objects.filter(
         po_date__gte=date_from,
         po_date__lte=date_to
-    ).values(
-        'requisition__department__name'
+    )
+    
+    # Apply additional filters
+    if selected_department:
+        pos_qs = pos_qs.filter(requisition__department_id=selected_department)
+    if selected_category:
+        pos_qs = pos_qs.filter(requisition__budget__category_id=selected_category)
+    if selected_supplier:
+        pos_qs = pos_qs.filter(supplier_id=selected_supplier)
+    
+    # ==========================================
+    # 1. SUMMARY STATISTICS
+    # ==========================================
+    total_spend = pos_qs.aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    total_orders = pos_qs.count()
+    avg_order_value = pos_qs.aggregate(Avg('total_amount'))['total_amount__avg'] or Decimal('0')
+    
+    # Compare with previous period
+    period_days = (datetime.strptime(date_to, '%Y-%m-%d') - datetime.strptime(date_from, '%Y-%m-%d')).days
+    prev_period_start = (datetime.strptime(date_from, '%Y-%m-%d') - timedelta(days=period_days)).strftime('%Y-%m-%d')
+    prev_period_end = date_from
+    
+    prev_spend = PurchaseOrder.objects.filter(
+        po_date__gte=prev_period_start,
+        po_date__lt=prev_period_end
+    ).aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    
+    spend_change = 0
+    if prev_spend > 0:
+        spend_change = ((total_spend - prev_spend) / prev_spend * 100)
+    
+    # Unique suppliers and departments
+    unique_suppliers = pos_qs.values('supplier').distinct().count()
+    unique_departments = pos_qs.values('requisition__department').distinct().count()
+    
+    # Order status breakdown
+    completed_orders = pos_qs.filter(status__in=['DELIVERED', 'CLOSED']).count()
+    pending_orders = pos_qs.exclude(status__in=['DELIVERED', 'CLOSED', 'CANCELLED']).count()
+    
+    # ==========================================
+    # 2. LINE CHART - Spend Trend Over Time
+    # ==========================================
+    # Monthly trend
+    monthly_trend = pos_qs.annotate(
+        month=TruncMonth('po_date')
+    ).values('month').annotate(
+        total=Sum('total_amount'),
+        count=Count('id'),
+        avg=Avg('total_amount')
+    ).order_by('month')
+    
+    trend_labels = []
+    trend_amounts = []
+    trend_counts = []
+    trend_averages = []
+    
+    for item in monthly_trend:
+        trend_labels.append(item['month'].strftime('%b %Y'))
+        trend_amounts.append(float(item['total'] or 0))
+        trend_counts.append(item['count'])
+        trend_averages.append(float(item['avg'] or 0))
+    
+    # ==========================================
+    # 3. BAR CHART - Top Departments by Spend
+    # ==========================================
+    dept_spending = pos_qs.values(
+        'requisition__department__name',
+        'requisition__department__id'
+    ).annotate(
+        total=Sum('total_amount'),
+        count=Count('id'),
+        avg=Avg('total_amount')
+    ).order_by('-total')[:15]
+    
+    dept_labels = []
+    dept_amounts = []
+    dept_counts = []
+    dept_colors = []
+    
+    color_palette = [
+        '#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+        '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#84CC16',
+        '#6366F1', '#F43F5E', '#22D3EE', '#A855F7', '#EAB308'
+    ]
+    
+    for idx, item in enumerate(dept_spending):
+        dept_labels.append(item['requisition__department__name'] or 'Unknown')
+        dept_amounts.append(float(item['total'] or 0))
+        dept_counts.append(item['count'])
+        dept_colors.append(color_palette[idx % len(color_palette)])
+    
+    # ==========================================
+    # 4. HORIZONTAL BAR - Top Categories
+    # ==========================================
+    category_spending = pos_qs.values(
+        'requisition__budget__category__name'
     ).annotate(
         total=Sum('total_amount'),
         count=Count('id')
-    ).order_by('-total')
+    ).order_by('-total')[:10]
     
-    # Category spending
-    category_spending = PurchaseOrder.objects.filter(
-        po_date__gte=date_from,
-        po_date__lte=date_to
-    ).values(
-        'requisition__budget__category__name'
+    category_labels = []
+    category_amounts = []
+    category_counts = []
+    
+    for item in category_spending:
+        category_labels.append(item['requisition__budget__category__name'] or 'Unbudgeted')
+        category_amounts.append(float(item['total'] or 0))
+        category_counts.append(item['count'])
+    
+    # ==========================================
+    # 5. DONUT CHART - Supplier Concentration
+    # ==========================================
+    supplier_spending = pos_qs.values(
+        'supplier__name'
     ).annotate(
         total=Sum('total_amount')
     ).order_by('-total')[:10]
     
-    total_spend = PurchaseOrder.objects.filter(
-        po_date__gte=date_from,
-        po_date__lte=date_to
-    ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    supplier_labels = []
+    supplier_amounts = []
+    supplier_colors = [
+        '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+        '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#84CC16'
+    ]
     
+    # Calculate "Others" if there are more suppliers
+    top_10_total = Decimal('0')
+    for item in supplier_spending:
+        supplier_labels.append(item['supplier__name'])
+        amount = float(item['total'] or 0)
+        supplier_amounts.append(amount)
+        top_10_total += item['total'] or Decimal('0')
+    
+    # Add "Others" category if applicable
+    if total_spend > top_10_total:
+        others_amount = float(total_spend - top_10_total)
+        if others_amount > 0:
+            supplier_labels.append('Others')
+            supplier_amounts.append(others_amount)
+            supplier_colors.append('#94A3B8')
+    
+    # ==========================================
+    # 6. RADAR CHART - Spending Dimensions
+    # ==========================================
+    # Analyze spending across different dimensions
+    
+    # Emergency vs Planned spending
+    emergency_spend = pos_qs.filter(
+        requisition__is_emergency=True
+    ).aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    
+    planned_spend = total_spend - emergency_spend
+    
+    # Local vs International suppliers (assuming this is tracked)
+    local_spend = pos_qs.filter(
+        supplier__categories__name__icontains='Local'
+    ).aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    
+    # Goods vs Services vs Works
+    goods_spend = pos_qs.filter(
+        requisition__items__item__category__category_type='GOODS'
+    ).aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    
+    services_spend = pos_qs.filter(
+        requisition__items__item__category__category_type='SERVICES'
+    ).aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    
+    works_spend = pos_qs.filter(
+        requisition__items__item__category__category_type='WORKS'
+    ).aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    
+    # Normalize values for radar chart (0-100 scale)
+    max_value = float(total_spend) if total_spend > 0 else 1
+    
+    radar_data = {
+        'labels': ['Planned Procurement', 'Emergency Procurement', 'Goods', 'Services', 'Works', 'Compliance Score'],
+        'datasets': [{
+            'label': 'Spending Pattern',
+            'data': [
+                (float(planned_spend) / max_value) * 100,
+                (float(emergency_spend) / max_value) * 100,
+                (float(goods_spend) / max_value) * 100,
+                (float(services_spend) / max_value) * 100,
+                (float(works_spend) / max_value) * 100,
+                85  # Placeholder compliance score
+            ],
+            'backgroundColor': 'rgba(37, 99, 235, 0.2)',
+            'borderColor': 'rgb(37, 99, 235)',
+            'borderWidth': 2
+        }]
+    }
+    
+    # ==========================================
+    # 7. STACKED BAR - Monthly Spend by Category Type
+    # ==========================================
+    monthly_by_type = pos_qs.annotate(
+        month=TruncMonth('po_date')
+    ).values('month').annotate(
+        goods=Sum(Case(
+            When(requisition__items__item__category__category_type='GOODS', 
+                 then='total_amount'),
+            default=0,
+            output_field=DecimalField()
+        )),
+        services=Sum(Case(
+            When(requisition__items__item__category__category_type='SERVICES', 
+                 then='total_amount'),
+            default=0,
+            output_field=DecimalField()
+        )),
+        works=Sum(Case(
+            When(requisition__items__item__category__category_type='WORKS', 
+                 then='total_amount'),
+            default=0,
+            output_field=DecimalField()
+        ))
+    ).order_by('month')
+    
+    stacked_labels = []
+    stacked_goods = []
+    stacked_services = []
+    stacked_works = []
+    
+    for item in monthly_by_type:
+        stacked_labels.append(item['month'].strftime('%b %Y'))
+        stacked_goods.append(float(item['goods'] or 0))
+        stacked_services.append(float(item['services'] or 0))
+        stacked_works.append(float(item['works'] or 0))
+    
+    # ==========================================
+    # 8. BUBBLE CHART - Supplier Performance vs Spend
+    # ==========================================
+    supplier_performance = pos_qs.values(
+        'supplier__name',
+        'supplier__id'
+    ).annotate(
+        total_spend=Sum('total_amount'),
+        order_count=Count('id'),
+        avg_rating=Avg('performance_reviews__overall_rating')
+    ).order_by('-total_spend')[:20]
+    
+    bubble_data = []
+    for supplier in supplier_performance:
+        bubble_data.append({
+            'x': float(supplier['total_spend'] or 0),
+            'y': float(supplier['avg_rating'] or 3.0),
+            'r': min(supplier['order_count'] * 2, 30),  # Bubble size
+            'label': supplier['supplier__name']
+        })
+    
+    # ==========================================
+    # 9. POLAR AREA - Procurement Methods Distribution
+    # ==========================================
+    method_distribution = Tender.objects.filter(
+        requisition__purchase_orders__po_date__gte=date_from,
+        requisition__purchase_orders__po_date__lte=date_to
+    ).values('procurement_method').annotate(
+        total=Sum('requisition__purchase_orders__total_amount'),
+        count=Count('id')
+    ).order_by('-total')
+    
+    polar_labels = []
+    polar_values = []
+    polar_colors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
+    
+    for idx, item in enumerate(method_distribution):
+        method_display = dict(Tender.METHOD_CHOICES).get(
+            item['procurement_method'], item['procurement_method']
+        )
+        polar_labels.append(method_display)
+        polar_values.append(float(item['total'] or 0))
+    
+    # ==========================================
+    # 10. PIE CHART - Order Status Distribution
+    # ==========================================
+    status_distribution = pos_qs.values('status').annotate(
+        count=Count('id'),
+        total=Sum('total_amount')
+    ).order_by('-count')
+    
+    status_labels = []
+    status_counts = []
+    status_amounts = []
+    status_colors = {
+        'DRAFT': '#94A3B8',
+        'PENDING_APPROVAL': '#3B82F6',
+        'APPROVED': '#10B981',
+        'SENT': '#8B5CF6',
+        'ACKNOWLEDGED': '#EC4899',
+        'PARTIAL_DELIVERY': '#F59E0B',
+        'DELIVERED': '#22C55E',
+        'CLOSED': '#6B7280',
+        'CANCELLED': '#EF4444',
+    }
+    
+    pie_colors = []
+    for item in status_distribution:
+        status_display = dict(PurchaseOrder.STATUS_CHOICES).get(
+            item['status'], item['status']
+        )
+        status_labels.append(status_display)
+        status_counts.append(item['count'])
+        status_amounts.append(float(item['total'] or 0))
+        pie_colors.append(status_colors.get(item['status'], '#64748B'))
+    
+    # ==========================================
+    # 11. TOP SPENDING ANALYSIS
+    # ==========================================
+    # Top 10 individual purchase orders
+    top_pos = pos_qs.order_by('-total_amount')[:10].values(
+        'po_number',
+        'supplier__name',
+        'total_amount',
+        'po_date',
+        'status'
+    )
+    
+    # Average order value by department
+    dept_avg_orders = pos_qs.values(
+        'requisition__department__name'
+    ).annotate(
+        avg_order=Avg('total_amount'),
+        max_order=Max('total_amount'),
+        min_order=Min('total_amount'),
+        count=Count('id')
+    ).order_by('-avg_order')[:10]
+    
+    # ==========================================
+    # 12. SAVINGS ANALYSIS
+    # ==========================================
+    # Compare requisition estimates with actual PO amounts
+    savings_data = pos_qs.annotate(
+        estimated=F('requisition__estimated_amount'),
+        actual=F('total_amount')
+    ).aggregate(
+        total_estimated=Sum('requisition__estimated_amount'),
+        total_actual=Sum('total_amount')
+    )
+    
+    total_estimated = savings_data['total_estimated'] or Decimal('0')
+    total_actual = savings_data['total_actual'] or Decimal('0')
+    total_savings = total_estimated - total_actual
+    savings_percentage = 0
+    if total_estimated > 0:
+        savings_percentage = (total_savings / total_estimated * 100)
+    
+    # ==========================================
+    # FILTER OPTIONS
+    # ==========================================
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    categories = BudgetCategory.objects.filter(is_active=True).order_by('name')
+    suppliers = Supplier.objects.filter(status='APPROVED').order_by('name')
+    
+    # ==========================================
+    # CONTEXT PREPARATION
+    # ==========================================
     context = {
+        # Filters
         'date_from': date_from,
         'date_to': date_to,
+        'selected_department': selected_department,
+        'selected_category': selected_category,
+        'selected_supplier': selected_supplier,
+        'departments': departments,
+        'categories': categories,
+        'suppliers': suppliers,
+        
+        # Summary Statistics
+        'total_spend': total_spend,
+        'total_orders': total_orders,
+        'avg_order_value': avg_order_value,
+        'spend_change': round(spend_change, 2),
+        'unique_suppliers': unique_suppliers,
+        'unique_departments': unique_departments,
+        'completed_orders': completed_orders,
+        'pending_orders': pending_orders,
+        'total_savings': total_savings,
+        'savings_percentage': round(savings_percentage, 2),
+        
+        # Chart Data - JSON encoded
+        'trend_data': json.dumps({
+            'labels': trend_labels,
+            'amounts': trend_amounts,
+            'counts': trend_counts,
+            'averages': trend_averages
+        }),
+        
+        'department_data': json.dumps({
+            'labels': dept_labels,
+            'amounts': dept_amounts,
+            'counts': dept_counts,
+            'colors': dept_colors
+        }),
+        
+        'category_data': json.dumps({
+            'labels': category_labels,
+            'amounts': category_amounts,
+            'counts': category_counts
+        }),
+        
+        'supplier_data': json.dumps({
+            'labels': supplier_labels,
+            'amounts': supplier_amounts,
+            'colors': supplier_colors
+        }),
+        
+        'radar_data': json.dumps(radar_data),
+        
+        'stacked_data': json.dumps({
+            'labels': stacked_labels,
+            'goods': stacked_goods,
+            'services': stacked_services,
+            'works': stacked_works
+        }),
+        
+        'bubble_data': json.dumps(bubble_data),
+        
+        'polar_data': json.dumps({
+            'labels': polar_labels,
+            'values': polar_values,
+            'colors': polar_colors
+        }),
+        
+        'status_data': json.dumps({
+            'labels': status_labels,
+            'counts': status_counts,
+            'amounts': status_amounts,
+            'colors': pie_colors
+        }),
+        
+        # Table Data
         'dept_spending': dept_spending,
         'category_spending': category_spending,
-        'total_spend': total_spend,
+        'top_pos': top_pos,
+        'dept_avg_orders': dept_avg_orders,
     }
     
     return render(request, 'procurement/procurement_module/spend_analysis.html', context)
-
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
