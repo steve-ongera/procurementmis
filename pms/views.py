@@ -15925,27 +15925,346 @@ def procurement_blacklisted_suppliers_view(request):
 # ============================================================================
 # REPORTS
 # ============================================================================
-
 @login_required
 def procurement_reports_view(request):
-    """Procurement reports dashboard"""
+    """Procurement reports dashboard with comprehensive analytics"""
     if not check_procurement_permission(request.user):
         messages.error(request, 'You do not have procurement officer permissions.')
         return redirect('dashboard')
     
-    # Summary statistics
-    total_requisitions = Requisition.objects.count()
-    total_tenders = Tender.objects.count()
-    total_pos = PurchaseOrder.objects.count()
-    total_spend = PurchaseOrder.objects.aggregate(
-        Sum('total_amount')
-    )['total_amount__sum'] or 0
+    from django.db.models import Sum, Count, Q, Avg, F
+    from django.db.models.functions import TruncMonth, TruncQuarter
+    from decimal import Decimal
+    import json
     
+    # Date filters
+    current_year = timezone.now().year
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    # Base querysets
+    requisitions_qs = Requisition.objects.all()
+    tenders_qs = Tender.objects.all()
+    pos_qs = PurchaseOrder.objects.all()
+    invoices_qs = Invoice.objects.all()
+    
+    # Apply date filters if provided
+    if start_date:
+        requisitions_qs = requisitions_qs.filter(created_at__gte=start_date)
+        tenders_qs = tenders_qs.filter(created_at__gte=start_date)
+        pos_qs = pos_qs.filter(created_at__gte=start_date)
+        invoices_qs = invoices_qs.filter(created_at__gte=start_date)
+    
+    if end_date:
+        requisitions_qs = requisitions_qs.filter(created_at__lte=end_date)
+        tenders_qs = tenders_qs.filter(created_at__lte=end_date)
+        pos_qs = pos_qs.filter(created_at__lte=end_date)
+        invoices_qs = invoices_qs.filter(created_at__lte=end_date)
+    
+    # ==========================================
+    # 1. SUMMARY STATISTICS
+    # ==========================================
+    total_requisitions = requisitions_qs.count()
+    total_tenders = tenders_qs.count()
+    total_pos = pos_qs.count()
+    total_suppliers = Supplier.objects.filter(status='APPROVED').count()
+    
+    total_spend = pos_qs.aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    total_budget = Budget.objects.filter(
+        budget_year__is_active=True
+    ).aggregate(Sum('allocated_amount'))['allocated_amount__sum'] or Decimal('0')
+    
+    budget_utilization = (total_spend / total_budget * 100) if total_budget > 0 else 0
+    
+    # Pending approvals
+    pending_requisitions = requisitions_qs.exclude(
+        status__in=['APPROVED', 'REJECTED', 'CANCELLED']
+    ).count()
+    
+    pending_invoices = invoices_qs.exclude(
+        status__in=['PAID', 'REJECTED']
+    ).count()
+    
+    # ==========================================
+    # 2. LINE CHART - Monthly Spend Trend
+    # ==========================================
+    monthly_spend = pos_qs.filter(
+        created_at__year=current_year
+    ).annotate(
+        month=TruncMonth('created_at')
+    ).values('month').annotate(
+        total=Sum('total_amount'),
+        count=Count('id')
+    ).order_by('month')
+    
+    spend_trend_labels = []
+    spend_trend_amounts = []
+    spend_trend_count = []
+    
+    for item in monthly_spend:
+        spend_trend_labels.append(item['month'].strftime('%B'))
+        spend_trend_amounts.append(float(item['total'] or 0))
+        spend_trend_count.append(item['count'])
+    
+    # ==========================================
+    # 3. BAR CHART - Spend by Department
+    # ==========================================
+    department_spend = pos_qs.values(
+        'requisition__department__name'
+    ).annotate(
+        total=Sum('total_amount'),
+        count=Count('id')
+    ).order_by('-total')[:10]  # Top 10 departments
+    
+    dept_labels = []
+    dept_amounts = []
+    dept_colors = []
+    
+    # Color palette for departments
+    color_palette = [
+        '#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+        '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#84CC16'
+    ]
+    
+    for idx, item in enumerate(department_spend):
+        dept_labels.append(item['requisition__department__name'] or 'Unknown')
+        dept_amounts.append(float(item['total'] or 0))
+        dept_colors.append(color_palette[idx % len(color_palette)])
+    
+    # ==========================================
+    # 4. DONUT CHART - Requisition Status Distribution
+    # ==========================================
+    req_status_data = requisitions_qs.values('status').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    req_status_labels = []
+    req_status_values = []
+    req_status_colors = {
+        'DRAFT': '#94A3B8',
+        'SUBMITTED': '#3B82F6',
+        'HOD_APPROVED': '#8B5CF6',
+        'FACULTY_APPROVED': '#EC4899',
+        'BUDGET_APPROVED': '#14B8A6',
+        'PROCUREMENT_APPROVED': '#10B981',
+        'APPROVED': '#22C55E',
+        'REJECTED': '#EF4444',
+        'CANCELLED': '#6B7280',
+    }
+    
+    donut_colors = []
+    for item in req_status_data:
+        status_display = dict(Requisition.STATUS_CHOICES).get(
+            item['status'], item['status']
+        )
+        req_status_labels.append(status_display)
+        req_status_values.append(item['count'])
+        donut_colors.append(req_status_colors.get(item['status'], '#64748B'))
+    
+    # ==========================================
+    # 5. RADAR CHART - Supplier Performance Metrics
+    # ==========================================
+    # Get top 5 suppliers by number of orders
+    top_suppliers = pos_qs.values(
+        'supplier__name'
+    ).annotate(
+        order_count=Count('id'),
+        total_value=Sum('total_amount'),
+        avg_delivery_rating=Avg('performance_reviews__delivery_rating'),
+        avg_quality_rating=Avg('performance_reviews__quality_rating'),
+        avg_service_rating=Avg('performance_reviews__service_rating')
+    ).order_by('-order_count')[:5]
+    
+    radar_labels = ['Quality', 'Delivery', 'Service', 'Value', 'Reliability']
+    radar_datasets = []
+    
+    for supplier in top_suppliers:
+        # Normalize value score (0-5 scale)
+        max_value = float(top_suppliers[0]['total_value'] or 1)
+        value_score = (float(supplier['total_value'] or 0) / max_value) * 5
+        
+        # Calculate reliability score based on order completion
+        reliability_score = min(5.0, (supplier['order_count'] / 10) * 5)
+        
+        dataset = {
+            'label': supplier['supplier__name'] or 'Unknown',
+            'data': [
+                float(supplier['avg_quality_rating'] or 3.0),
+                float(supplier['avg_delivery_rating'] or 3.0),
+                float(supplier['avg_service_rating'] or 3.0),
+                value_score,
+                reliability_score
+            ],
+            'backgroundColor': f'rgba({", ".join(map(str, [
+                hash(supplier["supplier__name"]) % 255,
+                (hash(supplier["supplier__name"]) * 2) % 255,
+                (hash(supplier["supplier__name"]) * 3) % 255
+            ]))}, 0.2)',
+            'borderColor': f'rgb({", ".join(map(str, [
+                hash(supplier["supplier__name"]) % 255,
+                (hash(supplier["supplier__name"]) * 2) % 255,
+                (hash(supplier["supplier__name"]) * 3) % 255
+            ]))})',
+            'borderWidth': 2
+        }
+        radar_datasets.append(dataset)
+    
+    # ==========================================
+    # 6. 3D DONUT - Budget Utilization by Category
+    # ==========================================
+    budget_by_category = Budget.objects.filter(
+        budget_year__is_active=True
+    ).values(
+        'category__name'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        spent=Sum('actual_spent'),
+        committed=Sum('committed_amount')
+    ).order_by('-allocated')[:8]  # Top 8 categories
+    
+    budget_3d_labels = []
+    budget_3d_allocated = []
+    budget_3d_spent = []
+    budget_3d_available = []
+    
+    for item in budget_by_category:
+        budget_3d_labels.append(item['category__name'] or 'Unknown')
+        allocated = float(item['allocated'] or 0)
+        spent = float(item['spent'] or 0)
+        committed = float(item['committed'] or 0)
+        
+        budget_3d_allocated.append(allocated)
+        budget_3d_spent.append(spent)
+        budget_3d_available.append(max(0, allocated - spent - committed))
+    
+    # ==========================================
+    # 7. PROCUREMENT METHOD BREAKDOWN
+    # ==========================================
+    procurement_methods = tenders_qs.values(
+        'procurement_method'
+    ).annotate(
+        count=Count('id'),
+        total_value=Sum('estimated_budget')
+    ).order_by('-count')
+    
+    method_labels = []
+    method_values = []
+    method_colors_list = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
+    
+    for idx, item in enumerate(procurement_methods):
+        method_display = dict(Tender.METHOD_CHOICES).get(
+            item['procurement_method'], item['procurement_method']
+        )
+        method_labels.append(method_display)
+        method_values.append(item['count'])
+    
+    # ==========================================
+    # 8. QUARTERLY COMPARISON
+    # ==========================================
+    quarterly_data = pos_qs.filter(
+        created_at__year=current_year
+    ).annotate(
+        quarter=TruncQuarter('created_at')
+    ).values('quarter').annotate(
+        total=Sum('total_amount'),
+        count=Count('id')
+    ).order_by('quarter')
+    
+    quarterly_labels = []
+    quarterly_amounts = []
+    
+    for item in quarterly_data:
+        quarter_num = ((item['quarter'].month - 1) // 3) + 1
+        quarterly_labels.append(f'Q{quarter_num} {item["quarter"].year}')
+        quarterly_amounts.append(float(item['total'] or 0))
+    
+    # ==========================================
+    # 9. PAYMENT STATUS OVERVIEW
+    # ==========================================
+    payment_status = invoices_qs.values('status').annotate(
+        count=Count('id'),
+        total=Sum('total_amount')
+    ).order_by('-count')
+    
+    payment_labels = []
+    payment_counts = []
+    payment_amounts = []
+    
+    for item in payment_status:
+        status_display = dict(Invoice.STATUS_CHOICES).get(
+            item['status'], item['status']
+        )
+        payment_labels.append(status_display)
+        payment_counts.append(item['count'])
+        payment_amounts.append(float(item['total'] or 0))
+    
+    # ==========================================
+    # CONTEXT PREPARATION
+    # ==========================================
     context = {
+        # Summary stats
         'total_requisitions': total_requisitions,
         'total_tenders': total_tenders,
         'total_pos': total_pos,
+        'total_suppliers': total_suppliers,
         'total_spend': total_spend,
+        'total_budget': total_budget,
+        'budget_utilization': round(budget_utilization, 2),
+        'pending_requisitions': pending_requisitions,
+        'pending_invoices': pending_invoices,
+        
+        # Chart data - JSON encoded for JavaScript
+        'spend_trend_data': json.dumps({
+            'labels': spend_trend_labels,
+            'amounts': spend_trend_amounts,
+            'count': spend_trend_count
+        }),
+        
+        'department_data': json.dumps({
+            'labels': dept_labels,
+            'amounts': dept_amounts,
+            'colors': dept_colors
+        }),
+        
+        'requisition_status_data': json.dumps({
+            'labels': req_status_labels,
+            'values': req_status_values,
+            'colors': donut_colors
+        }),
+        
+        'radar_data': json.dumps({
+            'labels': radar_labels,
+            'datasets': radar_datasets
+        }),
+        
+        'budget_3d_data': json.dumps({
+            'labels': budget_3d_labels,
+            'allocated': budget_3d_allocated,
+            'spent': budget_3d_spent,
+            'available': budget_3d_available
+        }),
+        
+        'procurement_method_data': json.dumps({
+            'labels': method_labels,
+            'values': method_values,
+            'colors': method_colors_list[:len(method_values)]
+        }),
+        
+        'quarterly_data': json.dumps({
+            'labels': quarterly_labels,
+            'amounts': quarterly_amounts
+        }),
+        
+        'payment_status_data': json.dumps({
+            'labels': payment_labels,
+            'counts': payment_counts,
+            'amounts': payment_amounts
+        }),
+        
+        # Filters
+        'current_year': current_year,
+        'start_date': start_date,
+        'end_date': end_date,
     }
     
     return render(request, 'procurement/procurement_module/reports.html', context)

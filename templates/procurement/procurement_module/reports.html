@@ -1,56 +1,1105 @@
-<!-- ========================================== -->
-<!-- 20. procurement/procurement_module/reports.html -->
-<!-- ========================================== -->
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block content %}
-<h1>Procurement Reports</h1>
+{% block title %}Procurement Reports & Analytics{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.625rem;
+        color: #94A3B8;
+    }
+
+    /* Filter Section */
+    .filter-section {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .filter-label {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .filter-input {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .stat-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-icon.blue { background: #EFF6FF; color: #2563EB; }
+    .stat-icon.green { background: #ECFDF5; color: #10B981; }
+    .stat-icon.orange { background: #FEF3C7; color: #F59E0B; }
+    .stat-icon.purple { background: #F3E8FF; color: #8B5CF6; }
+
+    .stat-info h3 {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .stat-change {
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .stat-change.positive {
+        color: var(--success-color);
+    }
+
+    .stat-change.negative {
+        color: var(--danger-color);
+    }
+
+    /* Charts Grid */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+
+    .chart-card.full { grid-column: span 12; }
+    .chart-card.half { grid-column: span 6; }
+    .chart-card.third { grid-column: span 4; }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chart-title i {
+        color: var(--primary-color);
+    }
+
+    .chart-subtitle {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-top: 0.25rem;
+    }
+
+    .chart-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+
+    .chart-container.tall {
+        height: 400px;
+    }
+
+    .chart-container.short {
+        height: 250px;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .chart-card.half,
+        .chart-card.third {
+            grid-column: span 12;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Loading State */
+    .chart-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: var(--secondary-color);
+        font-size: 0.875rem;
+    }
+
+    /* Export Button */
+    .export-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
+        border-radius: 0.25rem;
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        color: var(--secondary-color);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .export-btn:hover {
+        background: var(--card-bg);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart configurations
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = '#64748B';
+
+    // ==========================================
+    // 1. LINE CHART - Monthly Spend Trend
+    // ==========================================
+    const spendTrendData = JSON.parse('{{ spend_trend_data|safe }}');
+    
+    const spendTrendCtx = document.getElementById('spendTrendChart');
+    if (spendTrendCtx && spendTrendData.labels.length > 0) {
+        new Chart(spendTrendCtx, {
+            type: 'line',
+            data: {
+                labels: spendTrendData.labels,
+                datasets: [
+                    {
+                        label: 'Total Spend (KES)',
+                        data: spendTrendData.amounts,
+                        borderColor: '#2563EB',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#2563EB',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    },
+                    {
+                        label: 'Number of POs',
+                        data: spendTrendData.count,
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        yAxisID: 'y1',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#10B981',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.datasetIndex === 0) {
+                                    label += 'KES ' + context.parsed.y.toLocaleString();
+                                } else {
+                                    label += context.parsed.y;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + (value/1000000).toFixed(1) + 'M';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 2. BAR CHART - Department Spend
+    // ==========================================
+    const deptData = JSON.parse('{{ department_data|safe }}');
+    
+    const deptChartCtx = document.getElementById('departmentChart');
+    if (deptChartCtx && deptData.labels.length > 0) {
+        new Chart(deptChartCtx, {
+            type: 'bar',
+            data: {
+                labels: deptData.labels,
+                datasets: [{
+                    label: 'Total Spend (KES)',
+                    data: deptData.amounts,
+                    backgroundColor: deptData.colors,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return 'KES ' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + (value/1000000).toFixed(1) + 'M';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 3. DONUT CHART - Requisition Status
+    // ==========================================
+    const reqStatusData = JSON.parse('{{ requisition_status_data|safe }}');
+    
+    const reqStatusCtx = document.getElementById('requisitionStatusChart');
+    if (reqStatusCtx && reqStatusData.labels.length > 0) {
+        new Chart(reqStatusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: reqStatusData.labels,
+                datasets: [{
+                    data: reqStatusData.values,
+                    backgroundColor: reqStatusData.colors,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b)=> a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                                }
+                         }
+                     }
+                  }
+                }
+             });
+            }
+
+            // ==========================================
+// 4. RADAR CHART - Supplier Performance
+// ==========================================
+const radarData = JSON.parse('{{ radar_data|safe }}');
+
+const radarCtx = document.getElementById('supplierRadarChart');
+if (radarCtx && radarData.datasets.length > 0) {
+    new Chart(radarCtx, {
+        type: 'radar',
+        data: {
+            labels: radarData.labels,
+            datasets: radarData.datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 5,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 11,
+                            weight: '500'
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 10
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12
+                }
+            }
+        }
+    });
+}
+
+// ==========================================
+// 5. 3D DONUT - Budget by Category
+// ==========================================
+const budget3dData = JSON.parse('{{ budget_3d_data|safe }}');
+
+const budget3dCtx = document.getElementById('budget3dChart');
+if (budget3dCtx && budget3dData.labels.length > 0) {
+    new Chart(budget3dCtx, {
+        type: 'doughnut',
+        data: {
+            labels: budget3dData.labels,
+            datasets: [
+                {
+                    label: 'Allocated',
+                    data: budget3dData.allocated,
+                    backgroundColor: '#3B82F6',
+                    borderWidth: 0,
+                },
+                {
+                    label: 'Spent',
+                    data: budget3dData.spent,
+                    backgroundColor: '#10B981',
+                    borderWidth: 0,
+                },
+                {
+                    label: 'Available',
+                    data: budget3dData.available,
+                    backgroundColor: '#F59E0B',
+                    borderWidth: 0,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '40%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': KES ' + context.parsed.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ==========================================
+// 6. PIE CHART - Procurement Methods
+// ==========================================
+const methodData = JSON.parse('{{ procurement_method_data|safe }}');
+
+const methodCtx = document.getElementById('procurementMethodChart');
+if (methodCtx && methodData.labels.length > 0) {
+    new Chart(methodCtx, {
+        type: 'pie',
+        data: {
+            labels: methodData.labels,
+            datasets: [{
+                data: methodData.values,
+                backgroundColor: methodData.colors,
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12
+                }
+            }
+        }
+    });
+}
+
+// ==========================================
+// 7. BAR CHART - Quarterly Comparison
+// ==========================================
+const quarterlyData = JSON.parse('{{ quarterly_data|safe }}');
+
+const quarterlyCtx = document.getElementById('quarterlyChart');
+if (quarterlyCtx && quarterlyData.labels.length > 0) {
+    new Chart(quarterlyCtx, {
+        type: 'bar',
+        data: {
+            labels: quarterlyData.labels,
+            datasets: [{
+                label: 'Quarterly Spend',
+                data: quarterlyData.amounts,
+                backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                borderRadius: 8,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            return 'KES ' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'KES ' + (value/1000000).toFixed(1) + 'M';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ==========================================
+// 8. HORIZONTAL BAR - Payment Status
+// ==========================================
+const paymentData = JSON.parse('{{ payment_status_data|safe }}');
+
+const paymentCtx = document.getElementById('paymentStatusChart');
+if (paymentCtx && paymentData.labels.length > 0) {
+    new Chart(paymentCtx, {
+        type: 'bar',
+        data: {
+            labels: paymentData.labels,
+            datasets: [{
+                label: 'Invoice Count',
+                data: paymentData.counts,
+                backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    callbacks: {
+                        afterLabel: function(context) {
+                            const amount = paymentData.amounts[context.dataIndex];
+                            return 'Total: KES ' + amount.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// Export chart functionality
+window.exportChart = function(chartId, filename) {
+    const canvas = document.getElementById(chartId);
+    if (canvas) {
+        const url = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = filename || 'chart.png';
+        link.href = url;
+        link.click();
+    }
+};
+
+});
+</script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Procurement Reports & Analytics</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Reports</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'procurement_dashboard' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back
+        </a>
+    </div>
+</div>
+<!-- Date Filter Section -->
+<div class="filter-section">
+    <form method="get" class="filter-grid">
+        <div class="filter-group">
+            <label class="filter-label">
+                <i class="bi bi-calendar"></i>
+                Start Date
+            </label>
+            <input type="date" 
+                   name="start_date" 
+                   class="filter-input" 
+                   value="{{ start_date }}">
+        </div>
+    <div class="filter-group">
+        <label class="filter-label">
+            <i class="bi bi-calendar"></i>
+            End Date
+        </label>
+        <input type="date" 
+               name="end_date" 
+               class="filter-input" 
+               value="{{ end_date }}">
+    </div>
+    
+    <div class="filter-group">
+        <label class="filter-label" style="opacity: 0;">Action</label>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+            <i class="bi bi-funnel"></i>
+            Apply Filters
+        </button>
+    </div>
+    
+    <div class="filter-group">
+        <label class="filter-label" style="opacity: 0;">Reset</label>
+        <a href="{% url 'procurement_reports' %}" class="btn" style="width: 100%; justify-content: center;">
+            <i class="bi bi-x-circle"></i>
+            Clear Filters
+        </a>
+    </div>
+</form>
+</div>
+<!-- Summary Statistics -->
 <div class="stats-grid">
     <div class="stat-card">
-        <h3>{{ total_requisitions }}</h3>
-        <p>Total Requisitions</p>
+        <div class="stat-header">
+            <div class="stat-icon blue">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Total Requisitions</h3>
+            </div>
+        </div>
+        <p class="stat-value">{{ total_requisitions|intcomma }}</p>
+        <div class="stat-change">
+            <i class="bi bi-clock"></i>
+            {{ pending_requisitions }} pending approval
+        </div>
     </div>
-    <div class="stat-card">
-        <h3>{{ total_tenders }}</h3>
-        <p>Total Tenders</p>
+<div class="stat-card">
+    <div class="stat-header">
+        <div class="stat-icon green">
+            <i class="bi bi-megaphone"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Total Tenders</h3>
+        </div>
     </div>
-    <div class="stat-card">
-        <h3>{{ total_pos }}</h3>
-        <p>Total Purchase Orders</p>
+    <p class="stat-value">{{ total_tenders|intcomma }}</p>
+</div>
+
+<div class="stat-card">
+    <div class="stat-header">
+        <div class="stat-icon orange">
+            <i class="bi bi-cart-check"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Purchase Orders</h3>
+        </div>
     </div>
-    <div class="stat-card">
-        <h3>KES {{ total_spend|floatformat:0|intcomma }}</h3>
-        <p>Total Spend</p>
+    <p class="stat-value">{{ total_pos|intcomma }}</p>
+</div>
+
+<div class="stat-card">
+    <div class="stat-header">
+        <div class="stat-icon purple">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Total Spend</h3>
+        </div>
+    </div>
+    <p class="stat-value">KES {{ total_spend|floatformat:0|intcomma }}</p>
+    <div class="stat-change">
+        Budget utilization: {{ budget_utilization }}%
+    </div>
+</div>
+</div>
+<!-- Charts Grid -->
+<div class="charts-grid">
+    <!-- Monthly Spend Trend - Line Chart -->
+    <div class="chart-card full">
+        <div class="chart-header">
+            <div>
+                <h2 class="chart-title">
+                    <i class="bi bi-graph-up"></i>
+                    Monthly Spend Trend
+                </h2>
+                <p class="chart-subtitle">Purchase order values and count by month ({{ current_year }})</p>
+            </div>
+            <div class="chart-actions">
+                <button onclick="exportChart('spendTrendChart', 'monthly-spend-trend.png')" class="export-btn">
+                    <i class="bi bi-download"></i>
+                    Export
+                </button>
+            </div>
+        </div>
+        <div class="chart-container tall">
+            <canvas id="spendTrendChart"></canvas>
+        </div>
+    </div>
+<!-- Department Spend - Bar Chart -->
+<div class="chart-card half">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-building"></i>
+                Top Departments by Spend
+            </h2>
+            <p class="chart-subtitle">Top 10 departments</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('departmentChart', 'department-spend.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+                Export
+            </button>
+        </div>
+    </div>
+    <div class="chart-container">
+        <canvas id="departmentChart"></canvas>
     </div>
 </div>
 
-<h2>Available Reports</h2>
+<!-- Requisition Status - Donut Chart -->
+<div class="chart-card half">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-pie-chart"></i>
+                Requisition Status Distribution
+            </h2>
+            <p class="chart-subtitle">All requisitions by status</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('requisitionStatusChart', 'requisition-status.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+                Export
+            </button>
+        </div>
+    </div>
+    <div class="chart-container">
+        <canvas id="requisitionStatusChart"></canvas>
+    </div>
+</div>
 
-<div class="reports-list">
-    <div class="report-item">
-        <h3>Spend Analysis</h3>
-        <p>Detailed spending analysis by department and category</p>
-        <a href="{% url 'procurement_spend_analysis' %}">View Report</a>
+<!-- Supplier Performance - Radar Chart -->
+<div class="chart-card half">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-radar"></i>
+                Supplier Performance Comparison
+            </h2>
+            <p class="chart-subtitle">Top 5 suppliers - multi-metric analysis</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('supplierRadarChart', 'supplier-performance.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+                Export
+            </button>
+        </div>
     </div>
-    
-    <div class="report-item">
-        <h3>Supplier Performance</h3>
-        <p>Supplier ratings and performance metrics</p>
-        <a href="{% url 'procurement_supplier_evaluation' %}">View Report</a>
+    <div class="chart-container">
+        <canvas id="supplierRadarChart"></canvas>
     </div>
-    
-    <div class="report-item">
-        <h3>Tender Analysis</h3>
-        <p>Tender processing times and success rates</p>
-        <a href="#">View Report</a>
+</div>
+
+<!-- Budget Utilization - 3D Donut -->
+<div class="chart-card half">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-currency-dollar"></i>
+                Budget Utilization by Category
+            </h2>
+            <p class="chart-subtitle">Allocated vs Spent vs Available</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('budget3dChart', 'budget-utilization.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+                Export
+            </button>
+        </div>
     </div>
-    
-    <div class="report-item">
-        <h3>Purchase Order Summary</h3>
-        <p>Summary of all purchase orders</p>
-        <a href="{% url 'procurement_all_orders' %}">View Report</a>
+    <div class="chart-container">
+        <canvas id="budget3dChart"></canvas>
     </div>
+</div>
+
+<!-- Procurement Methods - Pie Chart -->
+<div class="chart-card third">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-diagram-3"></i>
+                Procurement Methods
+            </h2>
+            <p class="chart-subtitle">Distribution by method</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('procurementMethodChart', 'procurement-methods.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+            </button>
+        </div>
+    </div>
+    <div class="chart-container short">
+        <canvas id="procurementMethodChart"></canvas>
+    </div>
+</div>
+
+<!-- Quarterly Comparison - Bar Chart -->
+<div class="chart-card third">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-calendar4-week"></i>
+                Quarterly Spend
+            </h2>
+            <p class="chart-subtitle">{{ current_year }} quarters</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('quarterlyChart', 'quarterly-spend.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+            </button>
+        </div>
+    </div>
+    <div class="chart-container short">
+        <canvas id="quarterlyChart"></canvas>
+    </div>
+</div>
+
+<!-- Payment Status - Horizontal Bar -->
+<div class="chart-card third">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-receipt"></i>
+                Invoice Status
+            </h2>
+            <p class="chart-subtitle">Payment processing status</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('paymentStatusChart', 'payment-status.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+            </button>
+        </div>
+    </div>
+    <div class="chart-container short">
+        <canvas id="paymentStatusChart"></canvas>
+    </div>
+</div>
 </div>
 {% endblock %}
