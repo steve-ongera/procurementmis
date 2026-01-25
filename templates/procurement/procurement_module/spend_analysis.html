@@ -1366,4 +1366,264 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             </div>
         </div>
-        <div class="chart-container very-
+        <div class="chart-container very-tall">
+<canvas id="trendChart"></canvas>
+</div>
+</div>
+<!-- Department Spend - Horizontal Bar -->
+<div class="chart-card two-thirds">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-building"></i>
+                Top Departments by Spend
+            </h2>
+            <p class="chart-subtitle">Ranked by total expenditure</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('departmentChart', 'department-spend.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+                Export
+            </button>
+        </div>
+    </div>
+    <div class="chart-container tall">
+        <canvas id="departmentChart"></canvas>
+    </div>
+</div>
+
+<!-- Supplier Concentration - Donut -->
+<div class="chart-card third">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-pie-chart"></i>
+                Supplier Concentration
+            </h2>
+            <p class="chart-subtitle">Top 10 suppliers</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('supplierChart', 'supplier-concentration.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+            </button>
+        </div>
+    </div>
+    <div class="chart-container tall">
+        <canvas id="supplierChart"></canvas>
+    </div>
+</div>
+
+<!-- Category Spend - Horizontal Bar -->
+<div class="chart-card half">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-tags"></i>
+                Spend by Category
+            </h2>
+            <p class="chart-subtitle">Top 10 budget categories</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('categoryChart', 'category-spend.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+            </button>
+        </div>
+    </div>
+    <div class="chart-container">
+        <canvas id="categoryChart"></canvas>
+    </div>
+</div>
+
+<!-- Spending Dimensions - Radar -->
+<div class="chart-card half">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-radar"></i>
+                Spending Pattern Analysis
+            </h2>
+            <p class="chart-subtitle">Multi-dimensional view</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('radarChart', 'spending-pattern.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+            </button>
+        </div>
+    </div>
+    <div class="chart-container">
+        <canvas id="radarChart"></canvas>
+    </div>
+</div>
+
+<!-- Stacked Bar - Monthly by Type -->
+<div class="chart-card two-thirds">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-bar-chart"></i>
+                Monthly Spend by Category Type
+            </h2>
+            <p class="chart-subtitle">Goods, Services, and Works breakdown</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('stackedChart', 'monthly-by-type.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+            </button>
+        </div>
+    </div>
+    <div class="chart-container tall">
+        <canvas id="stackedChart"></canvas>
+    </div>
+</div>
+
+<!-- Order Status - Pie Chart -->
+<div class="chart-card third">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-pie-chart-fill"></i>
+                Order Status
+            </h2>
+            <p class="chart-subtitle">Distribution by status</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('statusChart', 'order-status.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+            </button>
+        </div>
+    </div>
+    <div class="chart-container tall">
+        <canvas id="statusChart"></canvas>
+    </div>
+</div>
+
+<!-- Supplier Performance - Bubble Chart -->
+<div class="chart-card half">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-bubble"></i>
+                Supplier Performance vs Spend
+            </h2>
+            <p class="chart-subtitle">Bubble size = order count</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('bubbleChart', 'supplier-performance.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+            </button>
+        </div>
+    </div>
+    <div class="chart-container">
+        <canvas id="bubbleChart"></canvas>
+    </div>
+</div>
+
+<!-- Procurement Methods - Polar Area -->
+<div class="chart-card half">
+    <div class="chart-header">
+        <div>
+            <h2 class="chart-title">
+                <i class="bi bi-diagram-3"></i>
+                Procurement Methods
+            </h2>
+            <p class="chart-subtitle">Distribution by procurement method</p>
+        </div>
+        <div class="chart-actions">
+            <button onclick="exportChart('polarChart', 'procurement-methods.png')" class="export-btn">
+                <i class="bi bi-download"></i>
+            </button>
+        </div>
+    </div>
+    <div class="chart-container">
+        <canvas id="polarChart"></canvas>
+    </div>
+</div>
+</div>
+<!-- Data Tables Section -->
+<div class="table-section">
+    <div class="table-header">
+        <h3 class="table-title">
+            <i class="bi bi-table"></i>
+            Top 10 Purchase Orders
+        </h3>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>PO Number</th>
+                    <th>Supplier</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in top_pos %}
+                <tr>
+                    <td><strong>{{ po.po_number }}</strong></td>
+                    <td>{{ po.supplier__name }}</td>
+                    <td>KES {{ po.total_amount|floatformat:0|intcomma }}</td>
+                    <td>{{ po.po_date|date:"d M Y" }}</td>
+                    <td>
+                        <span class="badge {% if po.status == 'DELIVERED' or po.status == 'CLOSED' %}success{% elif po.status == 'CANCELLED' %}danger{% else %}info{% endif %}">
+                            {{ po.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <p>No purchase orders found for the selected period</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="table-section">
+    <div class="table-header">
+        <h3 class="table-title">
+            <i class="bi bi-building"></i>
+            Department Average Order Values
+        </h3>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Order Count</th>
+                    <th>Average Order</th>
+                    <th>Max Order</th>
+                    <th>Min Order</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in dept_avg_orders %}
+                <tr>
+                    <td><strong>{{ dept.requisition__department__name }}</strong></td>
+                    <td>{{ dept.count }}</td>
+                    <td>KES {{ dept.avg_order|floatformat:0|intcomma }}</td>
+                    <td>KES {{ dept.max_order|floatformat:0|intcomma }}</td>
+                    <td>KES {{ dept.min_order|floatformat:0|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <p>No data available</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
