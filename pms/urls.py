@@ -475,6 +475,58 @@ urlpatterns = [
     
     # Get plan item details (for staff requisition form)
     path('api/plan-items/<uuid:plan_item_id>/details/', views.get_plan_item_details, name='get_plan_item_details'),
+    
+    # ============================================================================
+    # GOODS RECEIPT URLs
+    # ============================================================================
+    path('goods-receipt/pending-deliveries/', views.store_pending_deliveries_view, name='store_pending_deliveries'),
+    path('goods-receipt/receive-goods/', views.store_receive_goods_view, name='store_receive_goods'),
+    path('goods-receipt/receive-goods/<uuid:po_id>/', views.store_receive_goods_view, name='store_receive_goods_po'),
+    path('goods-receipt/history/', views.store_receipt_history_view, name='store_receipt_history'),
+    path('goods-receipt/grn/<uuid:grn_id>/', views.store_grn_detail_view, name='store_grn_detail'),
+    path('goods-receipt/quality-issues/', views.store_quality_issues_view, name='store_quality_issues'),
+    
+    # ============================================================================
+    # STOCK MANAGEMENT URLs
+    # ============================================================================
+    path('inventory/all-stock/', views.store_all_stock_view, name='store_all_stock'),
+    path('inventory/add-stock-item/', views.store_add_stock_item_view, name='store_add_stock_item'),
+    path('inventory/low-stock-alert/', views.store_low_stock_alert_view, name='store_low_stock_alert'),
+    path('inventory/out-of-stock/', views.store_out_of_stock_view, name='store_out_of_stock'),
+    
+    # ============================================================================
+    # STOCK ISSUES URLs
+    # ============================================================================
+    path('issues/pending/', views.store_pending_issues_view, name='store_pending_issues'),
+    path('issues/create/', views.store_issue_stock_view, name='store_create_issue'),
+    path('issues/process/<uuid:issue_id>/', views.store_issue_stock_view, name='store_process_issue'),
+    path('issues/history/', views.store_issue_history_view, name='store_issue_history'),
+    path('issues/returns/', views.store_returns_view, name='store_returns'),
+    
+    # ============================================================================
+    # OTHER STOCK OPERATIONS URLs
+    # ============================================================================
+    path('inventory/stock-takes/', views.store_stock_takes_view, name='store_stock_takes'),
+    path('inventory/stock-transfers/', views.store_stock_transfers_view, name='store_stock_transfers'),
+    
+    # ============================================================================
+    # ASSET MANAGEMENT URLs
+    # ============================================================================
+    path('assets/all/', views.store_all_assets_view, name='store_all_assets'),
+    path('assets/register/', views.store_register_asset_view, name='store_register_asset'),
+    path('assets/maintenance/', views.store_maintenance_view, name='store_maintenance'),
+    path('assets/disposal/', views.store_disposal_view, name='store_disposal'),
+    
+    # ============================================================================
+    # REPORTS URLs
+    # ============================================================================
+    path('reports/inventory/', views.store_inventory_reports_view, name='store_inventory_reports'),
+    path('reports/movements/', views.store_movement_reports_view, name='store_movement_reports'),
+    
+    # ============================================================================
+    # HELP & SUPPORT URL
+    # ============================================================================
+    path('help/', views.store_help_center_view, name='store_help_center'),
    
     
 ]
