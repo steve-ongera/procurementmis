@@ -9,11 +9,13 @@
     <!-- Main Section -->
     <div class="menu-section">
         <div class="menu-title">MAIN</div>
+
         <a href="{% url 'dashboard' %}" class="menu-item active">
             <i class="fas fa-home"></i>
             <span>Dashboard</span>
         </a>
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_analytics' %}" class="menu-item">
             <i class="fas fa-chart-line"></i>
             <span>Audit Analytics</span>
         </a>
@@ -22,24 +24,24 @@
     <!-- Audit Management -->
     <div class="menu-section">
         <div class="menu-title">AUDITS</div>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_all_audits' %}" class="menu-item">
             <i class="fas fa-clipboard-list"></i>
             <span>All Audits</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_new_audit' %}" class="menu-item">
             <i class="fas fa-plus-circle"></i>
             <span>New Audit</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_active_audits' %}" class="menu-item">
             <i class="fas fa-play-circle"></i>
             <span>Active Audits</span>
             <span class="badge">3</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_completed_audits' %}" class="menu-item">
             <i class="fas fa-check-double"></i>
             <span>Completed Audits</span>
         </a>
@@ -48,25 +50,26 @@
     <!-- Reviews & Monitoring -->
     <div class="menu-section">
         <div class="menu-title">REVIEWS</div>
-        
+
         <div class="menu-item has-submenu" data-submenu="transactions">
             <i class="fas fa-search-dollar"></i>
             <span>Transaction Reviews</span>
             <i class="fas fa-chevron-right arrow"></i>
         </div>
+
         <div class="submenu" id="submenu-transactions">
-            <a href="#" class="submenu-item">Requisitions</a>
-            <a href="#" class="submenu-item">Purchase Orders</a>
-            <a href="#" class="submenu-item">Payments</a>
-            <a href="#" class="submenu-item">Contracts</a>
+            <a href="{% url 'auditor_requisitions_review' %}" class="submenu-item">Requisitions</a>
+            <a href="{% url 'auditor_purchase_orders_review' %}" class="submenu-item">Purchase Orders</a>
+            <a href="{% url 'auditor_payments_review' %}" class="submenu-item">Payments</a>
+            <a href="{% url 'auditor_contracts_review' %}" class="submenu-item">Contracts</a>
         </div>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_compliance_review' %}" class="menu-item">
             <i class="fas fa-user-shield"></i>
             <span>Compliance Review</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_flagged_items' %}" class="menu-item">
             <i class="fas fa-exclamation-triangle"></i>
             <span>Flagged Items</span>
             <span class="badge">5</span>
@@ -76,23 +79,23 @@
     <!-- Audit Trail -->
     <div class="menu-section">
         <div class="menu-title">SYSTEM AUDIT</div>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_audit_trail' %}" class="menu-item">
             <i class="fas fa-shoe-prints"></i>
             <span>Audit Trail</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_activity_logs' %}" class="menu-item">
             <i class="fas fa-history"></i>
             <span>Activity Logs</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_access_logs' %}" class="menu-item">
             <i class="fas fa-key"></i>
             <span>Access Logs</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_data_changes' %}" class="menu-item">
             <i class="fas fa-database"></i>
             <span>Data Changes</span>
         </a>
@@ -101,23 +104,23 @@
     <!-- Reports & Findings -->
     <div class="menu-section">
         <div class="menu-title">REPORTS</div>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_audit_reports' %}" class="menu-item">
             <i class="fas fa-file-alt"></i>
             <span>Audit Reports</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_findings' %}" class="menu-item">
             <i class="fas fa-bug"></i>
             <span>Findings</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_recommendations' %}" class="menu-item">
             <i class="fas fa-tasks"></i>
             <span>Recommendations</span>
         </a>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_risk_assessment' %}" class="menu-item">
             <i class="fas fa-chart-pie"></i>
             <span>Risk Assessment</span>
         </a>
@@ -126,11 +129,10 @@
     <!-- Help & Support -->
     <div class="menu-section">
         <div class="menu-title">SUPPORT</div>
-        
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'auditor_help_center' %}" class="menu-item">
             <i class="fas fa-life-ring"></i>
             <span>Help Center</span>
         </a>
     </div>
-
 </div>
