@@ -322,6 +322,7 @@
     .status-accepted { background: #D1FAE5; color: #065F46; }
     .status-issued { background: #D1FAE5; color: #065F46; }
     .status-low { background: #FEE2E2; color: #991B1B; }
+    .status-draft { background: #F3F4F6; color: #374151; }
 
     .empty-state {
         text-align: center;
@@ -917,3 +918,68 @@ document.addEventListener('DOMContentLoaded', function() {
                         Pending Issues
                     </div>
                     <span class="activity-count">{{ pending_issues|length }}</span>
+                </div>
+                <div class="activity-list">
+                    {% for issue in pending_issues %}
+                    <div class="activity-item">
+                        <div class="activity-item-header">
+                            <div class="activity-title">{{ issue.issue_number }}</div>
+                            <span class="status-badge status-{{ issue.status|lower }}">
+                                {{ issue.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="activity-meta">
+                            <span><i class="bi bi-building"></i> {{ issue.department.code }}</span>
+                            <span>•</span>
+                            <span><i class="bi bi-shop"></i> {{ issue.store.code }}</span>
+                            <span>•</span>
+                            <span>{{ issue.created_at|date:"M d" }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle"></i>
+                        <p>No pending issues</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Recent Movements -->
+            <div class="activity-card">
+                <div class="activity-header">
+                    <div class="activity-header-title">
+                        <i class="bi bi-arrow-left-right"></i>
+                        Recent Movements
+                    </div>
+                    <span class="activity-count">{{ recent_movements|length }}</span>
+                </div>
+                <div class="activity-list">
+                    {% for movement in recent_movements %}
+                    <div class="activity-item">
+                        <div class="activity-item-header">
+                            <div class="activity-title">{{ movement.stock_item.item.name|truncatechars:30 }}</div>
+                            <span class="status-badge status-{{ movement.movement_type|lower }}">
+                                {{ movement.get_movement_type_display }}
+                            </span>
+                        </div>
+                        <div class="activity-meta">
+                            <span><i class="bi bi-box"></i> {{ movement.quantity }} {{ movement.stock_item.item.unit_of_measure }}</span>
+                            <span>•</span>
+                            <span><i class="bi bi-person"></i> {{ movement.performed_by.get_full_name|default:movement.performed_by.username }}</span>
+                            <span>•</span>
+                            <span>{{ movement.movement_date|date:"M d, H:i" }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <p>No recent movements</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
