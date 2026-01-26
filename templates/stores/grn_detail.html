@@ -1,36 +1,478 @@
-<!-- ============================================================================ -->
-<!-- 4. grn_detail.html -->
-<!-- ============================================================================ -->
 {% extends 'base.html' %}
 {% load humanize %}
 
 {% block title %}GRN {{ grn.grn_number }} - Stores Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Detail Grid */
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+
+    .detail-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .detail-card h3 i {
+        color: var(--secondary-color);
+    }
+
+    .detail-card dl {
+        margin: 0;
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .detail-card dt {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .detail-card dd {
+        font-size: 0.875rem;
+        color: #334155;
+        margin: 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #F1F5F9;
+    }
+
+    .detail-card dd:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-card h3 i {
+        color: var(--secondary-color);
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: var(--card-bg);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+        margin-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .status-badge i {
+        font-size: 0.625rem;
+    }
+
+    .status-draft { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+    .status-inspecting { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-accepted { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-rejected { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+    .status-partial { 
+        background: #E0E7FF; 
+        color: #3730A3; 
+        border-color: #C7D2FE;
+    }
+
+    /* Link Styling */
+    a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    /* Alert Messages */
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-info {
+        background: #EFF6FF;
+        border-color: #BFDBFE;
+        color: #1E40AF;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        border-color: #A7F3D0;
+        color: #065F46;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .detail-card, .form-card {
+            padding: 1.25rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .table-responsive {
+            border-radius: 0;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">GRN {{ grn.grn_number }}</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
-            <a href="#">Stores</a>
+            <a href="{% url 'store_receipt_history' %}">Stores</a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'store_receipt_history' %}">Receipt History</a>
             <i class="bi bi-chevron-right"></i>
             <span>{{ grn.grn_number }}</span>
         </div>
     </div>
+    <div class="header-actions">
+        <a href="{% url 'store_receipt_history' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to History
+        </a>
+        {% if grn.status == 'DRAFT' or grn.status == 'INSPECTING' %}
+        <a href="#" class="btn btn-primary" onclick="document.querySelector('form').scrollIntoView({behavior: 'smooth'}); return false;">
+            <i class="bi bi-search"></i>
+            Perform Inspection
+        </a>
+        {% endif %}
+    </div>
 </div>
 
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- GRN Information -->
 <div class="detail-grid">
     <div class="detail-card">
-        <h3>GRN Information</h3>
+        <h3>
+            <i class="bi bi-file-text"></i>
+            GRN Information
+        </h3>
         <dl>
             <dt>GRN Number</dt>
             <dd>{{ grn.grn_number }}</dd>
             
             <dt>Purchase Order</dt>
-            <dd><a href="{% url 'po_detail' grn.purchase_order.id %}">{{ grn.purchase_order.po_number }}</a></dd>
+            <dd>
+                <a href="{% url 'po_detail' grn.purchase_order.id %}">
+                    {{ grn.purchase_order.po_number }}
+                    <i class="bi bi-arrow-up-right" style="font-size: 0.75rem; margin-left: 0.25rem;"></i>
+                </a>
+            </dd>
             
             <dt>Supplier</dt>
             <dd>{{ grn.purchase_order.supplier.name }}</dd>
@@ -51,13 +493,25 @@
             <dd>{{ grn.received_by.get_full_name }}</dd>
             
             <dt>Status</dt>
-            <dd><span class="badge">{{ grn.get_status_display }}</span></dd>
+            <dd>
+                <span class="status-badge status-{{ grn.status|lower }}">
+                    {% if grn.status == 'DRAFT' %}<i class="bi bi-pencil"></i>{% endif %}
+                    {% if grn.status == 'INSPECTING' %}<i class="bi bi-search"></i>{% endif %}
+                    {% if grn.status == 'ACCEPTED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                    {% if grn.status == 'REJECTED' %}<i class="bi bi-x-circle"></i>{% endif %}
+                    {% if grn.status == 'PARTIAL' %}<i class="bi bi-hourglass-split"></i>{% endif %}
+                    {{ grn.get_status_display }}
+                </span>
+            </dd>
         </dl>
     </div>
     
     {% if grn.inspected_by %}
     <div class="detail-card">
-        <h3>Inspection Information</h3>
+        <h3>
+            <i class="bi bi-clipboard-check"></i>
+            Inspection Information
+        </h3>
         <dl>
             <dt>Inspected By</dt>
             <dd>{{ grn.inspected_by.get_full_name }}</dd>
@@ -72,15 +526,25 @@
             <dt>Rejection Reason</dt>
             <dd>{{ grn.rejection_reason }}</dd>
             {% endif %}
+            
+            {% if grn.notes %}
+            <dt>Notes</dt>
+            <dd>{{ grn.notes }}</dd>
+            {% endif %}
         </dl>
     </div>
     {% endif %}
 </div>
 
+<!-- Items Received Table -->
 <div class="table-card">
     <div class="table-header">
-        <h2 class="table-title">Items Received</h2>
+        <h2 class="table-title">
+            <i class="bi bi-box-seam"></i>
+            Items Received
+        </h2>
     </div>
+    {% if grn.items.all %}
     <div class="table-responsive">
         <table>
             <thead>
@@ -102,25 +566,44 @@
                     <td>{{ item.quantity_delivered }}</td>
                     <td>{{ item.quantity_accepted }}</td>
                     <td>{{ item.quantity_rejected }}</td>
-                    <td><span class="badge">{{ item.get_item_status_display }}</span></td>
+                    <td>
+                        <span class="status-badge status-{{ item.item_status|lower }}">
+                            {% if item.item_status == 'ACCEPTED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                            {% if item.item_status == 'REJECTED' %}<i class="bi bi-x-circle"></i>{% endif %}
+                            {% if item.item_status == 'DAMAGED' %}<i class="bi bi-exclamation-triangle"></i>{% endif %}
+                            {% if item.item_status == 'INCOMPLETE' %}<i class="bi bi-hourglass-split"></i>{% endif %}
+                            {{ item.get_item_status_display }}
+                        </span>
+                    </td>
                     <td>{{ item.remarks|default:"" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% else %}
+    <div class="empty-state" style="padding: 2rem; text-align: center; color: #94A3B8;">
+        <i class="bi bi-box-seam" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
+        <p>No items received</p>
+    </div>
+    {% endif %}
 </div>
 
+<!-- Inspection Form -->
 {% if grn.status == 'DRAFT' or grn.status == 'INSPECTING' %}
 <div class="form-card">
-    <h3>Perform Inspection</h3>
-    <form method="post">
+    <h3>
+        <i class="bi bi-clipboard-check"></i>
+        Perform Inspection
+    </h3>
+    <form method="post" action="{% url 'store_grn_detail' grn.id %}">
         {% csrf_token %}
         <input type="hidden" name="action" value="inspect">
         
         <div class="form-group">
-            <label>Status *</label>
+            <label class="form-label">Status *</label>
             <select name="status" class="form-control" required>
+                <option value="">Select Status</option>
                 <option value="ACCEPTED">Accepted</option>
                 <option value="REJECTED">Rejected</option>
                 <option value="PARTIAL">Partially Accepted</option>
@@ -128,22 +611,29 @@
         </div>
         
         <div class="form-group">
-            <label>General Condition</label>
-            <textarea name="general_condition" class="form-control" rows="3"></textarea>
+            <label class="form-label">General Condition</label>
+            <textarea name="general_condition" class="form-control" rows="3" placeholder="Describe the general condition of the delivery">{{ grn.general_condition|default:"" }}</textarea>
         </div>
         
         <div class="form-group">
-            <label>Rejection Reason (if applicable)</label>
-            <textarea name="rejection_reason" class="form-control" rows="3"></textarea>
+            <label class="form-label">Rejection Reason (if applicable)</label>
+            <textarea name="rejection_reason" class="form-control" rows="3" placeholder="Explain why items were rejected"></textarea>
         </div>
         
         <div class="form-group">
-            <label>Notes</label>
-            <textarea name="notes" class="form-control" rows="3"></textarea>
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-control" rows="3" placeholder="Additional inspection notes">{{ grn.notes|default:"" }}</textarea>
         </div>
         
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Complete Inspection</button>
+            <a href="{% url 'store_grn_detail' grn.id %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i>
+                Complete Inspection
+            </button>
         </div>
     </form>
 </div>

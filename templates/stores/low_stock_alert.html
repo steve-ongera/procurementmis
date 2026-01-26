@@ -1,39 +1,656 @@
-
-<!-- ============================================================================ -->
-<!-- 8. low_stock_alert.html -->
-<!-- ============================================================================ -->
 {% extends 'base.html' %}
 {% load humanize %}
+{% load custom_filters %}
 
 {% block title %}Low Stock Alert - Stores Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-warning {
+        background: var(--warning-color);
+        color: white;
+        border-color: var(--warning-color);
+    }
+
+    .btn-warning:hover {
+        background: #D97706;
+        border-color: #D97706;
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+    }
+
+    .btn-sm {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn-sm:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    /* Summary Stats */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Alert Banner */
+    .alert-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-banner i {
+        font-size: 1.25rem;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-danger {
+        background: #FEE2E2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        border-color: #A7F3D0;
+        color: #065F46;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Stock Status Highlighting */
+    .low-stock-row {
+        background-color: #FEF3C7;
+    }
+
+    .low-stock-row:hover {
+        background-color: #FDE68A;
+    }
+
+    .critical-stock-row {
+        background-color: #FEE2E2;
+        border-left: 4px solid var(--danger-color);
+    }
+
+    .critical-stock-row:hover {
+        background-color: #FECACA;
+    }
+
+    .warning-stock-row {
+        background-color: #FEF3C7;
+        border-left: 4px solid var(--warning-color);
+    }
+
+    .warning-stock-row:hover {
+        background-color: #FDE68A;
+    }
+
+    .text-danger {
+        color: var(--danger-color);
+        font-weight: 600;
+    }
+
+    .text-warning {
+        color: var(--warning-color);
+        font-weight: 600;
+    }
+
+    .text-success {
+        color: var(--success-color);
+        font-weight: 600;
+    }
+
+    .quantity-cell {
+        font-weight: 600;
+        text-align: right;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .deficit-cell {
+        font-weight: 700;
+        text-align: right;
+    }
+
+    .date-cell {
+        color: var(--secondary-color);
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .status-badge i {
+        font-size: 0.625rem;
+    }
+
+    .status-critical { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+    .status-low { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-very-low { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .action-btn i {
+        font-size: 1rem;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .alert-banner {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Low Stock Alert</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
-            <a href="#">Stores</a>
+            <a href="{% url 'store_low_stock_alert' %}">Stores</a>
             <i class="bi bi-chevron-right"></i>
             <span>Low Stock Alert</span>
         </div>
     </div>
-</div>
-
-<div class="alert-banner alert-warning">
-    <i class="bi bi-exclamation-triangle"></i>
-    <div>
-        <strong>{{ low_stock_items.count }} items</strong> are at or below reorder level
+    <div class="header-actions">
+        <a href="{% url 'store_all_stock' %}" class="btn">
+            <i class="bi bi-box"></i>
+            All Stock
+        </a>
+        <button class="btn btn-warning" onclick="generateRequisition()">
+            <i class="bi bi-file-earmark-plus"></i>
+            Bulk Requisition
+        </button>
     </div>
 </div>
 
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.low_stock_items }}</div>
+        <div class="summary-label">Low Stock Items</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.out_of_stock }}</div>
+        <div class="summary-label">Out of Stock</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.critical_items }}</div>
+        <div class="summary-label">Critical Items</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ stats.total_value|floatformat:0|intcomma }}</div>
+        <div class="summary-label">Estimated Value</div>
+    </div>
+</div>
+
+<!-- Alert Banner -->
+{% if low_stock_items %}
+<div class="alert-banner {% if stats.critical_items > 0 %}alert-danger{% else %}alert-warning{% endif %}">
+    <i class="bi bi-exclamation-triangle"></i>
+    <div>
+        {% if stats.critical_items > 0 %}
+        <strong>{{ stats.critical_items }} critical items</strong> need immediate attention
+        {% else %}
+        <strong>{{ low_stock_items.count }} items</strong> are at or below reorder level
+        {% endif %}
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem;">
+            Total estimated restock value: KES {{ stats.total_restock_value|floatformat:0|intcomma }}
+        </p>
+    </div>
+    <div style="margin-left: auto;">
+        <button class="btn btn-sm {% if stats.critical_items > 0 %}btn-danger{% else %}btn-warning{% endif %}" onclick="sendAlerts()">
+            <i class="bi bi-bell"></i>
+            Send Alerts
+        </button>
+    </div>
+</div>
+{% else %}
+<div class="alert-banner alert-success">
+    <i class="bi bi-check-circle"></i>
+    <div>
+        <strong>All items adequately stocked</strong>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem;">
+            No items require immediate restocking
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get" action="{% url 'store_low_stock_alert' %}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Store</label>
+                <select name="store" class="form-control">
+                    <option value="">All Stores</option>
+                    {% for store in stores %}
+                    <option value="{{ store.id }}" {% if request.GET.store == store.id|stringformat:"s" %}selected{% endif %}>
+                        {{ store.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-control">
+                    <option value="">All Categories</option>
+                    {% if categories %}
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Stock Level</label>
+                <select name="stock_level" class="form-control">
+                    <option value="">All Levels</option>
+                    <option value="low" {% if request.GET.stock_level == 'low' %}selected{% endif %}>Low Stock</option>
+                    <option value="critical" {% if request.GET.stock_level == 'critical' %}selected{% endif %}>Critical Stock</option>
+                    <option value="out_of_stock" {% if request.GET.stock_level == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <a href="{% url 'store_low_stock_alert' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Low Stock Items Table -->
 <div class="table-card">
     <div class="table-header">
         <h2 class="table-title">
-            <i class="bi bi-exclamation-triangle"></i> Items Requiring Restock
+            <i class="bi bi-exclamation-triangle"></i>
+            Items Requiring Restock ({{ low_stock_items.count }})
         </h2>
     </div>
+
     {% if low_stock_items %}
     <div class="table-responsive">
         <table>
@@ -44,25 +661,71 @@
                     <th>Store</th>
                     <th>Current Qty</th>
                     <th>Reorder Level</th>
+                    <th>Max Level</th>
                     <th>Deficit</th>
                     <th>Last Restock</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for stock in low_stock_items %}
-                <tr>
-                    <td>{{ stock.item.code }}</td>
+                {% with deficit=stock.reorder_level|subtract:stock.quantity_on_hand %}
+                {% with stock_status=stock.get_stock_status %}
+                <tr class="{% if stock_status == 'critical' %}critical-stock-row{% elif stock_status == 'low' %}warning-stock-row{% else %}low-stock-row{% endif %}">
+                    <td>
+                        <strong>{{ stock.item.code }}</strong>
+                    </td>
                     <td>{{ stock.item.name }}</td>
                     <td>{{ stock.store.name }}</td>
-                    <td class="text-danger">{{ stock.quantity_on_hand }}</td>
-                    <td>{{ stock.reorder_level }}</td>
-                    <td class="text-danger">{{ stock.reorder_level|add:"-"|add:stock.quantity_on_hand|floatformat:0 }}</td>
-                    <td>{{ stock.last_restock_date|date:"M d, Y"|default:"Never" }}</td>
+                    <td class="quantity-cell {% if stock_status == 'critical' %}text-danger{% elif stock_status == 'low' %}text-warning{% else %}text-warning{% endif %}">
+                        {{ stock.quantity_on_hand|floatformat:2 }}
+                    </td>
+                    <td class="quantity-cell">{{ stock.reorder_level|floatformat:2 }}</td>
+                    <td class="quantity-cell">
+                        {% if stock.max_stock_level %}
+                        {{ stock.max_stock_level|floatformat:2 }}
+                        {% else %}
+                        <span style="color: var(--secondary-color);">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="deficit-cell text-danger">
+                        {% if deficit > 0 %}
+                        {{ deficit|floatformat:0 }}
+                        {% else %}
+                        <span class="text-warning">At reorder level</span>
+                        {% endif %}
+                    </td>
+                    <td class="date-cell">
+                        {% if stock.last_restock_date %}
+                        {{ stock.last_restock_date|date:"M d, Y" }}
+                        {% else %}
+                        <span style="color: var(--secondary-color);">Never</span>
+                        {% endif %}
+                    </td>
                     <td>
-                        <a href="#" class="btn-sm btn-primary">Create Requisition</a>
+                        <span class="status-badge status-{{ stock_status }}">
+                            {% if stock_status == 'critical' %}<i class="bi bi-exclamation-triangle"></i>{% endif %}
+                            {% if stock_status == 'low' %}<i class="bi bi-exclamation-circle"></i>{% endif %}
+                            {% if stock_status == 'out_of_stock' %}<i class="bi bi-x-circle"></i>{% endif %}
+                            {{ stock_status|title}}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="#" class="action-btn btn-sm btn-primary" onclick="createRequisition('{{ stock.item.code }}', {{ stock.id }})" title="Create Requisition">
+                            <i class="bi bi-file-earmark-plus"></i>
+                            Requisition
+                        </a>
+                        <a href="{% url 'stock_detail' stock.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="#" class="action-btn" title="Adjust Stock">
+                            <i class="bi bi-sliders"></i>
+                        </a>
                     </td>
                 </tr>
+                {% endwith %}
+                {% endwith %}
                 {% endfor %}
             </tbody>
         </table>
@@ -71,7 +734,146 @@
     <div class="empty-state">
         <i class="bi bi-check-circle"></i>
         <p>All items are adequately stocked</p>
+        <a href="{% url 'store_all_stock' %}" class="btn btn-sm" style="margin-top: 1rem;">
+            <i class="bi bi-box"></i>
+            View All Stock
+        </a>
     </div>
     {% endif %}
 </div>
+
+<!-- Restock Recommendations -->
+{% if low_stock_items %}
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-lightbulb"></i>
+            Restock Recommendations
+        </h2>
+    </div>
+    <div class="empty-state" style="padding: 2rem;">
+        <i class="bi bi-lightbulb"></i>
+        <p>Recommended actions based on stock levels</p>
+        <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 1rem;">
+            <button class="btn btn-sm btn-warning" onclick="generateRestockPlan()">
+                <i class="bi bi-clipboard-data"></i>
+                Generate Restock Plan
+            </button>
+            <button class="btn btn-sm btn-primary" onclick="generateRequisition()">
+                <i class="bi bi-file-earmark-plus"></i>
+                Create Bulk Requisition
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function createRequisition(itemCode, stockId) {
+    if (confirm(`Create requisition for ${itemCode}?`)) {
+        // In real implementation, this would redirect to requisition form with pre-filled data
+        alert(`Redirecting to requisition form for ${itemCode}...`);
+        // Example: window.location.href = `/requisitions/create/?stock_id=${stockId}`;
+    }
+}
+
+function generateRequisition() {
+    const selectedItems = [];
+    const checkboxes = document.querySelectorAll('input[name="selected_items"]:checked');
+    checkboxes.forEach(cb => selectedItems.push(cb.value));
+    
+    if (selectedItems.length === 0) {
+        alert('Please select items for bulk requisition');
+        return;
+    }
+    
+    if (confirm(`Create bulk requisition for ${selectedItems.length} items?`)) {
+        // In real implementation, this would submit a form or make an AJAX request
+        alert(`Creating bulk requisition for ${selectedItems.length} items...`);
+        // Example: window.location.href = `/requisitions/bulk-create/?items=${selectedItems.join(',')}`;
+    }
+}
+
+function sendAlerts() {
+    const criticalCount = {{ stats.critical_items|default:0 }};
+    const lowCount = {{ stats.low_stock_items|default:0 }};
+    const totalCount = criticalCount + lowCount;
+    
+    if (totalCount === 0) {
+        alert('No items require alerts');
+        return;
+    }
+    
+    let message = `Send low stock alerts for ${totalCount} items?`;
+    if (criticalCount > 0) {
+        message += `\n\n⚠️ ${criticalCount} CRITICAL items requiring immediate attention`;
+    }
+    if (lowCount > 0) {
+        message += `\n\n⚠️ ${lowCount} items at or below reorder level`;
+    }
+    
+    if (confirm(message)) {
+        // In real implementation, this would send notifications to procurement/procurement department
+        alert(`Sending alerts to procurement department...`);
+        // Example: fetch('/api/send-low-stock-alerts/', { method: 'POST' });
+    }
+}
+
+function generateRestockPlan() {
+    const items = {{ low_stock_items.count }};
+    if (items === 0) {
+        alert('No items require restocking');
+        return;
+    }
+    
+    if (confirm(`Generate restock plan for ${items} items?`)) {
+        // In real implementation, this would generate and download a restock plan
+        alert(`Generating restock plan document...`);
+        // Example: window.location.href = `/reports/restock-plan/?${new URLSearchParams(window.location.search)}`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add checkboxes to table rows for bulk selection
+    const table = document.querySelector('table');
+    if (table) {
+        // Add checkbox column to header
+        const headerRow = table.querySelector('thead tr');
+        if (headerRow) {
+            const th = document.createElement('th');
+            th.innerHTML = '<input type="checkbox" id="select-all">';
+            th.style.width = '40px';
+            headerRow.insertBefore(th, headerRow.firstChild);
+        }
+        
+        // Add checkboxes to each row
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const td = document.createElement('td');
+            td.innerHTML = '<input type="checkbox" name="selected_items" value="">';
+            row.insertBefore(td, row.firstChild);
+        });
+        
+        // Select all functionality
+        const selectAll = document.getElementById('select-all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('input[name="selected_items"]');
+                checkboxes.forEach(cb => cb.checked = this.checked);
+            });
+        }
+    }
+    
+    // Add urgency indicators based on stock levels
+    const quantityCells = document.querySelectorAll('.quantity-cell.text-danger, .quantity-cell.text-warning');
+    quantityCells.forEach(cell => {
+        const quantity = parseFloat(cell.textContent.trim());
+        if (quantity === 0) {
+            cell.innerHTML = '<i class="bi bi-x-circle" style="margin-right: 0.25rem;"></i>' + cell.innerHTML;
+        } else if (quantity < 5) {
+            cell.innerHTML = '<i class="bi bi-exclamation-triangle" style="margin-right: 0.25rem;"></i>' + cell.innerHTML;
+        }
+    });
+});
+</script>
 {% endblock %}

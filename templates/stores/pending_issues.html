@@ -1,36 +1,650 @@
-<!-- ============================================================================ -->
-<!-- 10. pending_issues.html -->
-<!-- ============================================================================ -->
 {% extends 'base.html' %}
 {% load humanize %}
 
 {% block title %}Pending Issues - Stores Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-warning {
+        background: var(--warning-color);
+        color: white;
+        border-color: var(--warning-color);
+    }
+
+    .btn-warning:hover {
+        background: #D97706;
+        border-color: #D97706;
+    }
+
+    .btn-sm {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn-sm:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    /* Summary Stats */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Alert Banner */
+    .alert-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-banner i {
+        font-size: 1.25rem;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        border-color: #A7F3D0;
+        color: #065F46;
+    }
+
+    .alert-info {
+        background: #EFF6FF;
+        border-color: #BFDBFE;
+        color: #1E40AF;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Pending Issue Highlighting */
+    .pending-issue-row {
+        background-color: #FEF3C7;
+    }
+
+    .pending-issue-row:hover {
+        background-color: #FDE68A;
+    }
+
+    .urgent-issue-row {
+        background-color: #FEE2E2;
+        border-left: 4px solid var(--danger-color);
+    }
+
+    .urgent-issue-row:hover {
+        background-color: #FECACA;
+    }
+
+    .old-issue-row {
+        background-color: #F1F5F9;
+        border-left: 4px solid var(--secondary-color);
+    }
+
+    .old-issue-row:hover {
+        background-color: #E2E8F0;
+    }
+
+    .issue-number {
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .issue-number:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .text-warning {
+        color: var(--warning-color);
+        font-weight: 600;
+    }
+
+    .text-danger {
+        color: var(--danger-color);
+        font-weight: 600;
+    }
+
+    .date-cell {
+        color: var(--secondary-color);
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .status-badge i {
+        font-size: 0.625rem;
+    }
+
+    .status-pending { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-urgent { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+    .status-processing { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .action-btn i {
+        font-size: 1rem;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .alert-banner {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Pending Stock Issues</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
-            <a href="#">Stores</a>
+            <a href="{% url 'store_pending_issues' %}">Stores</a>
             <i class="bi bi-chevron-right"></i>
             <span>Pending Issues</span>
         </div>
     </div>
     <div class="header-actions">
         <a href="{% url 'store_create_issue' %}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Create Issue
+            <i class="bi bi-plus-circle"></i>
+            Create Issue
+        </a>
+        <a href="{% url 'store_issue_history' %}" class="btn">
+            <i class="bi bi-clock-history"></i>
+            View History
         </a>
     </div>
 </div>
 
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.pending_issues }}</div>
+        <div class="summary-label">Pending Issues</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.urgent_issues }}</div>
+        <div class="summary-label">Urgent Issues</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.today_issues }}</div>
+        <div class="summary-label">Today's Issues</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.avg_processing_time }}h</div>
+        <div class="summary-label">Avg. Processing Time</div>
+    </div>
+</div>
+
+<!-- Alert Banner -->
+{% if pending_issues %}
+<div class="alert-banner alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <div>
+        <strong>{{ pending_issues.count }} pending stock issue requests</strong>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem;">
+            {% if stats.urgent_issues > 0 %}
+            {{ stats.urgent_issues }} urgent requests require immediate attention
+            {% else %}
+            All pending requests are within normal processing time
+            {% endif %}
+        </p>
+    </div>
+    <div style="margin-left: auto;">
+        {% if stats.urgent_issues > 0 %}
+        <button class="btn btn-sm btn-danger" onclick="notifySupervisor()">
+            <i class="bi bi-bell"></i>
+            Notify Supervisor
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="alert-banner alert-success">
+    <i class="bi bi-check-circle"></i>
+    <div>
+        <strong>No pending issues</strong>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem;">
+            All stock issue requests have been processed
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get" action="{% url 'store_pending_issues' %}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <select name="department" class="form-control">
+                    <option value="">All Departments</option>
+                    {% for department in departments %}
+                    <option value="{{ department.id }}" {% if request.GET.department == department.id|stringformat:"s" %}selected{% endif %}>
+                        {{ department.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Store</label>
+                <select name="store" class="form-control">
+                    <option value="">All Stores</option>
+                    {% for store in stores %}
+                    <option value="{{ store.id }}" {% if request.GET.store == store.id|stringformat:"s" %}selected{% endif %}>
+                        {{ store.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Priority</label>
+                <select name="priority" class="form-control">
+                    <option value="">All Priorities</option>
+                    <option value="URGENT" {% if request.GET.priority == 'URGENT' %}selected{% endif %}>Urgent</option>
+                    <option value="HIGH" {% if request.GET.priority == 'HIGH' %}selected{% endif %}>High</option>
+                    <option value="NORMAL" {% if request.GET.priority == 'NORMAL' %}selected{% endif %}>Normal</option>
+                    <option value="LOW" {% if request.GET.priority == 'LOW' %}selected{% endif %}>Low</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Days Pending</label>
+                <select name="days_pending" class="form-control">
+                    <option value="">Any</option>
+                    <option value="1" {% if request.GET.days_pending == '1' %}selected{% endif %}>1+ Days</option>
+                    <option value="3" {% if request.GET.days_pending == '3' %}selected{% endif %}>3+ Days</option>
+                    <option value="7" {% if request.GET.days_pending == '7' %}selected{% endif %}>7+ Days</option>
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <a href="{% url 'store_pending_issues' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Pending Issues Table -->
 <div class="table-card">
     <div class="table-header">
         <h2 class="table-title">
-            <i class="bi bi-clock-history"></i> Pending Stock Issue Requests ({{ pending_issues.count }})
+            <i class="bi bi-clock-history"></i>
+            Pending Stock Issue Requests ({{ pending_issues.count }})
         </h2>
     </div>
+
     {% if pending_issues %}
     <div class="table-responsive">
         <table>
@@ -42,26 +656,60 @@
                     <th>Requested By</th>
                     <th>Request Date</th>
                     <th>Items</th>
+                    <th>Priority</th>
                     <th>Purpose</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for issue in pending_issues %}
-                <tr>
-                    <td><a href="{% url 'store_process_issue' issue.id %}">{{ issue.issue_number }}</a></td>
+                {% with days_pending=issue.created_at|timesince:now %}
+                <tr class="{% if issue.priority == 'URGENT' %}urgent-issue-row{% elif issue.created_at|date:'Y-m-d' < seven_days_ago %}old-issue-row{% else %}pending-issue-row{% endif %}">
+                    <td>
+                        <a href="{% url 'store_process_issue' issue.id %}" class="issue-number">
+                            {{ issue.issue_number }}
+                            <i class="bi bi-arrow-up-right" style="font-size: 0.75rem; margin-left: 0.25rem;"></i>
+                        </a>
+                    </td>
                     <td>{{ issue.department.name }}</td>
                     <td>{{ issue.store.name }}</td>
                     <td>{{ issue.requested_by.get_full_name }}</td>
-                    <td>{{ issue.created_at|date:"M d, Y" }}</td>
-                    <td>{{ issue.items.count }} item{{ issue.items.count|pluralize }}</td>
-                    <td>{{ issue.purpose|truncatewords:8 }}</td>
+                    <td class="date-cell">{{ issue.created_at|date:"M d, Y" }}</td>
                     <td>
-                        <a href="{% url 'store_process_issue' issue.id %}" class="btn-sm btn-primary">
-                            <i class="bi bi-check-circle"></i> Process
+                        <span class="badge" style="background: #E0E7FF; color: #3730A3; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem;">
+                            {{ issue.items.count }} item{{ issue.items.count|pluralize }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ issue.priority|lower }}">
+                            {% if issue.priority == 'URGENT' %}<i class="bi bi-exclamation-triangle"></i>{% endif %}
+                            {% if issue.priority == 'HIGH' %}<i class="bi bi-exclamation-circle"></i>{% endif %}
+                            {% if issue.priority == 'NORMAL' %}<i class="bi bi-clock"></i>{% endif %}
+                            {% if issue.priority == 'LOW' %}<i class="bi bi-arrow-down-circle"></i>{% endif %}
+                            {{ issue.get_priority_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span title="{{ issue.purpose }}">
+                            {{ issue.purpose|truncatechars:40 }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'store_process_issue' issue.id %}" class="action-btn btn-sm btn-primary" title="Process Issue">
+                            <i class="bi bi-check-circle"></i>
+                            Process
                         </a>
+                        <a href="{% url 'issue_detail' issue.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if issue.priority == 'URGENT' %}
+                        <a href="#" class="action-btn btn-sm btn-warning" title="Escalate Issue">
+                            <i class="bi bi-arrow-up-circle"></i>
+                        </a>
+                        {% endif %}
                     </td>
                 </tr>
+                {% endwith %}
                 {% endfor %}
             </tbody>
         </table>
@@ -69,8 +717,161 @@
     {% else %}
     <div class="empty-state">
         <i class="bi bi-check-circle"></i>
-        <p>No pending stock issues</p>
+        <p>No pending stock issue requests</p>
+        <a href="{% url 'store_create_issue' %}" class="btn btn-sm" style="margin-top: 1rem;">
+            <i class="bi bi-plus-circle"></i>
+            Create New Issue
+        </a>
     </div>
     {% endif %}
 </div>
+
+<!-- Bulk Actions -->
+{% if pending_issues %}
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-lightning"></i>
+            Bulk Processing Actions
+        </h2>
+    </div>
+    <div style="padding: 1.5rem;">
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button class="btn btn-sm btn-primary" onclick="bulkProcess('NORMAL')">
+                <i class="bi bi-check-circle"></i>
+                Process Normal Priority
+            </button>
+            <button class="btn btn-sm btn-warning" onclick="bulkProcess('URGENT')">
+                <i class="bi bi-exclamation-triangle"></i>
+                Process Urgent Priority
+            </button>
+            <button class="btn btn-sm" onclick="exportPendingIssues()">
+                <i class="bi bi-download"></i>
+                Export to Excel
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="bulkReject()">
+                <i class="bi bi-x-circle"></i>
+                Bulk Reject
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function notifySupervisor() {
+    const urgentCount = {{ stats.urgent_issues|default:0 }};
+    if (urgentCount === 0) {
+        alert('No urgent issues to notify about');
+        return;
+    }
+    
+    if (confirm(`Notify supervisor about ${urgentCount} urgent stock issue requests?`)) {
+        // In real implementation, this would send a notification
+        alert(`Notifying supervisor about ${urgentCount} urgent requests...`);
+        // Example: fetch('/api/notify-supervisor/', { method: 'POST' });
+    }
+}
+
+function bulkProcess(priority) {
+    let message = 'Process all ';
+    if (priority === 'URGENT') {
+        message += 'URGENT priority issues?';
+    } else {
+        message += 'NORMAL priority issues?';
+    }
+    
+    if (confirm(message)) {
+        // In real implementation, this would process multiple issues at once
+        alert(`Processing ${priority} priority issues...`);
+        // Example: window.location.href = `/issues/bulk-process/?priority=${priority}`;
+    }
+}
+
+function bulkReject() {
+    if (confirm('Reject selected pending issues? This action cannot be undone.')) {
+        // In real implementation, this would reject multiple issues
+        alert('Rejecting selected issues...');
+        // Example: fetch('/issues/bulk-reject/', { method: 'POST', body: JSON.stringify({issue_ids: selectedIds}) });
+    }
+}
+
+function exportPendingIssues() {
+    const params = new URLSearchParams({
+        department: document.querySelector('select[name="department"]').value,
+        store: document.querySelector('select[name="store"]').value,
+        priority: document.querySelector('select[name="priority"]').value,
+        days_pending: document.querySelector('select[name="days_pending"]').value
+    });
+    
+    alert('Export pending issues report with parameters: ' + params.toString());
+    // Example: window.location.href = `/api/export/pending-issues/?${params.toString()}`;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add days pending indicator
+    const dateCells = document.querySelectorAll('.date-cell');
+    const today = new Date();
+    
+    dateCells.forEach(cell => {
+        const dateText = cell.textContent.trim();
+        const dateMatch = dateText.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{1,2}), (\d{4})/);
+        
+        if (dateMatch) {
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = monthNames.indexOf(dateMatch[1]);
+            const issueDate = new Date(dateMatch[3], monthIndex, dateMatch[2]);
+            const daysDiff = Math.floor((today - issueDate) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff > 7) {
+                const warningSpan = document.createElement('span');
+                warningSpan.className = 'text-danger';
+                warningSpan.style.fontSize = '0.75rem';
+                warningSpan.style.marginLeft = '0.5rem';
+                warningSpan.innerHTML = `<i class="bi bi-clock-history"></i> ${daysDiff}d`;
+                warningSpan.title = `${daysDiff} days pending`;
+                cell.appendChild(warningSpan);
+            } else if (daysDiff > 3) {
+                const warningSpan = document.createElement('span');
+                warningSpan.className = 'text-warning';
+                warningSpan.style.fontSize = '0.75rem';
+                warningSpan.style.marginLeft = '0.5rem';
+                warningSpan.innerHTML = `<i class="bi bi-clock"></i> ${daysDiff}d`;
+                warningSpan.title = `${daysDiff} days pending`;
+                cell.appendChild(warningSpan);
+            }
+        }
+    });
+    
+    // Add checkbox selection for bulk actions
+    const table = document.querySelector('table');
+    if (table) {
+        // Add checkbox column to header
+        const headerRow = table.querySelector('thead tr');
+        if (headerRow) {
+            const th = document.createElement('th');
+            th.innerHTML = '<input type="checkbox" id="select-all" style="transform: scale(0.8);">';
+            th.style.width = '40px';
+            headerRow.insertBefore(th, headerRow.firstChild);
+        }
+        
+        // Add checkboxes to each row
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach((row, index) => {
+            const td = document.createElement('td');
+            td.innerHTML = `<input type="checkbox" name="selected_issues" value="${index}" style="transform: scale(0.8);">`;
+            row.insertBefore(td, row.firstChild);
+        });
+        
+        // Select all functionality
+        const selectAll = document.getElementById('select-all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('input[name="selected_issues"]');
+                checkboxes.forEach(cb => cb.checked = this.checked);
+            });
+        }
+    }
+});
+</script>
 {% endblock %}

@@ -1,84 +1,535 @@
-<!-- ============================================================================ -->
-<!-- 22. movement_reports.html -->
-<!-- ============================================================================ -->
 {% extends 'base.html' %}
 {% load humanize %}
 
 {% block title %}Stock Movement Reports - Stores Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Summary Stats */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .date-time-cell {
+        color: var(--secondary-color);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.8125rem;
+    }
+
+    .quantity-cell {
+        font-weight: 600;
+        color: #1E293B;
+        text-align: right;
+    }
+
+    .balance-cell {
+        text-align: right;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .status-badge i {
+        font-size: 0.625rem;
+    }
+
+    .movement-receipt { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .movement-issue { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+    .movement-transfer { 
+        background: #E0E7FF; 
+        color: #3730A3; 
+        border-color: #C7D2FE;
+    }
+    .movement-adjustment { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .movement-return { 
+        background: #FCE7F3; 
+        color: #9D174D; 
+        border-color: #FBCFE8;
+    }
+
+    /* Movement Direction Indicators */
+    .movement-increase {
+        color: var(--success-color);
+        font-weight: 600;
+    }
+
+    .movement-increase::before {
+        content: "↑ ";
+    }
+
+    .movement-decrease {
+        color: var(--danger-color);
+        font-weight: 600;
+    }
+
+    .movement-decrease::before {
+        content: "↓ ";
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Print Styles */
+    @media print {
+        .page-header, .filter-card, .summary-grid, .header-actions {
+            display: none;
+        }
+        
+        .table-card {
+            border: none;
+            box-shadow: none;
+        }
+        
+        th, td {
+            padding: 0.5rem 0.75rem;
+        }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        table {
+            font-size: 0.8125rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-responsive {
+            border-radius: 0;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Stock Movement Reports</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
-            <a href="#">Stores</a>
+            <a href="{% url 'store_movement_reports' %}">Stores</a>
             <i class="bi bi-chevron-right"></i>
             <span>Movement Reports</span>
         </div>
     </div>
     <div class="header-actions">
         <button class="btn btn-primary" onclick="window.print()">
-            <i class="bi bi-printer"></i> Print Report
+            <i class="bi bi-printer"></i>
+            Print Report
         </button>
         <button class="btn" onclick="exportReport()">
-            <i class="bi bi-download"></i> Export to Excel
+            <i class="bi bi-download"></i>
+            Export to Excel
         </button>
     </div>
 </div>
 
+<!-- Filters -->
 <div class="filter-card">
-    <form method="get">
+    <form method="get" action="{% url 'store_movement_reports' %}">
         <div class="filter-grid">
             <div class="form-group">
-                <label>Date From</label>
-                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                <label class="form-label">Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from|default:'' }}">
             </div>
             <div class="form-group">
-                <label>Date To</label>
-                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                <label class="form-label">Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to|default:'' }}">
             </div>
             <div class="form-group">
-                <label>Movement Type</label>
+                <label class="form-label">Movement Type</label>
                 <select name="movement_type" class="form-control">
                     <option value="">All Types</option>
-                    <option value="RECEIPT">Receipt</option>
-                    <option value="ISSUE">Issue</option>
-                    <option value="TRANSFER">Transfer</option>
-                    <option value="ADJUSTMENT">Adjustment</option>
-                    <option value="RETURN">Return</option>
+                    <option value="RECEIPT" {% if request.GET.movement_type == 'RECEIPT' %}selected{% endif %}>Receipt</option>
+                    <option value="ISSUE" {% if request.GET.movement_type == 'ISSUE' %}selected{% endif %}>Issue</option>
+                    <option value="TRANSFER" {% if request.GET.movement_type == 'TRANSFER' %}selected{% endif %}>Transfer</option>
+                    <option value="ADJUSTMENT" {% if request.GET.movement_type == 'ADJUSTMENT' %}selected{% endif %}>Adjustment</option>
+                    <option value="RETURN" {% if request.GET.movement_type == 'RETURN' %}selected{% endif %}>Return</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Store</label>
+                <label class="form-label">Store</label>
                 <select name="store" class="form-control">
                     <option value="">All Stores</option>
-                    <!-- Add stores -->
+                    {% if stores %}
+                    {% for store in stores %}
+                    <option value="{{ store.id }}" {% if request.GET.store == store.id|stringformat:"s" %}selected{% endif %}>
+                        {{ store.name }}
+                    </option>
+                    {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Item</label>
+                <select name="item" class="form-control">
+                    <option value="">All Items</option>
+                    {% if items %}
+                    {% for item in items %}
+                    <option value="{{ item.id }}" {% if request.GET.item == item.id|stringformat:"s" %}selected{% endif %}>
+                        {{ item.code }} - {{ item.name }}
+                    </option>
+                    {% endfor %}
+                    {% endif %}
                 </select>
             </div>
         </div>
         <div class="filter-actions">
-            <button type="submit" class="btn btn-primary">Generate Report</button>
+            <a href="{% url 'store_movement_reports' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Generate Report
+            </button>
         </div>
     </form>
 </div>
 
+<!-- Summary Stats -->
+{% if summary %}
 <div class="summary-grid">
     {% for item in summary %}
     <div class="summary-card">
         <div class="summary-value">{{ item.total_movements }}</div>
-        <div class="summary-label">{{ item.movement_type }} ({{ item.total_quantity }})</div>
+        <div class="summary-label">
+            {{ item.movement_type|title }}
+            <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.25rem;">
+                Total Qty: {{ item.total_quantity }}
+            </div>
+        </div>
     </div>
     {% endfor %}
 </div>
+{% endif %}
 
+<!-- Movements Table -->
 <div class="table-card">
     <div class="table-header">
         <h2 class="table-title">
-            <i class="bi bi-arrow-left-right"></i> Stock Movements
+            <i class="bi bi-arrow-left-right"></i>
+            Stock Movements ({{ movements.count }})
         </h2>
     </div>
+
     {% if movements %}
     <div class="table-responsive">
         <table>
@@ -98,16 +549,33 @@
             <tbody>
                 {% for movement in movements %}
                 <tr>
-                    <td>{{ movement.movement_date|date:"M d, Y H:i" }}</td>
+                    <td class="date-time-cell">{{ movement.movement_date|date:"M d, Y H:i" }}</td>
                     <td>
-                        <span class="badge">{{ movement.get_movement_type_display }}</span>
+                        <span class="status-badge movement-{{ movement.movement_type|lower }}">
+                            {% if movement.movement_type == 'RECEIPT' %}<i class="bi bi-box-arrow-in-down"></i>{% endif %}
+                            {% if movement.movement_type == 'ISSUE' %}<i class="bi bi-box-arrow-up"></i>{% endif %}
+                            {% if movement.movement_type == 'TRANSFER' %}<i class="bi bi-arrow-left-right"></i>{% endif %}
+                            {% if movement.movement_type == 'ADJUSTMENT' %}<i class="bi bi-sliders"></i>{% endif %}
+                            {% if movement.movement_type == 'RETURN' %}<i class="bi bi-arrow-return-left"></i>{% endif %}
+                            {{ movement.get_movement_type_display }}
+                        </span>
                     </td>
-                    <td>{{ movement.reference_number }}</td>
+                    <td>
+                        {% if movement.reference_number %}
+                        <span style="font-family: ui-monospace; font-size: 0.8125rem;">
+                            {{ movement.reference_number }}
+                        </span>
+                        {% else %}
+                        <span style="color: var(--secondary-color);">—</span>
+                        {% endif %}
+                    </td>
                     <td>{{ movement.stock_item.item.name }}</td>
                     <td>{{ movement.stock_item.store.name }}</td>
-                    <td>{{ movement.quantity }}</td>
-                    <td>{{ movement.balance_before }}</td>
-                    <td>{{ movement.balance_after }}</td>
+                    <td class="quantity-cell {% if movement.quantity > 0 %}movement-increase{% elif movement.quantity < 0 %}movement-decrease{% endif %}">
+                        {{ movement.quantity }}
+                    </td>
+                    <td class="balance-cell">{{ movement.balance_before }}</td>
+                    <td class="balance-cell">{{ movement.balance_after }}</td>
                     <td>{{ movement.performed_by.get_full_name }}</td>
                 </tr>
                 {% endfor %}
@@ -121,4 +589,55 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+function exportReport() {
+    // This function would handle exporting to Excel
+    const params = new URLSearchParams({
+        date_from: document.querySelector('input[name="date_from"]').value,
+        date_to: document.querySelector('input[name="date_to"]').value,
+        movement_type: document.querySelector('select[name="movement_type"]').value,
+        store: document.querySelector('select[name="store"]').value,
+        item: document.querySelector('select[name="item"]').value
+    });
+    
+    // In a real implementation, you would make an AJAX request
+    alert('Export to Excel functionality would be implemented here with parameters: ' + params.toString());
+    // Example: window.location.href = `/api/export/movements/?${params.toString()}`;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default date range (last 30 days)
+    const dateFromInput = document.querySelector('input[name="date_from"]');
+    const dateToInput = document.querySelector('input[name="date_to"]');
+    
+    if (!dateFromInput.value) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        dateFromInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+    }
+    
+    if (!dateToInput.value) {
+        const today = new Date();
+        dateToInput.value = today.toISOString().split('T')[0];
+    }
+    
+    // Add movement type icons to summary cards
+    const summaryCards = document.querySelectorAll('.summary-card .summary-label');
+    summaryCards.forEach(card => {
+        const movementType = card.textContent.split(' ')[0].toLowerCase();
+        const iconMap = {
+            'receipt': 'bi-box-arrow-in-down',
+            'issue': 'bi-box-arrow-up',
+            'transfer': 'bi-arrow-left-right',
+            'adjustment': 'bi-sliders',
+            'return': 'bi-arrow-return-left'
+        };
+        
+        if (iconMap[movementType]) {
+            card.innerHTML = `<i class="bi ${iconMap[movementType]}"></i> ` + card.innerHTML;
+        }
+    });
+});
+</script>
 {% endblock %}

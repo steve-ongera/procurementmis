@@ -1,33 +1,538 @@
-<!-- ============================================================================ -->
-<!-- 12. process_issue.html -->
-<!-- ============================================================================ -->
 {% extends 'base.html' %}
 {% load humanize %}
 
 {% block title %}Process Issue {{ issue.issue_number }} - Stores Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-warning {
+        background: var(--warning-color);
+        color: white;
+        border-color: var(--warning-color);
+    }
+
+    .btn-warning:hover {
+        background: #D97706;
+        border-color: #D97706;
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+    }
+
+    /* Detail Grid */
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+
+    .detail-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .detail-card h3 i {
+        color: var(--secondary-color);
+    }
+
+    .detail-card dl {
+        margin: 0;
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .detail-card dt {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .detail-card dd {
+        font-size: 0.875rem;
+        color: #334155;
+        margin: 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #F1F5F9;
+    }
+
+    .detail-card dd:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-card h3 i {
+        color: var(--secondary-color);
+    }
+
+    /* Table Styles */
+    .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Form Controls */
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: var(--card-bg);
+        width: 100%;
+        max-width: 150px;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-control[type="number"] {
+        text-align: right;
+    }
+
+    /* Stock Availability Indicators */
+    .sufficient-stock {
+        color: var(--success-color);
+        font-weight: 600;
+    }
+
+    .insufficient-stock {
+        color: var(--danger-color);
+        font-weight: 600;
+    }
+
+    .partial-stock {
+        color: var(--warning-color);
+        font-weight: 600;
+    }
+
+    .quantity-cell {
+        text-align: right;
+        font-weight: 600;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .total-cost {
+        font-weight: 700;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        text-align: right;
+    }
+
+    /* Stock Status Badges */
+    .stock-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .stock-available {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .stock-low {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .stock-out {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .action-btn i {
+        font-size: 1rem;
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+        margin-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Alert Messages */
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-danger {
+        background: #FEE2E2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    .alert-info {
+        background: #EFF6FF;
+        border-color: #BFDBFE;
+        color: #1E40AF;
+    }
+
+    /* Summary Card */
+    .summary-card {
+        background: var(--primary-light);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #BFDBFE;
+    }
+
+    .summary-row:last-child {
+        border-bottom: none;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: #475569;
+        font-weight: 500;
+    }
+
+    .summary-value {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .form-control {
+            max-width: 100px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-card {
+            padding: 1rem;
+        }
+        
+        .table-responsive {
+            border-radius: 0;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Process Stock Issue</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
-            <a href="#">Stores</a>
+            <a href="{% url 'store_pending_issues' %}">Stores</a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'store_pending_issues' %}">Pending Issues</a>
             <i class="bi bi-chevron-right"></i>
             <span>{{ issue.issue_number }}</span>
         </div>
     </div>
+    <div class="header-actions">
+        <a href="{% url 'store_pending_issues' %}" class="btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to Pending
+        </a>
+        <a href="{% url 'issue_detail' issue.id %}" class="btn">
+            <i class="bi bi-eye"></i>
+            View Details
+        </a>
+    </div>
 </div>
 
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Stock Availability Check -->
+{% if insufficient_stock_items %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <div>
+        <strong>Insufficient Stock Available</strong>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem;">
+            {{ insufficient_stock_items|length }} item{{ insufficient_stock_items|pluralize }} have insufficient stock to fulfill the full requested quantity
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Issue Information -->
 <div class="detail-grid">
     <div class="detail-card">
-        <h3>Issue Information</h3>
+        <h3>
+            <i class="bi bi-info-circle"></i>
+            Issue Information
+        </h3>
         <dl>
             <dt>Issue Number</dt>
-            <dd>{{ issue.issue_number }}</dd>
+            <dd>
+                <strong>{{ issue.issue_number }}</strong>
+                <span style="font-size: 0.75rem; color: var(--secondary-color); margin-left: 0.5rem;">
+                    {% if issue.priority == 'URGENT' %}
+                    <i class="bi bi-exclamation-triangle text-danger"></i> URGENT
+                    {% elif issue.priority == 'HIGH' %}
+                    <i class="bi bi-exclamation-circle text-warning"></i> HIGH
+                    {% endif %}
+                </span>
+            </dd>
             
             <dt>Department</dt>
             <dd>{{ issue.department.name }}</dd>
@@ -36,7 +541,12 @@
             <dd>{{ issue.store.name }}</dd>
             
             <dt>Requested By</dt>
-            <dd>{{ issue.requested_by.get_full_name }}</dd>
+            <dd>
+                {{ issue.requested_by.get_full_name }}
+                <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.125rem;">
+                    {{ issue.requested_by.department.name }}
+                </div>
+            </dd>
             
             <dt>Request Date</dt>
             <dd>{{ issue.created_at|date:"M d, Y H:i" }}</dd>
@@ -48,13 +558,61 @@
             <dt>Notes</dt>
             <dd>{{ issue.notes }}</dd>
             {% endif %}
+            
+            <dt>Status</dt>
+            <dd>
+                <span class="badge" style="background: #FEF3C7; color: #92400E; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem;">
+                    <i class="bi bi-clock"></i> PENDING
+                </span>
+            </dd>
+        </dl>
+    </div>
+    
+    <div class="detail-card">
+        <h3>
+            <i class="bi bi-box-seam"></i>
+            Quick Summary
+        </h3>
+        <dl>
+            <dt>Total Items</dt>
+            <dd>{{ issue.items.count }} item{{ issue.items.count|pluralize }}</dd>
+            
+            <dt>Total Requested Quantity</dt>
+            <dd>{{ total_requested_qty|floatformat:2 }}</dd>
+            
+            <dt>Items with Sufficient Stock</dt>
+            <dd>
+                <span class="{% if sufficient_stock_count == issue.items.count %}sufficient-stock{% elif sufficient_stock_count > 0 %}partial-stock{% else %}insufficient-stock{% endif %}">
+                    {{ sufficient_stock_count }}/{{ issue.items.count }}
+                </span>
+            </dd>
+            
+            <dt>Estimated Total Value</dt>
+            <dd style="font-family: ui-monospace; font-weight: 600;">
+                KES {{ estimated_total_value|floatformat:2|intcomma }}
+            </dd>
+            
+            <dt>Issue Type</dt>
+            <dd>
+                {% if issue.issue_type == 'REGULAR' %}
+                <i class="bi bi-box-arrow-up" style="color: var(--primary-color); margin-right: 0.25rem;"></i> Regular Issue
+                {% elif issue.issue_type == 'EMERGENCY' %}
+                <i class="bi bi-exclamation-triangle" style="color: var(--danger-color); margin-right: 0.25rem;"></i> Emergency Issue
+                {% elif issue.issue_type == 'CONSUMPTION' %}
+                <i class="bi bi-arrow-repeat" style="color: var(--success-color); margin-right: 0.25rem;"></i> Consumption
+                {% endif %}
+            </dd>
         </dl>
     </div>
 </div>
 
+<!-- Items to Issue Form -->
 <div class="form-card">
-    <h3>Items to Issue</h3>
-    <form method="post">
+    <h3>
+        <i class="bi bi-clipboard-check"></i>
+        Items to Issue
+    </h3>
+    <form method="post" action="{% url 'store_process_issue' issue.id %}">
         {% csrf_token %}
         
         <div class="table-responsive">
@@ -64,6 +622,7 @@
                         <th>Item</th>
                         <th>Requested Qty</th>
                         <th>Available Stock</th>
+                        <th>Stock Status</th>
                         <th>Qty to Issue</th>
                         <th>Unit Cost</th>
                         <th>Total Cost</th>
@@ -71,34 +630,213 @@
                 </thead>
                 <tbody>
                     {% for item in issue.items.all %}
-                    <tr>
-                        <td>{{ item.stock_item.item.name }}</td>
-                        <td>{{ item.quantity_requested }}</td>
-                        <td>{{ item.stock_item.quantity_on_hand }}</td>
+                    {% with available=item.stock_item.quantity_on_hand requested=item.quantity_requested %}
+                    {% with can_issue=available|min:requested %}
+                    <tr class="{% if available >= requested %}sufficient-row{% elif available > 0 %}partial-row{% else %}insufficient-row{% endif %}">
+                        <td>
+                            <strong>{{ item.stock_item.item.name }}</strong>
+                            <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.125rem;">
+                                {{ item.stock_item.item.code }}
+                                {% if item.stock_item.bin_location %}
+                                · Bin: {{ item.stock_item.bin_location }}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="quantity-cell">{{ requested|floatformat:2 }}</td>
+                        <td class="quantity-cell {% if available >= requested %}sufficient-stock{% elif available > 0 %}partial-stock{% else %}insufficient-stock{% endif %}">
+                            {{ available|floatformat:2 }}
+                        </td>
+                        <td>
+                            {% if available >= requested %}
+                            <span class="stock-status stock-available">
+                                <i class="bi bi-check-circle"></i> Available
+                            </span>
+                            {% elif available > 0 %}
+                            <span class="stock-status stock-low">
+                                <i class="bi bi-exclamation-circle"></i> Partial
+                            </span>
+                            {% else %}
+                            <span class="stock-status stock-out">
+                                <i class="bi bi-x-circle"></i> Out of Stock
+                            </span>
+                            {% endif %}
+                        </td>
                         <td>
                             <input type="number" 
                                    name="qty_issue_{{ item.id }}" 
-                                   class="form-control" 
+                                   class="form-control quantity-input" 
+                                   data-unit-cost="{{ item.stock_item.average_unit_cost }}"
+                                   data-item-id="{{ item.id }}"
                                    step="0.01" 
                                    min="0" 
-                                   max="{{ item.stock_item.quantity_on_hand }}"
-                                   value="{{ item.quantity_requested }}"
-                                   {% if item.quantity_requested > item.stock_item.quantity_on_hand %}
-                                   value="{{ item.stock_item.quantity_on_hand }}"
-                                   {% endif %}>
+                                   max="{{ can_issue|floatformat:2 }}"
+                                   value="{{ can_issue|floatformat:2 }}"
+                                   required>
+                            <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.25rem;">
+                                Max: {{ can_issue|floatformat:2 }}
+                            </div>
                         </td>
-                        <td>KES {{ item.stock_item.average_unit_cost|floatformat:2 }}</td>
-                        <td class="total-cost">KES 0.00</td>
+                        <td class="quantity-cell">KES {{ item.stock_item.average_unit_cost|floatformat:2 }}</td>
+                        <td class="total-cost" id="total-cost-{{ item.id }}">KES 0.00</td>
                     </tr>
+                    {% endwith %}
+                    {% endwith %}
                     {% endfor %}
                 </tbody>
+                <tfoot>
+                    <tr style="background-color: var(--table-header);">
+                        <td colspan="6" style="text-align: right; font-weight: 600; font-size: 0.875rem;">
+                            Total Issue Value:
+                        </td>
+                        <td class="total-cost" id="grand-total" style="font-size: 1rem; font-weight: 700;">
+                            KES 0.00
+                        </td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
         
+        <div class="form-group" style="margin-top: 1.5rem;">
+            <label class="form-label">Issue Notes</label>
+            <textarea name="issue_notes" class="form-control" rows="3" placeholder="Add any notes about this stock issue (optional)"></textarea>
+        </div>
+        
         <div class="form-actions">
-            <a href="{% url 'store_pending_issues' %}" class="btn">Cancel</a>
-            <button type="submit" class="btn btn-primary">Issue Stock</button>
+            <button type="button" class="btn btn-danger" onclick="rejectIssue()">
+                <i class="bi bi-x-circle"></i>
+                Reject Issue
+            </button>
+            <button type="button" class="btn btn-warning" onclick="partialIssue()">
+                <i class="bi bi-exclamation-circle"></i>
+                Issue Partial
+            </button>
+            <a href="{% url 'store_pending_issues' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Cancel
+            </a>
+            <button type="submit" name="action" value="issue_complete" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i>
+                Complete Issue
+            </button>
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate totals for each item and grand total
+    function calculateTotals() {
+        let grandTotal = 0;
+        
+        document.querySelectorAll('.quantity-input').forEach(input => {
+            const itemId = input.getAttribute('data-item-id');
+            const unitCost = parseFloat(input.getAttribute('data-unit-cost')) || 0;
+            const quantity = parseFloat(input.value) || 0;
+            const totalCost = quantity * unitCost;
+            
+            // Update item total
+            const totalCell = document.getElementById(`total-cost-${itemId}`);
+            if (totalCell) {
+                totalCell.textContent = 'KES ' + totalCost.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+            
+            grandTotal += totalCost;
+        });
+        
+        // Update grand total
+        const grandTotalCell = document.getElementById('grand-total');
+        if (grandTotalCell) {
+            grandTotalCell.textContent = 'KES ' + grandTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+    }
+    
+    // Initialize totals
+    calculateTotals();
+    
+    // Recalculate on quantity change
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('input', calculateTotals);
+        
+        // Add visual feedback for max quantity
+        input.addEventListener('change', function() {
+            const max = parseFloat(this.max) || 0;
+            const value = parseFloat(this.value) || 0;
+            
+            if (value > max) {
+                this.value = max;
+                this.style.borderColor = 'var(--danger-color)';
+                setTimeout(() => this.style.borderColor = '', 1000);
+                calculateTotals();
+            }
+        });
+    });
+    
+    // Auto-fill partial issue button
+    window.partialIssue = function() {
+        document.querySelectorAll('.quantity-input').forEach(input => {
+            const max = parseFloat(input.max) || 0;
+            input.value = max;
+        });
+        calculateTotals();
+        
+        // Show confirmation
+        if (confirm('Auto-fill with maximum available quantities for partial issue?')) {
+            document.querySelector('button[name="action"][value="issue_complete"]').click();
+        }
+    };
+    
+    // Reject issue button
+    window.rejectIssue = function() {
+        if (confirm('Reject this stock issue request? This action cannot be undone.')) {
+            // In real implementation, this would submit a rejection form
+            const reason = prompt('Please enter reason for rejection:');
+            if (reason !== null) {
+                // Create hidden form for rejection
+                const form = document.createElement('form');
+                form.method = 'post';
+                form.action = "{% url 'store_process_issue' issue.id %}";
+                
+                const csrf = document.createElement('input');
+                csrf.type = 'hidden';
+                csrf.name = 'csrfmiddlewaretoken';
+                csrf.value = '{{ csrf_token }}';
+                form.appendChild(csrf);
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'reject';
+                form.appendChild(actionInput);
+                
+                const reasonInput = document.createElement('input');
+                reasonInput.type = 'hidden';
+                reasonInput.name = 'rejection_reason';
+                reasonInput.value = reason;
+                form.appendChild(reasonInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    };
+    
+    // Highlight insufficient stock items
+    document.querySelectorAll('.insufficient-row').forEach(row => {
+        row.style.backgroundColor = '#FEF2F2';
+        const qtyInput = row.querySelector('.quantity-input');
+        if (qtyInput) {
+            qtyInput.style.borderColor = 'var(--danger-color)';
+        }
+    });
+    
+    // Highlight partial stock items
+    document.querySelectorAll('.partial-row').forEach(row => {
+        row.style.backgroundColor = '#FEF3C7';
+        const qtyInput = row.querySelector('.quantity-input');
+        if (qtyInput) {
+            qtyInput.style.borderColor = 'var(--warning-color)';
+        }
+    });
+});
+</script>
 {% endblock %}

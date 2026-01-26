@@ -1,92 +1,775 @@
-<!-- ============================================================================ -->
-<!-- 16. stock_transfers.html -->
-<!-- ============================================================================ -->
 {% extends 'base.html' %}
 {% load humanize %}
 
 {% block title %}Stock Transfers - Stores Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.25rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-card h3 i {
+        color: var(--secondary-color);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .required::after {
+        content: "*";
+        color: var(--danger-color);
+        margin-left: 0.25rem;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: var(--card-bg);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-control[type="number"] {
+        text-align: right;
+    }
+
+    .form-control[readonly] {
+        background-color: var(--hover-bg);
+        color: var(--secondary-color);
+        cursor: not-allowed;
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    /* Form Help Text */
+    .form-help {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-top: 0.25rem;
+    }
+
+    /* Form Validation */
+    .error {
+        color: var(--danger-color);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    .form-control.error-field {
+        border-color: var(--danger-color);
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+        margin-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .status-badge i {
+        font-size: 0.625rem;
+    }
+
+    .status-pending { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-completed { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-cancelled { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+
+    /* Transfer Direction */
+    .transfer-from {
+        color: var(--danger-color);
+        font-weight: 500;
+    }
+
+    .transfer-to {
+        color: var(--success-color);
+        font-weight: 500;
+    }
+
+    .transfer-from::before {
+        content: "↓ ";
+    }
+
+    .transfer-to::before {
+        content: "↑ ";
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Alert Messages */
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        border-color: #A7F3D0;
+        color: #065F46;
+    }
+
+    .alert-danger {
+        background: #FEE2E2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-card {
+            padding: 1.25rem;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-card {
+            padding: 1rem;
+        }
+        
+        .table-responsive {
+            border-radius: 0;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Stock Transfers Between Stores</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
-            <a href="#">Stores</a>
+            <a href="{% url 'store_stock_transfers' %}">Stores</a>
             <i class="bi bi-chevron-right"></i>
             <span>Stock Transfers</span>
         </div>
     </div>
+    <div class="header-actions">
+        <a href="#" class="btn" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise"></i>
+            Refresh
+        </a>
+    </div>
 </div>
 
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Transfer Form -->
 <div class="form-card">
-    <h3>Create Stock Transfer</h3>
-    <form method="post">
+    <h3>
+        <i class="bi bi-plus-circle"></i>
+        Create Stock Transfer
+    </h3>
+    <form method="post" action="{% url 'store_stock_transfers' %}">
         {% csrf_token %}
         
         <div class="form-row">
             <div class="form-group">
-                <label>From Store *</label>
-                <select name="from_store" id="from_store" class="form-control" required>
+                <label class="form-label required">From Store</label>
+                <select name="from_store" id="from_store" class="form-control {% if form.errors.from_store %}error-field{% endif %}" required>
                     <option value="">Select Source Store</option>
                     {% for store in stores %}
-                    <option value="{{ store.id }}">{{ store.name }}</option>
+                    <option value="{{ store.id }}" {% if form.from_store.value == store.id|stringformat:"s" %}selected{% endif %}>
+                        {{ store.name }}
+                    </option>
                     {% endfor %}
                 </select>
+                {% if form.errors.from_store %}
+                <div class="error">{{ form.errors.from_store.0 }}</div>
+                {% endif %}
+                <div class="form-help">Select the store where items are moving from</div>
             </div>
             
             <div class="form-group">
-                <label>To Store *</label>
-                <select name="to_store" class="form-control" required>
+                <label class="form-label required">To Store</label>
+                <select name="to_store" id="to_store" class="form-control {% if form.errors.to_store %}error-field{% endif %}" required>
                     <option value="">Select Destination Store</option>
                     {% for store in stores %}
-                    <option value="{{ store.id }}">{{ store.name }}</option>
+                    <option value="{{ store.id }}" {% if form.to_store.value == store.id|stringformat:"s" %}selected{% endif %}>
+                        {{ store.name }}
+                    </option>
                     {% endfor %}
                 </select>
+                {% if form.errors.to_store %}
+                <div class="error">{{ form.errors.to_store.0 }}</div>
+                {% endif %}
+                <div class="form-help">Select the store where items are moving to</div>
             </div>
         </div>
         
         <div class="form-group">
-            <label>Stock Item *</label>
-            <select name="stock_item" class="form-control" required>
+            <label class="form-label required">Stock Item</label>
+            <select name="stock_item" id="stock_item" class="form-control {% if form.errors.stock_item %}error-field{% endif %}" required>
                 <option value="">Select Item</option>
-                <!-- Will be populated based on from_store selection -->
+                {% if stock_items %}
+                {% for item in stock_items %}
+                <option value="{{ item.id }}" {% if form.stock_item.value == item.id|stringformat:"s" %}selected{% endif %} data-quantity="{{ item.quantity_on_hand }}">
+                    {{ item.item.code }} - {{ item.item.name }} (Available: {{ item.quantity_on_hand }})
+                </option>
+                {% endfor %}
+                {% endif %}
             </select>
+            {% if form.errors.stock_item %}
+            <div class="error">{{ form.errors.stock_item.0 }}</div>
+            {% endif %}
+            <div class="form-help">Select the item to transfer (only items available in source store are shown)</div>
         </div>
         
         <div class="form-row">
             <div class="form-group">
-                <label>Quantity to Transfer *</label>
-                <input type="number" name="quantity" class="form-control" step="0.01" min="0.01" required>
+                <label class="form-label required">Quantity to Transfer</label>
+                <input type="number" name="quantity" id="quantity" class="form-control {% if form.errors.quantity %}error-field{% endif %}" 
+                       step="0.01" min="0.01" value="{{ form.quantity.value|default:'' }}" required>
+                {% if form.errors.quantity %}
+                <div class="error">{{ form.errors.quantity.0 }}</div>
+                {% endif %}
+                <div class="form-help">Enter the quantity to transfer</div>
             </div>
             
             <div class="form-group">
-                <label>Available Quantity</label>
-                <input type="text" class="form-control" id="available_qty" readonly>
+                <label class="form-label">Available Quantity</label>
+                <input type="text" class="form-control" id="available_qty" readonly value="Select an item to see available quantity">
+                <div class="form-help">Available quantity in source store</div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Transfer Date</label>
+                <input type="date" name="transfer_date" class="form-control {% if form.errors.transfer_date %}error-field{% endif %}" 
+                       value="{{ form.transfer_date.value|default:''|date:'Y-m-d' }}">
+                {% if form.errors.transfer_date %}
+                <div class="error">{{ form.errors.transfer_date.0 }}</div>
+                {% endif %}
+                <div class="form-help">Date of transfer (defaults to today)</div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Priority</label>
+                <select name="priority" class="form-control {% if form.errors.priority %}error-field{% endif %}">
+                    <option value="NORMAL" {% if form.priority.value == 'NORMAL' %}selected{% endif %}>Normal</option>
+                    <option value="URGENT" {% if form.priority.value == 'URGENT' %}selected{% endif %}>Urgent</option>
+                    <option value="LOW" {% if form.priority.value == 'LOW' %}selected{% endif %}>Low</option>
+                </select>
+                {% if form.errors.priority %}
+                <div class="error">{{ form.errors.priority.0 }}</div>
+                {% endif %}
+                <div class="form-help">Priority level for this transfer</div>
             </div>
         </div>
         
         <div class="form-group">
-            <label>Transfer Reason</label>
-            <textarea name="reason" class="form-control" rows="3"></textarea>
+            <label class="form-label">Transfer Reason</label>
+            <textarea name="reason" class="form-control {% if form.errors.reason %}error-field{% endif %}" 
+                      rows="3" placeholder="Enter reason for the transfer (e.g., stock balancing, department request, emergency need)">{{ form.reason.value|default:'' }}</textarea>
+            {% if form.errors.reason %}
+            <div class="error">{{ form.errors.reason.0 }}</div>
+            {% endif %}
+            <div class="form-help">Please provide a reason for this stock transfer</div>
         </div>
         
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Transfer Stock</button>
+            <button type="reset" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-arrow-left-right"></i>
+                Transfer Stock
+            </button>
         </div>
     </form>
 </div>
 
+<!-- Recent Transfers Table -->
 <div class="table-card">
     <div class="table-header">
         <h2 class="table-title">
-            <i class="bi bi-arrow-left-right"></i> Recent Transfers
+            <i class="bi bi-clock-history"></i>
+            Recent Transfers
         </h2>
     </div>
+
+    {% if transfers %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Transfer ID</th>
+                    <th>Item</th>
+                    <th>From → To</th>
+                    <th>Quantity</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transfer in transfers %}
+                <tr>
+                    <td>
+                        <strong style="font-family: ui-monospace; font-size: 0.875rem;">
+                            {{ transfer.transfer_number|default:"TR-"|add:transfer.id|stringformat:"06d" }}
+                        </strong>
+                    </td>
+                    <td>{{ transfer.stock_item.item.name }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span class="transfer-from" title="Source Store">{{ transfer.from_store.name }}</span>
+                            <i class="bi bi-arrow-right" style="color: var(--secondary-color); font-size: 0.75rem;"></i>
+                            <span class="transfer-to" title="Destination Store">{{ transfer.to_store.name }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="quantity-cell" style="font-weight: 600; color: #1E293B;">
+                            {{ transfer.quantity }}
+                        </span>
+                    </td>
+                    <td class="date-cell">{{ transfer.transfer_date|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="status-badge status-{{ transfer.status|lower }}">
+                            {% if transfer.status == 'PENDING' %}<i class="bi bi-clock"></i>{% endif %}
+                            {% if transfer.status == 'COMPLETED' %}<i class="bi bi-check-circle"></i>{% endif %}
+                            {% if transfer.status == 'CANCELLED' %}<i class="bi bi-x-circle"></i>{% endif %}
+                            {{ transfer.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="#" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if transfer.status == 'PENDING' %}
+                        <a href="#" class="action-btn" title="Complete Transfer">
+                            <i class="bi bi-check-circle"></i>
+                        </a>
+                        <a href="#" class="action-btn" title="Cancel Transfer">
+                            <i class="bi bi-x-circle"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
     <div class="empty-state">
         <i class="bi bi-arrow-left-right"></i>
         <p>No transfers recorded yet</p>
+        <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--secondary-color);">
+            Create your first stock transfer above
+        </p>
     </div>
+    {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fromStoreSelect = document.getElementById('from_store');
+    const toStoreSelect = document.getElementById('to_store');
+    const stockItemSelect = document.getElementById('stock_item');
+    const quantityInput = document.getElementById('quantity');
+    const availableQtyInput = document.getElementById('available_qty');
+    
+    // Filter stock items based on selected from store
+    function filterStockItems() {
+        const fromStoreId = fromStoreSelect.value;
+        const toStoreId = toStoreSelect.value;
+        
+        if (fromStoreId && toStoreId && fromStoreId === toStoreId) {
+            alert('Source and destination stores cannot be the same');
+            toStoreSelect.value = '';
+            return;
+        }
+        
+        if (fromStoreId) {
+            // In a real implementation, this would be an AJAX call
+            // For now, we'll show all items and filter client-side if data is available
+            if (stockItemSelect.options.length > 1) {
+                const items = Array.from(stockItemSelect.options).slice(1);
+                items.forEach(option => {
+                    // Show all items for demo purposes
+                    // In real app, this would filter by store ID
+                    option.style.display = 'block';
+                });
+            }
+        } else {
+            stockItemSelect.innerHTML = '<option value="">Select Item</option>';
+            availableQtyInput.value = 'Select an item to see available quantity';
+        }
+    }
+    
+    // Update available quantity when item is selected
+    function updateAvailableQuantity() {
+        const selectedOption = stockItemSelect.options[stockItemSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            const availableQty = selectedOption.getAttribute('data-quantity') || '0';
+            availableQtyInput.value = availableQty;
+            
+            // Set max attribute on quantity input
+            quantityInput.max = availableQty;
+            quantityInput.placeholder = `Max: ${availableQty}`;
+            
+            // Add visual feedback
+            if (parseFloat(availableQty) > 0) {
+                availableQtyInput.style.borderColor = 'var(--success-color)';
+                availableQtyInput.style.color = 'var(--success-color)';
+            } else {
+                availableQtyInput.style.borderColor = 'var(--danger-color)';
+                availableQtyInput.style.color = 'var(--danger-color)';
+            }
+        } else {
+            availableQtyInput.value = 'Select an item to see available quantity';
+            availableQtyInput.style.borderColor = '';
+            availableQtyInput.style.color = '';
+            quantityInput.max = '';
+            quantityInput.placeholder = '';
+        }
+    }
+    
+    // Validate quantity
+    function validateQuantity() {
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const availableQty = parseFloat(availableQtyInput.value) || 0;
+        
+        if (quantity > availableQty) {
+            quantityInput.style.borderColor = 'var(--danger-color)';
+            alert(`Cannot transfer ${quantity} items. Only ${availableQty} available.`);
+            return false;
+        }
+        
+        quantityInput.style.borderColor = '';
+        return true;
+    }
+    
+    // Event Listeners
+    fromStoreSelect.addEventListener('change', filterStockItems);
+    toStoreSelect.addEventListener('change', filterStockItems);
+    stockItemSelect.addEventListener('change', updateAvailableQuantity);
+    quantityInput.addEventListener('blur', validateQuantity);
+    
+    // Form submission validation
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            if (!validateQuantity()) {
+                event.preventDefault();
+                return false;
+            }
+            
+            const fromStore = fromStoreSelect.value;
+            const toStore = toStoreSelect.value;
+            
+            if (fromStore === toStore) {
+                alert('Source and destination stores cannot be the same');
+                event.preventDefault();
+                return false;
+            }
+            
+            return true;
+        });
+    }
+    
+    // Auto-set today's date for transfer date
+    const transferDateInput = document.querySelector('input[name="transfer_date"]');
+    if (transferDateInput && !transferDateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        transferDateInput.value = today;
+    }
+});
+</script>
 {% endblock %}

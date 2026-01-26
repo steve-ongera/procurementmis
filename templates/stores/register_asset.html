@@ -1,19 +1,358 @@
-<!-- ============================================================================ -->
-<!-- 18. register_asset.html -->
-<!-- ============================================================================ -->
 {% extends 'base.html' %}
 {% load humanize %}
 
 {% block title %}Register Asset - Stores Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-section {
+        margin-bottom: 2.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .form-section:last-of-type {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: var(--secondary-color);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .required::after {
+        content: "*";
+        color: var(--danger-color);
+        margin-left: 0.25rem;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: var(--card-bg);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-control[type="date"],
+    .form-control[type="number"] {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .form-control[type="number"] {
+        text-align: right;
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    /* Form Help Text */
+    .form-help {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-top: 0.25rem;
+    }
+
+    /* Currency Input */
+    .currency-input {
+        position: relative;
+    }
+
+    .currency-input .prefix {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    .currency-input .form-control {
+        padding-left: 3rem;
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 2rem;
+        margin-top: 2rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Alert Messages */
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        border-color: #A7F3D0;
+        color: #065F46;
+    }
+
+    .alert-danger {
+        background: #FEE2E2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    .alert-info {
+        background: #EFF6FF;
+        border-color: #BFDBFE;
+        color: #1E40AF;
+    }
+
+    /* Form Validation */
+    .error {
+        color: var(--danger-color);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    .form-control.error-field {
+        border-color: var(--danger-color);
+    }
+
+    /* Info Card */
+    .info-card {
+        background: var(--primary-light);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-card i {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+        margin-top: 0.125rem;
+    }
+
+    .info-card strong {
+        display: block;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-card p {
+        color: var(--secondary-color);
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-card {
+            padding: 1.5rem;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .form-section {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .form-card {
+            padding: 1rem;
+        }
+        
+        .info-card {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Register New Asset</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
-            <a href="#">Stores</a>
+            <a href="{% url 'store_all_assets' %}">Stores</a>
             <i class="bi bi-chevron-right"></i>
             <a href="{% url 'store_all_assets' %}">Assets</a>
             <i class="bi bi-chevron-right"></i>
@@ -22,139 +361,374 @@
     </div>
 </div>
 
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Info Card -->
+<div class="info-card">
+    <i class="bi bi-info-circle"></i>
+    <div>
+        <strong>Registering New Fixed Asset</strong>
+        <p>Complete this form to register a new fixed asset in the university's asset register. All required fields must be filled.</p>
+    </div>
+</div>
+
 <div class="form-card">
-    <form method="post">
+    <form method="post" action="{% url 'store_register_asset' %}">
         {% csrf_token %}
         
+        <!-- Asset Identification -->
         <div class="form-section">
-            <h3 class="section-title">Asset Identification</h3>
+            <h3 class="section-title">
+                <i class="bi bi-qr-code"></i>
+                Asset Identification
+            </h3>
             
             <div class="form-row">
                 <div class="form-group">
-                    <label>Asset Number *</label>
-                    <input type="text" name="asset_number" class="form-control" required>
+                    <label class="form-label required">Asset Number</label>
+                    <input type="text" name="asset_number" class="form-control {% if form.errors.asset_number %}error-field{% endif %}" 
+                           value="{{ form.asset_number.value|default:'' }}" placeholder="e.g., ASSET-2024-001" required>
+                    {% if form.errors.asset_number %}
+                    <div class="error">{{ form.errors.asset_number.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Unique identifier for the asset</div>
                 </div>
                 
                 <div class="form-group">
-                    <label>Asset Tag *</label>
-                    <input type="text" name="asset_tag" class="form-control" required>
+                    <label class="form-label required">Asset Tag</label>
+                    <input type="text" name="asset_tag" class="form-control {% if form.errors.asset_tag %}error-field{% endif %}" 
+                           value="{{ form.asset_tag.value|default:'' }}" placeholder="e.g., UNI-PC-001" required>
+                    {% if form.errors.asset_tag %}
+                    <div class="error">{{ form.errors.asset_tag.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Physical tag attached to the asset</div>
                 </div>
             </div>
             
             <div class="form-group">
-                <label>Item Category *</label>
-                <select name="item" class="form-control" required>
+                <label class="form-label required">Item Category</label>
+                <select name="item" class="form-control {% if form.errors.item %}error-field{% endif %}" required>
                     <option value="">Select Item</option>
                     {% for item in items %}
-                    <option value="{{ item.id }}">{{ item.name }}</option>
+                    <option value="{{ item.id }}" {% if form.item.value == item.id|stringformat:"s" %}selected{% endif %}>
+                        {{ item.name }}
+                    </option>
                     {% endfor %}
                 </select>
+                {% if form.errors.item %}
+                <div class="error">{{ form.errors.item.0 }}</div>
+                {% endif %}
+                <div class="form-help">Select the category this asset belongs to</div>
             </div>
             
             <div class="form-group">
-                <label>Description *</label>
-                <textarea name="description" class="form-control" rows="3" required></textarea>
+                <label class="form-label required">Description</label>
+                <textarea name="description" class="form-control {% if form.errors.description %}error-field{% endif %}" 
+                          rows="3" required placeholder="Detailed description of the asset">{{ form.description.value|default:'' }}</textarea>
+                {% if form.errors.description %}
+                <div class="error">{{ form.errors.description.0 }}</div>
+                {% endif %}
+                <div class="form-help">Include specifications, features, and purpose</div>
             </div>
         </div>
         
+        <!-- Asset Details -->
         <div class="form-section">
-            <h3 class="section-title">Asset Details</h3>
+            <h3 class="section-title">
+                <i class="bi bi-gear"></i>
+                Asset Specifications
+            </h3>
             
             <div class="form-row">
                 <div class="form-group">
-                    <label>Serial Number</label>
-                    <input type="text" name="serial_number" class="form-control">
+                    <label class="form-label">Serial Number</label>
+                    <input type="text" name="serial_number" class="form-control {% if form.errors.serial_number %}error-field{% endif %}" 
+                           value="{{ form.serial_number.value|default:'' }}" placeholder="Manufacturer's serial number">
+                    {% if form.errors.serial_number %}
+                    <div class="error">{{ form.errors.serial_number.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Manufacturer serial number (if available)</div>
                 </div>
                 
                 <div class="form-group">
-                    <label>Model</label>
-                    <input type="text" name="model" class="form-control">
+                    <label class="form-label">Model</label>
+                    <input type="text" name="model" class="form-control {% if form.errors.model %}error-field{% endif %}" 
+                           value="{{ form.model.value|default:'' }}" placeholder="Model name/number">
+                    {% if form.errors.model %}
+                    <div class="error">{{ form.errors.model.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Asset model name or number</div>
                 </div>
                 
                 <div class="form-group">
-                    <label>Brand</label>
-                    <input type="text" name="brand" class="form-control">
-                </div>
-            </div>
-        </div>
-        
-        <div class="form-section">
-            <h3 class="section-title">Financial Information</h3>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Acquisition Date *</label>
-                    <input type="date" name="acquisition_date" class="form-control" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Acquisition Cost *</label>
-                    <input type="number" name="acquisition_cost" class="form-control" step="0.01" min="0" required>
-                </div>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Depreciation Rate (%)</label>
-                    <input type="number" name="depreciation_rate" class="form-control" step="0.01" min="0" max="100">
-                </div>
-                
-                <div class="form-group">
-                    <label>Useful Life (Years)</label>
-                    <input type="number" name="useful_life_years" class="form-control" min="0">
+                    <label class="form-label">Brand</label>
+                    <input type="text" name="brand" class="form-control {% if form.errors.brand %}error-field{% endif %}" 
+                           value="{{ form.brand.value|default:'' }}" placeholder="Manufacturer brand">
+                    {% if form.errors.brand %}
+                    <div class="error">{{ form.errors.brand.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Manufacturer or brand name</div>
                 </div>
             </div>
         </div>
         
+        <!-- Financial Information -->
         <div class="form-section">
-            <h3 class="section-title">Location & Assignment</h3>
+            <h3 class="section-title">
+                <i class="bi bi-cash-stack"></i>
+                Financial Information
+            </h3>
             
             <div class="form-row">
                 <div class="form-group">
-                    <label>Department *</label>
-                    <select name="department" class="form-control" required>
+                    <label class="form-label required">Acquisition Date</label>
+                    <input type="date" name="acquisition_date" class="form-control {% if form.errors.acquisition_date %}error-field{% endif %}" 
+                           value="{{ form.acquisition_date.value|default:''|date:'Y-m-d' }}" required>
+                    {% if form.errors.acquisition_date %}
+                    <div class="error">{{ form.errors.acquisition_date.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Date when the asset was acquired</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label required">Acquisition Cost</label>
+                    <div class="currency-input">
+                        <span class="prefix">KES</span>
+                        <input type="number" name="acquisition_cost" class="form-control {% if form.errors.acquisition_cost %}error-field{% endif %}" 
+                               step="0.01" min="0" value="{{ form.acquisition_cost.value|default:'0' }}" required>
+                    </div>
+                    {% if form.errors.acquisition_cost %}
+                    <div class="error">{{ form.errors.acquisition_cost.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Original purchase/installation cost</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Depreciation Rate (%)</label>
+                    <div style="position: relative;">
+                        <input type="number" name="depreciation_rate" class="form-control {% if form.errors.depreciation_rate %}error-field{% endif %}" 
+                               step="0.01" min="0" max="100" value="{{ form.depreciation_rate.value|default:'10' }}">
+                        <span style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--secondary-color);">%</span>
+                    </div>
+                    {% if form.errors.depreciation_rate %}
+                    <div class="error">{{ form.errors.depreciation_rate.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Annual depreciation rate (default: 10%)</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Useful Life (Years)</label>
+                    <input type="number" name="useful_life_years" class="form-control {% if form.errors.useful_life_years %}error-field{% endif %}" 
+                           min="0" value="{{ form.useful_life_years.value|default:'5' }}">
+                    {% if form.errors.useful_life_years %}
+                    <div class="error">{{ form.errors.useful_life_years.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Expected useful life of the asset (default: 5 years)</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Location & Assignment -->
+        <div class="form-section">
+            <h3 class="section-title">
+                <i class="bi bi-geo-alt"></i>
+                Location & Assignment
+            </h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Department</label>
+                    <select name="department" class="form-control {% if form.errors.department %}error-field{% endif %}" required>
                         <option value="">Select Department</option>
                         {% for dept in departments %}
-                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        <option value="{{ dept.id }}" {% if form.department.value == dept.id|stringformat:"s" %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
                         {% endfor %}
                     </select>
+                    {% if form.errors.department %}
+                    <div class="error">{{ form.errors.department.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Department responsible for the asset</div>
                 </div>
                 
                 <div class="form-group">
-                    <label>Custodian *</label>
-                    <select name="custodian" class="form-control" required>
+                    <label class="form-label required">Custodian</label>
+                    <select name="custodian" class="form-control {% if form.errors.custodian %}error-field{% endif %}" required>
                         <option value="">Select Custodian</option>
                         {% for user in users %}
-                        <option value="{{ user.id }}">{{ user.get_full_name }} - {{ user.department.name }}</option>
+                        <option value="{{ user.id }}" {% if form.custodian.value == user.id|stringformat:"s" %}selected{% endif %}>
+                            {{ user.get_full_name }} - {{ user.department.name }}
+                        </option>
                         {% endfor %}
                     </select>
+                    {% if form.errors.custodian %}
+                    <div class="error">{{ form.errors.custodian.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Person responsible for the asset</div>
                 </div>
             </div>
             
             <div class="form-group">
-                <label>Physical Location *</label>
-                <textarea name="location" class="form-control" rows="2" required></textarea>
+                <label class="form-label required">Physical Location</label>
+                <textarea name="location" class="form-control {% if form.errors.location %}error-field{% endif %}" 
+                          rows="2" required placeholder="e.g., Room 205, Main Building, 2nd Floor">{{ form.location.value|default:'' }}</textarea>
+                {% if form.errors.location %}
+                <div class="error">{{ form.errors.location.0 }}</div>
+                {% endif %}
+                <div class="form-help">Exact physical location of the asset</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Condition</label>
+                <select name="condition" class="form-control {% if form.errors.condition %}error-field{% endif %}">
+                    <option value="">Select Condition</option>
+                    <option value="NEW" {% if form.condition.value == 'NEW' %}selected{% endif %}>New</option>
+                    <option value="GOOD" {% if form.condition.value == 'GOOD' %}selected{% endif %}>Good</option>
+                    <option value="FAIR" {% if form.condition.value == 'FAIR' %}selected{% endif %}>Fair</option>
+                    <option value="POOR" {% if form.condition.value == 'POOR' %}selected{% endif %}>Poor</option>
+                </select>
+                {% if form.errors.condition %}
+                <div class="error">{{ form.errors.condition.0 }}</div>
+                {% endif %}
+                <div class="form-help">Current physical condition of the asset</div>
             </div>
         </div>
         
+        <!-- Warranty & Additional Info -->
         <div class="form-section">
-            <h3 class="section-title">Warranty & Additional Info</h3>
+            <h3 class="section-title">
+                <i class="bi bi-shield-check"></i>
+                Warranty & Additional Information
+            </h3>
             
-            <div class="form-group">
-                <label>Warranty Expiry Date</label>
-                <input type="date" name="warranty_expiry" class="form-control">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Warranty Expiry Date</label>
+                    <input type="date" name="warranty_expiry" class="form-control {% if form.errors.warranty_expiry %}error-field{% endif %}" 
+                           value="{{ form.warranty_expiry.value|default:''|date:'Y-m-d' }}">
+                    {% if form.errors.warranty_expiry %}
+                    <div class="error">{{ form.errors.warranty_expiry.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Date when warranty expires (if applicable)</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-control {% if form.errors.status %}error-field{% endif %}">
+                        <option value="ACTIVE" {% if form.status.value == 'ACTIVE' %}selected{% endif %}>Active</option>
+                        <option value="IDLE" {% if form.status.value == 'IDLE' %}selected{% endif %}>Idle</option>
+                        <option value="UNDER_MAINTENANCE" {% if form.status.value == 'UNDER_MAINTENANCE' %}selected{% endif %}>Under Maintenance</option>
+                    </select>
+                    {% if form.errors.status %}
+                    <div class="error">{{ form.errors.status.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">Current status of the asset</div>
+                </div>
             </div>
             
             <div class="form-group">
-                <label>Notes</label>
-                <textarea name="notes" class="form-control" rows="3"></textarea>
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control {% if form.errors.notes %}error-field{% endif %}" 
+                          rows="3" placeholder="Additional notes, special instructions, or comments">{{ form.notes.value|default:'' }}</textarea>
+                {% if form.errors.notes %}
+                <div class="error">{{ form.errors.notes.0 }}</div>
+                {% endif %}
+                <div class="form-help">Any additional information about this asset</div>
             </div>
         </div>
         
+        <!-- Form Actions -->
         <div class="form-actions">
-            <a href="{% url 'store_all_assets' %}" class="btn">Cancel</a>
-            <button type="submit" class="btn btn-primary">Register Asset</button>
+            <a href="{% url 'store_all_assets' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Cancel
+            </a>
+            <button type="reset" class="btn">
+                <i class="bi bi-arrow-clockwise"></i>
+                Reset
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i>
+                Register Asset
+            </button>
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-generate asset number suggestion
+    const assetNumberInput = document.querySelector('input[name="asset_number"]');
+    const itemSelect = document.querySelector('select[name="item"]');
+    const acquisitionDateInput = document.querySelector('input[name="acquisition_date"]');
+    
+    function generateAssetNumber() {
+        if (itemSelect.value && acquisitionDateInput.value) {
+            const itemCode = itemSelect.options[itemSelect.selectedIndex].text.split(' - ')[0] || 'ASSET';
+            const year = acquisitionDateInput.value.split('-')[0];
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            
+            const suggestedNumber = `${itemCode}-${year}-${random}`;
+            
+            // Only auto-fill if the field is empty
+            if (!assetNumberInput.value) {
+                assetNumberInput.value = suggestedNumber;
+            }
+        }
+    }
+    
+    if (itemSelect && acquisitionDateInput) {
+        itemSelect.addEventListener('change', generateAssetNumber);
+        acquisitionDateInput.addEventListener('change', generateAssetNumber);
+    }
+    
+    // Calculate current value based on depreciation
+    const acquisitionCostInput = document.querySelector('input[name="acquisition_cost"]');
+    const depreciationRateInput = document.querySelector('input[name="depreciation_rate"]');
+    const usefulLifeInput = document.querySelector('input[name="useful_life_years"]');
+    
+    function calculateCurrentValue() {
+        // This would be a more complex calculation in real implementation
+        // For now, just show the acquisition cost
+        return parseFloat(acquisitionCostInput.value) || 0;
+    }
+    
+    // Form validation
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            const acquisitionDate = new Date(acquisitionDateInput.value);
+            const today = new Date();
+            
+            if (acquisitionDate > today) {
+                alert('Acquisition date cannot be in the future');
+                acquisitionDateInput.focus();
+                event.preventDefault();
+                return false;
+            }
+            
+            const warrantyExpiryInput = document.querySelector('input[name="warranty_expiry"]');
+            if (warrantyExpiryInput.value) {
+                const warrantyExpiry = new Date(warrantyExpiryInput.value);
+                if (warrantyExpiry < today) {
+                    if (!confirm('Warranty expiry date is in the past. Do you want to continue?')) {
+                        warrantyExpiryInput.focus();
+                        event.preventDefault();
+                        return false;
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

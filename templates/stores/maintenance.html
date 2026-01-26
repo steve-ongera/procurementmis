@@ -1,38 +1,532 @@
-<!-- ============================================================================ -->
-<!-- 19. maintenance.html -->
-<!-- ============================================================================ -->
 {% extends 'base.html' %}
 {% load humanize %}
 
 {% block title %}Asset Maintenance - Stores Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-warning {
+        background: var(--warning-color);
+        color: white;
+        border-color: var(--warning-color);
+    }
+
+    .btn-warning:hover {
+        background: #D97706;
+        border-color: #D97706;
+    }
+
+    .btn-sm {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn-sm:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    /* Alert Banner */
+    .alert-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-banner i {
+        font-size: 1.25rem;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        border-color: #A7F3D0;
+        color: #065F46;
+    }
+
+    .alert-danger {
+        background: #FEE2E2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    .alert-info {
+        background: #EFF6FF;
+        border-color: #BFDBFE;
+        color: #1E40AF;
+    }
+
+    /* Summary Stats */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .asset-number {
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .asset-number:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .text-warning {
+        color: var(--warning-color);
+        font-weight: 600;
+    }
+
+    .text-danger {
+        color: var(--danger-color);
+        font-weight: 600;
+    }
+
+    .text-success {
+        color: var(--success-color);
+        font-weight: 600;
+    }
+
+    .date-cell {
+        color: var(--secondary-color);
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        border: 1px solid transparent;
+    }
+
+    .status-badge i {
+        font-size: 0.625rem;
+    }
+
+    .status-active { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .status-under-maintenance { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .status-warranty-expiring { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+    .status-due-for-maintenance { 
+        background: #DBEAFE; 
+        color: #1E40AF; 
+        border-color: #BFDBFE;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.375rem;
+        color: var(--secondary-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .action-btn i {
+        font-size: 1rem;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Maintenance Status */
+    .maintenance-due {
+        background-color: #FEF3C7;
+    }
+
+    .maintenance-due:hover {
+        background-color: #FDE68A;
+    }
+
+    .warranty-expiring {
+        background-color: #FEE2E2;
+    }
+
+    .warranty-expiring:hover {
+        background-color: #FECACA;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .alert-banner {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Asset Maintenance Tracking</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
-            <a href="#">Stores</a>
+            <a href="{% url 'store_maintenance' %}">Stores</a>
             <i class="bi bi-chevron-right"></i>
             <span>Maintenance</span>
         </div>
     </div>
+    <div class="header-actions">
+        <a href="#" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Schedule Maintenance
+        </a>
+        <a href="{% url 'store_all_assets' %}" class="btn">
+            <i class="bi bi-laptop"></i>
+            View All Assets
+        </a>
+    </div>
 </div>
 
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.assets_under_maintenance }}</div>
+        <div class="summary-label">Under Maintenance</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.warranty_expiring_soon }}</div>
+        <div class="summary-label">Warranty Expiring</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.due_for_maintenance }}</div>
+        <div class="summary-label">Due for Maintenance</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.completed_maintenance }}</div>
+        <div class="summary-label">Completed</div>
+    </div>
+</div>
+
+<!-- Alert Banner -->
+{% if assets_needing_attention %}
 <div class="alert-banner alert-warning">
     <i class="bi bi-exclamation-triangle"></i>
     <div>
         <strong>{{ assets_needing_attention.count }} assets</strong> require attention (warranty expiring soon)
     </div>
+    <div style="margin-left: auto;">
+        <a href="#" class="btn-sm btn-warning">Schedule All</a>
+    </div>
 </div>
+{% else %}
+<div class="alert-banner alert-success">
+    <i class="bi bi-check-circle"></i>
+    <div>
+        <strong>All good!</strong> No assets require immediate attention
+    </div>
+</div>
+{% endif %}
 
+<!-- Assets Requiring Attention Table -->
 <div class="table-card">
     <div class="table-header">
         <h2 class="table-title">
-            <i class="bi bi-wrench"></i> Assets Requiring Attention
+            <i class="bi bi-exclamation-triangle"></i>
+            Assets Requiring Attention ({{ assets_needing_attention.count }})
         </h2>
     </div>
+
     {% if assets_needing_attention %}
     <div class="table-responsive">
         <table>
@@ -44,22 +538,45 @@
                     <th>Custodian</th>
                     <th>Warranty Expiry</th>
                     <th>Status</th>
+                    <th>Days Left</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for asset in assets_needing_attention %}
-                <tr>
-                    <td><a href="#">{{ asset.asset_number }}</a></td>
-                    <td>{{ asset.description|truncatewords:8 }}</td>
-                    <td>{{ asset.department.name }}</td>
-                    <td>{{ asset.custodian.get_full_name }}</td>
-                    <td class="text-warning">{{ asset.warranty_expiry|date:"M d, Y" }}</td>
-                    <td><span class="badge">{{ asset.get_status_display }}</span></td>
+                {% with days_left=asset.warranty_expiry|timeuntil %}
+                <tr class="warranty-expiring">
                     <td>
-                        <a href="#" class="btn-sm btn-warning">Schedule Maintenance</a>
+                        <a href="{% url 'asset_detail' asset.id %}" class="asset-number">
+                            {{ asset.asset_number }}
+                            <i class="bi bi-arrow-up-right" style="font-size: 0.75rem; margin-left: 0.25rem;"></i>
+                        </a>
+                    </td>
+                    <td>{{ asset.description|truncatechars:50 }}</td>
+                    <td>{{ asset.department.name }}</td>
+                    <td>{{ asset.custodian.get_full_name|default:"—" }}</td>
+                    <td class="text-warning">{{ asset.warranty_expiry|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="status-badge status-warranty-expiring">
+                            <i class="bi bi-clock"></i>
+                            Expiring Soon
+                        </span>
+                    </td>
+                    <td class="text-danger">
+                        {{ days_left|first }}
+                        <span style="font-size: 0.75rem; color: var(--secondary-color);">days</span>
+                    </td>
+                    <td>
+                        <a href="#" class="action-btn btn-sm btn-warning" title="Schedule Maintenance">
+                            <i class="bi bi-calendar-plus"></i>
+                            Schedule
+                        </a>
+                        <a href="{% url 'asset_detail' asset.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
                     </td>
                 </tr>
+                {% endwith %}
                 {% endfor %}
             </tbody>
         </table>
@@ -72,12 +589,15 @@
     {% endif %}
 </div>
 
+<!-- All Active Assets Table -->
 <div class="table-card">
     <div class="table-header">
         <h2 class="table-title">
-            <i class="bi bi-tools"></i> All Active Assets
+            <i class="bi bi-tools"></i>
+            All Active Assets ({{ assets.count }})
         </h2>
     </div>
+
     {% if assets %}
     <div class="table-responsive">
         <table>
@@ -88,25 +608,112 @@
                     <th>Department</th>
                     <th>Status</th>
                     <th>Acquisition Date</th>
+                    <th>Last Maintenance</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for asset in assets %}
-                <tr>
-                    <td><a href="#">{{ asset.asset_number }}</a></td>
-                    <td>{{ asset.description|truncatewords:8 }}</td>
-                    <td>{{ asset.department.name }}</td>
-                    <td><span class="badge">{{ asset.get_status_display }}</span></td>
-                    <td>{{ asset.acquisition_date|date:"M d, Y" }}</td>
+                <tr class="{% if asset.status == 'UNDER_MAINTENANCE' %}maintenance-due{% endif %}">
                     <td>
-                        <a href="#" class="btn-sm"><i class="bi bi-eye"></i></a>
+                        <a href="{% url 'asset_detail' asset.id %}" class="asset-number">
+                            {{ asset.asset_number }}
+                            <i class="bi bi-arrow-up-right" style="font-size: 0.75rem; margin-left: 0.25rem;"></i>
+                        </a>
+                    </td>
+                    <td>{{ asset.description|truncatechars:50 }}</td>
+                    <td>{{ asset.department.name }}</td>
+                    <td>
+                        <span class="status-badge status-{{ asset.status|lower|slugify }}">
+                            {% if asset.status == 'ACTIVE' %}<i class="bi bi-check-circle"></i>{% endif %}
+                            {% if asset.status == 'UNDER_MAINTENANCE' %}<i class="bi bi-wrench"></i>{% endif %}
+                            {% if asset.status == 'IDLE' %}<i class="bi bi-pause-circle"></i>{% endif %}
+                            {{ asset.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="date-cell">{{ asset.acquisition_date|date:"M d, Y" }}</td>
+                    <td class="date-cell">
+                        {% if asset.last_maintenance_date %}
+                        {{ asset.last_maintenance_date|date:"M d, Y" }}
+                        {% else %}
+                        <span style="color: var(--secondary-color);">Never</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="#" class="action-btn" title="Schedule Maintenance">
+                            <i class="bi bi-calendar-plus"></i>
+                        </a>
+                        <a href="{% url 'asset_detail' asset.id %}" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="#" class="action-btn" title="Maintenance History">
+                            <i class="bi bi-clock-history"></i>
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-tools"></i>
+        <p>No active assets found</p>
+    </div>
     {% endif %}
 </div>
+
+<!-- Maintenance History Table (Optional - could be added) -->
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clock-history"></i>
+            Recent Maintenance History
+        </h2>
+    </div>
+    <div class="empty-state">
+        <i class="bi bi-clock-history"></i>
+        <p>No recent maintenance history available</p>
+        <a href="#" class="btn btn-sm" style="margin-top: 1rem;">
+            <i class="bi bi-plus-circle"></i>
+            Add Maintenance Record
+        </a>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add urgency colors based on days left
+    const daysLeftCells = document.querySelectorAll('td.text-danger');
+    daysLeftCells.forEach(cell => {
+        const daysText = cell.textContent.trim();
+        const days = parseInt(daysText);
+        
+        if (!isNaN(days)) {
+            if (days <= 7) {
+                cell.style.color = 'var(--danger-color)';
+                cell.innerHTML = `<i class="bi bi-exclamation-circle" style="margin-right: 0.25rem;"></i> ${daysText} <span style="font-size: 0.75rem; color: var(--danger-color);">days</span>`;
+            } else if (days <= 30) {
+                cell.style.color = 'var(--warning-color)';
+                cell.innerHTML = `<i class="bi bi-exclamation-triangle" style="margin-right: 0.25rem;"></i> ${daysText} <span style="font-size: 0.75rem; color: var(--warning-color);">days</span>`;
+            }
+        }
+    });
+    
+    // Add click handlers for scheduling maintenance
+    const scheduleButtons = document.querySelectorAll('.btn-warning');
+    scheduleButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A' && e.target.classList.contains('btn-warning')) {
+                const assetNumber = this.closest('tr').querySelector('.asset-number').textContent.trim();
+                if (confirm(`Schedule maintenance for asset ${assetNumber}?`)) {
+                    // In real implementation, this would open a modal or redirect
+                    alert(`Opening maintenance scheduling form for ${assetNumber}`);
+                }
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
