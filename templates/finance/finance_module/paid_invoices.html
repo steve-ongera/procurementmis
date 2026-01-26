@@ -592,11 +592,11 @@
                     </span>
                 </td>
                 <td class="actions-cell">
-                    <a href="{% url 'invoice_detail' invoice.id %}" class="action-link" title="View Details">
+                    <a href="{% url 'finance_invoice_detail' invoice.id %}" class="action-link" title="View Details">
                         <i class="bi bi-eye"></i>
                         View
                     </a>
-                    <a href="{% url 'finance_payment_detail' invoice.id %}" class="action-link" title="Payment Details">
+                    <a href="{% url 'finance_invoice_detail' invoice.id %}#payments" class="action-link" title="View Payments">
                         <i class="bi bi-clock-history"></i>
                         Payments
                     </a>
