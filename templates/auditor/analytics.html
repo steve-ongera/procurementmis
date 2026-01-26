@@ -1,139 +1,1170 @@
 {% extends 'base.html' %}
 {% load humanize %}
 {% load custom_filters %}
+
 {% block title %}Audit Analytics - Auditor Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+        --audit-color: #8B5CF6;
+        --compliance-color: #EC4899;
+        --risk-color: #F97316;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-audit {
+        background: var(--audit-color);
+        color: white;
+        border-color: var(--audit-color);
+    }
+
+    .btn-audit:hover {
+        background: #7C3AED;
+        border-color: #7C3AED;
+    }
+
+    /* Summary Grid */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transform: translateY(-2px);
+    }
+
+    .summary-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+    }
+
+    .summary-card.audit::before { background: var(--audit-color); }
+    .summary-card.compliance::before { background: var(--compliance-color); }
+    .summary-card.risk::before { background: var(--risk-color); }
+    .summary-card.transaction::before { background: var(--primary-color); }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    .summary-trend {
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+
+    .trend-up { color: var(--success-color); }
+    .trend-down { color: var(--danger-color); }
+    .trend-neutral { color: var(--secondary-color); }
+
+    /* Analytics Section */
+    .analytics-section {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: var(--secondary-color);
+    }
+
+    .section-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    /* Chart Container */
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 1.5rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+    }
+
+    /* Data Table */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--card-bg);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+    }
+
+    .data-table thead {
+        background: var(--table-header);
+    }
+
+    .data-table th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    .data-table td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    .data-table tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Trend Indicators */
+    .trend-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .trend-up-indicator {
+        background: #D1FAE5;
+        color: #065F46;
+        border: 1px solid #A7F3D0;
+    }
+
+    .trend-down-indicator {
+        background: #FEE2E2;
+        color: #991B1B;
+        border: 1px solid #FECACA;
+    }
+
+    .trend-neutral-indicator {
+        background: #F1F5F9;
+        color: #64748B;
+        border: 1px solid #E2E8F0;
+    }
+
+    /* Badge Styles */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border: 1px solid transparent;
+    }
+
+    .badge-success {
+        background: #D1FAE5;
+        color: #065F46;
+        border-color: #A7F3D0;
+    }
+
+    .badge-warning {
+        background: #FEF3C7;
+        color: #92400E;
+        border-color: #FDE68A;
+    }
+
+    .badge-danger {
+        background: #FEE2E2;
+        color: #991B1B;
+        border-color: #FECACA;
+    }
+
+    .badge-audit {
+        background: #EDE9FE;
+        color: #5B21B6;
+        border-color: #DDD6FE;
+    }
+
+    /* Metric Cards */
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .metric-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+    }
+
+    .metric-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .metric-title {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .metric-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .metric-icon.audit { background: #EDE9FE; color: var(--audit-color); }
+    .metric-icon.compliance { background: #FCE7F3; color: var(--compliance-color); }
+    .metric-icon.risk { background: #FFEDD5; color: var(--risk-color); }
+
+    .metric-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .metric-subtitle {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    /* Progress Bar */
+    .progress-container {
+        margin-top: 0.75rem;
+    }
+
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .progress-bar {
+        height: 6px;
+        background: #E2E8F0;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    .progress-audit { background: var(--audit-color); }
+    .progress-compliance { background: var(--compliance-color); }
+    .progress-risk { background: var(--risk-color); }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #94A3B8;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: var(--card-bg);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Alert Messages */
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-info {
+        background: #E0E7FF;
+        border-color: #C7D2FE;
+        color: #3730A3;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .analytics-section {
+            padding: 1.25rem;
+        }
+        
+        .section-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .section-actions {
+            width: 100%;
+        }
+        
+        .section-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .data-table {
+            display: block;
+            overflow-x: auto;
+        }
+        
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .metric-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .chart-container {
+            height: 250px;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .filter-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
-        <h1>Audit Analytics & Insights</h1>
+        <h1 class="page-title">Audit Analytics & Insights</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}">Home</a>
-            <span>/</span>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <i class="bi bi-chevron-right"></i>
             <span>Analytics</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'auditor_audit_reports' %}" class="btn btn-audit">
+            <i class="bi bi-file-earmark-text"></i>
+            Audit Reports
+        </a>
+        <a href="#" class="btn btn-primary" onclick="exportAnalytics()">
+            <i class="bi bi-download"></i>
+            Export Data
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-card audit">
+        <div class="summary-value">{{ stats.total_audits|default:"0" }}</div>
+        <div class="summary-label">Total Audits</div>
+        <div class="summary-trend trend-up">
+            <i class="bi bi-arrow-up-right"></i>
+            <span>12% from last month</span>
+        </div>
+    </div>
+    <div class="summary-card compliance">
+        <div class="summary-value">{{ stats.compliance_rate|default:"0" }}%</div>
+        <div class="summary-label">Compliance Rate</div>
+        <div class="summary-trend trend-up">
+            <i class="bi bi-arrow-up-right"></i>
+            <span>5% improvement</span>
+        </div>
+    </div>
+    <div class="summary-card risk">
+        <div class="summary-value">{{ stats.high_risk_items|default:"0" }}</div>
+        <div class="summary-label">High Risk Items</div>
+        <div class="summary-trend trend-down">
+            <i class="bi bi-arrow-down-right"></i>
+            <span>8% decrease</span>
+        </div>
+    </div>
+    <div class="summary-card transaction">
+        <div class="summary-value">{{ stats.transactions_reviewed|default:"0" }}</div>
+        <div class="summary-label">Transactions Reviewed</div>
+        <div class="summary-trend trend-up">
+            <i class="bi bi-arrow-up-right"></i>
+            <span>15% increase</span>
         </div>
     </div>
 </div>
 
-<!-- Spending Patterns Section -->
-<section class="analytics-section">
-    <h2>Monthly Spending Patterns ({{ current_year }})</h2>
+<!-- Key Metrics -->
+<div class="metric-grid">
+    <div class="metric-card">
+        <div class="metric-header">
+            <h3 class="metric-title">Open Findings</h3>
+            <div class="metric-icon audit">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ metrics.open_findings|default:"0" }}</div>
+        <div class="metric-subtitle">Requiring follow-up</div>
+        <div class="progress-container">
+            <div class="progress-label">
+                <span>Resolution Progress</span>
+                <span>{{ metrics.resolution_rate|default:"0" }}%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill progress-audit" style="width: {{ metrics.resolution_rate|default:'0' }}%"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-header">
+            <h3 class="metric-title">Avg. Audit Duration</h3>
+            <div class="metric-icon compliance">
+                <i class="bi bi-clock"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ metrics.avg_audit_duration|default:"0" }} days</div>
+        <div class="metric-subtitle">From start to completion</div>
+        <div class="progress-container">
+            <div class="progress-label">
+                <span>Efficiency Trend</span>
+                <span>{{ metrics.efficiency_change|default:"0" }}%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill progress-compliance" style="width: 65%"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-header">
+            <h3 class="metric-title">Cost Savings</h3>
+            <div class="metric-icon risk">
+                <i class="bi bi-cash-coin"></i>
+            </div>
+        </div>
+        <div class="metric-value">KES {{ metrics.cost_savings|floatformat:0|intcomma|default:"0" }}</div>
+        <div class="metric-subtitle">Identified through audits</div>
+        <div class="progress-container">
+            <div class="progress-label">
+                <span>Savings Target</span>
+                <span>{{ metrics.savings_target|default:"0" }}%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill progress-risk" style="width: {{ metrics.savings_target|default:'0' }}%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="filter-card">
+    <div class="section-header">
+        <h2 class="section-title">
+            <i class="bi bi-filter"></i>
+            Filter Analytics Data
+        </h2>
+    </div>
+    <form method="get" action="{% url 'auditor_analytics' %}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Time Period</label>
+                <select name="period" class="form-control">
+                    <option value="current_month" {% if request.GET.period == 'current_month' %}selected{% endif %}>Current Month</option>
+                    <option value="last_month" {% if request.GET.period == 'last_month' %}selected{% endif %}>Last Month</option>
+                    <option value="current_quarter" {% if request.GET.period == 'current_quarter' %}selected{% endif %}>Current Quarter</option>
+                    <option value="current_year" {% if request.GET.period == 'current_year' %}selected{% endif %}>Current Year</option>
+                    <option value="custom" {% if request.GET.period == 'custom' %}selected{% endif %}>Custom Range</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Audit Type</label>
+                <select name="audit_type" class="form-control">
+                    <option value="">All Types</option>
+                    <option value="financial" {% if request.GET.audit_type == 'financial' %}selected{% endif %}>Financial</option>
+                    <option value="compliance" {% if request.GET.audit_type == 'compliance' %}selected{% endif %}>Compliance</option>
+                    <option value="operational" {% if request.GET.audit_type == 'operational' %}selected{% endif %}>Operational</option>
+                    <option value="risk" {% if request.GET.audit_type == 'risk' %}selected{% endif %}>Risk Assessment</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <select name="department" class="form-control">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if request.GET.department == dept.id|stringformat:"s" %}selected{% endif %}>
+                        {{ dept.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+            <a href="{% url 'auditor_analytics' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Monthly Spending Patterns -->
+<div class="analytics-section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <i class="bi bi-graph-up"></i>
+            Monthly Spending Patterns ({{ current_year }})
+        </h2>
+        <div class="section-actions">
+            <button type="button" class="btn btn-sm" onclick="toggleChartType('monthlySpendChart')">
+                <i class="bi bi-arrow-left-right"></i>
+                Toggle Chart
+            </button>
+        </div>
+    </div>
+    
     <div class="chart-container">
         <canvas id="monthlySpendChart"></canvas>
     </div>
     
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Month</th>
-                <th>Total Spending</th>
-                <th>Trend</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for spend in monthly_spend %}
-            <tr>
-                <td>{{ spend.created_at__month|date:"F" }}</td>
-                <td>KES {{ spend.total|floatformat:2|intcomma }}</td>
-                <td class="trend-indicator">
-                    <!-- Add trend calculation logic -->
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3">No spending data available</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</section>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Total Spending</th>
+                    <th>Audited Amount</th>
+                    <th>Compliance Rate</th>
+                    <th>Variance</th>
+                    <th>Trend</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for spend in monthly_spend %}
+                <tr>
+                    <td>{{ spend.created_at__month|date:"F" }}</td>
+                    <td>KES {{ spend.total|floatformat:2|intcomma }}</td>
+                    <td>KES {{ spend.audited_amount|floatformat:2|intcomma|default:"0" }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span>{{ spend.compliance_rate|floatformat:1|default:"0" }}%</span>
+                            {% if spend.compliance_rate >= 95 %}
+                            <span class="badge badge-success">Excellent</span>
+                            {% elif spend.compliance_rate >= 80 %}
+                            <span class="badge badge-warning">Good</span>
+                            {% else %}
+                            <span class="badge badge-danger">Needs Attention</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if spend.variance_percent > 0 %}
+                        <span class="trend-indicator trend-up-indicator">
+                            <i class="bi bi-arrow-up-right"></i>
+                            {{ spend.variance_percent|floatformat:1 }}%
+                        </span>
+                        {% elif spend.variance_percent < 0 %}
+                        <span class="trend-indicator trend-down-indicator">
+                            <i class="bi bi-arrow-down-right"></i>
+                            {{ spend.variance_percent|floatformat:1|slice:"1:" }}%
+                        </span>
+                        {% else %}
+                        <span class="trend-indicator trend-neutral-indicator">
+                            <i class="bi bi-dash"></i>
+                            0%
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            {% if spend.trend == 'up' %}
+                            <i class="bi bi-arrow-up-right text-success"></i>
+                            <span class="text-success">Improving</span>
+                            {% elif spend.trend == 'down' %}
+                            <i class="bi bi-arrow-down-right text-danger"></i>
+                            <span class="text-danger">Declining</span>
+                            {% else %}
+                            <i class="bi bi-dash text-secondary"></i>
+                            <span class="text-secondary">Stable</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state" style="padding: 1rem; border: none;">
+                            <i class="bi bi-graph-up"></i>
+                            <p>No spending data available for this period</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <!-- Department Spending Section -->
-<section class="analytics-section">
-    <h2>Department Budget Utilization</h2>
+<div class="analytics-section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <i class="bi bi-building"></i>
+            Department Budget Utilization
+        </h2>
+        <div class="section-actions">
+            <a href="{% url 'finance_budget_vs_actual' %}" class="btn btn-sm">
+                <i class="bi bi-arrow-right"></i>
+                View Details
+            </a>
+        </div>
+    </div>
+    
     <div class="chart-container">
         <canvas id="departmentSpendChart"></canvas>
     </div>
     
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Department</th>
-                <th>Allocated</th>
-                <th>Spent</th>
-                <th>Utilization %</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for dept in dept_spending %}
-            <tr>
-                <td>{{ dept.department__name }}</td>
-                <td>KES {{ dept.allocated|floatformat:2|intcomma }}</td>
-                <td>KES {{ dept.spent|floatformat:2|intcomma }}</td>
-                <td>
-                    {% widthratio dept.spent dept.allocated 100 %}%
-                </td>
-                <td>
-                    {% if dept.spent > dept.allocated %}
-                    <span class="badge badge-danger">Over Budget</span>
-                    {% elif dept.spent >= dept.allocated|mul:0.9 %}
-                    <span class="badge badge-warning">Near Limit</span>
-                    {% else %}
-                    <span class="badge badge-success">Within Budget</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="5">No department spending data</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</section>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Allocated Budget</th>
+                    <th>Spent</th>
+                    <th>Audited Amount</th>
+                    <th>Utilization %</th>
+                    <th>Audit Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in dept_spending %}
+                <tr>
+                    <td>
+                        <strong>{{ dept.department__name }}</strong>
+                    </td>
+                    <td class="quantity-cell">KES {{ dept.allocated|floatformat:2|intcomma }}</td>
+                    <td class="quantity-cell">KES {{ dept.spent|floatformat:2|intcomma }}</td>
+                    <td class="quantity-cell">KES {{ dept.audited_amount|floatformat:2|intcomma|default:"0" }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="flex: 1;">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: {% widthratio dept.spent dept.allocated 100 %}%; background: {% if dept.spent > dept.allocated %}#EF4444{% elif dept.spent >= dept.allocated|mul:0.9 %}#F59E0B{% else %}#10B981{% endif %};"></div>
+                                </div>
+                            </div>
+                            <span style="min-width: 40px;">{% widthratio dept.spent dept.allocated 100 %}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        {% if dept.audit_status == 'COMPLETED' %}
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i>
+                            Audited
+                        </span>
+                        {% elif dept.audit_status == 'IN_PROGRESS' %}
+                        <span class="badge badge-warning">
+                            <i class="bi bi-clock"></i>
+                            In Progress
+                        </span>
+                        {% elif dept.audit_status == 'PENDING' %}
+                        <span class="badge badge-audit">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Pending
+                        </span>
+                        {% else %}
+                        <span class="badge">
+                            Not Audited
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="#" class="btn-sm" title="View Budget">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'auditor_new_audit' %}?department={{ dept.department__id }}" class="btn-sm" title="Schedule Audit">
+                            <i class="bi bi-calendar-plus"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state" style="padding: 1rem; border: none;">
+                            <i class="bi bi-building"></i>
+                            <p>No department spending data available</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <!-- Top Suppliers Section -->
-<section class="analytics-section">
-    <h2>Top 10 Suppliers by Transaction Value</h2>
+<div class="analytics-section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <i class="bi bi-truck"></i>
+            Top Suppliers by Transaction Value
+        </h2>
+        <div class="section-actions">
+            <a href="{% url 'procurement_all_suppliers' %}" class="btn btn-sm">
+                <i class="bi bi-list"></i>
+                View All Suppliers
+            </a>
+        </div>
+    </div>
+    
     <div class="chart-container">
         <canvas id="topSuppliersChart"></canvas>
     </div>
     
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Rank</th>
-                <th>Supplier Name</th>
-                <th>Total Orders</th>
-                <th>Total Value</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for supplier in top_suppliers %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ supplier.name }}</td>
-                <td>{{ supplier.total_orders }}</td>
-                <td>KES {{ supplier.total_value|floatformat:2|intcomma }}</td>
-                <td>
-                    <a href="{% url 'supplier_detail' supplier.id %}" class="btn-link">View Details</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="5">No supplier data available</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</section>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Supplier Name</th>
+                    <th>Rating</th>
+                    <th>Total Orders</th>
+                    <th>Total Value</th>
+                    <th>Audit Score</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for supplier in top_suppliers %}
+                <tr>
+                    <td>
+                        <span class="badge" style="background: #E5E7EB; color: #374151; font-weight: 600;">
+                            #{{ forloop.counter }}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500;">{{ supplier.name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.125rem;">
+                            {{ supplier.category|default:"General" }}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= supplier.rating %}
+                                <i class="bi bi-star-fill text-warning"></i>
+                                {% else %}
+                                <i class="bi bi-star text-secondary"></i>
+                                {% endif %}
+                            {% endfor %}
+                            <span style="font-size: 0.75rem; color: var(--secondary-color); margin-left: 0.25rem;">
+                                {{ supplier.rating|floatformat:1 }}
+                            </span>
+                        </div>
+                    </td>
+                    <td>{{ supplier.total_orders }}</td>
+                    <td class="quantity-cell">KES {{ supplier.total_value|floatformat:2|intcomma }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div class="progress-bar" style="width: 80px;">
+                                <div class="progress-fill" style="width: {{ supplier.audit_score|default:0 }}%; background: {% if supplier.audit_score >= 80 %}#10B981{% elif supplier.audit_score >= 60 %}#F59E0B{% else %}#EF4444{% endif %};"></div>
+                            </div>
+                            <span>{{ supplier.audit_score|default:"N/A" }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{% url 'supplier_detail' supplier.id %}" class="btn-sm" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'auditor_purchase_orders_review' %}?supplier={{ supplier.id }}" class="btn-sm" title="Review Transactions">
+                            <i class="bi bi-search"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state" style="padding: 1rem; border: none;">
+                            <i class="bi bi-truck"></i>
+                            <p>No supplier data available</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Charts will be initialized here with Chart.js
+function exportAnalytics() {
+    const filters = new URLSearchParams(window.location.search);
+    const exportUrl = `{% url 'auditor_analytics' %}?export=excel&${filters.toString()}`;
+    
+    // Show loading state
+    const exportBtn = document.querySelector('a[onclick="exportAnalytics()"]');
+    const originalHTML = exportBtn.innerHTML;
+    exportBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Exporting...';
+    exportBtn.style.pointerEvents = 'none';
+    
+    // Create hidden iframe for download
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = exportUrl;
+    document.body.appendChild(iframe);
+    
+    setTimeout(() => {
+        exportBtn.innerHTML = originalHTML;
+        exportBtn.style.pointerEvents = 'auto';
+        document.body.removeChild(iframe);
+        
+        // Show success message
+        showToast('Analytics data exported successfully!', 'success');
+    }, 2000);
+}
+
+function toggleChartType(chartId) {
+    const chart = Chart.getChart(chartId);
+    if (chart) {
+        const newType = chart.config.type === 'line' ? 'bar' : 'line';
+        chart.config.type = newType;
+        chart.update();
+        
+        // Show notification
+        showToast(`Switched to ${newType} chart`, 'info');
+    }
+}
+
+function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // Add styles
+    toast.style.position = 'fixed';
+    toast.style.top = '20px';
+    toast.style.right = '20px';
+    toast.style.padding = '1rem 1.5rem';
+    toast.style.background = type === 'success' ? '#D1FAE5' : '#E0E7FF';
+    toast.style.color = type === 'success' ? '#065F46' : '#3730A3';
+    toast.style.borderRadius = '0.375rem';
+    toast.style.border = `1px solid ${type === 'success' ? '#A7F3D0' : '#C7D2FE'}`;
+    toast.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+    toast.style.zIndex = '1000';
+    toast.style.animation = 'slideIn 0.3s ease-out';
+    
+    document.body.appendChild(toast);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => document.body.removeChild(toast), 300);
+    }, 3000);
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Monthly Spend Chart
+    // Initialize Charts
     const monthlyCtx = document.getElementById('monthlySpendChart');
     if (monthlyCtx) {
         new Chart(monthlyCtx, {
@@ -143,14 +1174,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Monthly Spending',
                     data: {{ monthly_data|safe }},
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
+                    borderColor: 'rgb(37, 99, 235)',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
                 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `KES ${context.raw.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
             }
         });
     }
     
-    // Department Spend Chart
     const deptCtx = document.getElementById('departmentSpendChart');
     if (deptCtx) {
         new Chart(deptCtx, {
@@ -158,17 +1218,107 @@ document.addEventListener('DOMContentLoaded', function() {
             data: {
                 labels: {{ dept_labels|safe }},
                 datasets: [{
-                    label: 'Allocated',
+                    label: 'Allocated Budget',
                     data: {{ dept_allocated|safe }},
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)'
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    borderWidth: 1
                 }, {
-                    label: 'Spent',
+                    label: 'Amount Spent',
                     data: {{ dept_spent|safe }},
-                    backgroundColor: 'rgba(255, 99, 132, 0.5)'
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    borderWidth: 1
                 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
             }
         });
     }
+    
+    const suppliersCtx = document.getElementById('topSuppliersChart');
+    if (suppliersCtx) {
+        new Chart(suppliersCtx, {
+            type: 'horizontalBar',
+            data: {
+                labels: {{ supplier_labels|safe|default:"[]" }},
+                datasets: [{
+                    label: 'Transaction Value',
+                    data: {{ supplier_values|safe|default:"[]" }},
+                    backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                    borderColor: 'rgb(139, 92, 246)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `KES ${context.raw.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Auto-refresh data every 5 minutes
+    setTimeout(() => {
+        if (document.visibilityState === 'visible') {
+            window.location.reload();
+        }
+    }, 300000);
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+E to export
+        if (e.ctrlKey && e.key === 'e') {
+            e.preventDefault();
+            exportAnalytics();
+        }
+        
+        // Ctrl+R to refresh
+        if (e.ctrlKey && e.key === 'r') {
+            e.preventDefault();
+            window.location.reload();
+        }
+    });
 });
 </script>
 {% endblock %}
