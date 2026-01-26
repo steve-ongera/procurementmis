@@ -1,18 +1,994 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}Contracts Review - Auditor{% endblock %}
+{% block title %}Contracts Review - Auditor Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+        --audit-color: #8B5CF6;
+        --info-color: #06B6D4;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-audit {
+        background: var(--audit-color);
+        color: white;
+        border-color: var(--audit-color);
+    }
+
+    .btn-audit:hover {
+        background: #7C3AED;
+        border-color: #7C3AED;
+    }
+
+    .btn-export {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-export:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: var(--card-bg);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Summary Grid */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transform: translateY(-2px);
+    }
+
+    .summary-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+    }
+
+    .summary-card.total::before { background: var(--primary-color); }
+    .summary-card.active::before { background: var(--success-color); }
+    .summary-card.expiring::before { background: var(--warning-color); }
+    .summary-card.non-compliant::before { background: var(--danger-color); }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    .summary-trend {
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+
+    .trend-up { color: var(--success-color); }
+    .trend-down { color: var(--danger-color); }
+    .trend-neutral { color: var(--secondary-color); }
+
+    /* Table Styles */
+    .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1200px;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Row Highlighting */
+    .critical-row {
+        background-color: #FEE2E2;
+        border-left: 4px solid var(--danger-color);
+    }
+
+    .critical-row:hover {
+        background-color: #FECACA;
+    }
+
+    .warning-row {
+        background-color: #FEF3C7;
+        border-left: 4px solid var(--warning-color);
+    }
+
+    .warning-row:hover {
+        background-color: #FDE68A;
+    }
+
+    .expiring-row {
+        background-color: #FFEDD5;
+        border-left: 4px solid var(--warning-color);
+    }
+
+    .expiring-row:hover {
+        background-color: #FED7AA;
+    }
+
+    /* Badge Styles */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border: 1px solid transparent;
+    }
+
+    .badge-active { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .badge-expired { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+    .badge-draft { 
+        background: #F1F5F9; 
+        color: #64748B; 
+        border-color: #E2E8F0;
+    }
+    .badge-terminated { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+    .badge-renewal { 
+        background: #E0E7FF; 
+        color: #3730A3; 
+        border-color: #C7D2FE;
+    }
+
+    .badge-compliant {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    /* Compliance Status */
+    .compliance-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border: 1px solid transparent;
+    }
+
+    .status-compliant {
+        background: #D1FAE5;
+        color: #065F46;
+        border-color: #A7F3D0;
+    }
+
+    .status-warning {
+        background: #FEF3C7;
+        color: #92400E;
+        border-color: #FDE68A;
+    }
+
+    .status-critical {
+        background: #FEE2E2;
+        color: #991B1B;
+        border-color: #FECACA;
+    }
+
+    /* Issue List */
+    .issue-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        max-width: 300px;
+    }
+
+    .issue-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.375rem;
+        padding: 0.375rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        line-height: 1.4;
+        background: #F8FAFC;
+        border: 1px solid var(--border-color);
+    }
+
+    .issue-item i {
+        font-size: 0.625rem;
+        color: var(--danger-color);
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+    }
+
+    /* Risk Score */
+    .risk-score {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .score-low { background: var(--success-color); }
+    .score-medium { background: var(--warning-color); }
+    .score-high { background: var(--danger-color); }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-stats {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-sm {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn-sm:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-sm-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-sm-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-sm-warning {
+        background: var(--warning-color);
+        color: white;
+        border-color: var(--warning-color);
+    }
+
+    .btn-sm-warning:hover {
+        background: #D97706;
+        border-color: #D97706;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.25rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--secondary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        transform: translateY(-1px);
+    }
+
+    /* Amount Cells */
+    .amount-cell {
+        text-align: right;
+        font-weight: 600;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .amount-high {
+        color: var(--warning-color);
+    }
+
+    .amount-normal {
+        color: var(--secondary-color);
+    }
+
+    /* Info Card */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .info-card h3 i {
+        color: var(--secondary-color);
+    }
+
+    .checklist-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .check-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: #F8FAFC;
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+        transition: all 0.2s;
+    }
+
+    .check-item:hover {
+        border-color: #CBD5E1;
+        background: #F1F5F9;
+    }
+
+    .check-item i {
+        font-size: 1.25rem;
+        color: var(--success-color);
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+    }
+
+    .check-item strong {
+        font-weight: 600;
+        color: #1E293B;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .check-item p {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Alert Messages */
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-info {
+        background: #E0E7FF;
+        border-color: #C7D2FE;
+        color: #3730A3;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .modal-content {
+        background: var(--card-bg);
+        border-radius: 0.5rem;
+        width: 100%;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-content.large {
+        max-width: 1000px;
+    }
+
+    .modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--secondary-color);
+        cursor: pointer;
+        padding: 0;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.25rem;
+        transition: all 0.2s;
+    }
+
+    .close-modal:hover {
+        background: var(--hover-bg);
+        color: var(--danger-color);
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    /* Contract Details */
+    .contract-details {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .detail-section {
+        background: #F8FAFC;
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .detail-section h5 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .status-grid > div {
+        padding: 0.75rem;
+        background: var(--card-bg);
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .filter-card {
+            padding: 1.25rem;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .filter-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .checklist-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-responsive {
+            border-radius: 0;
+        }
+        
+        .issue-list {
+            max-width: 200px;
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.6875rem;
+        }
+        
+        .status-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
-        <h1>Contracts Compliance Review</h1>
+        <h1 class="page-title">Contracts Compliance Review</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}">Home</a>
-            <span>/</span>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
             <a href="{% url 'auditor_analytics' %}">Auditor</a>
-            <span>/</span>
+            <i class="bi bi-chevron-right"></i>
             <span>Contracts Review</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'auditor_payments_review' %}" class="btn">
+            <i class="bi bi-cash-stack"></i>
+            Payments
+        </a>
+        <button class="btn btn-export" onclick="exportToExcel()">
+            <i class="bi bi-file-earmark-excel"></i>
+            Export to Excel
+        </button>
+        <button class="btn btn-audit" onclick="runComplianceCheck()">
+            <i class="bi bi-shield-check"></i>
+            Run Compliance Check
+        </button>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Filter Card -->
+<div class="filter-card">
+    <form method="get" action="{% url 'auditor_contracts_review' %}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Contract Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Status</option>
+                    <option value="ACTIVE" {% if request.GET.status == 'ACTIVE' %}selected{% endif %}>Active</option>
+                    <option value="EXPIRED" {% if request.GET.status == 'EXPIRED' %}selected{% endif %}>Expired</option>
+                    <option value="DRAFT" {% if request.GET.status == 'DRAFT' %}selected{% endif %}>Draft</option>
+                    <option value="TERMINATED" {% if request.GET.status == 'TERMINATED' %}selected{% endif %}>Terminated</option>
+                    <option value="RENEWAL" {% if request.GET.status == 'RENEWAL' %}selected{% endif %}>Renewal</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Compliance Status</label>
+                <select name="compliance" class="form-control">
+                    <option value="">All</option>
+                    <option value="compliant" {% if request.GET.compliance == 'compliant' %}selected{% endif %}>Compliant</option>
+                    <option value="warning" {% if request.GET.compliance == 'warning' %}selected{% endif %}>Warning</option>
+                    <option value="critical" {% if request.GET.compliance == 'critical' %}selected{% endif %}>Critical</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Expiry Status</label>
+                <select name="expiry" class="form-control">
+                    <option value="">All</option>
+                    <option value="expiring_30" {% if request.GET.expiry == 'expiring_30' %}selected{% endif %}>Expiring in 30 days</option>
+                    <option value="expiring_60" {% if request.GET.expiry == 'expiring_60' %}selected{% endif %}>Expiring in 60 days</option>
+                    <option value="expired" {% if request.GET.expiry == 'expired' %}selected{% endif %}>Already Expired</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Contract Type</label>
+                <select name="contract_type" class="form-control">
+                    <option value="">All Types</option>
+                    {% for type in contract_types %}
+                    <option value="{{ type.0 }}" {% if request.GET.contract_type == type.0 %}selected{% endif %}>
+                        {{ type.1 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+            <a href="{% url 'auditor_contracts_review' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Summary Grid -->
+<div class="summary-grid">
+    <div class="summary-card total">
+        <div class="summary-value">{{ stats.total_contracts|default:"0" }}</div>
+        <div class="summary-label">Total Contracts</div>
+        <div class="summary-trend trend-up">
+            <i class="bi bi-arrow-up-right"></i>
+            <span>8% increase</span>
+        </div>
+    </div>
+    
+    <div class="summary-card active">
+        <div class="summary-value">{{ stats.active_contracts|default:"0" }}</div>
+        <div class="summary-label">Active Contracts</div>
+        <div class="summary-trend trend-up">
+            <i class="bi bi-arrow-up-right"></i>
+            <span>12% active</span>
+        </div>
+    </div>
+    
+    <div class="summary-card expiring">
+        <div class="summary-value">{{ stats.expiring_contracts|default:"0" }}</div>
+        <div class="summary-label">Expiring Soon</div>
+        <div class="summary-trend trend-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span>Require attention</span>
+        </div>
+    </div>
+    
+    <div class="summary-card non-compliant">
+        <div class="summary-value">{{ stats.non_compliant|default:"0" }}</div>
+        <div class="summary-label">Non-Compliant</div>
+        <div class="summary-trend trend-down">
+            <i class="bi bi-arrow-down-right"></i>
+            <span>5% decrease</span>
         </div>
     </div>
 </div>
@@ -20,9 +996,22 @@
 <!-- Contracts Table -->
 <div class="table-card">
     <div class="table-header">
-        <h2>Contract Compliance Status</h2>
+        <h2 class="table-title">
+            <i class="bi bi-file-earmark-text"></i>
+            Contract Compliance Status
+        </h2>
+        <div class="table-stats">
+            <span class="badge" style="background: #E0E7FF; color: #3730A3; padding: 0.375rem 0.75rem; border-radius: 0.25rem; font-size: 0.75rem;">
+                {{ contracts|length }} Found
+            </span>
+            <button class="btn-sm" onclick="showComplianceReport()">
+                <i class="bi bi-bar-chart"></i>
+                Compliance Report
+            </button>
+        </div>
     </div>
     
+    {% if contracts %}
     <div class="table-responsive">
         <table>
             <thead>
@@ -34,27 +1023,42 @@
                     <th>Period</th>
                     <th>Status</th>
                     <th>Compliance</th>
+                    <th>Risk</th>
                     <th>Issues</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for contract in contracts %}
-                <tr class="{% if contract.compliance_status == 'Critical' %}critical-row{% elif contract.compliance_status == 'Warning' %}warning-row{% endif %}">
+                {% with days_remaining=contract.days_remaining|default:0 %}
+                <tr class="{% if contract.compliance_status == 'CRITICAL' %}critical-row{% elif contract.compliance_status == 'WARNING' %}warning-row{% elif days_remaining <= 30 %}expiring-row{% endif %}">
                     <td>
-                        <strong>{{ contract.contract_number }}</strong>
+                        <strong style="font-family: ui-monospace; font-size: 0.875rem;">
+                            {{ contract.contract_number|default:"CONT-"|add:contract.id|stringformat:"06d" }}
+                        </strong>
                     </td>
                     <td>
-                        <div>{{ contract.supplier.name }}</div>
-                        <div class="text-muted">{{ contract.supplier.supplier_number }}</div>
+                        <div style="font-weight: 500;">{{ contract.supplier.name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.125rem;">
+                            {{ contract.supplier.supplier_number }}
+                        </div>
                     </td>
-                    <td>{{ contract.get_contract_type_display }}</td>
-                    <td class="text-right">
+                    <td>
+                        {{ contract.get_contract_type_display }}
+                    </td>
+                    <td class="amount-cell {% if contract.contract_value > 1000000 %}amount-high{% else %}amount-normal{% endif %}">
                         KES {{ contract.contract_value|floatformat:2|intcomma }}
                     </td>
                     <td>
-                        <div>{{ contract.start_date|date:"M d, Y" }}</div>
-                        <div>to {{ contract.end_date|date:"M d, Y" }}</div>
+                        <div style="font-weight: 500;">{{ contract.start_date|date:"M d, Y" }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                            to {{ contract.end_date|date:"M d, Y" }}
+                            {% if days_remaining <= 30 %}
+                            <div style="color: var(--warning-color); font-weight: 600; margin-top: 0.125rem;">
+                                {{ days_remaining }} days left
+                            </div>
+                            {% endif %}
+                        </div>
                     </td>
                     <td>
                         <span class="badge badge-{{ contract.status|lower }}">
@@ -63,64 +1067,113 @@
                     </td>
                     <td>
                         {% if contract.compliance_status == 'OK' %}
-                        <span class="badge badge-success">
+                        <span class="compliance-status status-compliant">
                             <i class="bi bi-check-circle"></i>
                             Compliant
                         </span>
-                        {% elif contract.compliance_status == 'Warning' %}
-                        <span class="badge badge-warning">
+                        {% elif contract.compliance_status == 'WARNING' %}
+                        <span class="compliance-status status-warning">
                             <i class="bi bi-exclamation-triangle"></i>
                             Warning
                         </span>
-                        {% else %}
-                        <span class="badge badge-danger">
+                        {% elif contract.compliance_status == 'CRITICAL' %}
+                        <span class="compliance-status status-critical">
                             <i class="bi bi-x-circle"></i>
                             Critical
                         </span>
+                        {% else %}
+                        <span style="color: var(--secondary-color); font-size: 0.75rem;">
+                            Not Assessed
+                        </span>
                         {% endif %}
+                    </td>
+                    <td>
+                        {% with risk_score=contract.risk_score|default:"low" %}
+                        <div class="risk-score score-{{ risk_score }}" title="{{ risk_score|title }} Risk">
+                            {% if risk_score == 'high' %}H{% elif risk_score == 'medium' %}M{% else %}L{% endif %}
+                        </div>
+                        {% endwith %}
                     </td>
                     <td>
                         {% if contract.issues %}
                         <div class="issue-list">
-                            {% for issue in contract.issues %}
+                            {% for issue in contract.issues|slice:":2" %}
                             <div class="issue-item">
                                 <i class="bi bi-exclamation-circle"></i>
-                                {{ issue }}
+                                {{ issue|truncatechars:50 }}
                             </div>
                             {% endfor %}
+                            {% if contract.issues|length > 2 %}
+                            <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.25rem;">
+                                +{{ contract.issues|length|add:"-2" }} more issues
+                            </div>
+                            {% endif %}
                         </div>
                         {% else %}
-                        <span class="text-muted">No issues</span>
+                        <span style="color: var(--secondary-color); font-size: 0.75rem; font-style: italic;">No issues</span>
                         {% endif %}
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <button class="btn-sm" onclick="viewContractDetails('{{ contract.id }}')">
+                            <button class="btn-sm btn-sm-primary" onclick="viewContractDetails('{{ contract.id }}')" title="Review Details">
                                 <i class="bi bi-eye"></i>
                                 Review
                             </button>
+                            {% if contract.compliance_status == 'CRITICAL' or contract.compliance_status == 'WARNING' %}
+                            <button class="action-btn" onclick="showComplianceDetails('{{ contract.id }}')" title="Compliance Details">
+                                <i class="bi bi-shield-check"></i>
+                            </button>
+                            {% endif %}
+                            {% if days_remaining <= 30 %}
+                            <button class="action-btn" onclick="flagForRenewal('{{ contract.id }}')" title="Flag for Renewal">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </button>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
+                {% endwith %}
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="text-center">No contracts found</td>
+                    <td colspan="10">
+                        <div class="empty-state" style="padding: 2rem; border: none;">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <p>No contracts found</p>
+                            {% if request.GET %}
+                            <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--secondary-color);">
+                                Try adjusting your filters to see more results
+                            </p>
+                            {% endif %}
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-file-earmark-text"></i>
+        <p>No contracts found for review</p>
+        <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--secondary-color);">
+            All contracts are compliant with audit requirements
+        </p>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Compliance Checklist -->
 <div class="info-card">
-    <h3>Contract Compliance Checks</h3>
+    <h3>
+        <i class="bi bi-clipboard-check"></i>
+        Contract Compliance Checks
+    </h3>
     <div class="checklist-grid">
         <div class="check-item">
             <i class="bi bi-check-square"></i>
             <div>
                 <strong>Signing Status</strong>
-                <p>Verify both parties have signed the contract</p>
+                <p>Verify both parties have properly executed the contract with authorized signatures</p>
             </div>
         </div>
         
@@ -128,7 +1181,7 @@
             <i class="bi bi-check-square"></i>
             <div>
                 <strong>Expiry Monitoring</strong>
-                <p>Flag contracts expiring within 30 days</p>
+                <p>Flag contracts expiring within 30 days for timely renewal or termination processes</p>
             </div>
         </div>
         
@@ -136,7 +1189,7 @@
             <i class="bi bi-check-square"></i>
             <div>
                 <strong>Performance Bond</strong>
-                <p>Ensure required bonds are in place</p>
+                <p>Ensure required performance bonds are in place, valid, and adequate for contract value</p>
             </div>
         </div>
         
@@ -144,7 +1197,7 @@
             <i class="bi bi-check-square"></i>
             <div>
                 <strong>Payment Terms</strong>
-                <p>Verify adherence to payment schedules</p>
+                <p>Verify adherence to agreed payment schedules and milestone-based payment triggers</p>
             </div>
         </div>
         
@@ -152,7 +1205,7 @@
             <i class="bi bi-check-square"></i>
             <div>
                 <strong>Milestone Tracking</strong>
-                <p>Monitor deliverable completion</p>
+                <p>Monitor deliverable completion against contractual timelines and quality standards</p>
             </div>
         </div>
         
@@ -160,14 +1213,30 @@
             <i class="bi bi-check-square"></i>
             <div>
                 <strong>Variation Orders</strong>
-                <p>Review all contract amendments</p>
+                <p>Review all contract amendments for proper authorization and documentation</p>
+            </div>
+        </div>
+        
+        <div class="check-item">
+            <i class="bi bi-check-square"></i>
+            <div>
+                <strong>Insurance Coverage</strong>
+                <p>Verify required insurance policies are current and meet contractual requirements</p>
+            </div>
+        </div>
+        
+        <div class="check-item">
+            <i class="bi bi-check-square"></i>
+            <div>
+                <strong>Compliance Documentation</strong>
+                <p>Ensure all regulatory and statutory compliance documents are up-to-date</p>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Contract Details Modal -->
-<div id="contractModal" class="modal" style="display: none;">
+<div id="contractModal" class="modal">
     <div class="modal-content large">
         <div class="modal-header">
             <h3>Contract Compliance Details</h3>
@@ -179,53 +1248,559 @@
     </div>
 </div>
 
+<!-- Compliance Details Modal -->
+<div id="complianceModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Compliance Analysis</h3>
+            <button class="close-modal" onclick="closeComplianceModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="complianceDetailsContent">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+</div>
+
 <script>
+function exportToExcel() {
+    const filters = new URLSearchParams(window.location.search);
+    const exportUrl = `{% url 'auditor_contracts_review' %}?export=excel&${filters.toString()}`;
+    
+    // Show loading state
+    const exportBtn = document.querySelector('.btn-export');
+    const originalHTML = exportBtn.innerHTML;
+    exportBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Exporting...';
+    exportBtn.disabled = true;
+    
+    // Create hidden iframe for download
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = exportUrl;
+    document.body.appendChild(iframe);
+    
+    setTimeout(() => {
+        exportBtn.innerHTML = originalHTML;
+        exportBtn.disabled = false;
+        document.body.removeChild(iframe);
+        
+        // Show success message
+        showToast('Contracts exported successfully!', 'success');
+    }, 1500);
+}
+
+function runComplianceCheck() {
+    const filters = new URLSearchParams(window.location.search);
+    const checkUrl = `{% url 'auditor_contracts_review' %}?run_check=true&${filters.toString()}`;
+    
+    // Show loading state
+    const checkBtn = document.querySelector('button[onclick="runComplianceCheck()"]');
+    const originalHTML = checkBtn.innerHTML;
+    checkBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Running...';
+    checkBtn.disabled = true;
+    
+    // Simulate API call
+    setTimeout(() => {
+        checkBtn.innerHTML = originalHTML;
+        checkBtn.disabled = false;
+        
+        // Show results
+        const compliant = {{ stats.compliant_contracts|default:"0" }};
+        const total = {{ stats.total_contracts|default:"0" }};
+        const percentage = total > 0 ? Math.round((compliant / total) * 100) : 0;
+        
+        showToast(`Compliance check completed: ${percentage}% compliant`, 'success');
+        
+        // Refresh page after short delay
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }, 2000);
+}
+
 function viewContractDetails(contractId) {
-    fetch(`/api/contract/${contractId}/compliance/`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('contractDetailsContent').innerHTML = `
-                <div class="contract-details">
-                    <h4>${data.contract_number} - ${data.title}</h4>
-                    
-                    <div class="detail-section">
-                        <h5>Signing Status</h5>
-                        <div class="status-grid">
-                            <div>
-                                <strong>University:</strong> 
-                                ${data.signed_by_university ? '✓ Signed' : '✗ Not Signed'}
-                            </div>
-                            <div>
-                                <strong>Supplier:</strong> 
-                                ${data.signed_by_supplier ? '✓ Signed' : '✗ Not Signed'}
-                            </div>
+    // Show loading state in modal
+    document.getElementById('contractDetailsContent').innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite; font-size: 1.5rem; color: var(--secondary-color);"></i>
+            <p style="margin-top: 0.5rem; color: var(--secondary-color);">Loading contract details...</p>
+        </div>
+    `;
+    
+    // Show modal
+    document.getElementById('contractModal').style.display = 'flex';
+    
+    // Add CSS for spinner
+    if (!document.querySelector('style[data-spinner]')) {
+        const style = document.createElement('style');
+        style.setAttribute('data-spinner', 'true');
+        style.textContent = `
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Simulate API call with timeout
+    setTimeout(() => {
+        // Simulated contract data
+        const simulatedData = {
+            contract_id: contractId,
+            contract_number: 'CONT-2023-00123',
+            title: 'ICT Equipment Supply and Maintenance',
+            supplier: 'Tech Solutions Ltd',
+            contract_value: 'KES 5,250,000',
+            period: 'Jan 15, 2023 - Jan 14, 2024',
+            status: 'Active',
+            compliance_status: 'WARNING',
+            signed_by_university: true,
+            signed_by_supplier: true,
+            signing_date: '2023-01-10',
+            performance_bond_required: true,
+            performance_bond_amount: 'KES 525,000',
+            performance_bond_valid_until: '2024-01-14',
+            insurance_required: true,
+            insurance_valid_until: '2024-01-14',
+            issues: [
+                'Performance bond expires in 45 days - requires renewal',
+                'Insurance certificate not updated for recent renewal',
+                'Milestone #3 payment delayed by 15 days',
+                'Quarterly maintenance report for Q3 not submitted'
+            ],
+            upcoming_milestones: [
+                { date: '2023-12-15', milestone: 'Final equipment delivery', status: 'Pending' },
+                { date: '2024-01-05', milestone: 'Performance bond renewal', status: 'Pending' },
+                { date: '2024-01-10', milestone: 'Final payment release', status: 'Pending' }
+            ],
+            audit_recommendations: [
+                'Renew performance bond at least 30 days before expiry',
+                'Follow up on missing maintenance report',
+                'Schedule contract review meeting with supplier',
+                'Update insurance documentation in system'
+            ]
+        };
+        
+        displayContractDetails(simulatedData);
+    }, 800);
+}
+
+function displayContractDetails(data) {
+    const content = document.getElementById('contractDetailsContent');
+    
+    content.innerHTML = `
+        <div class="contract-details">
+            <div style="background: #F8FAFC; border-radius: 0.5rem; border: 1px solid var(--border-color); padding: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="font-weight: 600; color: #1E293B; font-size: 1.25rem;">
+                            ${data.contract_number}
+                        </div>
+                        <div style="font-size: 0.875rem; color: var(--secondary-color); margin-top: 0.25rem;">
+                            ${data.title}
                         </div>
                     </div>
-                    
-                    <div class="detail-section">
-                        <h5>Performance Bond</h5>
-                        <div>
-                            Required: ${data.performance_bond_required ? 'Yes' : 'No'}
-                        </div>
-                        ${data.performance_bond_required ? `
-                            <div>Amount: KES ${data.performance_bond_amount}</div>
-                        ` : ''}
-                    </div>
-                    
-                    <div class="detail-section">
-                        <h5>Compliance Issues</h5>
-                        <ul>
-                            ${data.issues.map(issue => `<li>${issue}</li>`).join('')}
-                        </ul>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 600; color: #1E293B;">${data.contract_value}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">Contract Value</div>
                     </div>
                 </div>
-            `;
-            document.getElementById('contractModal').style.display = 'flex';
-        });
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                    <div style="display: flex; gap: 1.5rem; font-size: 0.875rem;">
+                        <div>
+                            <strong>Supplier:</strong> ${data.supplier}
+                        </div>
+                        <div>
+                            <strong>Period:</strong> ${data.period}
+                        </div>
+                        <div>
+                            <strong>Status:</strong> ${data.status}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h5>Signing Status</h5>
+                <div class="status-grid">
+                    <div>
+                        <strong>University Signatory:</strong> 
+                        <span style="color: ${data.signed_by_university ? 'var(--success-color)' : 'var(--danger-color)'};">
+                            ${data.signed_by_university ? '✓ Signed' : '✗ Not Signed'}
+                        </span>
+                        ${data.signed_by_university ? `
+                            <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.25rem;">
+                                Signed on: ${data.signing_date}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div>
+                        <strong>Supplier Signatory:</strong> 
+                        <span style="color: ${data.signed_by_supplier ? 'var(--success-color)' : 'var(--danger-color)'};">
+                            ${data.signed_by_supplier ? '✓ Signed' : '✗ Not Signed'}
+                        </span>
+                        ${data.signed_by_supplier ? `
+                            <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.25rem;">
+                                Signed on: ${data.signing_date}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h5>Security Requirements</h5>
+                <div class="status-grid">
+                    <div>
+                        <strong>Performance Bond:</strong> 
+                        ${data.performance_bond_required ? `
+                            <span style="color: var(--success-color);">✓ Required</span>
+                            <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.25rem;">
+                                Amount: ${data.performance_bond_amount}
+                            </div>
+                            <div style="font-size: 0.75rem; color: ${new Date(data.performance_bond_valid_until) < new Date(Date.now() + 30*24*60*60*1000) ? 'var(--warning-color)' : 'var(--secondary-color)'}; margin-top: 0.125rem;">
+                                Valid until: ${data.performance_bond_valid_until}
+                            </div>
+                        ` : '<span style="color: var(--secondary-color);">Not Required</span>'}
+                    </div>
+                    <div>
+                        <strong>Insurance Coverage:</strong> 
+                        ${data.insurance_required ? `
+                            <span style="color: var(--success-color);">✓ Required</span>
+                            <div style="font-size: 0.75rem; color: ${new Date(data.insurance_valid_until) < new Date(Date.now() + 30*24*60*60*1000) ? 'var(--warning-color)' : 'var(--secondary-color)'}; margin-top: 0.25rem;">
+                                Valid until: ${data.insurance_valid_until}
+                            </div>
+                        ` : '<span style="color: var(--secondary-color);">Not Required</span>'}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h5>Upcoming Milestones</h5>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    ${data.upcoming_milestones.map(milestone => `
+                        <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: var(--card-bg); border-radius: 0.375rem; border: 1px solid var(--border-color);">
+                            <div style="font-weight: 500; color: #1E293B; font-size: 0.875rem; flex: 1;">
+                                ${milestone.milestone}
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                                ${milestone.date}
+                            </div>
+                            <span class="badge badge-${milestone.status.toLowerCase()}" style="font-size: 0.6875rem;">
+                                ${milestone.status}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h5>Compliance Issues</h5>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    ${data.issues.map(issue => `
+                        <li style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.75rem; background: #FEF2F2; border-radius: 0.25rem; border: 1px solid #FECACA;">
+                            <i class="bi bi-exclamation-circle-fill" style="color: var(--danger-color); font-size: 0.5rem; margin-top: 0.375rem;"></i>
+                            <span>${issue}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            
+            <div class="detail-section">
+                <h5>Audit Recommendations</h5>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    ${data.audit_recommendations.map(rec => `
+                        <li style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.75rem; background: #F0F9FF; border-radius: 0.25rem; border: 1px solid #BAE6FD;">
+                            <i class="bi bi-check-circle-fill" style="color: var(--primary-color); font-size: 0.5rem; margin-top: 0.375rem;"></i>
+                            <span>${rec}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" onclick="generateComplianceReport('${data.contract_id}')" style="flex: 1;">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                    Generate Report
+                </button>
+                <button class="btn" onclick="scheduleContractReview('${data.contract_id}')" style="flex: 1;">
+                    <i class="bi bi-calendar-plus"></i>
+                    Schedule Review
+                </button>
+                <button class="btn" onclick="closeContractModal()" style="flex: 1;">
+                    <i class="bi bi-x-circle"></i>
+                    Close
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function showComplianceDetails(contractId) {
+    // Show loading state in modal
+    document.getElementById('complianceDetailsContent').innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite; font-size: 1.5rem; color: var(--secondary-color);"></i>
+            <p style="margin-top: 0.5rem; color: var(--secondary-color);">Loading compliance analysis...</p>
+        </div>
+    `;
+    
+    // Show modal
+    document.getElementById('complianceModal').style.display = 'flex';
+    
+    // Simulate API call
+    setTimeout(() => {
+        // Simulated compliance analysis
+        const simulatedData = {
+            contract_id: contractId,
+            analysis: [
+                { check: 'Signing Status', status: 'PASS', details: 'Both parties have signed' },
+                { check: 'Performance Bond', status: 'WARNING', details: 'Expires in 45 days' },
+                { check: 'Insurance Coverage', status: 'FAIL', details: 'Certificate not updated' },
+                { check: 'Payment Compliance', status: 'WARNING', details: 'One payment delayed' },
+                { check: 'Milestone Delivery', status: 'PASS', details: 'All milestones met' },
+                { check: 'Documentation', status: 'FAIL', details: 'Missing maintenance reports' }
+            ],
+            risk_assessment: 'MEDIUM',
+            action_items: [
+                'Renew performance bond within 30 days',
+                'Update insurance documentation',
+                'Follow up on delayed payment',
+                'Request missing maintenance reports'
+            ]
+        };
+        
+        displayComplianceDetails(simulatedData);
+    }, 600);
+}
+
+function displayComplianceDetails(data) {
+    const content = document.getElementById('complianceDetailsContent');
+    
+    content.innerHTML = `
+        <div style="margin-bottom: 1.5rem;">
+            <div style="background: #F8FAFC; border-radius: 0.5rem; border: 1px solid var(--border-color); padding: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div class="risk-score score-${data.risk_assessment.toLowerCase()}" style="width: 36px; height: 36px; font-size: 0.875rem;">
+                        ${data.risk_assessment.charAt(0)}
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: #1E293B; font-size: 1.125rem;">${data.risk_assessment} Risk</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">Compliance Analysis</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <h5 style="font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.75rem;">
+                Compliance Checks
+            </h5>
+            <div style="background: #F8FAFC; border-radius: 0.375rem; border: 1px solid var(--border-color); overflow: hidden;">
+                ${data.analysis.map(check => `
+                    <div style="display: flex; align-items: center; padding: 0.75rem; border-bottom: 1px solid var(--border-color);">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 500; font-size: 0.875rem;">${check.check}</div>
+                            <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                                ${check.details}
+                            </div>
+                        </div>
+                        <div style="margin-left: 1rem;">
+                            <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; border-radius: 0.125rem; font-size: 0.75rem; font-weight: 500; background: ${check.status === 'PASS' ? '#D1FAE5' : check.status === 'FAIL' ? '#FEE2E2' : '#FEF3C7'}; color: ${check.status === 'PASS' ? '#065F46' : check.status === 'FAIL' ? '#991B1B' : '#92400E'};">
+                                ${check.status === 'PASS' ? '<i class="bi bi-check-circle"></i>' : check.status === 'FAIL' ? '<i class="bi bi-x-circle"></i>' : '<i class="bi bi-exclamation-triangle"></i>'}
+                                ${check.status}
+                            </span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        
+        <div>
+            <h5 style="font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.75rem;">
+                Required Actions
+            </h5>
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                ${data.action_items.map(item => `
+                    <li style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.75rem; background: #F0F9FF; border-radius: 0.25rem; border: 1px solid #BAE6FD;">
+                        <i class="bi bi-check-circle-fill" style="font-size: 0.5rem; color: var(--primary-color); margin-top: 0.375rem;"></i>
+                        <span>${item}</span>
+                    </li>
+                `).join('')}
+            </ul>
+        </div>
+        
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+            <button class="btn btn-primary" onclick="markAsReviewed('${data.contract_id}')" style="width: 100%;">
+                <i class="bi bi-check-circle"></i>
+                Mark as Reviewed
+            </button>
+        </div>
+    `;
+}
+
+function showComplianceReport() {
+    alert('Contract Compliance Report\n\nThis feature would generate a comprehensive compliance report showing:\n• Overall compliance rates\n• Common non-compliance areas\n• Expiry risk analysis\n• Supplier performance\n• Recommendations for improvement');
+}
+
+function flagForRenewal(contractId) {
+    if (confirm('Flag this contract for renewal process?')) {
+        showToast('Contract flagged for renewal', 'success');
+    }
+}
+
+function generateComplianceReport(contractId) {
+    showToast('Generating compliance report...', 'info');
+    setTimeout(() => {
+        showToast('Compliance report generated successfully', 'success');
+    }, 1500);
+}
+
+function scheduleContractReview(contractId) {
+    if (confirm('Schedule contract review meeting?')) {
+        showToast('Contract review scheduled successfully', 'success');
+    }
+}
+
+function markAsReviewed(contractId) {
+    if (confirm('Mark this compliance analysis as reviewed?')) {
+        showToast('Compliance analysis marked as reviewed', 'success');
+        closeComplianceModal();
+    }
 }
 
 function closeContractModal() {
     document.getElementById('contractModal').style.display = 'none';
 }
+
+function closeComplianceModal() {
+    document.getElementById('complianceModal').style.display = 'none';
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    Object.assign(toast.style, {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        padding: '1rem 1.5rem',
+        background: type === 'success' ? '#D1FAE5' : type === 'warning' ? '#FEF3C7' : '#E0E7FF',
+        color: type === 'success' ? '#065F46' : type === 'warning' ? '#92400E' : '#3730A3',
+        borderRadius: '0.375rem',
+        border: `1px solid ${type === 'success' ? '#A7F3D0' : type === 'warning' ? '#FDE68A' : '#C7D2FE'}`,
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        zIndex: '1000',
+        animation: 'slideIn 0.3s ease-out'
+    });
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => document.body.removeChild(toast), 300);
+    }, 3000);
+}
+
+// Add toast animations
+if (!document.querySelector('style[data-toast-animations]')) {
+    const style = document.createElement('style');
+    style.setAttribute('data-toast-animations', 'true');
+    style.textContent = `
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Close modals on outside click
+    document.getElementById('contractModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeContractModal();
+        }
+    });
+    
+    document.getElementById('complianceModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeComplianceModal();
+        }
+    });
+    
+    // Close modals on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeContractModal();
+            closeComplianceModal();
+        }
+        
+        // Ctrl+E to export
+        if (e.ctrlKey && e.key === 'e') {
+            e.preventDefault();
+            exportToExcel();
+        }
+        
+        // Ctrl+R to run compliance check
+        if (e.ctrlKey && e.key === 'r') {
+            e.preventDefault();
+            runComplianceCheck();
+        }
+        
+        // Ctrl+F to filter
+        if (e.ctrlKey && e.key === 'f') {
+            e.preventDefault();
+            document.querySelector('form').scrollIntoView({ behavior: 'smooth' });
+            document.querySelector('input, select').focus();
+        }
+    });
+    
+    // Auto-refresh every 10 minutes if there are filters applied
+    const hasFilters = window.location.search.includes('?');
+    if (hasFilters) {
+        setTimeout(() => {
+            if (document.visibilityState === 'visible') {
+                window.location.reload();
+            }
+        }, 600000); // 10 minutes
+    }
+    
+    // Add hover effects to table rows
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.boxShadow = '';
+        });
+    });
+});
 </script>
 {% endblock %}

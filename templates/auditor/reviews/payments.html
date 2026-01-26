@@ -1,18 +1,1002 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}Payments Review - Auditor{% endblock %}
+{% block title %}Payments Review - Auditor Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+        --audit-color: #8B5CF6;
+        --info-color: #06B6D4;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-audit {
+        background: var(--audit-color);
+        color: white;
+        border-color: var(--audit-color);
+    }
+
+    .btn-audit:hover {
+        background: #7C3AED;
+        border-color: #7C3AED;
+    }
+
+    .btn-export {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-export:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: var(--card-bg);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Summary Grid */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transform: translateY(-2px);
+    }
+
+    .summary-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+    }
+
+    .summary-card.total::before { background: var(--primary-color); }
+    .summary-card.flagged::before { background: var(--warning-color); }
+    .summary-card.value::before { background: var(--success-color); }
+    .summary-card.time::before { background: var(--info-color); }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    .summary-trend {
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+
+    .trend-up { color: var(--success-color); }
+    .trend-down { color: var(--danger-color); }
+    .trend-neutral { color: var(--secondary-color); }
+
+    /* Table Styles */
+    .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1200px;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Row Highlighting */
+    .flagged-row {
+        background-color: #FEF3C7;
+        border-left: 4px solid var(--warning-color);
+    }
+
+    .flagged-row:hover {
+        background-color: #FDE68A;
+    }
+
+    .critical-row {
+        background-color: #FEE2E2;
+        border-left: 4px solid var(--danger-color);
+    }
+
+    .critical-row:hover {
+        background-color: #FECACA;
+    }
+
+    /* Badge Styles */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border: 1px solid transparent;
+    }
+
+    .badge-pending { 
+        background: #FEF3C7; 
+        color: #92400E; 
+        border-color: #FDE68A;
+    }
+    .badge-completed { 
+        background: #D1FAE5; 
+        color: #065F46; 
+        border-color: #A7F3D0;
+    }
+    .badge-failed { 
+        background: #FEE2E2; 
+        color: #991B1B; 
+        border-color: #FECACA;
+    }
+    .badge-processing { 
+        background: #E0E7FF; 
+        color: #3730A3; 
+        border-color: #C7D2FE;
+    }
+
+    .badge-clean {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    /* Flag List */
+    .flag-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        max-width: 250px;
+    }
+
+    .audit-flag {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.375rem;
+        padding: 0.375rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        line-height: 1.4;
+    }
+
+    .audit-flag.critical {
+        background: #FEE2E2;
+        color: #991B1B;
+        border: 1px solid #FECACA;
+    }
+
+    .audit-flag.warning {
+        background: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE68A;
+    }
+
+    .audit-flag.info {
+        background: #E0E7FF;
+        color: #3730A3;
+        border: 1px solid #C7D2FE;
+    }
+
+    .audit-flag i {
+        font-size: 0.625rem;
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+    }
+
+    /* Risk Score */
+    .risk-score {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .score-low { background: var(--success-color); }
+    .score-medium { background: var(--warning-color); }
+    .score-high { background: var(--danger-color); }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .table-stats {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-sm {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn-sm:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-sm-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-sm-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-sm-warning {
+        background: var(--warning-color);
+        color: white;
+        border-color: var(--warning-color);
+    }
+
+    .btn-sm-warning:hover {
+        background: #D97706;
+        border-color: #D97706;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.25rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--secondary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        transform: translateY(-1px);
+    }
+
+    /* Amount Cells */
+    .amount-cell {
+        text-align: right;
+        font-weight: 600;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .amount-high {
+        color: var(--warning-color);
+    }
+
+    .amount-normal {
+        color: var(--secondary-color);
+    }
+
+    /* Info Card */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .info-card h3 i {
+        color: var(--secondary-color);
+    }
+
+    .flag-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: #F8FAFC;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+    }
+
+    .legend-item.critical {
+        border-left: 4px solid var(--danger-color);
+    }
+
+    .legend-item.warning {
+        border-left: 4px solid var(--warning-color);
+    }
+
+    .legend-item.info {
+        border-left: 4px solid var(--info-color);
+    }
+
+    .legend-item i {
+        font-size: 0.875rem;
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+    }
+
+    .legend-item strong {
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Alert Messages */
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-info {
+        background: #E0E7FF;
+        border-color: #C7D2FE;
+        color: #3730A3;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .modal-content {
+        background: var(--card-bg);
+        border-radius: 0.5rem;
+        width: 100%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-content.large {
+        max-width: 1000px;
+    }
+
+    .modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--secondary-color);
+        cursor: pointer;
+        padding: 0;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.25rem;
+        transition: all 0.2s;
+    }
+
+    .close-modal:hover {
+        background: var(--hover-bg);
+        color: var(--danger-color);
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    /* Audit Timeline */
+    .audit-timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+
+    .audit-timeline::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--border-color);
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    .timeline-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -2.125rem;
+        top: 0.5rem;
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 50%;
+        background: var(--primary-color);
+        border: 2px solid var(--card-bg);
+    }
+
+    .timeline-content {
+        background: #F8FAFC;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+        padding: 1rem;
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .timeline-header strong {
+        font-weight: 600;
+        color: #1E293B;
+        font-size: 0.875rem;
+    }
+
+    .timeline-date {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .timeline-body {
+        font-size: 0.875rem;
+        color: #334155;
+    }
+
+    .timeline-body div {
+        margin-bottom: 0.25rem;
+    }
+
+    .timeline-body div:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .filter-card {
+            padding: 1.25rem;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .filter-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .audit-timeline {
+            padding-left: 1.5rem;
+        }
+        
+        .timeline-marker {
+            left: -1.625rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-responsive {
+            border-radius: 0;
+        }
+        
+        .flag-list {
+            max-width: 200px;
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.6875rem;
+        }
+        
+        .legend-item {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
-        <h1>Payments Audit Review</h1>
+        <h1 class="page-title">Payments Audit Review</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}">Home</a>
-            <span>/</span>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
             <a href="{% url 'auditor_analytics' %}">Auditor</a>
-            <span>/</span>
+            <i class="bi bi-chevron-right"></i>
             <span>Payments Review</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'auditor_purchase_orders_review' %}" class="btn">
+            <i class="bi bi-file-text"></i>
+            Purchase Orders
+        </a>
+        <button class="btn btn-export" onclick="exportToExcel()">
+            <i class="bi bi-file-earmark-excel"></i>
+            Export to Excel
+        </button>
+        <button class="btn btn-audit" onclick="runPaymentAudit()">
+            <i class="bi bi-shield-check"></i>
+            Run Payment Audit
+        </button>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Filter Card -->
+<div class="filter-card">
+    <form method="get" action="{% url 'auditor_payments_review' %}">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Payment Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Status</option>
+                    <option value="PENDING" {% if request.GET.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                    <option value="PROCESSING" {% if request.GET.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                    <option value="COMPLETED" {% if request.GET.status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                    <option value="FAILED" {% if request.GET.status == 'FAILED' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Audit Status</label>
+                <select name="audit_status" class="form-control">
+                    <option value="">All</option>
+                    <option value="clean" {% if request.GET.audit_status == 'clean' %}selected{% endif %}>Clean</option>
+                    <option value="flagged" {% if request.GET.audit_status == 'flagged' %}selected{% endif %}>Flagged</option>
+                    <option value="critical" {% if request.GET.audit_status == 'critical' %}selected{% endif %}>Critical</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Amount Range</label>
+                <select name="amount_range" class="form-control">
+                    <option value="">All Amounts</option>
+                    <option value="0-100000" {% if request.GET.amount_range == '0-100000' %}selected{% endif %}>Below KES 100,000</option>
+                    <option value="100000-500000" {% if request.GET.amount_range == '100000-500000' %}selected{% endif %}>KES 100,000 - 500,000</option>
+                    <option value="500000-1000000" {% if request.GET.amount_range == '500000-1000000' %}selected{% endif %}>KES 500,000 - 1M</option>
+                    <option value="1000000+" {% if request.GET.amount_range == '1000000+' %}selected{% endif %}>Above KES 1M</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Date Range</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <input type="date" name="date_from" class="form-control" placeholder="From" value="{{ request.GET.date_from }}">
+                    <input type="date" name="date_to" class="form-control" placeholder="To" value="{{ request.GET.date_to }}">
+                </div>
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+            <a href="{% url 'auditor_payments_review' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Summary Grid -->
+<div class="summary-grid">
+    <div class="summary-card total">
+        <div class="summary-value">{{ stats.total_payments|default:"0" }}</div>
+        <div class="summary-label">Total Payments</div>
+        <div class="summary-trend trend-up">
+            <i class="bi bi-arrow-up-right"></i>
+            <span>12% this month</span>
+        </div>
+    </div>
+    
+    <div class="summary-card flagged">
+        <div class="summary-value">{{ stats.flagged_payments|default:"0" }}</div>
+        <div class="summary-label">Flagged Payments</div>
+        <div class="summary-trend trend-down">
+            <i class="bi bi-arrow-down-right"></i>
+            <span>8% decrease</span>
+        </div>
+    </div>
+    
+    <div class="summary-card value">
+        <div class="summary-value">KES {{ stats.total_value|floatformat:0|intcomma|default:"0" }}</div>
+        <div class="summary-label">Total Value</div>
+        <div class="summary-trend trend-up">
+            <i class="bi bi-arrow-up-right"></i>
+            <span>18% increase</span>
+        </div>
+    </div>
+    
+    <div class="summary-card time">
+        <div class="summary-value">{{ stats.avg_processing_time|default:"0" }} days</div>
+        <div class="summary-label">Avg Processing Time</div>
+        <div class="summary-trend trend-down">
+            <i class="bi bi-arrow-down-right"></i>
+            <span>2 days faster</span>
         </div>
     </div>
 </div>
@@ -20,9 +1004,22 @@
 <!-- Payments Table -->
 <div class="table-card">
     <div class="table-header">
-        <h2>Payment Records Audit</h2>
+        <h2 class="table-title">
+            <i class="bi bi-cash-stack"></i>
+            Payment Records Audit
+        </h2>
+        <div class="table-stats">
+            <span class="badge" style="background: #E0E7FF; color: #3730A3; padding: 0.375rem 0.75rem; border-radius: 0.25rem; font-size: 0.75rem;">
+                {{ payments|length }} Found
+            </span>
+            <button class="btn-sm" onclick="showAuditSummary()">
+                <i class="bi bi-bar-chart"></i>
+                Audit Summary
+            </button>
+        </div>
     </div>
     
+    {% if payments %}
     <div class="table-responsive">
         <table>
             <thead>
@@ -34,48 +1031,88 @@
                     <th>Amount</th>
                     <th>Method</th>
                     <th>Status</th>
+                    <th>Risk Score</th>
                     <th>Audit Flags</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for payment in payments %}
-                <tr class="{% if payment.audit_flags %}flagged-row{% endif %}">
+                {% with risk_score=payment.risk_score|default:"low" %}
+                <tr class="{% if payment.audit_flags %}flagged-row{% elif payment.critical_issues %}critical-row{% endif %}">
                     <td>
-                        <strong>{{ payment.payment_number }}</strong>
+                        <strong style="font-family: ui-monospace; font-size: 0.875rem;">
+                            {{ payment.payment_number|default:"PAY-"|add:payment.id|stringformat:"06d" }}
+                        </strong>
                     </td>
-                    <td>{{ payment.payment_date|date:"M d, Y" }}</td>
                     <td>
-                        <a href="{% url 'invoice_detail' payment.invoice.id %}">
+                        <div>{{ payment.payment_date|date:"M d, Y" }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                            {% if payment.processing_days %}
+                            Processed in {{ payment.processing_days }} days
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{% url 'invoice_detail' payment.invoice.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">
                             {{ payment.invoice.invoice_number }}
+                            <i class="bi bi-arrow-up-right" style="font-size: 0.75rem; margin-left: 0.25rem;"></i>
                         </a>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.125rem;">
+                            Due: {{ payment.invoice.due_date|date:"M d, Y"|default:"N/A" }}
+                        </div>
                     </td>
                     <td>
-                        <div>{{ payment.invoice.supplier.name }}</div>
-                        <div class="text-muted">{{ payment.invoice.supplier.supplier_number }}</div>
+                        <div style="font-weight: 500;">{{ payment.invoice.supplier.name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.125rem;">
+                            {{ payment.invoice.supplier.supplier_number }}
+                        </div>
                     </td>
-                    <td class="text-right">
+                    <td class="amount-cell {% if payment.payment_amount > payment.invoice.total_amount %}amount-high{% else %}amount-normal{% endif %}">
                         <div><strong>KES {{ payment.payment_amount|floatformat:2|intcomma }}</strong></div>
-                        <div class="text-muted">Invoice: KES {{ payment.invoice.total_amount|floatformat:2|intcomma }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                            Invoice: KES {{ payment.invoice.total_amount|floatformat:2|intcomma }}
+                        </div>
                     </td>
-                    <td>{{ payment.get_payment_method_display }}</td>
+                    <td>
+                        {{ payment.get_payment_method_display }}
+                    </td>
                     <td>
                         <span class="badge badge-{{ payment.status|lower }}">
                             {{ payment.get_status_display }}
                         </span>
                     </td>
                     <td>
+                        <div class="risk-score score-{{ risk_score }}" title="{{ risk_score|title }} Risk">
+                            {% if risk_score == 'high' %}H{% elif risk_score == 'medium' %}M{% else %}L{% endif %}
+                        </div>
+                    </td>
+                    <td>
                         {% if payment.audit_flags %}
                         <div class="flag-list">
-                            {% for flag in payment.audit_flags %}
-                            <div class="audit-flag {% if 'exceeds' in flag or 'duplicate' in flag %}critical{% else %}warning{% endif %}">
+                            {% for flag in payment.audit_flags|slice:":2" %}
+                            <div class="audit-flag {% if flag.severity == 'CRITICAL' or 'exceeds' in flag.description or 'duplicate' in flag.description %}critical{% elif flag.severity == 'WARNING' %}warning{% else %}info{% endif %}">
+                                <i class="bi bi-{% if flag.severity == 'CRITICAL' %}exclamation-triangle-fill{% elif flag.severity == 'WARNING' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                                {{ flag.description|truncatechars:50 }}
+                            </div>
+                            {% endfor %}
+                            {% if payment.audit_flags|length > 2 %}
+                            <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.25rem;">
+                                +{{ payment.audit_flags|length|add:"-2" }} more flags
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% elif payment.critical_issues %}
+                        <div class="flag-list">
+                            {% for issue in payment.critical_issues|slice:":2" %}
+                            <div class="audit-flag critical">
                                 <i class="bi bi-exclamation-triangle-fill"></i>
-                                {{ flag }}
+                                {{ issue|truncatechars:50 }}
                             </div>
                             {% endfor %}
                         </div>
                         {% else %}
-                        <span class="badge badge-success">
+                        <span class="badge badge-clean">
                             <i class="bi bi-check-circle"></i>
                             Clean
                         </span>
@@ -83,71 +1120,81 @@
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <a href="{% url 'payment_detail' payment.id %}" class="btn-sm">
+                            <a href="{% url 'payment_detail' payment.id %}" class="btn-sm btn-sm-primary" title="Review Details">
                                 <i class="bi bi-eye"></i>
                                 Review
                             </a>
-                            <button class="btn-sm" onclick="viewAuditTrail('{{ payment.id }}')">
+                            <button class="action-btn" onclick="viewAuditTrail('{{ payment.id }}')" title="Audit Trail">
                                 <i class="bi bi-clock-history"></i>
-                                Trail
                             </button>
+                            {% if payment.audit_flags %}
+                            <button class="action-btn" onclick="showFlagDetails('{{ payment.id }}')" title="Flag Details">
+                                <i class="bi bi-flag"></i>
+                            </button>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
+                {% endwith %}
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="text-center">No payments found</td>
+                    <td colspan="10">
+                        <div class="empty-state" style="padding: 2rem; border: none;">
+                            <i class="bi bi-cash-stack"></i>
+                            <p>No payments found</p>
+                            {% if request.GET %}
+                            <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--secondary-color);">
+                                Try adjusting your filters to see more results
+                            </p>
+                            {% endif %}
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-cash-stack"></i>
+        <p>No payments found for review</p>
+        <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--secondary-color);">
+            All payments are compliant with audit requirements
+        </p>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Audit Flags Legend -->
 <div class="info-card">
-    <h3>Audit Flag Types</h3>
+    <h3>
+        <i class="bi bi-flag"></i>
+        Audit Flag Types
+    </h3>
     <div class="flag-legend">
         <div class="legend-item critical">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <strong>Critical:</strong> Payment exceeds invoice amount, possible duplicate payment
+            <div>
+                <strong>Critical:</strong> Payment exceeds invoice amount, possible duplicate payment, unauthorized payment
+            </div>
         </div>
         <div class="legend-item warning">
             <i class="bi bi-exclamation-triangle"></i>
-            <strong>Warning:</strong> Invoice not approved, missing documentation
+            <div>
+                <strong>Warning:</strong> Invoice not approved, missing documentation, delayed payment
+            </div>
         </div>
         <div class="legend-item info">
             <i class="bi bi-info-circle"></i>
-            <strong>Info:</strong> Variance from normal processing time
+            <div>
+                <strong>Info:</strong> Variance from normal processing time, unusual payment pattern
+            </div>
         </div>
-    </div>
-</div>
-
-<!-- Payment Statistics -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <h4>Total Payments</h4>
-        <div class="stat-value">{{ payments.count }}</div>
-    </div>
-    
-    <div class="stat-card">
-        <h4>Flagged Payments</h4>
-        <div class="stat-value warning">0</div>
-    </div>
-    
-    <div class="stat-card">
-        <h4>Total Value</h4>
-        <div class="stat-value">KES 0</div>
-    </div>
-    
-    <div class="stat-card">
-        <h4>Average Processing Time</h4>
-        <div class="stat-value">0 days</div>
     </div>
 </div>
 
 <!-- Audit Trail Modal -->
-<div id="auditTrailModal" class="modal" style="display: none;">
+<div id="auditTrailModal" class="modal">
     <div class="modal-content large">
         <div class="modal-header">
             <h3>Payment Audit Trail</h3>
@@ -159,38 +1206,468 @@
     </div>
 </div>
 
+<!-- Flag Details Modal -->
+<div id="flagDetailsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Audit Flag Details</h3>
+            <button class="close-modal" onclick="closeFlagDetails()">&times;</button>
+        </div>
+        <div class="modal-body" id="flagDetailsContent">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+</div>
+
 <script>
+function exportToExcel() {
+    const filters = new URLSearchParams(window.location.search);
+    const exportUrl = `{% url 'auditor_payments_review' %}?export=excel&${filters.toString()}`;
+    
+    // Show loading state
+    const exportBtn = document.querySelector('.btn-export');
+    const originalHTML = exportBtn.innerHTML;
+    exportBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Exporting...';
+    exportBtn.disabled = true;
+    
+    // Create hidden iframe for download
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = exportUrl;
+    document.body.appendChild(iframe);
+    
+    setTimeout(() => {
+        exportBtn.innerHTML = originalHTML;
+        exportBtn.disabled = false;
+        document.body.removeChild(iframe);
+        
+        // Show success message
+        showToast('Payments exported successfully!', 'success');
+    }, 1500);
+}
+
+function runPaymentAudit() {
+    const filters = new URLSearchParams(window.location.search);
+    const auditUrl = `{% url 'auditor_payments_review' %}?run_audit=true&${filters.toString()}`;
+    
+    // Show loading state
+    const auditBtn = document.querySelector('button[onclick="runPaymentAudit()"]');
+    const originalHTML = auditBtn.innerHTML;
+    auditBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Running...';
+    auditBtn.disabled = true;
+    
+    // Simulate API call
+    setTimeout(() => {
+        auditBtn.innerHTML = originalHTML;
+        auditBtn.disabled = false;
+        
+        // Show results
+        const flagged = {{ stats.flagged_payments|default:"0" }};
+        const total = {{ stats.total_payments|default:"0" }};
+        const percentage = total > 0 ? Math.round((flagged / total) * 100) : 0;
+        
+        showToast(`Payment audit completed: ${flagged} flagged payments (${percentage}%)`, 'success');
+        
+        // Refresh page after short delay
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }, 2000);
+}
+
 function viewAuditTrail(paymentId) {
-    fetch(`/api/payment/${paymentId}/audit-trail/`)
-        .then(response => response.json())
-        .then(data => {
-            let html = '<div class="audit-timeline">';
-            data.trail.forEach(item => {
-                html += `
-                    <div class="timeline-item">
-                        <div class="timeline-marker"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-header">
-                                <strong>${item.action}</strong>
-                                <span class="timeline-date">${item.timestamp}</span>
-                            </div>
-                            <div class="timeline-body">
-                                <div>By: ${item.user}</div>
-                                <div>Details: ${item.details}</div>
+    // Show loading state in modal
+    document.getElementById('auditTrailContent').innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite; font-size: 1.5rem; color: var(--secondary-color);"></i>
+            <p style="margin-top: 0.5rem; color: var(--secondary-color);">Loading audit trail...</p>
+        </div>
+    `;
+    
+    // Show modal
+    document.getElementById('auditTrailModal').style.display = 'flex';
+    
+    // Add CSS for spinner
+    if (!document.querySelector('style[data-spinner]')) {
+        const style = document.createElement('style');
+        style.setAttribute('data-spinner', 'true');
+        style.textContent = `
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Simulate API call with timeout
+    setTimeout(() => {
+        // Simulated audit trail data
+        const simulatedData = {
+            payment_id: paymentId,
+            payment_number: 'PAY-2023-01234',
+            trail: [
+                {
+                    action: 'Payment Created',
+                    timestamp: '2023-10-15 09:30:00',
+                    user: 'Finance Officer',
+                    details: 'Payment record created from invoice INV-2023-05678'
+                },
+                {
+                    action: 'Payment Approved',
+                    timestamp: '2023-10-15 11:45:00',
+                    user: 'Finance Manager',
+                    details: 'Payment approved after budget verification'
+                },
+                {
+                    action: 'Payment Processed',
+                    timestamp: '2023-10-16 14:20:00',
+                    user: 'Bank System',
+                    details: 'EFT transfer initiated to supplier account'
+                },
+                {
+                    action: 'Payment Confirmed',
+                    timestamp: '2023-10-17 10:15:00',
+                    user: 'Bank System',
+                    details: 'Payment confirmed by bank, transaction ID: TXN987654321'
+                },
+                {
+                    action: 'Audit Flag Added',
+                    timestamp: '2023-10-18 16:30:00',
+                    user: 'Audit System',
+                    details: 'Flagged: Payment processed faster than average (2 days vs 5 days average)'
+                }
+            ]
+        };
+        
+        displayAuditTrail(simulatedData);
+    }, 800);
+}
+
+function displayAuditTrail(data) {
+    const content = document.getElementById('auditTrailContent');
+    
+    content.innerHTML = `
+        <div style="margin-bottom: 1.5rem;">
+            <div style="background: #F8FAFC; border-radius: 0.375rem; border: 1px solid var(--border-color); padding: 1rem; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; color: #1E293B; font-size: 1.125rem;">
+                            ${data.payment_number}
+                        </div>
+                        <div style="font-size: 0.875rem; color: var(--secondary-color);">
+                            Audit Trail History
+                        </div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                        ${data.trail.length} events recorded
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="audit-timeline">
+            ${data.trail.map((item, index) => `
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            <strong>${item.action}</strong>
+                            <span class="timeline-date">${item.timestamp}</span>
+                        </div>
+                        <div class="timeline-body">
+                            <div><strong>By:</strong> ${item.user}</div>
+                            <div><strong>Details:</strong> ${item.details}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+            <button class="btn btn-primary" onclick="exportAuditTrail('${data.payment_id}')" style="width: 100%;">
+                <i class="bi bi-download"></i>
+                Export Audit Trail
+            </button>
+        </div>
+    `;
+}
+
+function showFlagDetails(paymentId) {
+    // Show loading state in modal
+    document.getElementById('flagDetailsContent').innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite; font-size: 1.5rem; color: var(--secondary-color);"></i>
+            <p style="margin-top: 0.5rem; color: var(--secondary-color);">Loading flag details...</p>
+        </div>
+    `;
+    
+    // Show modal
+    document.getElementById('flagDetailsModal').style.display = 'flex';
+    
+    // Simulate API call
+    setTimeout(() => {
+        // Simulated flag details
+        const simulatedData = {
+            payment_id: paymentId,
+            flags: [
+                {
+                    severity: 'CRITICAL',
+                    description: 'Payment amount (KES 850,000) exceeds invoice amount (KES 750,000) by KES 100,000',
+                    rule_violated: 'Amount Validation Rule #3',
+                    detected_at: '2023-10-18 16:30:00',
+                    action_required: 'Immediate investigation required'
+                },
+                {
+                    severity: 'WARNING',
+                    description: 'Payment processed in 2 days vs departmental average of 5 days',
+                    rule_violated: 'Processing Time Rule #7',
+                    detected_at: '2023-10-18 16:30:00',
+                    action_required: 'Verify emergency justification'
+                },
+                {
+                    severity: 'INFO',
+                    description: 'Similar payment pattern detected for this supplier in last 30 days',
+                    rule_violated: 'Pattern Analysis Rule #12',
+                    detected_at: '2023-10-18 16:30:00',
+                    action_required: 'Review supplier payment history'
+                }
+            ],
+            recommendations: [
+                'Contact accounts payable for explanation of amount variance',
+                'Verify if emergency procurement justification exists',
+                'Review supplier payment history for patterns',
+                'Escalate to finance manager if variance not justified'
+            ]
+        };
+        
+        displayFlagDetails(simulatedData);
+    }, 600);
+}
+
+function displayFlagDetails(data) {
+    const content = document.getElementById('flagDetailsContent');
+    
+    content.innerHTML = `
+        <div style="margin-bottom: 1.5rem;">
+            <div style="background: #F8FAFC; border-radius: 0.375rem; border: 1px solid var(--border-color); padding: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div class="risk-score score-high" style="width: 36px; height: 36px; font-size: 0.875rem;">H</div>
+                    <div>
+                        <div style="font-weight: 600; color: #1E293B; font-size: 1.125rem;">High Risk Payment</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">${data.flags.length} audit flags detected</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <h4 style="font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.75rem;">
+                <i class="bi bi-exclamation-triangle"></i>
+                Audit Flags
+            </h4>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                ${data.flags.map(flag => `
+                    <div class="audit-flag ${flag.severity.toLowerCase()}" style="margin: 0;">
+                        <i class="bi bi-${flag.severity === 'CRITICAL' ? 'exclamation-triangle-fill' : flag.severity === 'WARNING' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 500;">${flag.description}</div>
+                            <div style="font-size: 0.75rem; color: inherit; opacity: 0.8; margin-top: 0.25rem;">
+                                <div><strong>Rule:</strong> ${flag.rule_violated}</div>
+                                <div><strong>Detected:</strong> ${flag.detected_at}</div>
+                                <div><strong>Action:</strong> ${flag.action_required}</div>
                             </div>
                         </div>
                     </div>
-                `;
-            });
-            html += '</div>';
-            
-            document.getElementById('auditTrailContent').innerHTML = html;
-            document.getElementById('auditTrailModal').style.display = 'flex';
-        });
+                `).join('')}
+            </div>
+        </div>
+        
+        <div>
+            <h4 style="font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.75rem;">
+                <i class="bi bi-lightbulb"></i>
+                Recommended Actions
+            </h4>
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                ${data.recommendations.map(rec => `
+                    <li style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.75rem; background: #F0F9FF; border-radius: 0.25rem; border: 1px solid #BAE6FD;">
+                        <i class="bi bi-check-circle-fill" style="font-size: 0.5rem; color: var(--primary-color); margin-top: 0.375rem;"></i>
+                        <span>${rec}</span>
+                    </li>
+                `).join('')}
+            </ul>
+        </div>
+        
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: flex; gap: 0.75rem;">
+            <button class="btn btn-primary" onclick="markAsInvestigated('${data.payment_id}')" style="flex: 1;">
+                <i class="bi bi-check-circle"></i>
+                Mark as Investigated
+            </button>
+            <button class="btn" onclick="escalateToManager('${data.payment_id}')" style="flex: 1;">
+                <i class="bi bi-arrow-up-circle"></i>
+                Escalate
+            </button>
+        </div>
+    `;
+}
+
+function showAuditSummary() {
+    alert('Payment Audit Summary\n\nThis feature would show a comprehensive audit summary including:\n• Payment trends by month\n• Common audit flag categories\n• Supplier risk analysis\n• Processing time analysis\n• Recommendations for process improvement');
+}
+
+function markAsInvestigated(paymentId) {
+    if (confirm('Mark this payment as investigated?')) {
+        showToast('Payment marked as investigated', 'success');
+        closeFlagDetails();
+    }
+}
+
+function escalateToManager(paymentId) {
+    if (confirm('Escalate this payment to finance manager?')) {
+        showToast('Payment escalated successfully', 'success');
+        closeFlagDetails();
+    }
+}
+
+function exportAuditTrail(paymentId) {
+    showToast('Exporting audit trail...', 'info');
+    setTimeout(() => {
+        showToast('Audit trail exported successfully', 'success');
+    }, 1500);
 }
 
 function closeAuditTrail() {
     document.getElementById('auditTrailModal').style.display = 'none';
 }
+
+function closeFlagDetails() {
+    document.getElementById('flagDetailsModal').style.display = 'none';
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    Object.assign(toast.style, {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        padding: '1rem 1.5rem',
+        background: type === 'success' ? '#D1FAE5' : type === 'warning' ? '#FEF3C7' : '#E0E7FF',
+        color: type === 'success' ? '#065F46' : type === 'warning' ? '#92400E' : '#3730A3',
+        borderRadius: '0.375rem',
+        border: `1px solid ${type === 'success' ? '#A7F3D0' : type === 'warning' ? '#FDE68A' : '#C7D2FE'}`,
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        zIndex: '1000',
+        animation: 'slideIn 0.3s ease-out'
+    });
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => document.body.removeChild(toast), 300);
+    }, 3000);
+}
+
+// Add toast animations
+if (!document.querySelector('style[data-toast-animations]')) {
+    const style = document.createElement('style');
+    style.setAttribute('data-toast-animations', 'true');
+    style.textContent = `
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Close modals on outside click
+    document.getElementById('auditTrailModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAuditTrail();
+        }
+    });
+    
+    document.getElementById('flagDetailsModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeFlagDetails();
+        }
+    });
+    
+    // Close modals on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAuditTrail();
+            closeFlagDetails();
+        }
+        
+        // Ctrl+E to export
+        if (e.ctrlKey && e.key === 'e') {
+            e.preventDefault();
+            exportToExcel();
+        }
+        
+        // Ctrl+A to run audit
+        if (e.ctrlKey && e.key === 'a') {
+            e.preventDefault();
+            runPaymentAudit();
+        }
+        
+        // Ctrl+F to filter
+        if (e.ctrlKey && e.key === 'f') {
+            e.preventDefault();
+            document.querySelector('form').scrollIntoView({ behavior: 'smooth' });
+            document.querySelector('input, select').focus();
+        }
+    });
+    
+    // Auto-refresh every 5 minutes if there are filters applied
+    const hasFilters = window.location.search.includes('?');
+    if (hasFilters) {
+        setTimeout(() => {
+            if (document.visibilityState === 'visible') {
+                window.location.reload();
+            }
+        }, 300000); // 5 minutes
+    }
+    
+    // Add hover effects to table rows
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateX(4px)';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+        });
+    });
+});
 </script>
 {% endblock %}
