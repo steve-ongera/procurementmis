@@ -1,0 +1,151 @@
+<!-- ============================================================================ -->
+<!-- 4. grn_detail.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}GRN {{ grn.grn_number }} - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">GRN {{ grn.grn_number }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'store_receipt_history' %}">Receipt History</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ grn.grn_number }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="detail-grid">
+    <div class="detail-card">
+        <h3>GRN Information</h3>
+        <dl>
+            <dt>GRN Number</dt>
+            <dd>{{ grn.grn_number }}</dd>
+            
+            <dt>Purchase Order</dt>
+            <dd><a href="{% url 'po_detail' grn.purchase_order.id %}">{{ grn.purchase_order.po_number }}</a></dd>
+            
+            <dt>Supplier</dt>
+            <dd>{{ grn.purchase_order.supplier.name }}</dd>
+            
+            <dt>Store</dt>
+            <dd>{{ grn.store.name }}</dd>
+            
+            <dt>Delivery Note Number</dt>
+            <dd>{{ grn.delivery_note_number }}</dd>
+            
+            <dt>Delivery Date</dt>
+            <dd>{{ grn.delivery_date|date:"M d, Y" }}</dd>
+            
+            <dt>Received Date</dt>
+            <dd>{{ grn.received_date|date:"M d, Y" }}</dd>
+            
+            <dt>Received By</dt>
+            <dd>{{ grn.received_by.get_full_name }}</dd>
+            
+            <dt>Status</dt>
+            <dd><span class="badge">{{ grn.get_status_display }}</span></dd>
+        </dl>
+    </div>
+    
+    {% if grn.inspected_by %}
+    <div class="detail-card">
+        <h3>Inspection Information</h3>
+        <dl>
+            <dt>Inspected By</dt>
+            <dd>{{ grn.inspected_by.get_full_name }}</dd>
+            
+            <dt>Inspection Date</dt>
+            <dd>{{ grn.inspection_date|date:"M d, Y" }}</dd>
+            
+            <dt>General Condition</dt>
+            <dd>{{ grn.general_condition|default:"N/A" }}</dd>
+            
+            {% if grn.rejection_reason %}
+            <dt>Rejection Reason</dt>
+            <dd>{{ grn.rejection_reason }}</dd>
+            {% endif %}
+        </dl>
+    </div>
+    {% endif %}
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">Items Received</h2>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Description</th>
+                    <th>Ordered</th>
+                    <th>Delivered</th>
+                    <th>Accepted</th>
+                    <th>Rejected</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in grn.items.all %}
+                <tr>
+                    <td>{{ item.po_item.item_description }}</td>
+                    <td>{{ item.quantity_ordered }}</td>
+                    <td>{{ item.quantity_delivered }}</td>
+                    <td>{{ item.quantity_accepted }}</td>
+                    <td>{{ item.quantity_rejected }}</td>
+                    <td><span class="badge">{{ item.get_item_status_display }}</span></td>
+                    <td>{{ item.remarks|default:"" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if grn.status == 'DRAFT' or grn.status == 'INSPECTING' %}
+<div class="form-card">
+    <h3>Perform Inspection</h3>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="inspect">
+        
+        <div class="form-group">
+            <label>Status *</label>
+            <select name="status" class="form-control" required>
+                <option value="ACCEPTED">Accepted</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="PARTIAL">Partially Accepted</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>General Condition</label>
+            <textarea name="general_condition" class="form-control" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Rejection Reason (if applicable)</label>
+            <textarea name="rejection_reason" class="form-control" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" class="form-control" rows="3"></textarea>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Complete Inspection</button>
+        </div>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

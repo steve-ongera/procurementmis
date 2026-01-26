@@ -1,0 +1,76 @@
+<!-- ============================================================================ -->
+<!-- 10. pending_issues.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Pending Issues - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Pending Stock Issues</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Pending Issues</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'store_create_issue' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Create Issue
+        </a>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clock-history"></i> Pending Stock Issue Requests ({{ pending_issues.count }})
+        </h2>
+    </div>
+    {% if pending_issues %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Issue Number</th>
+                    <th>Department</th>
+                    <th>Store</th>
+                    <th>Requested By</th>
+                    <th>Request Date</th>
+                    <th>Items</th>
+                    <th>Purpose</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for issue in pending_issues %}
+                <tr>
+                    <td><a href="{% url 'store_process_issue' issue.id %}">{{ issue.issue_number }}</a></td>
+                    <td>{{ issue.department.name }}</td>
+                    <td>{{ issue.store.name }}</td>
+                    <td>{{ issue.requested_by.get_full_name }}</td>
+                    <td>{{ issue.created_at|date:"M d, Y" }}</td>
+                    <td>{{ issue.items.count }} item{{ issue.items.count|pluralize }}</td>
+                    <td>{{ issue.purpose|truncatewords:8 }}</td>
+                    <td>
+                        <a href="{% url 'store_process_issue' issue.id %}" class="btn-sm btn-primary">
+                            <i class="bi bi-check-circle"></i> Process
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>No pending stock issues</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

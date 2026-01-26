@@ -1,0 +1,74 @@
+<!-- ============================================================================ -->
+<!-- 9. out_of_stock.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Out of Stock - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Out of Stock Items</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Out of Stock</span>
+        </div>
+    </div>
+</div>
+
+<div class="alert-banner alert-danger">
+    <i class="bi bi-x-circle"></i>
+    <div>
+        <strong>{{ out_of_stock_items.count }} items</strong> are completely out of stock
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-x-circle"></i> Zero Stock Items
+        </h2>
+    </div>
+    {% if out_of_stock_items %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Code</th>
+                    <th>Item Name</th>
+                    <th>Category</th>
+                    <th>Store</th>
+                    <th>Reorder Level</th>
+                    <th>Last Issue</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in out_of_stock_items %}
+                <tr>
+                    <td>{{ stock.item.code }}</td>
+                    <td>{{ stock.item.name }}</td>
+                    <td>{{ stock.item.category.name }}</td>
+                    <td>{{ stock.store.name }}</td>
+                    <td>{{ stock.reorder_level }}</td>
+                    <td>{{ stock.last_issue_date|date:"M d, Y"|default:"Never" }}</td>
+                    <td>
+                        <a href="#" class="btn-sm btn-primary">Create Requisition</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>No items are out of stock</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

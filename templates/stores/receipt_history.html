@@ -1,0 +1,107 @@
+<!-- ============================================================================ -->
+<!-- 3. receipt_history.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Receipt History - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Receipt History</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Receipt History</span>
+        </div>
+    </div>
+</div>
+
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    <option value="DRAFT">Draft</option>
+                    <option value="INSPECTING">Inspecting</option>
+                    <option value="ACCEPTED">Accepted</option>
+                    <option value="REJECTED">Rejected</option>
+                    <option value="PARTIAL">Partial</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Store</label>
+                <select name="store" class="form-control">
+                    <option value="">All Stores</option>
+                    {% for store in stores %}
+                    <option value="{{ store.id }}">{{ store.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date From</label>
+                <input type="date" name="date_from" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Date To</label>
+                <input type="date" name="date_to" class="form-control">
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+        </div>
+    </form>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-receipt"></i> Goods Received Notes ({{ grns.count }})
+        </h2>
+    </div>
+    {% if grns %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>GRN Number</th>
+                    <th>PO Number</th>
+                    <th>Supplier</th>
+                    <th>Store</th>
+                    <th>Received Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grn in grns %}
+                <tr>
+                    <td><a href="{% url 'store_grn_detail' grn.id %}">{{ grn.grn_number }}</a></td>
+                    <td>{{ grn.purchase_order.po_number }}</td>
+                    <td>{{ grn.purchase_order.supplier.name }}</td>
+                    <td>{{ grn.store.name }}</td>
+                    <td>{{ grn.received_date|date:"M d, Y" }}</td>
+                    <td><span class="badge">{{ grn.get_status_display }}</span></td>
+                    <td>
+                        <a href="{% url 'store_grn_detail' grn.id %}" class="btn-sm">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-receipt"></i>
+        <p>No GRNs found</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

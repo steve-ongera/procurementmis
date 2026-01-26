@@ -1,0 +1,322 @@
+<!-- ============================================================================ -->
+<!-- 23. help_center.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Help Center - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Stores Management Help Center</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Help Center</span>
+        </div>
+    </div>
+</div>
+
+<div class="help-grid">
+    <div class="help-section">
+        <h3><i class="bi bi-box-seam"></i> Goods Receipt</h3>
+        <div class="help-item">
+            <h4>How to Receive Goods</h4>
+            <ol>
+                <li>Navigate to <strong>Goods Receipt > Pending Deliveries</strong></li>
+                <li>Locate the Purchase Order to receive</li>
+                <li>Click <strong>Receive Goods</strong> button</li>
+                <li>Fill in delivery details (delivery note, date)</li>
+                <li>Enter quantities delivered for each item</li>
+                <li>Specify accepted and rejected quantities</li>
+                <li>Click <strong>Create GRN</strong></li>
+            </ol>
+        </div>
+        
+        <div class="help-item">
+            <h4>How to Inspect Goods</h4>
+            <ol>
+                <li>Go to <strong>Goods Receipt > Receipt History</strong></li>
+                <li>Click on a GRN to view details</li>
+                <li>Review delivered items</li>
+                <li>Select inspection status (Accepted/Rejected/Partial)</li>
+                <li>Add inspection notes and reasons if applicable</li>
+                <li>Click <strong>Complete Inspection</strong></li>
+            </ol>
+        </div>
+        
+        <div class="help-item">
+            <h4>Handling Quality Issues</h4>
+            <p>If goods do not meet quality standards:</p>
+            <ul>
+                <li>Mark items as <strong>Rejected</strong> or <strong>Damaged</strong> during GRN creation</li>
+                <li>Provide detailed rejection reasons</li>
+                <li>View all quality issues in <strong>Quality Issues</strong> page</li>
+                <li>Coordinate with procurement for supplier returns</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="help-section">
+        <h3><i class="bi bi-box"></i> Stock Management</h3>
+        <div class="help-item">
+            <h4>Adding Stock Items</h4>
+            <ol>
+                <li>Go to <strong>Inventory > All Stock</strong></li>
+                <li>Click <strong>Add Stock Item</strong></li>
+                <li>Select store and item</li>
+                <li>Enter initial quantity and cost</li>
+                <li>Set reorder level and max stock level</li>
+                <li>Click <strong>Add Stock Item</strong></li>
+            </ol>
+        </div>
+        
+        <div class="help-item">
+            <h4>Monitoring Stock Levels</h4>
+            <ul>
+                <li><strong>Low Stock Alert:</strong> Shows items at or below reorder level</li>
+                <li><strong>Out of Stock:</strong> Lists items with zero quantity</li>
+                <li>System automatically flags items needing restock</li>
+                <li>Create requisitions directly from alerts</li>
+            </ul>
+        </div>
+        
+        <div class="help-item">
+            <h4>Stock Takes (Physical Verification)</h4>
+            <ol>
+                <li>Navigate to <strong>Inventory > Stock Takes</strong></li>
+                <li>Select the store to verify</li>
+                <li>Perform physical count of all items</li>
+                <li>Enter actual quantities in the system</li>
+                <li>System will show variances</li>
+                <li>Add remarks for discrepancies</li>
+                <li>Click <strong>Complete Stock Take</strong></li>
+                <li>System automatically adjusts stock levels</li>
+            </ol>
+        </div>
+    </div>
+    
+    <div class="help-section">
+        <h3><i class="bi bi-box-arrow-right"></i> Stock Issues</h3>
+        <div class="help-item">
+            <h4>Creating Stock Issue Requests</h4>
+            <ol>
+                <li>Go to <strong>Issues > Create Issue</strong></li>
+                <li>Select store and requesting department</li>
+                <li>Specify purpose of issue</li>
+                <li>Add items and quantities needed</li>
+                <li>Click <strong>Create Issue Request</strong></li>
+            </ol>
+        </div>
+        
+        <div class="help-item">
+            <h4>Processing Stock Issues</h4>
+            <ol>
+                <li>View pending issues in <strong>Issues > Pending</strong></li>
+                <li>Click <strong>Process</strong> on an issue</li>
+                <li>Verify requested quantities against available stock</li>
+                <li>Adjust quantities if needed</li>
+                <li>Click <strong>Issue Stock</strong></li>
+                <li>System updates stock levels automatically</li>
+            </ol>
+        </div>
+        
+        <div class="help-item">
+            <h4>Stock Returns</h4>
+            <ol>
+                <li>Go to <strong>Issues > Returns</strong></li>
+                <li>Select the original issue to return from</li>
+                <li>Enter quantities being returned</li>
+                <li>Provide reason for return</li>
+                <li>Click <strong>Process Return</strong></li>
+            </ol>
+        </div>
+    </div>
+    
+    <div class="help-section">
+        <h3><i class="bi bi-arrow-left-right"></i> Stock Transfers</h3>
+        <div class="help-item">
+            <h4>Transferring Stock Between Stores</h4>
+            <ol>
+                <li>Navigate to <strong>Inventory > Stock Transfers</strong></li>
+                <li>Select source store (From Store)</li>
+                <li>Select destination store (To Store)</li>
+                <li>Choose the stock item to transfer</li>
+                <li>Enter quantity (system shows available quantity)</li>
+                <li>Add transfer reason</li>
+                <li>Click <strong>Transfer Stock</strong></li>
+            </ol>
+            <p><strong>Note:</strong> System automatically creates movement records for both stores.</p>
+        </div>
+    </div>
+    
+    <div class="help-section">
+        <h3><i class="bi bi-laptop"></i> Asset Management</h3>
+        <div class="help-item">
+            <h4>Registering Assets</h4>
+            <ol>
+                <li>Go to <strong>Assets > Register Asset</strong></li>
+                <li>Enter asset number and tag</li>
+                <li>Provide description and details (serial, model, brand)</li>
+                <li>Enter acquisition date and cost</li>
+                <li>Set depreciation rate and useful life</li>
+                <li>Assign to department and custodian</li>
+                <li>Specify physical location</li>
+                <li>Add warranty information</li>
+                <li>Click <strong>Register Asset</strong></li>
+            </ol>
+        </div>
+        
+        <div class="help-item">
+            <h4>Asset Maintenance Tracking</h4>
+            <ul>
+                <li>View assets requiring attention in <strong>Assets > Maintenance</strong></li>
+                <li>System alerts for warranty expiry</li>
+                <li>Update asset status (Under Maintenance, Damaged, etc.)</li>
+                <li>Schedule and track maintenance activities</li>
+            </ul>
+        </div>
+        
+        <div class="help-item">
+            <h4>Asset Disposal</h4>
+            <ol>
+                <li>Go to <strong>Assets > Disposal</strong></li>
+                <li>View assets eligible for disposal (Damaged, Idle)</li>
+                <li>Click <strong>Dispose</strong> on selected asset</li>
+                <li>Enter disposal date and method</li>
+                <li>Specify disposal value if applicable</li>
+                <li>Add detailed notes</li>
+                <li>Click <strong>Confirm Disposal</strong></li>
+            </ol>
+        </div>
+    </div>
+    
+    <div class="help-section">
+        <h3><i class="bi bi-file-text"></i> Reports</h3>
+        <div class="help-item">
+            <h4>Available Reports</h4>
+            <ul>
+                <li><strong>Stock Summary:</strong> Overview of stock by store and category</li>
+                <li><strong>Low Stock Report:</strong> Items requiring restock</li>
+                <li><strong>Stock Valuation:</strong> Total value of inventory</li>
+                <li><strong>Movement Reports:</strong> All stock movements by date range</li>
+            </ul>
+        </div>
+        
+        <div class="help-item">
+            <h4>Generating Reports</h4>
+            <ol>
+                <li>Navigate to <strong>Reports</strong> section</li>
+                <li>Select report type</li>
+                <li>Apply filters (date range, store, category, etc.)</li>
+                <li>Click <strong>Generate Report</strong></li>
+                <li>Use <strong>Print</strong> or <strong>Export to Excel</strong> buttons</li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<div class="help-footer">
+    <div class="help-card">
+        <i class="bi bi-question-circle"></i>
+        <div>
+            <h4>Need More Help?</h4>
+            <p>Contact the IT Support team or submit a ticket through the helpdesk system.</p>
+            <a href="#" class="btn btn-primary">Contact Support</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.help-grid {
+    display: grid;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.help-section {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+
+.help-section h3 {
+    color: #1e293b;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.help-item {
+    margin-bottom: 1.5rem;
+}
+
+.help-item:last-child {
+    margin-bottom: 0;
+}
+
+.help-item h4 {
+    color: #334155;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.help-item ol, .help-item ul {
+    margin-left: 1.5rem;
+    color: #475569;
+}
+
+.help-item li {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+.help-item p {
+    color: #475569;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+}
+
+.help-item strong {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.help-footer {
+    margin-top: 2rem;
+}
+
+.help-card {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.help-card i {
+    font-size: 2rem;
+    color: #2563eb;
+}
+
+.help-card h4 {
+    margin: 0 0 0.5rem 0;
+    color: #1e293b;
+}
+
+.help-card p {
+    margin: 0 0 1rem 0;
+    color: #475569;
+}
+</style>
+{% endblock %}

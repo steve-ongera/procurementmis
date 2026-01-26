@@ -1,0 +1,77 @@
+
+<!-- ============================================================================ -->
+<!-- 8. low_stock_alert.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Low Stock Alert - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Low Stock Alert</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Low Stock Alert</span>
+        </div>
+    </div>
+</div>
+
+<div class="alert-banner alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <div>
+        <strong>{{ low_stock_items.count }} items</strong> are at or below reorder level
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-exclamation-triangle"></i> Items Requiring Restock
+        </h2>
+    </div>
+    {% if low_stock_items %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Code</th>
+                    <th>Item Name</th>
+                    <th>Store</th>
+                    <th>Current Qty</th>
+                    <th>Reorder Level</th>
+                    <th>Deficit</th>
+                    <th>Last Restock</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in low_stock_items %}
+                <tr>
+                    <td>{{ stock.item.code }}</td>
+                    <td>{{ stock.item.name }}</td>
+                    <td>{{ stock.store.name }}</td>
+                    <td class="text-danger">{{ stock.quantity_on_hand }}</td>
+                    <td>{{ stock.reorder_level }}</td>
+                    <td class="text-danger">{{ stock.reorder_level|add:"-"|add:stock.quantity_on_hand|floatformat:0 }}</td>
+                    <td>{{ stock.last_restock_date|date:"M d, Y"|default:"Never" }}</td>
+                    <td>
+                        <a href="#" class="btn-sm btn-primary">Create Requisition</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>All items are adequately stocked</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

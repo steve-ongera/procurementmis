@@ -1,0 +1,103 @@
+<!-- ============================================================================ -->
+<!-- 13. issue_history.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Issue History - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Stock Issue History</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Issue History</span>
+        </div>
+    </div>
+</div>
+
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="ISSUED">Issued</option>
+                    <option value="CANCELLED">Cancelled</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <select name="department" class="form-control">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date From</label>
+                <input type="date" name="date_from" class="form-control">
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+        </div>
+    </form>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-box-arrow-right"></i> Stock Issues ({{ issues.count }})
+        </h2>
+    </div>
+    {% if issues %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Issue Number</th>
+                    <th>Department</th>
+                    <th>Requested By</th>
+                    <th>Issue Date</th>
+                    <th>Issued By</th>
+                    <th>Items</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for issue in issues %}
+                <tr>
+                    <td><a href="#">{{ issue.issue_number }}</a></td>
+                    <td>{{ issue.department.name }}</td>
+                    <td>{{ issue.requested_by.get_full_name }}</td>
+                    <td>{{ issue.issue_date|date:"M d, Y"|default:"N/A" }}</td>
+                    <td>{{ issue.issued_by.get_full_name|default:"N/A" }}</td>
+                    <td>{{ issue.items.count }} item{{ issue.items.count|pluralize }}</td>
+                    <td><span class="badge">{{ issue.get_status_display }}</span></td>
+                    <td>
+                        <a href="#" class="btn-sm"><i class="bi bi-eye"></i></a>
+                        <a href="#" class="btn-sm"><i class="bi bi-printer"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-box-arrow-right"></i>
+        <p>No stock issues found</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

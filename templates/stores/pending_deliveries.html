@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Pending Deliveries - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Pending Deliveries</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Pending Deliveries</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'store_receive_goods' %}" class="btn btn-primary">
+            <i class="bi bi-box-seam"></i> Receive Goods
+        </a>
+    </div>
+</div>
+
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.total_pending }}</div>
+        <div class="summary-label">Total Pending</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.overdue }}</div>
+        <div class="summary-label">Overdue</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.due_today }}</div>
+        <div class="summary-label">Due Today</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.due_this_week }}</div>
+        <div class="summary-label">Due This Week</div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-truck"></i> Purchase Orders Awaiting Delivery ({{ pending_pos.count }})
+        </h2>
+    </div>
+    {% if pending_pos %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>PO Number</th>
+                    <th>Supplier</th>
+                    <th>Requisition</th>
+                    <th>Delivery Date</th>
+                    <th>Total Amount</th>
+                    <th>Status</th>
+                    <th>Items</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in pending_pos %}
+                <tr>
+                    <td><a href="{% url 'po_detail' po.id %}">{{ po.po_number }}</a></td>
+                    <td>{{ po.supplier.name }}</td>
+                    <td>{{ po.requisition.requisition_number }}</td>
+                    <td>{{ po.delivery_date|date:"M d, Y" }}</td>
+                    <td>KES {{ po.total_amount|floatformat:0|intcomma }}</td>
+                    <td><span class="badge">{{ po.get_status_display }}</span></td>
+                    <td>{{ po.items.count }} item{{ po.items.count|pluralize }}</td>
+                    <td>
+                        <a href="{% url 'store_receive_goods_po' po.id %}" class="btn-sm">
+                            <i class="bi bi-box-seam"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-truck"></i>
+        <p>No pending deliveries</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

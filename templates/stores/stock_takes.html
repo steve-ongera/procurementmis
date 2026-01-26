@@ -1,0 +1,84 @@
+<!-- ============================================================================ -->
+<!-- 15. stock_takes.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Stock Takes - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Stock Takes / Physical Verification</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Stock Takes</span>
+        </div>
+    </div>
+</div>
+
+<div class="info-card">
+    <i class="bi bi-info-circle"></i>
+    <div>
+        <strong>Stock Taking Instructions</strong>
+        <p>Conduct physical count of all items in the selected store and record actual quantities. System will automatically adjust discrepancies.</p>
+    </div>
+</div>
+
+<div class="form-card">
+    <h3>Conduct Stock Take</h3>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label>Select Store *</label>
+            <select name="store" id="store_select" class="form-control" required onchange="loadStockItems(this.value)">
+                <option value="">Select Store</option>
+                {% for store in stores %}
+                <option value="{{ store.id }}">{{ store.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div id="stock-items-container" style="display: none;">
+            <h4>Record Physical Count</h4>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Code</th>
+                            <th>Item Name</th>
+                            <th>System Qty</th>
+                            <th>Physical Count *</th>
+                            <th>Variance</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-items-tbody">
+                        <!-- Will be populated via AJAX -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Complete Stock Take</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-clock-history"></i> Recent Stock Takes
+        </h2>
+    </div>
+    <div class="empty-state">
+        <i class="bi bi-clipboard-check"></i>
+        <p>No stock takes recorded yet</p>
+    </div>
+</div>
+{% endblock %}

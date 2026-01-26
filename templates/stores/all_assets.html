@@ -1,0 +1,113 @@
+<!-- ============================================================================ -->
+<!-- 17. all_assets.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}All Assets - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Fixed Assets Register</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>All Assets</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'store_register_asset' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Register Asset
+        </a>
+    </div>
+</div>
+
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Asset number, tag, description...">
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="IDLE">Idle</option>
+                    <option value="UNDER_MAINTENANCE">Under Maintenance</option>
+                    <option value="DAMAGED">Damaged</option>
+                    <option value="DISPOSED">Disposed</option>
+                    <option value="LOST">Lost/Missing</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <select name="department" class="form-control">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+        </div>
+    </form>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-laptop"></i> Assets ({{ assets.count }})
+        </h2>
+    </div>
+    {% if assets %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Asset Number</th>
+                    <th>Asset Tag</th>
+                    <th>Description</th>
+                    <th>Department</th>
+                    <th>Custodian</th>
+                    <th>Acquisition Cost</th>
+                    <th>Current Value</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asset in assets %}
+                <tr>
+                    <td><a href="#">{{ asset.asset_number }}</a></td>
+                    <td>{{ asset.asset_tag }}</td>
+                    <td>{{ asset.description|truncatewords:8 }}</td>
+                    <td>{{ asset.department.name }}</td>
+                    <td>{{ asset.custodian.get_full_name }}</td>
+                    <td>KES {{ asset.acquisition_cost|floatformat:0|intcomma }}</td>
+                    <td>KES {{ asset.current_value|floatformat:0|intcomma }}</td>
+                    <td><span class="badge">{{ asset.get_status_display }}</span></td>
+                    <td>
+                        <a href="#" class="btn-sm"><i class="bi bi-eye"></i></a>
+                        <a href="#" class="btn-sm"><i class="bi bi-pencil"></i></a>
+                        <a href="#" class="btn-sm"><i class="bi bi-qr-code"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-laptop"></i>
+        <p>No assets found</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

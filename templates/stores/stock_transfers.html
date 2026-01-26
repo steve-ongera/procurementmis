@@ -1,0 +1,92 @@
+<!-- ============================================================================ -->
+<!-- 16. stock_transfers.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Stock Transfers - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Stock Transfers Between Stores</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Stock Transfers</span>
+        </div>
+    </div>
+</div>
+
+<div class="form-card">
+    <h3>Create Stock Transfer</h3>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>From Store *</label>
+                <select name="from_store" id="from_store" class="form-control" required>
+                    <option value="">Select Source Store</option>
+                    {% for store in stores %}
+                    <option value="{{ store.id }}">{{ store.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>To Store *</label>
+                <select name="to_store" class="form-control" required>
+                    <option value="">Select Destination Store</option>
+                    {% for store in stores %}
+                    <option value="{{ store.id }}">{{ store.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Stock Item *</label>
+            <select name="stock_item" class="form-control" required>
+                <option value="">Select Item</option>
+                <!-- Will be populated based on from_store selection -->
+            </select>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>Quantity to Transfer *</label>
+                <input type="number" name="quantity" class="form-control" step="0.01" min="0.01" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Available Quantity</label>
+                <input type="text" class="form-control" id="available_qty" readonly>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Transfer Reason</label>
+            <textarea name="reason" class="form-control" rows="3"></textarea>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Transfer Stock</button>
+        </div>
+    </form>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-arrow-left-right"></i> Recent Transfers
+        </h2>
+    </div>
+    <div class="empty-state">
+        <i class="bi bi-arrow-left-right"></i>
+        <p>No transfers recorded yet</p>
+    </div>
+</div>
+{% endblock %}

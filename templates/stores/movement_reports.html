@@ -1,0 +1,124 @@
+<!-- ============================================================================ -->
+<!-- 22. movement_reports.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Stock Movement Reports - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Stock Movement Reports</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Movement Reports</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="bi bi-printer"></i> Print Report
+        </button>
+        <button class="btn" onclick="exportReport()">
+            <i class="bi bi-download"></i> Export to Excel
+        </button>
+    </div>
+</div>
+
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label>Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="form-group">
+                <label>Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="form-group">
+                <label>Movement Type</label>
+                <select name="movement_type" class="form-control">
+                    <option value="">All Types</option>
+                    <option value="RECEIPT">Receipt</option>
+                    <option value="ISSUE">Issue</option>
+                    <option value="TRANSFER">Transfer</option>
+                    <option value="ADJUSTMENT">Adjustment</option>
+                    <option value="RETURN">Return</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Store</label>
+                <select name="store" class="form-control">
+                    <option value="">All Stores</option>
+                    <!-- Add stores -->
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Generate Report</button>
+        </div>
+    </form>
+</div>
+
+<div class="summary-grid">
+    {% for item in summary %}
+    <div class="summary-card">
+        <div class="summary-value">{{ item.total_movements }}</div>
+        <div class="summary-label">{{ item.movement_type }} ({{ item.total_quantity }})</div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-arrow-left-right"></i> Stock Movements
+        </h2>
+    </div>
+    {% if movements %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date & Time</th>
+                    <th>Movement Type</th>
+                    <th>Reference</th>
+                    <th>Item</th>
+                    <th>Store</th>
+                    <th>Quantity</th>
+                    <th>Balance Before</th>
+                    <th>Balance After</th>
+                    <th>Performed By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movement in movements %}
+                <tr>
+                    <td>{{ movement.movement_date|date:"M d, Y H:i" }}</td>
+                    <td>
+                        <span class="badge">{{ movement.get_movement_type_display }}</span>
+                    </td>
+                    <td>{{ movement.reference_number }}</td>
+                    <td>{{ movement.stock_item.item.name }}</td>
+                    <td>{{ movement.stock_item.store.name }}</td>
+                    <td>{{ movement.quantity }}</td>
+                    <td>{{ movement.balance_before }}</td>
+                    <td>{{ movement.balance_after }}</td>
+                    <td>{{ movement.performed_by.get_full_name }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-arrow-left-right"></i>
+        <p>No movements found for the selected period</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

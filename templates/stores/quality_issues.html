@@ -1,0 +1,112 @@
+<!-- ============================================================================ -->
+<!-- 5. quality_issues.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Quality Issues - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Quality Issues</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Quality Issues</span>
+        </div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-exclamation-triangle"></i> Rejected/Problematic Deliveries
+        </h2>
+    </div>
+    {% if quality_issues %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>GRN Number</th>
+                    <th>PO Number</th>
+                    <th>Supplier</th>
+                    <th>Received Date</th>
+                    <th>Status</th>
+                    <th>Reason</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grn in quality_issues %}
+                <tr>
+                    <td><a href="{% url 'store_grn_detail' grn.id %}">{{ grn.grn_number }}</a></td>
+                    <td>{{ grn.purchase_order.po_number }}</td>
+                    <td>{{ grn.purchase_order.supplier.name }}</td>
+                    <td>{{ grn.received_date|date:"M d, Y" }}</td>
+                    <td><span class="badge badge-danger">{{ grn.get_status_display }}</span></td>
+                    <td>{{ grn.rejection_reason|truncatewords:10 }}</td>
+                    <td>
+                        <a href="{% url 'store_grn_detail' grn.id %}" class="btn-sm">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>No quality issues found</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-x-circle"></i> Items with Quality Problems
+        </h2>
+    </div>
+    {% if problem_items %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>GRN Number</th>
+                    <th>Item Description</th>
+                    <th>Supplier</th>
+                    <th>Delivered</th>
+                    <th>Rejected</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in problem_items %}
+                <tr>
+                    <td><a href="{% url 'store_grn_detail' item.grn.id %}">{{ item.grn.grn_number }}</a></td>
+                    <td>{{ item.po_item.item_description }}</td>
+                    <td>{{ item.grn.purchase_order.supplier.name }}</td>
+                    <td>{{ item.quantity_delivered }}</td>
+                    <td>{{ item.quantity_rejected }}</td>
+                    <td><span class="badge badge-danger">{{ item.get_item_status_display }}</span></td>
+                    <td>{{ item.remarks }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>No problem items found</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

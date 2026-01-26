@@ -1,0 +1,84 @@
+<!-- ============================================================================ -->
+<!-- 14. returns.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Stock Returns - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Stock Returns</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Returns</span>
+        </div>
+    </div>
+</div>
+
+<div class="info-card">
+    <i class="bi bi-info-circle"></i>
+    <div>
+        <strong>Stock Returns</strong>
+        <p>Process returns from departments for items that were previously issued.</p>
+    </div>
+</div>
+
+<div class="form-card">
+    <h3>Process Stock Return</h3>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label>Select Issue to Return From *</label>
+            <select name="issue_id" id="issue_select" class="form-control" required>
+                <option value="">Select Stock Issue</option>
+                {% for issue in issued_items %}
+                <option value="{{ issue.id }}">
+                    {{ issue.issue_number }} - {{ issue.department.name }} ({{ issue.issue_date|date:"M d, Y" }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div id="items-container" style="display: none;">
+            <h4>Items to Return</h4>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Issued Qty</th>
+                            <th>Return Qty</th>
+                            <th>Reason for Return</th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-tbody">
+                        <!-- Will be populated via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Process Return</button>
+        </div>
+    </form>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-arrow-return-left"></i> Recent Returns
+        </h2>
+    </div>
+    <div class="empty-state">
+        <i class="bi bi-arrow-return-left"></i>
+        <p>No returns recorded yet</p>
+    </div>
+</div>
+{% endblock %}

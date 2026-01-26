@@ -1,0 +1,112 @@
+<!-- ============================================================================ -->
+<!-- 19. maintenance.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Asset Maintenance - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Asset Maintenance Tracking</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Maintenance</span>
+        </div>
+    </div>
+</div>
+
+<div class="alert-banner alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <div>
+        <strong>{{ assets_needing_attention.count }} assets</strong> require attention (warranty expiring soon)
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-wrench"></i> Assets Requiring Attention
+        </h2>
+    </div>
+    {% if assets_needing_attention %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Asset Number</th>
+                    <th>Description</th>
+                    <th>Department</th>
+                    <th>Custodian</th>
+                    <th>Warranty Expiry</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asset in assets_needing_attention %}
+                <tr>
+                    <td><a href="#">{{ asset.asset_number }}</a></td>
+                    <td>{{ asset.description|truncatewords:8 }}</td>
+                    <td>{{ asset.department.name }}</td>
+                    <td>{{ asset.custodian.get_full_name }}</td>
+                    <td class="text-warning">{{ asset.warranty_expiry|date:"M d, Y" }}</td>
+                    <td><span class="badge">{{ asset.get_status_display }}</span></td>
+                    <td>
+                        <a href="#" class="btn-sm btn-warning">Schedule Maintenance</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>No assets requiring attention at this time</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-tools"></i> All Active Assets
+        </h2>
+    </div>
+    {% if assets %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Asset Number</th>
+                    <th>Description</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Acquisition Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asset in assets %}
+                <tr>
+                    <td><a href="#">{{ asset.asset_number }}</a></td>
+                    <td>{{ asset.description|truncatewords:8 }}</td>
+                    <td>{{ asset.department.name }}</td>
+                    <td><span class="badge">{{ asset.get_status_display }}</span></td>
+                    <td>{{ asset.acquisition_date|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="#" class="btn-sm"><i class="bi bi-eye"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

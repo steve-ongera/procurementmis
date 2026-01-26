@@ -1,0 +1,134 @@
+<!-- ============================================================================ -->
+<!-- 11. create_issue.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Create Stock Issue - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Create Stock Issue</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Create Issue</span>
+        </div>
+    </div>
+</div>
+
+<div class="form-card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h3 class="section-title">Issue Information</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Store *</label>
+                    <select name="store" id="store_select" class="form-control" required>
+                        <option value="">Select Store</option>
+                        {% for store in stores %}
+                        <option value="{{ store.id }}">{{ store.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Department *</label>
+                    <select name="department" class="form-control" required>
+                        <option value="">Select Department</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Purpose *</label>
+                <textarea name="purpose" class="form-control" rows="3" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea name="notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3 class="section-title">Items to Issue</h3>
+            
+            <div id="items-container">
+                <div class="item-row" data-index="0">
+                    <div class="form-row">
+                        <div class="form-group flex-grow">
+                            <label>Stock Item *</label>
+                            <select name="stock_item_0" class="form-control" required>
+                                <option value="">Select Item</option>
+                                <!-- Will be populated via AJAX based on store -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Quantity *</label>
+                            <input type="number" name="quantity_0" class="form-control" step="0.01" min="0.01" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-danger remove-item-btn">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="button" id="add-item-btn" class="btn">
+                <i class="bi bi-plus-circle"></i> Add Another Item
+            </button>
+        </div>
+        
+        <input type="hidden" name="item_count" id="item_count" value="1">
+        
+        <div class="form-actions">
+            <a href="{% url 'store_pending_issues' %}" class="btn">Cancel</a>
+            <button type="submit" class="btn btn-primary">Create Issue Request</button>
+        </div>
+    </form>
+</div>
+
+<script>
+let itemIndex = 1;
+
+document.getElementById('add-item-btn').addEventListener('click', function() {
+    const container = document.getElementById('items-container');
+    const newRow = document.querySelector('.item-row').cloneNode(true);
+    newRow.dataset.index = itemIndex;
+    
+    // Update names
+    newRow.querySelectorAll('[name]').forEach(input => {
+        const name = input.getAttribute('name');
+        input.setAttribute('name', name.replace(/\d+/, itemIndex));
+        input.value = '';
+    });
+    
+    container.appendChild(newRow);
+    itemIndex++;
+    document.getElementById('item_count').value = itemIndex;
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-item-btn')) {
+        if (document.querySelectorAll('.item-row').length > 1) {
+            e.target.closest('.item-row').remove();
+        }
+    }
+});
+</script>
+{% endblock %}

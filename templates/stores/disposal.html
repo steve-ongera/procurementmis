@@ -1,0 +1,153 @@
+<!-- ============================================================================ -->
+<!-- 20. disposal.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Asset Disposal - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Asset Disposal Management</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Disposal</span>
+        </div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-trash"></i> Assets Eligible for Disposal
+        </h2>
+    </div>
+    {% if eligible_assets %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Asset Number</th>
+                    <th>Description</th>
+                    <th>Department</th>
+                    <th>Acquisition Cost</th>
+                    <th>Current Value</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asset in eligible_assets %}
+                <tr>
+                    <td><a href="#">{{ asset.asset_number }}</a></td>
+                    <td>{{ asset.description|truncatewords:8 }}</td>
+                    <td>{{ asset.department.name }}</td>
+                    <td>KES {{ asset.acquisition_cost|floatformat:0|intcomma }}</td>
+                    <td>KES {{ asset.current_value|floatformat:0|intcomma }}</td>
+                    <td><span class="badge badge-warning">{{ asset.get_status_display }}</span></td>
+                    <td>
+                        <button class="btn-sm btn-danger" onclick="disposeAsset('{{ asset.id }}')">
+                            <i class="bi bi-trash"></i> Dispose
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>No assets eligible for disposal</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-archive"></i> Disposed Assets History
+        </h2>
+    </div>
+    {% if disposed_assets %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Asset Number</th>
+                    <th>Description</th>
+                    <th>Disposal Date</th>
+                    <th>Disposal Method</th>
+                    <th>Disposal Value</th>
+                    <th>Original Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asset in disposed_assets %}
+                <tr>
+                    <td>{{ asset.asset_number }}</td>
+                    <td>{{ asset.description|truncatewords:8 }}</td>
+                    <td>{{ asset.disposal_date|date:"M d, Y" }}</td>
+                    <td>{{ asset.disposal_method }}</td>
+                    <td>KES {{ asset.disposal_value|floatformat:0|intcomma|default:"0" }}</td>
+                    <td>KES {{ asset.acquisition_cost|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-archive"></i>
+        <p>No disposal records yet</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Disposal Modal -->
+<div id="disposalModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>Dispose Asset</h3>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="asset_id" id="disposal_asset_id">
+            
+            <div class="form-group">
+                <label>Disposal Date *</label>
+                <input type="date" name="disposal_date" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Disposal Method *</label>
+                <select name="disposal_method" class="form-control" required>
+                    <option value="">Select Method</option>
+                    <option value="Sale">Sale</option>
+                    <option value="Auction">Auction</option>
+                    <option value="Donation">Donation</option>
+                    <option value="Scrap">Scrap</option>
+                    <option value="Destruction">Destruction</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Disposal Value</label>
+                <input type="number" name="disposal_value" class="form-control" step="0.01" min="0">
+            </div>
+            
+            <div class="form-group">
+                <label>Notes *</label>
+                <textarea name="disposal_notes" class="form-control" rows="3" required></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Confirm Disposal</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

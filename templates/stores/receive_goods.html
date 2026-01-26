@@ -1,0 +1,136 @@
+<!-- ============================================================================ -->
+<!-- 2. receive_goods.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Receive Goods - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Receive Goods</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Receive Goods</span>
+        </div>
+    </div>
+</div>
+
+<div class="form-card">
+    <form method="post" action="{% url 'store_receive_goods' %}">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h3 class="section-title">Delivery Information</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Purchase Order *</label>
+                    <select name="purchase_order" id="po_select" class="form-control" required>
+                        <option value="">Select Purchase Order</option>
+                        {% for pending_po in pending_pos %}
+                        <option value="{{ pending_po.id }}" {% if po and po.id == pending_po.id %}selected{% endif %}>
+                            {{ pending_po.po_number }} - {{ pending_po.supplier.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Store *</label>
+                    <select name="store" class="form-control" required>
+                        <option value="">Select Store</option>
+                        {% for store in stores %}
+                        <option value="{{ store.id }}">{{ store.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Delivery Note Number *</label>
+                    <input type="text" name="delivery_note_number" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Delivery Date *</label>
+                    <input type="date" name="delivery_date" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>General Condition</label>
+                <textarea name="general_condition" class="form-control" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea name="notes" class="form-control" rows="3"></textarea>
+            </div>
+        </div>
+        
+        {% if po_items %}
+        <div class="form-section">
+            <h3 class="section-title">Items Received</h3>
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Description</th>
+                            <th>Ordered Qty</th>
+                            <th>Delivered</th>
+                            <th>Accepted</th>
+                            <th>Rejected</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in po_items %}
+                        <tr>
+                            <td>{{ item.item_description }}</td>
+                            <td>{{ item.quantity }} {{ item.unit_of_measure }}</td>
+                            <td>
+                                <input type="number" name="qty_delivered_{{ item.id }}" 
+                                       class="form-control" step="0.01" min="0" value="0">
+                            </td>
+                            <td>
+                                <input type="number" name="qty_accepted_{{ item.id }}" 
+                                       class="form-control" step="0.01" min="0" value="0">
+                            </td>
+                            <td>
+                                <input type="number" name="qty_rejected_{{ item.id }}" 
+                                       class="form-control" step="0.01" min="0" value="0">
+                            </td>
+                            <td>
+                                <select name="item_status_{{ item.id }}" class="form-control">
+                                    <option value="ACCEPTED">Accepted</option>
+                                    <option value="REJECTED">Rejected</option>
+                                    <option value="DAMAGED">Damaged</option>
+                                    <option value="INCOMPLETE">Incomplete</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" name="remarks_{{ item.id }}" class="form-control">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="form-actions">
+            <a href="{% url 'store_pending_deliveries' %}" class="btn">Cancel</a>
+            <button type="submit" class="btn btn-primary">Create GRN</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

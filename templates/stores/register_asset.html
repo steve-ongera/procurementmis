@@ -1,0 +1,160 @@
+<!-- ============================================================================ -->
+<!-- 18. register_asset.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Register Asset - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Register New Asset</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'store_all_assets' %}">Assets</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Register Asset</span>
+        </div>
+    </div>
+</div>
+
+<div class="form-card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h3 class="section-title">Asset Identification</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Asset Number *</label>
+                    <input type="text" name="asset_number" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Asset Tag *</label>
+                    <input type="text" name="asset_tag" class="form-control" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Item Category *</label>
+                <select name="item" class="form-control" required>
+                    <option value="">Select Item</option>
+                    {% for item in items %}
+                    <option value="{{ item.id }}">{{ item.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Description *</label>
+                <textarea name="description" class="form-control" rows="3" required></textarea>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3 class="section-title">Asset Details</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Serial Number</label>
+                    <input type="text" name="serial_number" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label>Model</label>
+                    <input type="text" name="model" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label>Brand</label>
+                    <input type="text" name="brand" class="form-control">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3 class="section-title">Financial Information</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Acquisition Date *</label>
+                    <input type="date" name="acquisition_date" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Acquisition Cost *</label>
+                    <input type="number" name="acquisition_cost" class="form-control" step="0.01" min="0" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Depreciation Rate (%)</label>
+                    <input type="number" name="depreciation_rate" class="form-control" step="0.01" min="0" max="100">
+                </div>
+                
+                <div class="form-group">
+                    <label>Useful Life (Years)</label>
+                    <input type="number" name="useful_life_years" class="form-control" min="0">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3 class="section-title">Location & Assignment</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Department *</label>
+                    <select name="department" class="form-control" required>
+                        <option value="">Select Department</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Custodian *</label>
+                    <select name="custodian" class="form-control" required>
+                        <option value="">Select Custodian</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.get_full_name }} - {{ user.department.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Physical Location *</label>
+                <textarea name="location" class="form-control" rows="2" required></textarea>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3 class="section-title">Warranty & Additional Info</h3>
+            
+            <div class="form-group">
+                <label>Warranty Expiry Date</label>
+                <input type="date" name="warranty_expiry" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea name="notes" class="form-control" rows="3"></textarea>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{% url 'store_all_assets' %}" class="btn">Cancel</a>
+            <button type="submit" class="btn btn-primary">Register Asset</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

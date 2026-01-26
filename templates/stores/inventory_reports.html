@@ -1,0 +1,164 @@
+<!-- ============================================================================ -->
+<!-- 21. inventory_reports.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Inventory Reports - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Inventory Reports</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Inventory Reports</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="bi bi-printer"></i> Print Report
+        </button>
+        <button class="btn" onclick="exportReport()">
+            <i class="bi bi-download"></i> Export to Excel
+        </button>
+    </div>
+</div>
+
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label>Report Type *</label>
+                <select name="report_type" class="form-control" required onchange="this.form.submit()">
+                    <option value="">Select Report Type</option>
+                    <option value="stock_summary" {% if report_type == 'stock_summary' %}selected{% endif %}>Stock Summary</option>
+                    <option value="low_stock" {% if report_type == 'low_stock' %}selected{% endif %}>Low Stock Items</option>
+                    <option value="stock_valuation" {% if report_type == 'stock_valuation' %}selected{% endif %}>Stock Valuation</option>
+                    <option value="by_store" {% if report_type == 'by_store' %}selected{% endif %}>By Store</option>
+                    <option value="by_category" {% if report_type == 'by_category' %}selected{% endif %}>By Category</option>
+                </select>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% if report_type == 'stock_summary' %}
+<div class="report-section">
+    <h3 class="report-title">Stock Summary Report</h3>
+    <div class="table-responsive">
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Store</th>
+                    <th>Category</th>
+                    <th>Total Items</th>
+                    <th>Total Quantity</th>
+                    <th>Total Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td>{{ row.store__name }}</td>
+                    <td>{{ row.item__category__name }}</td>
+                    <td>{{ row.total_items }}</td>
+                    <td>{{ row.total_quantity|floatformat:2 }}</td>
+                    <td>KES {{ row.total_value|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if report_type == 'low_stock' %}
+<div class="report-section">
+    <h3 class="report-title">Low Stock Items Report</h3>
+    <div class="table-responsive">
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Item Code</th>
+                    <th>Item Name</th>
+                    <th>Store</th>
+                    <th>Current Qty</th>
+                    <th>Reorder Level</th>
+                    <th>Deficit</th>
+                    <th>Unit Cost</th>
+                    <th>Required Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in data %}
+                <tr>
+                    <td>{{ stock.item.code }}</td>
+                    <td>{{ stock.item.name }}</td>
+                    <td>{{ stock.store.name }}</td>
+                    <td>{{ stock.quantity_on_hand }}</td>
+                    <td>{{ stock.reorder_level }}</td>
+                    <td class="text-danger">{{ stock.reorder_level|add:"-"|add:stock.quantity_on_hand }}</td>
+                    <td>KES {{ stock.average_unit_cost|floatformat:2 }}</td>
+                    <td>KES {{ stock.average_unit_cost|multiply:stock.reorder_level|subtract:stock.total_value|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if report_type == 'stock_valuation' %}
+<div class="report-section">
+    <h3 class="report-title">Stock Valuation Report</h3>
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-value">KES {{ data|sum_values:'total_value'|floatformat:0|intcomma }}</div>
+            <div class="summary-label">Total Stock Value</div>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Item Code</th>
+                    <th>Item Name</th>
+                    <th>Store</th>
+                    <th>Quantity</th>
+                    <th>Avg Unit Cost</th>
+                    <th>Total Value</th>
+                    <th>% of Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in data %}
+                <tr>
+                    <td>{{ stock.item.code }}</td>
+                    <td>{{ stock.item.name }}</td>
+                    <td>{{ stock.store.name }}</td>
+                    <td>{{ stock.quantity_on_hand }}</td>
+                    <td>KES {{ stock.average_unit_cost|floatformat:2 }}</td>
+                    <td>KES {{ stock.total_value|floatformat:0|intcomma }}</td>
+                    <td><!-- Calculate percentage --></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if not report_type %}
+<div class="info-card">
+    <i class="bi bi-info-circle"></i>
+    <div>
+        <strong>Select a Report Type</strong>
+        <p>Choose a report type from the dropdown above to generate inventory reports.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

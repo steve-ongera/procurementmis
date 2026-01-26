@@ -1,0 +1,104 @@
+<!-- ============================================================================ -->
+<!-- 12. process_issue.html -->
+<!-- ============================================================================ -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Process Issue {{ issue.issue_number }} - Stores Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Process Stock Issue</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'store_pending_issues' %}">Pending Issues</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ issue.issue_number }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="detail-grid">
+    <div class="detail-card">
+        <h3>Issue Information</h3>
+        <dl>
+            <dt>Issue Number</dt>
+            <dd>{{ issue.issue_number }}</dd>
+            
+            <dt>Department</dt>
+            <dd>{{ issue.department.name }}</dd>
+            
+            <dt>Store</dt>
+            <dd>{{ issue.store.name }}</dd>
+            
+            <dt>Requested By</dt>
+            <dd>{{ issue.requested_by.get_full_name }}</dd>
+            
+            <dt>Request Date</dt>
+            <dd>{{ issue.created_at|date:"M d, Y H:i" }}</dd>
+            
+            <dt>Purpose</dt>
+            <dd>{{ issue.purpose }}</dd>
+            
+            {% if issue.notes %}
+            <dt>Notes</dt>
+            <dd>{{ issue.notes }}</dd>
+            {% endif %}
+        </dl>
+    </div>
+</div>
+
+<div class="form-card">
+    <h3>Items to Issue</h3>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Requested Qty</th>
+                        <th>Available Stock</th>
+                        <th>Qty to Issue</th>
+                        <th>Unit Cost</th>
+                        <th>Total Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in issue.items.all %}
+                    <tr>
+                        <td>{{ item.stock_item.item.name }}</td>
+                        <td>{{ item.quantity_requested }}</td>
+                        <td>{{ item.stock_item.quantity_on_hand }}</td>
+                        <td>
+                            <input type="number" 
+                                   name="qty_issue_{{ item.id }}" 
+                                   class="form-control" 
+                                   step="0.01" 
+                                   min="0" 
+                                   max="{{ item.stock_item.quantity_on_hand }}"
+                                   value="{{ item.quantity_requested }}"
+                                   {% if item.quantity_requested > item.stock_item.quantity_on_hand %}
+                                   value="{{ item.stock_item.quantity_on_hand }}"
+                                   {% endif %}>
+                        </td>
+                        <td>KES {{ item.stock_item.average_unit_cost|floatformat:2 }}</td>
+                        <td class="total-cost">KES 0.00</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{% url 'store_pending_issues' %}" class="btn">Cancel</a>
+            <button type="submit" class="btn btn-primary">Issue Stock</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
