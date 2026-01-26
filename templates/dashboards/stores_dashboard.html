@@ -1,0 +1,919 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Stores Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --info-color: #6366F1;
+        --secondary-color: #64748B;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+    }
+
+    .dashboard-container {
+        padding: 1.5rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+    }
+
+    /* Alert Banner */
+    .alert-banner {
+        background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+        border: 1px solid #F59E0B;
+        border-left: 4px solid #F59E0B;
+        border-radius: 0.5rem;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .alert-banner.danger {
+        background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+        border-color: #EF4444;
+    }
+
+    .alert-icon {
+        font-size: 1.5rem;
+        color: #F59E0B;
+    }
+
+    .alert-banner.danger .alert-icon {
+        color: #EF4444;
+    }
+
+    .alert-content {
+        flex: 1;
+    }
+
+    .alert-title {
+        font-weight: 600;
+        color: #92400E;
+        margin-bottom: 0.25rem;
+    }
+
+    .alert-banner.danger .alert-title {
+        color: #991B1B;
+    }
+
+    .alert-message {
+        font-size: 0.875rem;
+        color: #78350F;
+    }
+
+    .alert-banner.danger .alert-message {
+        color: #7F1D1D;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .stat-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .stat-icon.primary { background: rgba(37, 99, 235, 0.1); color: var(--primary-color); }
+    .stat-icon.success { background: rgba(16, 185, 129, 0.1); color: var(--success-color); }
+    .stat-icon.warning { background: rgba(245, 158, 11, 0.1); color: var(--warning-color); }
+    .stat-icon.danger { background: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
+    .stat-icon.info { background: rgba(99, 102, 241, 0.1); color: var(--info-color); }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .stat-trend {
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .stat-trend.up { color: var(--success-color); }
+    .stat-trend.down { color: var(--danger-color); }
+
+    /* Charts Grid */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+    }
+
+    .chart-card.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .chart-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chart-title i {
+        color: var(--primary-color);
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+
+    /* Activity Section */
+    .activity-section {
+        margin-top: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .activity-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .activity-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+    }
+
+    .activity-header {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .activity-header-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .activity-count {
+        background: var(--primary-light);
+        color: var(--primary-color);
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 1rem;
+    }
+
+    .activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .activity-item {
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        transition: all 0.2s;
+    }
+
+    .activity-item:hover {
+        background: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .activity-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 0.5rem;
+    }
+
+    .activity-title {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1E293B;
+    }
+
+    .activity-meta {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .status-pending { background: #FEF3C7; color: #92400E; }
+    .status-inspecting { background: #DBEAFE; color: #1E40AF; }
+    .status-accepted { background: #D1FAE5; color: #065F46; }
+    .status-issued { background: #D1FAE5; color: #065F46; }
+    .status-low { background: #FEE2E2; color: #991B1B; }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: var(--secondary-color);
+        font-size: 0.875rem;
+    }
+
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.3;
+    }
+
+    @media (max-width: 768px) {
+        .charts-grid,
+        .activity-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .chart-card.full-width {
+            grid-column: 1;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#64748B';
+
+    // ========================================================================
+    // 1. Stock Movements Line Chart
+    // ========================================================================
+    const movementsData = JSON.parse('{{ movements_chart_data|safe }}');
+    const movementsCtx = document.getElementById('movementsChart');
+    
+    if (movementsCtx) {
+        new Chart(movementsCtx, {
+            type: 'line',
+            data: {
+                labels: movementsData.labels,
+                datasets: [
+                    {
+                        label: 'Receipts',
+                        data: movementsData.receipts,
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Issues',
+                        data: movementsData.issues,
+                        borderColor: '#EF4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        position: 'top',
+                        labels: { usePointStyle: true, padding: 15 }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#F1F5F9' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // ========================================================================
+    // 2. Stock Status Donut Chart
+    // ========================================================================
+    const stockStatusData = JSON.parse('{{ stock_status_chart|safe }}');
+    const stockStatusCtx = document.getElementById('stockStatusChart');
+    
+    if (stockStatusCtx) {
+        new Chart(stockStatusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: stockStatusData.labels,
+                datasets: [{
+                    data: stockStatusData.values,
+                    backgroundColor: stockStatusData.colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { padding: 15, usePointStyle: true }
+                    }
+                }
+            }
+        });
+    }
+
+    // ========================================================================
+    // 3. Store Inventory Bar Chart
+    // ========================================================================
+    const storeInventoryData = JSON.parse('{{ store_inventory_chart|safe }}');
+    const storeInventoryCtx = document.getElementById('storeInventoryChart');
+    
+    if (storeInventoryCtx) {
+        new Chart(storeInventoryCtx, {
+            type: 'bar',
+            data: {
+                labels: storeInventoryData.labels,
+                datasets: [{
+                    label: 'Inventory Value (KES)',
+                    data: storeInventoryData.values,
+                    backgroundColor: '#6366F1',
+                    borderRadius: 6,
+                    barThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Value: KES ' + context.parsed.y.toLocaleString();
+                            },
+                            afterLabel: function(context) {
+                                const count = storeInventoryData.counts[context.dataIndex];
+                                return 'Items: ' + count;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'KES ' + (value / 1000000).toFixed(1) + 'M';
+                            }
+                        },
+                        grid: { color: '#F1F5F9' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // ========================================================================
+    // 4. Movement Types Radar Chart
+    // ========================================================================
+    const movementRadarData = JSON.parse('{{ movement_radar|safe }}');
+    const movementRadarCtx = document.getElementById('movementRadarChart');
+    
+    if (movementRadarCtx) {
+        new Chart(movementRadarCtx, {
+            type: 'radar',
+            data: {
+                labels: movementRadarData.labels,
+                datasets: [{
+                    label: 'Activity Level',
+                    data: movementRadarData.values,
+                    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                    borderColor: '#2563EB',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#2563EB',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: { color: '#F1F5F9' }
+                    }
+                }
+            }
+        });
+    }
+
+    // ========================================================================
+    // 5. GRN Status Bar Chart
+    // ========================================================================
+    const grnStatusData = JSON.parse('{{ grn_status_chart|safe }}');
+    const grnStatusCtx = document.getElementById('grnStatusChart');
+    
+    if (grnStatusCtx) {
+        new Chart(grnStatusCtx, {
+            type: 'bar',
+            data: {
+                labels: grnStatusData.labels,
+                datasets: [{
+                    label: 'Number of GRNs',
+                    data: grnStatusData.values,
+                    backgroundColor: '#F59E0B',
+                    borderRadius: 6,
+                    barThickness: 50
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: '#F1F5F9' }
+                    },
+                    y: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // ========================================================================
+    // 6. Top Items Bar Chart
+    // ========================================================================
+    const topItemsData = JSON.parse('{{ top_items_chart|safe }}');
+    const topItemsCtx = document.getElementById('topItemsChart');
+    
+    if (topItemsCtx) {
+        new Chart(topItemsCtx, {
+            type: 'bar',
+            data: {
+                labels: topItemsData.labels,
+                datasets: [{
+                    label: 'Quantity Issued',
+                    data: topItemsData.values,
+                    backgroundColor: '#10B981',
+                    borderRadius: 6,
+                    barThickness: 30
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const count = topItemsData.counts[context.dataIndex];
+                                return 'Issues: ' + count;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#F1F5F9' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="bi bi-boxes"></i>
+            Stores Dashboard
+        </h1>
+        <p class="page-subtitle">Inventory Management & Stock Control</p>
+    </div>
+
+    <!-- Alert Banners -->
+    {% if out_of_stock_items %}
+    <div class="alert-banner danger">
+        <i class="bi bi-exclamation-triangle-fill alert-icon"></i>
+        <div class="alert-content">
+            <div class="alert-title">Critical Stock Alert</div>
+            <div class="alert-message">
+                {{ out_of_stock_items|length }} item{{ out_of_stock_items|length|pluralize }} out of stock. Immediate action required.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if overdue_grns > 0 %}
+    <div class="alert-banner">
+        <i class="bi bi-clock-history alert-icon"></i>
+        <div class="alert-content">
+            <div class="alert-title">Pending GRN Processing</div>
+            <div class="alert-message">
+                {{ overdue_grns }} GRN{{ overdue_grns|pluralize }} pending for more than 3 days.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="bi bi-clipboard-check"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Pending GRNs</div>
+                <div class="stat-value">{{ pending_grns_count }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon danger">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Low Stock Items</div>
+                <div class="stat-value">{{ low_stock_count }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="bi bi-box-arrow-right"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Pending Issues</div>
+                <div class="stat-value">{{ pending_issues_count }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Total Inventory Value</div>
+                <div class="stat-value">KES {{ total_inventory_value|floatformat:0|intcomma }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon primary">
+                <i class="bi bi-building"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Active Stores</div>
+                <div class="stat-value">{{ active_stores_count }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="bi bi-archive"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Total Stock Items</div>
+                <div class="stat-value">{{ total_stock_items|intcomma }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="bi bi-arrow-down-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Received This Month</div>
+                <div class="stat-value">{{ items_received_month }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="bi bi-arrow-up-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Issued This Month</div>
+                <div class="stat-value">{{ items_issued_month }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+        <!-- Stock Movements Line Chart -->
+        <div class="chart-card full-width">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-graph-up"></i>
+                    Stock Movements Trend (Last 6 Months)
+                </h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="movementsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Stock Status Donut -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-pie-chart"></i>
+                    Stock Status Distribution
+                </h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="stockStatusChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Store Inventory Bar Chart -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-bar-chart"></i>
+                    Inventory Value by Store
+                </h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="storeInventoryChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Movement Types Radar -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-radar"></i>
+                    Movement Types (Last 30 Days)
+                </h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="movementRadarChart"></canvas>
+            </div>
+        </div>
+
+        <!-- GRN Status Bar Chart -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-clipboard-data"></i>
+                    GRN Processing Status
+                </h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="grnStatusChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Top Items Chart -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="bi bi-trophy"></i>
+                    Top Requested Items
+                </h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="topItemsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="activity-section">
+        <h2 class="section-title">
+            <i class="bi bi-clock-history"></i>
+            Recent Activities
+        </h2>
+
+        <div class="activity-grid">
+            <!-- Pending GRNs -->
+            <div class="activity-card">
+                <div class="activity-header">
+                    <div class="activity-header-title">
+                        <i class="bi bi-clipboard-check"></i>
+                        Pending GRNs
+                    </div>
+                    <span class="activity-count">{{ pending_grns|length }}</span>
+                </div>
+                <div class="activity-list">
+                    {% for grn in pending_grns %}
+                    <div class="activity-item">
+                        <div class="activity-item-header">
+                            <div class="activity-title">{{ grn.grn_number }}</div>
+                            <span class="status-badge status-{{ grn.status|lower }}">
+                                {{ grn.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="activity-meta">
+                            <span><i class="bi bi-cart"></i> {{ grn.purchase_order.po_number }}</span>
+                            <span>•</span>
+                            <span><i class="bi bi-building"></i> {{ grn.store.code }}</span>
+                            <span>•</span>
+                            <span>{{ grn.received_date|date:"M d" }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle"></i>
+                        <p>No pending GRNs</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Low Stock Items -->
+            <div class="activity-card">
+                <div class="activity-header">
+                    <div class="activity-header-title">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Low Stock Items
+                    </div>
+                    <span class="activity-count">{{ low_stock_items|length }}</span>
+                </div>
+                <div class="activity-list">
+                    {% for stock in low_stock_items %}
+                    <div class="activity-item">
+                        <div class="activity-item-header">
+                            <div class="activity-title">{{ stock.item.name|truncatechars:30 }}</div>
+                            <span class="status-badge status-low">Low Stock</span>
+                        </div>
+                        <div class="activity-meta">
+                            <span><i class="bi bi-box"></i> {{ stock.quantity_on_hand }} {{ stock.item.unit_of_measure }}</span>
+                            <span>•</span>
+                            <span><i class="bi bi-exclamation-circle"></i> Reorder: {{ stock.reorder_level }}</span>
+                            <span>•</span>
+                            <span>{{ stock.store.code }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle"></i>
+                        <p>All items well stocked</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Pending Issues -->
+            <div class="activity-card">
+                <div class="activity-header">
+                    <div class="activity-header-title">
+                        <i class="bi bi-box-arrow-right"></i>
+                        Pending Issues
+                    </div>
+                    <span class="activity-count">{{ pending_issues|length }}</span>

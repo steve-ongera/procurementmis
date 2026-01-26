@@ -768,29 +768,285 @@ def finance_dashboard(request):
     return render(request, 'dashboards/finance_dashboard.html', context)
 
 
-def stores_dashboard(request):
-    """Stores Officer Dashboard"""
-    context = {
-        'pending_grns': GoodsReceivedNote.objects.filter(
-            status__in=['DRAFT', 'INSPECTING']
-        ).order_by('-created_at')[:10],
-        'low_stock_items': StockItem.objects.filter(
-            quantity_on_hand__lte=models.F('reorder_level')
-        )[:10],
-        'pending_issues': StockIssue.objects.filter(
-            status='PENDING'
-        ).order_by('-created_at')[:10],
-        'inventory_stats': {
-            'total_items': StockItem.objects.count(),
-            'total_value': StockItem.objects.aggregate(
-                total=Sum('total_value')
-            )['total'] or Decimal('0'),
-            'stores': Store.objects.filter(is_active=True).count(),
-        },
-        'recent_movements': StockMovement.objects.all().order_by('-movement_date')[:10],
-    }
-    return render(request, 'dashboards/stores_dashboard.html', context)
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Count, Avg, Q, F, DecimalField
+from django.db.models.functions import TruncMonth, Coalesce
+from django.utils import timezone
+from datetime import timedelta
+from decimal import Decimal
+import json
 
+from .models import (
+    GoodsReceivedNote, StockItem, StockIssue, Store,
+    StockMovement, Asset, PurchaseOrder, Department
+)
+
+
+@login_required
+def stores_dashboard(request):
+    """
+    Stores Officer Dashboard with comprehensive analytics and charts
+    """
+    # Date ranges
+    today = timezone.now().date()
+    last_30_days = today - timedelta(days=30)
+    last_6_months = today - timedelta(days=180)
+    current_month_start = timezone.datetime(today.year, today.month, 1).date()
+    
+    # ============================================================================
+    # KEY METRICS
+    # ============================================================================
+    
+    # Pending GRNs
+    pending_grns_count = GoodsReceivedNote.objects.filter(
+        status__in=['DRAFT', 'INSPECTING']
+    ).count()
+    
+    # Low stock items
+    low_stock_count = StockItem.objects.filter(
+        quantity_on_hand__lte=F('reorder_level')
+    ).count()
+    
+    # Pending stock issues
+    pending_issues_count = StockIssue.objects.filter(
+        status='PENDING'
+    ).count()
+    
+    # Total inventory value
+    total_inventory_value = StockItem.objects.aggregate(
+        total=Sum('total_value')
+    )['total'] or Decimal('0')
+    
+    # Active stores
+    active_stores_count = Store.objects.filter(is_active=True).count()
+    
+    # Total stock items
+    total_stock_items = StockItem.objects.count()
+    
+    # Items received this month
+    items_received_month = GoodsReceivedNote.objects.filter(
+        received_date__gte=current_month_start,
+        status__in=['ACCEPTED', 'PARTIAL']
+    ).count()
+    
+    # Items issued this month
+    items_issued_month = StockIssue.objects.filter(
+        issue_date__gte=current_month_start,
+        status='ISSUED'
+    ).count()
+    
+    # ============================================================================
+    # CHART DATA 1: Monthly Stock Movements (Line Chart)
+    # ============================================================================
+    
+    monthly_movements = StockMovement.objects.filter(
+        movement_date__gte=last_6_months
+    ).annotate(
+        month=TruncMonth('movement_date')
+    ).values('month', 'movement_type').annotate(
+        count=Count('id'),
+        total_quantity=Sum('quantity')
+    ).order_by('month')
+    
+    # Organize data by movement type
+    receipts = {}
+    issues = {}
+    
+    for movement in monthly_movements:
+        month_str = movement['month'].strftime('%b %Y')
+        if movement['movement_type'] == 'RECEIPT':
+            receipts[month_str] = int(movement['count'])
+        elif movement['movement_type'] == 'ISSUE':
+            issues[month_str] = int(movement['count'])
+    
+    # Get all months
+    all_months = sorted(set(list(receipts.keys()) + list(issues.keys())))
+    
+    movements_chart_data = {
+        'labels': all_months,
+        'receipts': [receipts.get(m, 0) for m in all_months],
+        'issues': [issues.get(m, 0) for m in all_months]
+    }
+    
+    # ============================================================================
+    # CHART DATA 2: Stock Status Distribution (Donut Chart)
+    # ============================================================================
+    
+    # Categorize stock items
+    stock_categories = {
+        'Normal Stock': StockItem.objects.filter(
+            quantity_on_hand__gt=F('reorder_level')
+        ).count(),
+        'Low Stock': StockItem.objects.filter(
+            quantity_on_hand__lte=F('reorder_level'),
+            quantity_on_hand__gt=0
+        ).count(),
+        'Out of Stock': StockItem.objects.filter(
+            quantity_on_hand=0
+        ).count(),
+        'Overstock': StockItem.objects.filter(
+            quantity_on_hand__gt=F('max_stock_level'),
+            max_stock_level__isnull=False
+        ).count()
+    }
+    
+    stock_status_chart = {
+        'labels': list(stock_categories.keys()),
+        'values': list(stock_categories.values()),
+        'colors': ['#10B981', '#F59E0B', '#EF4444', '#6366F1']
+    }
+    
+    # ============================================================================
+    # CHART DATA 3: Inventory Value by Store (Bar Chart)
+    # ============================================================================
+    
+    store_inventory = StockItem.objects.values(
+        'store__name', 'store__code'
+    ).annotate(
+        total_value=Sum('total_value'),
+        item_count=Count('id')
+    ).order_by('-total_value')[:10]
+    
+    store_inventory_chart = {
+        'labels': [f"{item['store__code']}" for item in store_inventory],
+        'values': [float(item['total_value']) for item in store_inventory],
+        'counts': [item['item_count'] for item in store_inventory]
+    }
+    
+    # ============================================================================
+    # CHART DATA 4: Stock Movement Types (Radar Chart)
+    # ============================================================================
+    
+    movement_type_stats = {}
+    movement_types = ['RECEIPT', 'ISSUE', 'TRANSFER', 'ADJUSTMENT', 'RETURN']
+    
+    for m_type in movement_types:
+        count = StockMovement.objects.filter(
+            movement_type=m_type,
+            movement_date__gte=last_30_days
+        ).count()
+        movement_type_stats[m_type] = count
+    
+    # Normalize to 0-100 scale
+    max_count = max(movement_type_stats.values()) if movement_type_stats.values() else 1
+    
+    movement_radar = {
+        'labels': [m.replace('_', ' ').title() for m in movement_types],
+        'values': [
+            (movement_type_stats.get(m, 0) / max_count * 100) if max_count > 0 else 0 
+            for m in movement_types
+        ]
+    }
+    
+    # ============================================================================
+    # CHART DATA 5: GRN Processing Status (Bar Chart)
+    # ============================================================================
+    
+    grn_status_distribution = GoodsReceivedNote.objects.values(
+        'status'
+    ).annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    grn_status_chart = {
+        'labels': [item['status'].replace('_', ' ').title() for item in grn_status_distribution],
+        'values': [item['count'] for item in grn_status_distribution]
+    }
+    
+    # ============================================================================
+    # CHART DATA 6: Top Requested Items (Bar Chart)
+    # ============================================================================
+    
+    from django.db.models import Subquery, OuterRef
+    
+    top_items = StockMovement.objects.filter(
+        movement_type='ISSUE',
+        movement_date__gte=last_30_days
+    ).values(
+        'stock_item__item__name',
+        'stock_item__item__code'
+    ).annotate(
+        total_quantity=Sum('quantity'),
+        issue_count=Count('id')
+    ).order_by('-total_quantity')[:10]
+    
+    top_items_chart = {
+        'labels': [item['stock_item__item__code'] for item in top_items],
+        'values': [float(item['total_quantity']) for item in top_items],
+        'counts': [item['issue_count'] for item in top_items]
+    }
+    
+    # ============================================================================
+    # RECENT ACTIVITIES - Lists for display
+    # ============================================================================
+    
+    pending_grns = GoodsReceivedNote.objects.filter(
+        status__in=['DRAFT', 'INSPECTING']
+    ).select_related('purchase_order', 'store').order_by('-created_at')[:10]
+    
+    low_stock_items = StockItem.objects.filter(
+        quantity_on_hand__lte=F('reorder_level')
+    ).select_related('item', 'store').order_by('quantity_on_hand')[:10]
+    
+    pending_issues = StockIssue.objects.filter(
+        status='PENDING'
+    ).select_related('department', 'store').order_by('-created_at')[:10]
+    
+    recent_movements = StockMovement.objects.select_related(
+        'stock_item__item', 'performed_by'
+    ).order_by('-movement_date')[:10]
+    
+    # Critical alerts
+    out_of_stock_items = StockItem.objects.filter(
+        quantity_on_hand=0
+    ).select_related('item', 'store')[:5]
+    
+    overdue_grns = GoodsReceivedNote.objects.filter(
+        status__in=['DRAFT', 'INSPECTING'],
+        created_at__lt=timezone.now() - timedelta(days=3)
+    ).count()
+    
+    # ============================================================================
+    # CONTEXT
+    # ============================================================================
+    
+    context = {
+        # Key Metrics
+        'pending_grns_count': pending_grns_count,
+        'low_stock_count': low_stock_count,
+        'pending_issues_count': pending_issues_count,
+        'total_inventory_value': total_inventory_value,
+        'active_stores_count': active_stores_count,
+        'total_stock_items': total_stock_items,
+        'items_received_month': items_received_month,
+        'items_issued_month': items_issued_month,
+        'overdue_grns': overdue_grns,
+        
+        # Chart Data (JSON encoded for JavaScript)
+        'movements_chart_data': json.dumps(movements_chart_data),
+        'stock_status_chart': json.dumps(stock_status_chart),
+        'store_inventory_chart': json.dumps(store_inventory_chart),
+        'movement_radar': json.dumps(movement_radar),
+        'grn_status_chart': json.dumps(grn_status_chart),
+        'top_items_chart': json.dumps(top_items_chart),
+        
+        # Activity Lists
+        'pending_grns': pending_grns,
+        'low_stock_items': low_stock_items,
+        'pending_issues': pending_issues,
+        'recent_movements': recent_movements,
+        'out_of_stock_items': out_of_stock_items,
+        
+        # Additional Stats
+        'inventory_stats': {
+            'total_items': total_stock_items,
+            'total_value': total_inventory_value,
+            'stores': active_stores_count,
+        },
+    }
+    
+    return render(request, 'dashboards/stores_dashboard.html', context)
 
 
 def auditor_dashboard(request):
