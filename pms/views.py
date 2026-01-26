@@ -18807,7 +18807,10 @@ from .models import (
 from django.db.models import Sum, Count, Q, Avg, F, Max, Min, ExpressionWrapper, DecimalField
 from django.db.models.functions import TruncMonth, TruncDate, Coalesce
 from django.utils import timezone
-from datetime import timedelta
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from datetime import timedelta, datetime
 from decimal import Decimal
 import json
 
@@ -18883,47 +18886,7 @@ def auditor_dashboard(request):
     supplier_compliance_rate = (compliant_suppliers / total_suppliers * 100) if total_suppliers > 0 else 100
     
     # ========================================================================
-    # CHART 1: PROCUREMENT TREND (Last 6 Months)
-    # ========================================================================
-    
-    # Get monthly data
-    six_months_data = []
-    for i in range(6):
-        month_start = (today.replace(day=1) - timedelta(days=30*i)).replace(day=1)
-        if i < 5:
-            month_end = (today.replace(day=1) - timedelta(days=30*(i-1))).replace(day=1) - timedelta(days=1)
-        else:
-            month_end = today
-        
-        reqs = Requisition.objects.filter(
-            created_at__range=[month_start, month_end]
-        ).count()
-        
-        pos = PurchaseOrder.objects.filter(
-            created_at__range=[month_start, month_end]
-        ).count()
-        
-        payments = Payment.objects.filter(
-            created_at__range=[month_start, month_end],
-            status='COMPLETED'
-        ).count()
-        
-        six_months_data.insert(0, {
-            'month': month_start.strftime('%b %Y'),
-            'requisitions': reqs,
-            'pos': pos,
-            'payments': payments
-        })
-    
-    procurement_trend_chart = json.dumps({
-        'labels': [d['month'] for d in six_months_data],
-        'requisitions': [d['requisitions'] for d in six_months_data],
-        'purchase_orders': [d['pos'] for d in six_months_data],
-        'payments': [d['payments'] for d in six_months_data],
-    })
-    
-    # ========================================================================
-    # CHART 2: COMPLIANCE OVERVIEW (Donut Chart)
+    # CHART 1: COMPLIANCE OVERVIEW (Donut Chart)
     # ========================================================================
     
     compliance_overview_chart = json.dumps({
@@ -18938,44 +18901,7 @@ def auditor_dashboard(request):
     })
     
     # ========================================================================
-    # CHART 3: TRANSACTION VALUE BY DEPARTMENT (Bar Chart)
-    # ========================================================================
-    
-    dept_spending = Budget.objects.values(
-        'department__name', 'department__code'
-    ).annotate(
-        total_spent=Sum('actual_spent')
-    ).order_by('-total_spent')[:8]
-    
-    dept_spending_chart = json.dumps({
-        'labels': [d['department__code'] for d in dept_spending],
-        'values': [float(d['total_spent']) for d in dept_spending],
-        'full_names': [d['department__name'] for d in dept_spending]
-    })
-    
-    # ========================================================================
-    # CHART 4: PROCUREMENT METHOD DISTRIBUTION (Pie Chart)
-    # ========================================================================
-    
-    procurement_methods = Tender.objects.values('procurement_method').annotate(
-        count=Count('id')
-    ).order_by('-count')
-    
-    method_colors = {
-        'OPEN': '#10B981',
-        'RESTRICTED': '#6366F1',
-        'DIRECT': '#F59E0B',
-        'FRAMEWORK': '#2563EB',
-    }
-    
-    procurement_method_chart = json.dumps({
-        'labels': [pm['procurement_method'].replace('_', ' ').title() for pm in procurement_methods],
-        'values': [pm['count'] for pm in procurement_methods],
-        'colors': [method_colors.get(pm['procurement_method'], '#64748B') for pm in procurement_methods]
-    })
-    
-    # ========================================================================
-    # CHART 5: RISK INDICATORS (Radar Chart)
+    # CHART 2: RISK INDICATORS (Radar Chart)
     # ========================================================================
     
     # Calculate risk scores (0-100, higher = more risk)
@@ -19015,110 +18941,130 @@ def auditor_dashboard(request):
     })
     
     # ========================================================================
-    # CHART 6: AUDIT ACTIVITY (Line Chart - Last 30 Days)
+    # CHART 3: PROCUREMENT TREND (Last 6 Months)
     # ========================================================================
     
-    audit_activity_data = []
-    for i in range(30):
-        date = today - timedelta(days=29-i)
-        activity_count = AuditLog.objects.filter(
-            timestamp__date=date
+    six_months_data = []
+    for i in range(6):
+        month_start = (today.replace(day=1) - timedelta(days=30*i)).replace(day=1)
+        if i < 5:
+            month_end = (today.replace(day=1) - timedelta(days=30*(i-1))).replace(day=1) - timedelta(days=1)
+        else:
+            month_end = today
+        
+        reqs = Requisition.objects.filter(
+            created_at__range=[month_start, month_end]
         ).count()
-        audit_activity_data.append({
-            'date': date.strftime('%b %d'),
-            'count': activity_count
+        
+        pos = PurchaseOrder.objects.filter(
+            created_at__range=[month_start, month_end]
+        ).count()
+        
+        payments = Payment.objects.filter(
+            created_at__range=[month_start, month_end],
+            status='COMPLETED'
+        ).count()
+        
+        six_months_data.insert(0, {
+            'month': month_start.strftime('%b %Y'),
+            'requisitions': reqs,
+            'pos': pos,
+            'payments': payments
         })
     
-    audit_activity_chart = json.dumps({
-        'labels': [d['date'] for d in audit_activity_data],
-        'values': [d['count'] for d in audit_activity_data]
+    procurement_trend_chart = json.dumps({
+        'labels': [d['month'] for d in six_months_data],
+        'requisitions': [d['requisitions'] for d in six_months_data],
+        'purchase_orders': [d['pos'] for d in six_months_data],
+        'payments': [d['payments'] for d in six_months_data],
     })
     
     # ========================================================================
-    # CHART 7: SUPPLIER PERFORMANCE (Bar Chart - Top 10)
+    # CHART 4: TRANSACTION VALUE BY DEPARTMENT (Bar Chart)
     # ========================================================================
     
-    supplier_ratings = SupplierPerformance.objects.values(
-        'supplier__name'
-    ).annotate(
-        avg_rating=Avg('overall_rating'),
-        review_count=Count('id')
-    ).order_by('-avg_rating')[:10]
-    
-    supplier_performance_chart = json.dumps({
-        'labels': [sr['supplier__name'][:20] for sr in supplier_ratings],
-        'values': [float(sr['avg_rating']) for sr in supplier_ratings],
-        'counts': [sr['review_count'] for sr in supplier_ratings]
-    })
-    
-    # ========================================================================
-    # CHART 8: TENDER STATUS (Horizontal Bar)
-    # ========================================================================
-    
-    tender_statuses = Tender.objects.values('status').annotate(
-        count=Count('id')
-    ).order_by('-count')
-    
-    status_colors_map = {
-        'DRAFT': '#94A3B8',
-        'PUBLISHED': '#3B82F6',
-        'CLOSED': '#F59E0B',
-        'EVALUATING': '#6366F1',
-        'AWARDED': '#10B981',
-        'CANCELLED': '#EF4444',
-    }
-    
-    tender_status_chart = json.dumps({
-        'labels': [ts['status'].replace('_', ' ').title() for ts in tender_statuses],
-        'values': [ts['count'] for ts in tender_statuses],
-        'colors': [status_colors_map.get(ts['status'], '#64748B') for ts in tender_statuses]
-    })
-    
-    # ========================================================================
-    # CHART 9: EXPENDITURE BY CATEGORY (Donut)
-    # ========================================================================
-    
-    category_spending = Budget.objects.values(
-        'category__name'
-    ).annotate(
-        total=Sum('actual_spent')
-    ).order_by('-total')[:6]
-    
-    category_colors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6']
-    
-    expenditure_by_category_chart = json.dumps({
-        'labels': [cs['category__name'] for cs in category_spending],
-        'values': [float(cs['total']) for cs in category_spending],
-        'colors': category_colors
-    })
-    
-    # ========================================================================
-    # CHART 10: TOP SPENDING DEPARTMENTS (Horizontal Bar)
-    # ========================================================================
-    
-    top_departments = Budget.objects.values(
+    dept_spending = Budget.objects.values(
         'department__name', 'department__code'
     ).annotate(
-        total_budget=Sum('allocated_amount'),
-        total_spent=Sum('actual_spent'),
-        utilization=ExpressionWrapper(
-            Sum('actual_spent') * 100.0 / Sum('allocated_amount'),
-            output_field=DecimalField()
-        )
-    ).order_by('-total_spent')[:10]
+        total_spent=Sum('actual_spent')
+    ).order_by('-total_spent')[:8]
     
-    top_departments_chart = json.dumps({
-        'labels': [td['department__code'] for td in top_departments],
-        'spent': [float(td['total_spent']) for td in top_departments],
-        'budget': [float(td['total_budget']) for td in top_departments],
-        'utilization': [float(td['utilization']) if td['utilization'] else 0 for td in top_departments]
+    dept_spending_chart = json.dumps({
+        'labels': [d['department__code'] for d in dept_spending],
+        'values': [float(d['total_spent']) for d in dept_spending],
+        'full_names': [d['department__name'] for d in dept_spending]
     })
+    
+    # ========================================================================
+    # FLAGGED TRANSACTIONS (FIXED)
+    # ========================================================================
+    
+    flagged_items = []
+    
+    # Emergency requisitions
+    emergency_reqs = Requisition.objects.filter(
+        is_emergency=True,
+        created_at__gte=thirty_days_ago
+    ).select_related('department', 'requested_by')[:5]
+    
+    for req in emergency_reqs:
+        flagged_items.append({
+            'type': 'Emergency Requisition',
+            'reference': req.requisition_number,
+            'description': req.title,
+            'amount': req.estimated_amount,
+            'date': req.created_at.date(),  # Convert to date
+            'flag': 'Emergency Procurement',
+            'sort_date': req.created_at  # Keep datetime for sorting
+        })
+    
+    # Single-bid tenders
+    single_bid_tenders = Tender.objects.annotate(
+        bid_count=Count('bids')
+    ).filter(bid_count=1, created_at__gte=thirty_days_ago)[:5]
+    
+    for tender in single_bid_tenders:
+        flagged_items.append({
+            'type': 'Tender',
+            'reference': tender.tender_number,
+            'description': tender.title,
+            'amount': tender.estimated_budget,
+            'date': tender.created_at.date(),  # Convert to date
+            'flag': 'Single Bid Received',
+            'sort_date': tender.created_at  # Keep datetime for sorting
+        })
+    
+    # Overdue purchase orders
+    overdue_pos_list = PurchaseOrder.objects.filter(
+        status__in=['SENT', 'ACKNOWLEDGED'],
+        delivery_date__lt=today
+    ).select_related('supplier')[:5]
+    
+    for po in overdue_pos_list:
+        # Convert delivery_date (date) to datetime for consistent sorting
+        delivery_datetime = datetime.combine(po.delivery_date, datetime.min.time())
+        delivery_datetime = timezone.make_aware(delivery_datetime)
+        
+        flagged_items.append({
+            'type': 'Purchase Order',
+            'reference': po.po_number,
+            'description': f"Overdue delivery - {po.supplier.name}",
+            'amount': po.total_amount,
+            'date': po.delivery_date,  # Keep as date for display
+            'flag': 'Overdue Delivery',
+            'sort_date': delivery_datetime  # Use datetime for sorting
+        })
+    
+    # Sort by datetime, then remove the sort_date field
+    flagged_items.sort(key=lambda x: x['sort_date'], reverse=True)
+    for item in flagged_items:
+        del item['sort_date']
     
     # ========================================================================
     # RECENT ACTIVITIES
     # ========================================================================
     
-    recent_activities = AuditLog.objects.select_related('user').order_by('-timestamp')[:20]
+    recent_activities = AuditLog.objects.select_related('user').order_by('-timestamp')[:15]
     
     # Pending high-value reviews
     pending_reviews = Requisition.objects.filter(
@@ -19130,61 +19076,6 @@ def auditor_dashboard(request):
     high_value_pos_list = PurchaseOrder.objects.filter(
         total_amount__gte=1000000
     ).select_related('supplier', 'requisition').order_by('-created_at')[:10]
-    
-    # Recent supplier performance reviews
-    supplier_performance_list = SupplierPerformance.objects.select_related(
-        'supplier', 'purchase_order', 'reviewed_by'
-    ).order_by('-reviewed_at')[:10]
-    
-    # Flagged transactions
-    flagged_items = []
-    
-    # Emergency requisitions
-    emergency_reqs = Requisition.objects.filter(
-        is_emergency=True,
-        created_at__gte=thirty_days_ago
-    ).select_related('department', 'requested_by')[:5]
-    for req in emergency_reqs:
-        flagged_items.append({
-            'type': 'Emergency Requisition',
-            'reference': req.requisition_number,
-            'description': req.title,
-            'amount': req.estimated_amount,
-            'date': req.created_at,
-            'flag': 'Emergency Procurement'
-        })
-    
-    # Single-bid tenders
-    single_bid_tenders = Tender.objects.annotate(
-        bid_count=Count('bids')
-    ).filter(bid_count=1, created_at__gte=thirty_days_ago)[:5]
-    for tender in single_bid_tenders:
-        flagged_items.append({
-            'type': 'Tender',
-            'reference': tender.tender_number,
-            'description': tender.title,
-            'amount': tender.estimated_budget,
-            'date': tender.created_at,
-            'flag': 'Single Bid Received'
-        })
-    
-    # Overdue purchase orders
-    overdue_pos_list = PurchaseOrder.objects.filter(
-        status__in=['SENT', 'ACKNOWLEDGED'],
-        delivery_date__lt=today
-    ).select_related('supplier')[:5]
-    for po in overdue_pos_list:
-        flagged_items.append({
-            'type': 'Purchase Order',
-            'reference': po.po_number,
-            'description': f"Overdue delivery - {po.supplier.name}",
-            'amount': po.total_amount,
-            'date': po.delivery_date,
-            'flag': 'Overdue Delivery'
-        })
-    
-    # Sort flagged items by date
-    flagged_items.sort(key=lambda x: x['date'], reverse=True)
     
     # ========================================================================
     # COMPLIANCE ALERTS
@@ -19202,7 +19093,7 @@ def auditor_dashboard(request):
         status='APPROVED'
     )[:5]
     
-    # Late payments
+    # Late payments 
     late_payments = Invoice.objects.filter(
         status__in=['SUBMITTED', 'APPROVED'],
         due_date__lt=today
@@ -19251,23 +19142,16 @@ def auditor_dashboard(request):
         'payment_compliance_rate': round(payment_compliance_rate, 1),
         'supplier_compliance_rate': round(supplier_compliance_rate, 1),
         
-        # Chart Data (JSON)
-        'procurement_trend_chart': procurement_trend_chart,
+        # Chart Data (JSON) - Only 4 essential charts
         'compliance_overview_chart': compliance_overview_chart,
-        'dept_spending_chart': dept_spending_chart,
-        'procurement_method_chart': procurement_method_chart,
         'risk_radar_chart': risk_radar_chart,
-        'audit_activity_chart': audit_activity_chart,
-        'supplier_performance_chart': supplier_performance_chart,
-        'tender_status_chart': tender_status_chart,
-        'expenditure_by_category_chart': expenditure_by_category_chart,
-        'top_departments_chart': top_departments_chart,
+        'procurement_trend_chart': procurement_trend_chart,
+        'dept_spending_chart': dept_spending_chart,
         
         # Lists
         'recent_activities': recent_activities,
         'pending_reviews': pending_reviews,
         'high_value_pos_list': high_value_pos_list,
-        'supplier_performance_list': supplier_performance_list,
         'flagged_items': flagged_items[:10],
         
         # Alerts
@@ -19282,7 +19166,6 @@ def auditor_dashboard(request):
     }
     
     return render(request, 'auditor/dashboard.html', context)
-
 
 @login_required
 def auditor_analytics_view(request):
