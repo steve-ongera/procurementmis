@@ -37,10 +37,6 @@ def getattr(obj, attr):
 # ✅ DIVIDE FILTER
 @register.filter
 def div(value, arg):
-    """
-    Divides value by arg
-    Usage: {{ value|div:arg }}
-    """
     try:
         value = Decimal(value)
         arg = Decimal(arg)
@@ -54,24 +50,28 @@ def div(value, arg):
 # ✅ MULTIPLY FILTER
 @register.filter
 def mul(value, arg):
-    """
-    Multiplies value by arg
-    Usage: {{ value|mul:arg }}
-    """
     try:
         return Decimal(value) * Decimal(arg)
     except (TypeError, InvalidOperation):
         return 0
 
+
+# ✅ SUBTRACT FILTER (🔥 REQUIRED)
+@register.filter
+def subtract(value, arg):
+    """
+    Subtracts arg from value
+    Usage: {{ value|subtract:arg }}
+    """
+    try:
+        return Decimal(value) - Decimal(arg)
+    except (TypeError, InvalidOperation):
+        return 0
+
+
 # ✅ SUM ATTRIBUTE FILTER
 @register.filter
 def sum_attr(queryset, attr):
-    """
-    Sums a numeric attribute from a queryset or list of objects
-
-    Usage:
-    {{ suppliers|sum_attr:"total_paid" }}
-    """
     total = Decimal('0')
 
     if not queryset:

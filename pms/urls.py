@@ -527,6 +527,46 @@ urlpatterns = [
     # HELP & SUPPORT URL
     # ============================================================================
     path('help/', views.store_help_center_view, name='store_help_center'),
+        
+        
+        
+    # ============================================================================
+    # AUDITOR MODULE URLS
+    # ============================================================================
+
+    # Dashboard & Analytics
+    path('auditor/analytics/', views.auditor_analytics_view, name='auditor_analytics'),
+
+    # Audit Management
+    path('auditor/audits/all/', views.auditor_all_audits_view, name='auditor_all_audits'),
+    path('auditor/audits/new/', views.auditor_new_audit_view, name='auditor_new_audit'),
+    path('auditor/audits/active/', views.auditor_active_audits_view, name='auditor_active_audits'),
+    path('auditor/audits/completed/', views.auditor_completed_audits_view, name='auditor_completed_audits'),
+
+    # Transaction Reviews
+    path('auditor/reviews/requisitions/', views.auditor_requisitions_review_view, name='auditor_requisitions_review'),
+    path('auditor/reviews/purchase-orders/', views.auditor_purchase_orders_review_view, name='auditor_purchase_orders_review'),
+    path('auditor/reviews/payments/', views.auditor_payments_review_view, name='auditor_payments_review'),
+    path('auditor/reviews/contracts/', views.auditor_contracts_review_view, name='auditor_contracts_review'),
+
+    # Compliance
+    path('auditor/compliance/', views.auditor_compliance_review_view, name='auditor_compliance_review'),
+    path('auditor/flagged-items/', views.auditor_flagged_items_view, name='auditor_flagged_items'),
+
+    # System Audit
+    path('auditor/system-audit/trail/', views.auditor_audit_trail_view, name='auditor_audit_trail'),
+    path('auditor/system-audit/activity/', views.auditor_activity_logs_view, name='auditor_activity_logs'),
+    path('auditor/system-audit/access/', views.auditor_access_logs_view, name='auditor_access_logs'),
+    path('auditor/system-audit/data-changes/', views.auditor_data_changes_view, name='auditor_data_changes'),
+
+    # Reports & Findings
+    path('auditor/reports/audit-reports/', views.auditor_audit_reports_view, name='auditor_audit_reports'),
+    path('auditor/reports/findings/', views.auditor_findings_view, name='auditor_findings'),
+    path('auditor/reports/recommendations/', views.auditor_recommendations_view, name='auditor_recommendations'),
+    path('auditor/reports/risk-assessment/', views.auditor_risk_assessment_view, name='auditor_risk_assessment'),
+
+    # Help & Support
+    path('auditor/help/', views.auditor_help_center_view, name='auditor_help_center'),
    
     
 ]

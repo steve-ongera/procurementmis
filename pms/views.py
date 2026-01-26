@@ -1049,26 +1049,6 @@ def stores_dashboard(request):
     return render(request, 'dashboards/stores_dashboard.html', context)
 
 
-def auditor_dashboard(request):
-    """Auditor Dashboard"""
-    context = {
-        'recent_activities': AuditLog.objects.all().order_by('-timestamp')[:20],
-        'compliance_stats': {
-            'total_requisitions': Requisition.objects.count(),
-            'emergency_requisitions': Requisition.objects.filter(is_emergency=True).count(),
-            'total_tenders': Tender.objects.count(),
-            'total_contracts': Contract.objects.count(),
-        },
-        'pending_reviews': Requisition.objects.filter(
-            estimated_amount__gte=500000,
-            status='APPROVED'
-        ).order_by('-created_at')[:10],
-        'high_value_pos': PurchaseOrder.objects.filter(
-            total_amount__gte=1000000
-        ).order_by('-created_at')[:10],
-        'supplier_performance': SupplierPerformance.objects.all().order_by('-reviewed_at')[:10],
-    }
-    return render(request, 'dashboards/auditor_dashboard.html', context)
 
 
 # Helper Functions
@@ -18800,3 +18780,1088 @@ def store_help_center_view(request):
     }
     
     return render(request, 'stores/help_center.html', context)
+
+
+
+# pms/views.py (Add these to your existing views.py)
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Count, Q, Avg
+from django.utils import timezone
+from datetime import timedelta
+from decimal import Decimal
+from django.http import JsonResponse, HttpResponse
+from django.contrib import messages
+
+from .models import (
+    User, Requisition, RequisitionApproval, Tender, Bid, PurchaseOrder,
+    Invoice, Payment, Contract, Supplier, Budget, AuditLog,
+    BidEvaluation, SupplierPerformance, StockMovement, Asset
+)
+
+# ============================================================================
+# AUDITOR DASHBOARD & ANALYTICS
+# ============================================================================
+from django.db.models import Sum, Count, Q, Avg, F, Max, Min, ExpressionWrapper, DecimalField
+from django.db.models.functions import TruncMonth, TruncDate, Coalesce
+from django.utils import timezone
+from datetime import timedelta
+from decimal import Decimal
+import json
+
+@login_required
+def auditor_dashboard(request):
+    """Auditor Dashboard with Analytics"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied. Auditor role required.')
+        return redirect('dashboard')
+    
+    # Date ranges
+    today = timezone.now().date()
+    thirty_days_ago = today - timedelta(days=30)
+    six_months_ago = today - timedelta(days=180)
+    this_month_start = today.replace(day=1)
+    
+    # ========================================================================
+    # KEY METRICS
+    # ========================================================================
+    
+    # Compliance Stats
+    total_requisitions = Requisition.objects.count()
+    emergency_requisitions = Requisition.objects.filter(is_emergency=True).count()
+    unplanned_requisitions = Requisition.objects.filter(is_planned=False).count()
+    
+    total_tenders = Tender.objects.count()
+    total_contracts = Contract.objects.count()
+    total_purchase_orders = PurchaseOrder.objects.count()
+    
+    # High-value transactions
+    high_value_reqs = Requisition.objects.filter(
+        estimated_amount__gte=1000000
+    ).count()
+    
+    high_value_pos = PurchaseOrder.objects.filter(
+        total_amount__gte=1000000
+    ).count()
+    
+    # Pending reviews
+    pending_reviews_count = Requisition.objects.filter(
+        status__in=['SUBMITTED', 'HOD_APPROVED', 'FACULTY_APPROVED']
+    ).count()
+    
+    # Flagged items
+    flagged_count = (
+        emergency_requisitions + 
+        unplanned_requisitions + 
+        Tender.objects.annotate(bid_count=Count('bids')).filter(bid_count=1).count()
+    )
+    
+    # Budget compliance
+    budgets_with_overruns = Budget.objects.filter(
+        actual_spent__gt=F('allocated_amount')
+    ).count()
+    
+    total_budgets = Budget.objects.count()
+    budget_compliance_rate = ((total_budgets - budgets_with_overruns) / total_budgets * 100) if total_budgets > 0 else 100
+    
+    # Payment compliance
+    total_invoices = Invoice.objects.count()
+    paid_on_time = Invoice.objects.filter(
+        status='PAID',
+        payment_date__lte=F('due_date')
+    ).count()
+    payment_compliance_rate = (paid_on_time / total_invoices * 100) if total_invoices > 0 else 100
+    
+    # Supplier compliance
+    total_suppliers = Supplier.objects.filter(status='APPROVED').count()
+    compliant_suppliers = Supplier.objects.filter(
+        status='APPROVED',
+        tax_compliance_expiry__gte=today
+    ).count()
+    supplier_compliance_rate = (compliant_suppliers / total_suppliers * 100) if total_suppliers > 0 else 100
+    
+    # ========================================================================
+    # CHART 1: PROCUREMENT TREND (Last 6 Months)
+    # ========================================================================
+    
+    # Get monthly data
+    six_months_data = []
+    for i in range(6):
+        month_start = (today.replace(day=1) - timedelta(days=30*i)).replace(day=1)
+        if i < 5:
+            month_end = (today.replace(day=1) - timedelta(days=30*(i-1))).replace(day=1) - timedelta(days=1)
+        else:
+            month_end = today
+        
+        reqs = Requisition.objects.filter(
+            created_at__range=[month_start, month_end]
+        ).count()
+        
+        pos = PurchaseOrder.objects.filter(
+            created_at__range=[month_start, month_end]
+        ).count()
+        
+        payments = Payment.objects.filter(
+            created_at__range=[month_start, month_end],
+            status='COMPLETED'
+        ).count()
+        
+        six_months_data.insert(0, {
+            'month': month_start.strftime('%b %Y'),
+            'requisitions': reqs,
+            'pos': pos,
+            'payments': payments
+        })
+    
+    procurement_trend_chart = json.dumps({
+        'labels': [d['month'] for d in six_months_data],
+        'requisitions': [d['requisitions'] for d in six_months_data],
+        'purchase_orders': [d['pos'] for d in six_months_data],
+        'payments': [d['payments'] for d in six_months_data],
+    })
+    
+    # ========================================================================
+    # CHART 2: COMPLIANCE OVERVIEW (Donut Chart)
+    # ========================================================================
+    
+    compliance_overview_chart = json.dumps({
+        'labels': ['Budget Compliance', 'Payment Compliance', 'Supplier Compliance', 'Procurement Plan Compliance'],
+        'values': [
+            round(budget_compliance_rate, 1),
+            round(payment_compliance_rate, 1),
+            round(supplier_compliance_rate, 1),
+            85.0  # Placeholder for procurement plan compliance
+        ],
+        'colors': ['#10B981', '#6366F1', '#F59E0B', '#2563EB']
+    })
+    
+    # ========================================================================
+    # CHART 3: TRANSACTION VALUE BY DEPARTMENT (Bar Chart)
+    # ========================================================================
+    
+    dept_spending = Budget.objects.values(
+        'department__name', 'department__code'
+    ).annotate(
+        total_spent=Sum('actual_spent')
+    ).order_by('-total_spent')[:8]
+    
+    dept_spending_chart = json.dumps({
+        'labels': [d['department__code'] for d in dept_spending],
+        'values': [float(d['total_spent']) for d in dept_spending],
+        'full_names': [d['department__name'] for d in dept_spending]
+    })
+    
+    # ========================================================================
+    # CHART 4: PROCUREMENT METHOD DISTRIBUTION (Pie Chart)
+    # ========================================================================
+    
+    procurement_methods = Tender.objects.values('procurement_method').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    method_colors = {
+        'OPEN': '#10B981',
+        'RESTRICTED': '#6366F1',
+        'DIRECT': '#F59E0B',
+        'FRAMEWORK': '#2563EB',
+    }
+    
+    procurement_method_chart = json.dumps({
+        'labels': [pm['procurement_method'].replace('_', ' ').title() for pm in procurement_methods],
+        'values': [pm['count'] for pm in procurement_methods],
+        'colors': [method_colors.get(pm['procurement_method'], '#64748B') for pm in procurement_methods]
+    })
+    
+    # ========================================================================
+    # CHART 5: RISK INDICATORS (Radar Chart)
+    # ========================================================================
+    
+    # Calculate risk scores (0-100, higher = more risk)
+    emergency_risk = (emergency_requisitions / total_requisitions * 100) if total_requisitions > 0 else 0
+    unplanned_risk = (unplanned_requisitions / total_requisitions * 100) if total_requisitions > 0 else 0
+    
+    single_bid_tenders = Tender.objects.annotate(
+        bid_count=Count('bids')
+    ).filter(bid_count=1).count()
+    single_bid_risk = (single_bid_tenders / total_tenders * 100) if total_tenders > 0 else 0
+    
+    overdue_pos = PurchaseOrder.objects.filter(
+        status__in=['SENT', 'ACKNOWLEDGED'],
+        delivery_date__lt=today
+    ).count()
+    delivery_risk = (overdue_pos / total_purchase_orders * 100) if total_purchase_orders > 0 else 0
+    
+    overdue_invoices = Invoice.objects.filter(
+        status__in=['SUBMITTED', 'APPROVED'],
+        due_date__lt=today
+    ).count()
+    payment_risk = (overdue_invoices / total_invoices * 100) if total_invoices > 0 else 0
+    
+    budget_risk = (budgets_with_overruns / total_budgets * 100) if total_budgets > 0 else 0
+    
+    risk_radar_chart = json.dumps({
+        'labels': ['Emergency Procurements', 'Unplanned Items', 'Single Bids', 
+                   'Delivery Delays', 'Payment Delays', 'Budget Overruns'],
+        'values': [
+            round(emergency_risk, 1),
+            round(unplanned_risk, 1),
+            round(single_bid_risk, 1),
+            round(delivery_risk, 1),
+            round(payment_risk, 1),
+            round(budget_risk, 1)
+        ]
+    })
+    
+    # ========================================================================
+    # CHART 6: AUDIT ACTIVITY (Line Chart - Last 30 Days)
+    # ========================================================================
+    
+    audit_activity_data = []
+    for i in range(30):
+        date = today - timedelta(days=29-i)
+        activity_count = AuditLog.objects.filter(
+            timestamp__date=date
+        ).count()
+        audit_activity_data.append({
+            'date': date.strftime('%b %d'),
+            'count': activity_count
+        })
+    
+    audit_activity_chart = json.dumps({
+        'labels': [d['date'] for d in audit_activity_data],
+        'values': [d['count'] for d in audit_activity_data]
+    })
+    
+    # ========================================================================
+    # CHART 7: SUPPLIER PERFORMANCE (Bar Chart - Top 10)
+    # ========================================================================
+    
+    supplier_ratings = SupplierPerformance.objects.values(
+        'supplier__name'
+    ).annotate(
+        avg_rating=Avg('overall_rating'),
+        review_count=Count('id')
+    ).order_by('-avg_rating')[:10]
+    
+    supplier_performance_chart = json.dumps({
+        'labels': [sr['supplier__name'][:20] for sr in supplier_ratings],
+        'values': [float(sr['avg_rating']) for sr in supplier_ratings],
+        'counts': [sr['review_count'] for sr in supplier_ratings]
+    })
+    
+    # ========================================================================
+    # CHART 8: TENDER STATUS (Horizontal Bar)
+    # ========================================================================
+    
+    tender_statuses = Tender.objects.values('status').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    status_colors_map = {
+        'DRAFT': '#94A3B8',
+        'PUBLISHED': '#3B82F6',
+        'CLOSED': '#F59E0B',
+        'EVALUATING': '#6366F1',
+        'AWARDED': '#10B981',
+        'CANCELLED': '#EF4444',
+    }
+    
+    tender_status_chart = json.dumps({
+        'labels': [ts['status'].replace('_', ' ').title() for ts in tender_statuses],
+        'values': [ts['count'] for ts in tender_statuses],
+        'colors': [status_colors_map.get(ts['status'], '#64748B') for ts in tender_statuses]
+    })
+    
+    # ========================================================================
+    # CHART 9: EXPENDITURE BY CATEGORY (Donut)
+    # ========================================================================
+    
+    category_spending = Budget.objects.values(
+        'category__name'
+    ).annotate(
+        total=Sum('actual_spent')
+    ).order_by('-total')[:6]
+    
+    category_colors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6']
+    
+    expenditure_by_category_chart = json.dumps({
+        'labels': [cs['category__name'] for cs in category_spending],
+        'values': [float(cs['total']) for cs in category_spending],
+        'colors': category_colors
+    })
+    
+    # ========================================================================
+    # CHART 10: TOP SPENDING DEPARTMENTS (Horizontal Bar)
+    # ========================================================================
+    
+    top_departments = Budget.objects.values(
+        'department__name', 'department__code'
+    ).annotate(
+        total_budget=Sum('allocated_amount'),
+        total_spent=Sum('actual_spent'),
+        utilization=ExpressionWrapper(
+            Sum('actual_spent') * 100.0 / Sum('allocated_amount'),
+            output_field=DecimalField()
+        )
+    ).order_by('-total_spent')[:10]
+    
+    top_departments_chart = json.dumps({
+        'labels': [td['department__code'] for td in top_departments],
+        'spent': [float(td['total_spent']) for td in top_departments],
+        'budget': [float(td['total_budget']) for td in top_departments],
+        'utilization': [float(td['utilization']) if td['utilization'] else 0 for td in top_departments]
+    })
+    
+    # ========================================================================
+    # RECENT ACTIVITIES
+    # ========================================================================
+    
+    recent_activities = AuditLog.objects.select_related('user').order_by('-timestamp')[:20]
+    
+    # Pending high-value reviews
+    pending_reviews = Requisition.objects.filter(
+        estimated_amount__gte=500000,
+        status__in=['SUBMITTED', 'HOD_APPROVED', 'FACULTY_APPROVED']
+    ).select_related('department', 'requested_by').order_by('-created_at')[:10]
+    
+    # High-value purchase orders
+    high_value_pos_list = PurchaseOrder.objects.filter(
+        total_amount__gte=1000000
+    ).select_related('supplier', 'requisition').order_by('-created_at')[:10]
+    
+    # Recent supplier performance reviews
+    supplier_performance_list = SupplierPerformance.objects.select_related(
+        'supplier', 'purchase_order', 'reviewed_by'
+    ).order_by('-reviewed_at')[:10]
+    
+    # Flagged transactions
+    flagged_items = []
+    
+    # Emergency requisitions
+    emergency_reqs = Requisition.objects.filter(
+        is_emergency=True,
+        created_at__gte=thirty_days_ago
+    ).select_related('department', 'requested_by')[:5]
+    for req in emergency_reqs:
+        flagged_items.append({
+            'type': 'Emergency Requisition',
+            'reference': req.requisition_number,
+            'description': req.title,
+            'amount': req.estimated_amount,
+            'date': req.created_at,
+            'flag': 'Emergency Procurement'
+        })
+    
+    # Single-bid tenders
+    single_bid_tenders = Tender.objects.annotate(
+        bid_count=Count('bids')
+    ).filter(bid_count=1, created_at__gte=thirty_days_ago)[:5]
+    for tender in single_bid_tenders:
+        flagged_items.append({
+            'type': 'Tender',
+            'reference': tender.tender_number,
+            'description': tender.title,
+            'amount': tender.estimated_budget,
+            'date': tender.created_at,
+            'flag': 'Single Bid Received'
+        })
+    
+    # Overdue purchase orders
+    overdue_pos_list = PurchaseOrder.objects.filter(
+        status__in=['SENT', 'ACKNOWLEDGED'],
+        delivery_date__lt=today
+    ).select_related('supplier')[:5]
+    for po in overdue_pos_list:
+        flagged_items.append({
+            'type': 'Purchase Order',
+            'reference': po.po_number,
+            'description': f"Overdue delivery - {po.supplier.name}",
+            'amount': po.total_amount,
+            'date': po.delivery_date,
+            'flag': 'Overdue Delivery'
+        })
+    
+    # Sort flagged items by date
+    flagged_items.sort(key=lambda x: x['date'], reverse=True)
+    
+    # ========================================================================
+    # COMPLIANCE ALERTS
+    # ========================================================================
+    
+    # Budget overruns
+    budget_overruns = Budget.objects.filter(
+        actual_spent__gt=F('allocated_amount')
+    ).select_related('department', 'category')[:5]
+    
+    # Expired supplier documents
+    expired_supplier_docs = Supplier.objects.filter(
+        Q(tax_compliance_expiry__lt=today) | 
+        Q(registration_expiry__lt=today),
+        status='APPROVED'
+    )[:5]
+    
+    # Late payments
+    late_payments = Invoice.objects.filter(
+        status__in=['SUBMITTED', 'APPROVED'],
+        due_date__lt=today
+    ).select_related('supplier').order_by('due_date')[:5]
+    
+    # Contracts expiring soon (within 30 days)
+    expiring_contracts = Contract.objects.filter(
+        status='ACTIVE',
+        end_date__lte=today + timedelta(days=30),
+        end_date__gte=today
+    ).select_related('supplier').order_by('end_date')[:5]
+    
+    # ========================================================================
+    # USER ACTIVITY SUMMARY
+    # ========================================================================
+    
+    user_actions_today = AuditLog.objects.filter(
+        timestamp__date=today
+    ).values('action').annotate(count=Count('id'))
+    
+    most_active_users = AuditLog.objects.filter(
+        timestamp__gte=thirty_days_ago
+    ).values('user__username', 'user__first_name', 'user__last_name').annotate(
+        action_count=Count('id')
+    ).order_by('-action_count')[:5]
+    
+    # ========================================================================
+    # CONTEXT
+    # ========================================================================
+    
+    context = {
+        # Key Metrics
+        'total_requisitions': total_requisitions,
+        'emergency_requisitions': emergency_requisitions,
+        'unplanned_requisitions': unplanned_requisitions,
+        'total_tenders': total_tenders,
+        'total_contracts': total_contracts,
+        'total_purchase_orders': total_purchase_orders,
+        'high_value_reqs': high_value_reqs,
+        'high_value_pos': high_value_pos,
+        'pending_reviews_count': pending_reviews_count,
+        'flagged_count': flagged_count,
+        
+        # Compliance Rates
+        'budget_compliance_rate': round(budget_compliance_rate, 1),
+        'payment_compliance_rate': round(payment_compliance_rate, 1),
+        'supplier_compliance_rate': round(supplier_compliance_rate, 1),
+        
+        # Chart Data (JSON)
+        'procurement_trend_chart': procurement_trend_chart,
+        'compliance_overview_chart': compliance_overview_chart,
+        'dept_spending_chart': dept_spending_chart,
+        'procurement_method_chart': procurement_method_chart,
+        'risk_radar_chart': risk_radar_chart,
+        'audit_activity_chart': audit_activity_chart,
+        'supplier_performance_chart': supplier_performance_chart,
+        'tender_status_chart': tender_status_chart,
+        'expenditure_by_category_chart': expenditure_by_category_chart,
+        'top_departments_chart': top_departments_chart,
+        
+        # Lists
+        'recent_activities': recent_activities,
+        'pending_reviews': pending_reviews,
+        'high_value_pos_list': high_value_pos_list,
+        'supplier_performance_list': supplier_performance_list,
+        'flagged_items': flagged_items[:10],
+        
+        # Alerts
+        'budget_overruns': budget_overruns,
+        'expired_supplier_docs': expired_supplier_docs,
+        'late_payments': late_payments,
+        'expiring_contracts': expiring_contracts,
+        
+        # User Activity
+        'user_actions_today': user_actions_today,
+        'most_active_users': most_active_users,
+    }
+    
+    return render(request, 'auditor/dashboard.html', context)
+
+
+@login_required
+def auditor_analytics_view(request):
+    """Audit analytics and insights"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Spending patterns
+    monthly_spend = PurchaseOrder.objects.filter(
+        status='APPROVED',
+        created_at__year=timezone.now().year
+    ).values('created_at__month').annotate(
+        total=Sum('total_amount')
+    )
+    
+    # Department spending
+    dept_spending = Budget.objects.values(
+        'department__name'
+    ).annotate(
+        allocated=Sum('allocated_amount'),
+        spent=Sum('actual_spent')
+    )
+    
+    # Supplier analysis
+    top_suppliers = Supplier.objects.annotate(
+        total_orders=Count('purchase_orders'),
+        total_value=Sum('purchase_orders__total_amount')
+    ).order_by('-total_value')[:10]
+    
+    context = {
+        'monthly_spend': monthly_spend,
+        'dept_spending': dept_spending,
+        'top_suppliers': top_suppliers,
+    }
+    
+    return render(request, 'auditor/analytics.html', context)
+
+
+# ============================================================================
+# AUDIT MANAGEMENT
+# ============================================================================
+
+@login_required
+def auditor_all_audits_view(request):
+    """List all audits"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # TODO: Create Audit model first
+    # For now, showing audit logs as placeholder
+    audit_logs = AuditLog.objects.select_related('user').all()
+    
+    context = {
+        'audit_logs': audit_logs,
+    }
+    
+    return render(request, 'auditor/audits/all_audits.html', context)
+
+
+@login_required
+def auditor_new_audit_view(request):
+    """Create new audit"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # TODO: Implement audit creation
+    
+    return render(request, 'auditor/audits/new_audit.html')
+
+
+@login_required
+def auditor_active_audits_view(request):
+    """List active audits"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # TODO: Implement when Audit model exists
+    
+    return render(request, 'auditor/audits/active_audits.html')
+
+
+@login_required
+def auditor_completed_audits_view(request):
+    """List completed audits"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # TODO: Implement when Audit model exists
+    
+    return render(request, 'auditor/audits/completed_audits.html')
+
+
+# ============================================================================
+# TRANSACTION REVIEWS
+# ============================================================================
+
+@login_required
+def auditor_requisitions_review_view(request):
+    """Review requisitions"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    status_filter = request.GET.get('status', '')
+    department_filter = request.GET.get('department', '')
+    
+    requisitions = Requisition.objects.select_related(
+        'department', 'requested_by', 'budget'
+    ).all()
+    
+    if status_filter:
+        requisitions = requisitions.filter(status=status_filter)
+    
+    if department_filter:
+        requisitions = requisitions.filter(department_id=department_filter)
+    
+    # Flag suspicious requisitions
+    for req in requisitions:
+        req.is_suspicious = False
+        # Check for red flags
+        if req.is_emergency and not req.emergency_justification:
+            req.is_suspicious = True
+        if req.estimated_amount > 1000000:  # High value
+            req.is_suspicious = True
+    
+    context = {
+        'requisitions': requisitions,
+        'status_choices': Requisition.STATUS_CHOICES,
+    }
+    
+    return render(request, 'auditor/reviews/requisitions.html', context)
+
+
+@login_required
+def auditor_purchase_orders_review_view(request):
+    """Review purchase orders"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    purchase_orders = PurchaseOrder.objects.select_related(
+        'requisition', 'supplier', 'created_by'
+    ).all()
+    
+    # Add compliance checks
+    for po in purchase_orders:
+        po.compliance_issues = []
+        
+        # Check if PO matches requisition
+        if po.total_amount > po.requisition.estimated_amount * Decimal('1.1'):
+            po.compliance_issues.append('PO amount exceeds requisition by >10%')
+        
+        # Check approval trail
+        if not po.approved_by:
+            po.compliance_issues.append('Missing approval')
+        
+        # Check delivery timeline
+        if po.delivery_date < timezone.now().date():
+            po.compliance_issues.append('Overdue delivery')
+    
+    context = {
+        'purchase_orders': purchase_orders,
+    }
+    
+    return render(request, 'auditor/reviews/purchase_orders.html', context)
+
+
+@login_required
+def auditor_payments_review_view(request):
+    """Review payments"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    payments = Payment.objects.select_related(
+        'invoice', 'invoice__supplier', 'processed_by'
+    ).all()
+    
+    # Add audit checks
+    for payment in payments:
+        payment.audit_flags = []
+        
+        # Check if payment matches invoice
+        if payment.payment_amount > payment.invoice.total_amount:
+            payment.audit_flags.append('Payment exceeds invoice amount')
+        
+        # Check if invoice was approved
+        if not payment.invoice.approved_by:
+            payment.audit_flags.append('Invoice not approved')
+        
+        # Check for duplicate payments
+        duplicate_count = Payment.objects.filter(
+            invoice=payment.invoice,
+            status='COMPLETED'
+        ).count()
+        if duplicate_count > 1:
+            payment.audit_flags.append('Possible duplicate payment')
+    
+    context = {
+        'payments': payments,
+    }
+    
+    return render(request, 'auditor/reviews/payments.html', context)
+
+
+@login_required
+def auditor_contracts_review_view(request):
+    """Review contracts"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    contracts = Contract.objects.select_related(
+        'supplier', 'contract_manager'
+    ).all()
+    
+    # Add compliance checks
+    for contract in contracts:
+        contract.compliance_status = 'OK'
+        contract.issues = []
+        
+        # Check if contract is signed
+        if not contract.signed_by_university or not contract.signed_by_supplier:
+            contract.compliance_status = 'Warning'
+            contract.issues.append('Contract not fully signed')
+        
+        # Check if contract is expiring soon
+        if contract.end_date <= timezone.now().date() + timedelta(days=30):
+            contract.issues.append('Contract expiring within 30 days')
+        
+        # Check performance bond if required
+        if contract.performance_bond_required and contract.performance_bond_amount == 0:
+            contract.compliance_status = 'Critical'
+            contract.issues.append('Performance bond required but not recorded')
+    
+    context = {
+        'contracts': contracts,
+    }
+    
+    return render(request, 'auditor/reviews/contracts.html', context)
+
+
+# ============================================================================
+# COMPLIANCE
+# ============================================================================
+
+@login_required
+def auditor_compliance_review_view(request):
+    """Overall compliance dashboard"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Compliance metrics
+    total_requisitions = Requisition.objects.count()
+    approved_requisitions = Requisition.objects.filter(
+        status='APPROVED'
+    ).count()
+    
+    total_tenders = Tender.objects.count()
+    properly_evaluated = Tender.objects.filter(
+        status='AWARDED'
+    ).count()
+    
+    total_payments = Payment.objects.count()
+    timely_payments = Payment.objects.filter(
+        status='COMPLETED',
+        payment_date__lte=timezone.now().date()
+    ).count()
+    
+    # Supplier compliance
+    suppliers_compliant = Supplier.objects.filter(
+        status='APPROVED',
+        tax_compliance_expiry__gte=timezone.now().date()
+    ).count()
+    
+    total_suppliers = Supplier.objects.filter(status='APPROVED').count()
+    
+    context = {
+        'requisition_compliance': (approved_requisitions / total_requisitions * 100) if total_requisitions > 0 else 0,
+        'tender_compliance': (properly_evaluated / total_tenders * 100) if total_tenders > 0 else 0,
+        'payment_compliance': (timely_payments / total_payments * 100) if total_payments > 0 else 0,
+        'supplier_compliance': (suppliers_compliant / total_suppliers * 100) if total_suppliers > 0 else 0,
+        
+        'total_requisitions': total_requisitions,
+        'total_tenders': total_tenders,
+        'total_payments': total_payments,
+        'total_suppliers': total_suppliers,
+    }
+    
+    return render(request, 'auditor/compliance/overview.html', context)
+
+
+@login_required
+def auditor_flagged_items_view(request):
+    """View flagged/suspicious items"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # High-value requisitions
+    high_value_reqs = Requisition.objects.filter(
+        estimated_amount__gte=1000000
+    ).select_related('department', 'requested_by')
+    
+    # Emergency procurements
+    emergency_procs = Requisition.objects.filter(
+        is_emergency=True
+    ).select_related('department', 'requested_by')
+    
+    # Unplanned requisitions
+    unplanned_reqs = Requisition.objects.filter(
+        is_planned=False
+    ).select_related('department', 'requested_by')
+    
+    # Direct procurements (tenders with only 1 bid)
+    direct_tenders = Tender.objects.annotate(
+        bid_count=Count('bids')
+    ).filter(bid_count=1)
+    
+    # Late payments
+    late_payments = Payment.objects.filter(
+        status='PENDING',
+        invoice__due_date__lt=timezone.now().date()
+    ).select_related('invoice', 'invoice__supplier')
+    
+    # Overdue purchase orders
+    overdue_pos = PurchaseOrder.objects.filter(
+        status__in=['SENT', 'ACKNOWLEDGED'],
+        delivery_date__lt=timezone.now().date()
+    ).select_related('supplier', 'requisition')
+    
+    context = {
+        'high_value_reqs': high_value_reqs,
+        'emergency_procs': emergency_procs,
+        'unplanned_reqs': unplanned_reqs,
+        'direct_tenders': direct_tenders,
+        'late_payments': late_payments,
+        'overdue_pos': overdue_pos,
+    }
+    
+    return render(request, 'auditor/flagged_items.html', context)
+
+
+# ============================================================================
+# SYSTEM AUDIT
+# ============================================================================
+
+@login_required
+def auditor_audit_trail_view(request):
+    """System audit trail"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Filters
+    action_filter = request.GET.get('action', '')
+    user_filter = request.GET.get('user', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    audit_logs = AuditLog.objects.select_related('user').all()
+    
+    if action_filter:
+        audit_logs = audit_logs.filter(action=action_filter)
+    
+    if user_filter:
+        audit_logs = audit_logs.filter(user_id=user_filter)
+    
+    if date_from:
+        audit_logs = audit_logs.filter(timestamp__gte=date_from)
+    
+    if date_to:
+        audit_logs = audit_logs.filter(timestamp__lte=date_to)
+    
+    audit_logs = audit_logs[:1000]  # Limit results
+    
+    context = {
+        'audit_logs': audit_logs,
+        'action_types': AuditLog.ACTION_TYPES,
+    }
+    
+    return render(request, 'auditor/system_audit/audit_trail.html', context)
+
+
+@login_required
+def auditor_activity_logs_view(request):
+    """User activity logs"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Group activities by user
+    user_activities = AuditLog.objects.values(
+        'user__username', 'user__get_full_name'
+    ).annotate(
+        total_actions=Count('id'),
+        last_activity=Max('timestamp')
+    ).order_by('-total_actions')
+    
+    # Recent activities
+    recent_activities = AuditLog.objects.select_related('user').order_by(
+        '-timestamp'
+    )[:100]
+    
+    context = {
+        'user_activities': user_activities,
+        'recent_activities': recent_activities,
+    }
+    
+    return render(request, 'auditor/system_audit/activity_logs.html', context)
+
+
+@login_required
+def auditor_access_logs_view(request):
+    """Access and authentication logs"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Login activities
+    login_logs = AuditLog.objects.filter(
+        action__in=['LOGIN', 'LOGOUT']
+    ).select_related('user').order_by('-timestamp')[:200]
+    
+    # Failed login attempts (would need to be tracked separately)
+    # Placeholder for now
+    
+    context = {
+        'login_logs': login_logs,
+    }
+    
+    return render(request, 'auditor/system_audit/access_logs.html', context)
+
+
+@login_required
+def auditor_data_changes_view(request):
+    """Track data changes and modifications"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Get all UPDATE and DELETE actions
+    data_changes = AuditLog.objects.filter(
+        action__in=['UPDATE', 'DELETE']
+    ).select_related('user').order_by('-timestamp')[:500]
+    
+    # Group by model
+    changes_by_model = AuditLog.objects.filter(
+        action__in=['UPDATE', 'DELETE']
+    ).values('model_name').annotate(
+        change_count=Count('id')
+    ).order_by('-change_count')
+    
+    context = {
+        'data_changes': data_changes,
+        'changes_by_model': changes_by_model,
+    }
+    
+    return render(request, 'auditor/system_audit/data_changes.html', context)
+
+
+# ============================================================================
+# REPORTS & FINDINGS
+# ============================================================================
+
+@login_required
+def auditor_audit_reports_view(request):
+    """List of audit reports"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # TODO: Create AuditReport model
+    # Placeholder using ProcurementReport for now
+    from .models import ProcurementReport
+    
+    reports = ProcurementReport.objects.filter(
+        report_type='COMPLIANCE'
+    ).order_by('-generated_at')
+    
+    context = {
+        'reports': reports,
+    }
+    
+    return render(request, 'auditor/reports/audit_reports.html', context)
+
+
+@login_required
+def auditor_findings_view(request):
+    """Audit findings and issues"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # TODO: Create Finding model
+    # Placeholder - showing flagged items as findings
+    
+    context = {
+        'findings': [],  # Placeholder
+    }
+    
+    return render(request, 'auditor/reports/findings.html', context)
+
+
+@login_required
+def auditor_recommendations_view(request):
+    """Audit recommendations"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # TODO: Create Recommendation model
+    
+    context = {
+        'recommendations': [],  # Placeholder
+    }
+    
+    return render(request, 'auditor/reports/recommendations.html', context)
+
+
+@login_required
+def auditor_risk_assessment_view(request):
+    """Risk assessment dashboard"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Risk indicators
+    
+    # 1. Budget overruns
+    budget_risks = Budget.objects.filter(
+        actual_spent__gt=F('allocated_amount')
+    ).select_related('department', 'category')
+    
+    # 2. Suppliers with poor performance
+    poor_suppliers = SupplierPerformance.objects.filter(
+        overall_rating__lt=3
+    ).values('supplier__name').annotate(
+        avg_rating=Avg('overall_rating'),
+        review_count=Count('id')
+    )
+    
+    # 3. Delayed deliveries
+    delayed_pos = PurchaseOrder.objects.filter(
+        status__in=['SENT', 'ACKNOWLEDGED', 'PARTIAL_DELIVERY'],
+        delivery_date__lt=timezone.now().date()
+    ).count()
+    
+    # 4. High-value single-source procurements
+    single_source = Tender.objects.filter(
+        procurement_method='DIRECT',
+        estimated_budget__gte=500000
+    ).count()
+    
+    context = {
+        'budget_risks': budget_risks,
+        'poor_suppliers': poor_suppliers,
+        'delayed_deliveries': delayed_pos,
+        'single_source_count': single_source,
+    }
+    
+    return render(request, 'auditor/reports/risk_assessment.html', context)
+
+
+# ============================================================================
+# HELP & SUPPORT
+# ============================================================================
+
+@login_required
+def auditor_help_center_view(request):
+    """Auditor help center"""
+    if request.user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    return render(request, 'auditor/help_center.html')
