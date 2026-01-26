@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Data Changes - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Data Changes & Modifications</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Data Changes</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'auditor_audit_trail' %}" class="btn">
+            <i class="bi bi-list-ul"></i>
+            Full Audit Trail
+        </a>
+        <a href="#" class="btn btn-primary" onclick="exportDataChanges()">
+            <i class="bi bi-download"></i>
+            Export Report
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ data_changes.count }}</div>
+        <div class="summary-label">Total Changes</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ changes_by_model.count }}</div>
+        <div class="summary-label">Models Modified</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ data_changes|length }}</div>
+        <div class="summary-label">Recent Changes</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">0</div>
+        <div class="summary-label">Critical Changes</div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-database"></i>
+            Changes by Model
+        </h2>
+    </div>
+
+    {% if changes_by_model %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Model Name</th>
+                    <th>Change Count</th>
+                    <th>Percentage</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for change in changes_by_model %}
+                <tr>
+                    <td>
+                        <strong>{{ change.model_name }}</strong>
+                    </td>
+                    <td class="quantity-cell">{{ change.change_count }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="flex: 1; background: #E2E8F0; height: 6px; border-radius: 3px; overflow: hidden;">
+                                <div style="width: {{ change.change_count|default:0 }}%; background: var(--primary-color); height: 100%;"></div>
+                            </div>
+                            <span style="font-size: 0.75rem; font-weight: 600;">{{ change.change_count }}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="?model={{ change.model_name }}" class="btn-sm">
+                            <i class="bi bi-eye"></i>
+                            View Changes
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p>No data changes recorded</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-pencil-square"></i>
+            Recent Data Modifications
+        </h2>
+    </div>
+
+    {% if data_changes %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Model</th>
+                    <th>Object</th>
+                    <th>Changes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for change in data_changes %}
+                <tr>
+                    <td>
+                        <div>{{ change.timestamp|date:"M d, Y" }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                            {{ change.timestamp|time:"H:i:s" }}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500;">{{ change.user.get_full_name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                            {{ change.user.username }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if change.action == 'UPDATE' %}
+                        <span class="badge badge-warning">
+                            <i class="bi bi-pencil"></i>
+                            Update
+                        </span>
+                        {% elif change.action == 'DELETE' %}
+                        <span class="badge badge-danger">
+                            <i class="bi bi-trash"></i>
+                            Delete
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge" style="background: #E0E7FF; color: #3730A3;">
+                            {{ change.model_name }}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.875rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ change.object_repr }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if change.changes %}
+                        <a href="#" class="btn-sm" onclick="viewChanges('{{ change.id }}')">
+                            <i class="bi bi-eye"></i>
+                            View Details
+                        </a>
+                        {% else %}
+                        <span style="color: var(--secondary-color); font-size: 0.75rem;">No details</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="#" class="action-btn" title="View Full Details">
+                            <i class="bi bi-info-circle"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p>No recent data changes</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function exportDataChanges() {
+    alert('Exporting data changes report...');
+}
+
+function viewChanges(changeId) {
+    alert('Viewing changes for: ' + changeId);
+}
+</script>
+{% endblock %}

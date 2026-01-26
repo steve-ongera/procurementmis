@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Access Logs - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Access & Authentication Logs</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Access Logs</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'auditor_audit_trail' %}" class="btn">
+            <i class="bi bi-list-ul"></i>
+            Full Audit Trail
+        </a>
+        <a href="#" class="btn btn-primary" onclick="exportAccessLogs()">
+            <i class="bi bi-download"></i>
+            Export Logs
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ login_logs.count }}</div>
+        <div class="summary-label">Total Login Activities</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ login_logs|length }}</div>
+        <div class="summary-label">Recent Sessions</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">0</div>
+        <div class="summary-label">Failed Attempts</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ login_logs|length }}</div>
+        <div class="summary-label">Unique Users</div>
+    </div>
+</div>
+
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">User</label>
+                <input type="text" name="user" class="form-control" placeholder="Search by username" value="{{ request.GET.user }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+            <a href="{% url 'auditor_access_logs' %}" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-shield-lock"></i>
+            Login/Logout Activities
+        </h2>
+    </div>
+
+    {% if login_logs %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>IP Address</th>
+                    <th>User Agent</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in login_logs %}
+                <tr>
+                    <td>
+                        <div>{{ log.timestamp|date:"M d, Y" }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                            {{ log.timestamp|time:"H:i:s" }}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500;">{{ log.user.get_full_name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                            {{ log.user.username }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if log.action == 'LOGIN' %}
+                        <span class="badge badge-success">
+                            <i class="bi bi-box-arrow-in-right"></i>
+                            Login
+                        </span>
+                        {% else %}
+                        <span class="badge" style="background: #E5E7EB; color: #374151;">
+                            <i class="bi bi-box-arrow-left"></i>
+                            Logout
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <code style="font-size: 0.75rem;">{{ log.ip_address|default:"N/A" }}</code>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.75rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ log.user_agent|default:"N/A" }}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i>
+                            Success
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p>No access logs found</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function exportAccessLogs() {
+    alert('Exporting access logs...');
+}
+</script>
+{% endblock %}

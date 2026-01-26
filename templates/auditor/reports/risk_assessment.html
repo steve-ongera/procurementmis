@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Risk Assessment - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Risk Assessment Dashboard</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Risk Assessment</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'auditor_flagged_items' %}" class="btn">
+            <i class="bi bi-flag"></i>
+            Flagged Items
+        </a>
+        <a href="#" class="btn btn-primary" onclick="exportRiskReport()">
+            <i class="bi bi-download"></i>
+            Export Report
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="alert-banner alert-danger">
+    <i class="bi bi-shield-exclamation"></i>
+    <div>
+        <strong>{{ budget_risks.count|add:poor_suppliers.count }}</strong> high-risk items identified
+        <div style="font-size: 0.875rem; margin-top: 0.25rem; opacity: 0.9;">
+            Immediate action required to mitigate risks
+        </div>
+    </div>
+</div>
+
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ budget_risks.count }}</div>
+        <div class="summary-label">Budget Overruns</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ poor_suppliers.count }}</div>
+        <div class="summary-label">Poor Performers</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ delayed_deliveries }}</div>
+        <div class="summary-label">Delayed Deliveries</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ single_source_count }}</div>
+        <div class="summary-label">Single Source</div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-exclamation-triangle"></i>
+            Budget Overrun Risks
+        </h2>
+    </div>
+
+    {% if budget_risks %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Category</th>
+                    <th>Allocated</th>
+                    <th>Spent</th>
+                    <th>Overrun</th>
+                    <th>Risk Level</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for budget in budget_risks %}
+                <tr class="out-of-stock-row">
+                    <td>
+                        <strong>{{ budget.department.name }}</strong>
+                    </td>
+                    <td>
+                        <span class="badge" style="background: #E0E7FF; color: #3730A3;">
+                            {{ budget.category.name }}
+                        </span>
+                    </td>
+                    <td class="quantity-cell">
+                        KES {{ budget.allocated_amount|floatformat:0|intcomma }}
+                    </td>
+                    <td class="quantity-cell stock-critical">
+                        KES {{ budget.actual_spent|floatformat:0|intcomma }}
+                    </td>
+                    <td class="quantity-cell stock-critical">
+                        KES {{ budget.actual_spent|add:budget.allocated_amount|floatformat:0|intcomma }}
+                    </td>
+                    <td>
+                        <span class="badge badge-danger">
+                            <i class="bi bi-exclamation-circle-fill"></i>
+                            Critical
+                        </span>
+                    </td>
+                    <td>
+                        <a href="#" class="action-btn" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>No budget overruns detected</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-star"></i>
+            Poor Supplier Performance
+        </h2>
+    </div>
+
+    {% if poor_suppliers %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Supplier</th>
+                    <th>Average Rating</th>
+                    <th>Review Count</th>
+                    <th>Risk Level</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for supplier in poor_suppliers %}
+                <tr class="low-stock-row">
+                    <td>
+                        <strong>{{ supplier.supplier__name }}</strong>
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="color: var(--warning-color); font-weight: 600;">
+                                {{ supplier.avg_rating|floatformat:1 }}/5.0
+                            </div>
+                            <div style="display: flex; gap: 0.125rem;">
+                                {% for i in "12345" %}
+                                <i class="bi bi-star-fill" style="color: #FDE68A; font-size: 0.75rem;"></i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="quantity-cell">{{ supplier.review_count }}</td>
+                    <td>
+                        <span class="badge badge-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            High
+                        </span>
+                    </td>
+                    <td>
+                        <a href="#" class="action-btn" title="View Performance">
+                            <i class="bi bi-graph-up"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check-circle"></i>
+        <p>All suppliers meeting performance standards</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-truck"></i>
+            Delivery Risk Analysis
+        </h2>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Risk Category</th>
+                    <th>Count</th>
+                    <th>Risk Level</th>
+                    <th>Trend</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div style="font-weight: 500;">Delayed Deliveries</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                            Purchase orders past delivery date
+                        </div>
+                    </td>
+                    <td class="quantity-cell stock-critical">{{ delayed_deliveries }}</td>
+                    <td>
+                        {% if delayed_deliveries > 10 %}
+                        <span class="badge badge-danger">
+                            <i class="bi bi-exclamation-circle-fill"></i>
+                            Critical
+                        </span>
+                        {% elif delayed_deliveries > 0 %}
+                        <span class="badge badge-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            High
+                        </span>
+                        {% else %}
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i>
+                            Low
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <i class="bi bi-arrow-up" style="color: var(--danger-color);"></i>
+                        <span style="color: var(--danger-color); font-size: 0.875rem; font-weight: 600;">
+                            Increasing
+                        </span>
+                    </td>
+                    <td>
+                        <a href="#" class="btn-sm">
+                            <i class="bi bi-eye"></i>
+                            View Details
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div style="font-weight: 500;">Single Source Procurement</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                            High-value items from single supplier
+                        </div>
+                    </td>
+                    <td class="quantity-cell stock-warning">{{ single_source_count }}</td>
+                    <td>
+                        {% if single_source_count > 5 %}
+                        <span class="badge badge-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Medium
+                        </span>
+                        {% else %}
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i>
+                            Low
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <i class="bi bi-dash" style="color: var(--secondary-color);"></i>
+                        <span style="color: var(--secondary-color); font-size: 0.875rem; font-weight: 600;">
+                            Stable
+                        </span>
+                    </td>
+                    <td>
+                        <a href="#" class="btn-sm">
+                            <i class="bi bi-eye"></i>
+                            View Details
+                        </a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function exportRiskReport() {
+    alert('Exporting risk assessment report...');
+}
+</script>
+{% endblock %}

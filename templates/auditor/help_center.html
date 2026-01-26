@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Help Center - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Auditor Help Center</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Help Center</span>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">
+            <i class="bi bi-book" style="font-size: 2rem; color: var(--primary-color);"></i>
+        </div>
+        <div class="summary-label">Documentation</div>
+        <a href="#documentation" style="font-size: 0.75rem; color: var(--primary-color); margin-top: 0.5rem; display: block;">
+            View Guides
+        </a>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">
+            <i class="bi bi-question-circle" style="font-size: 2rem; color: var(--warning-color);"></i>
+        </div>
+        <div class="summary-label">FAQs</div>
+        <a href="#faqs" style="font-size: 0.75rem; color: var(--primary-color); margin-top: 0.5rem; display: block;">
+            Browse FAQs
+        </a>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">
+            <i class="bi bi-play-circle" style="font-size: 2rem; color: var(--success-color);"></i>
+        </div>
+        <div class="summary-label">Video Tutorials</div>
+        <a href="#videos" style="font-size: 0.75rem; color: var(--primary-color); margin-top: 0.5rem; display: block;">
+            Watch Videos
+        </a>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">
+            <i class="bi bi-headset" style="font-size: 2rem; color: var(--danger-color);"></i>
+        </div>
+        <div class="summary-label">Support</div>
+        <a href="#support" style="font-size: 0.75rem; color: var(--primary-color); margin-top: 0.5rem; display: block;">
+            Contact Us
+        </a>
+    </div>
+</div>
+
+<div class="table-card" id="documentation">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-book"></i>
+            Documentation & Guides
+        </h2>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Topic</th>
+                    <th>Description</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="bi bi-file-earmark-text" style="color: var(--primary-color);"></i>
+                            <strong>Audit Trail Guide</strong>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.875rem;">
+                            Learn how to review and analyze system audit trails
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.875rem; color: var(--secondary-color);">
+                            Jan 15, 2026
+                        </div>
+                    </td>
+                    <td>
+                        <a href="#" class="btn-sm btn-primary">
+                            <i class="bi bi-eye"></i>
+                            View
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="bi bi-file-earmark-text" style="color: var(--primary-color);"></i>
+                            <strong>Compliance Monitoring</strong>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.875rem;">
+                            Best practices for monitoring procurement compliance
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.875rem; color: var(--secondary-color);">
+                            Jan 10, 2026
+                        </div>
+                    </td>
+                    <td>
+                        <a href="#" class="btn-sm btn-primary">
+                            <i class="bi bi-eye"></i>
+                            View
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="bi bi-file-earmark-text" style="color: var(--primary-color);"></i>
+                            <strong>Risk Assessment Framework</strong>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.875rem;">
+                            Guidelines for conducting procurement risk assessments
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.875rem; color: var(--secondary-color);">
+                            Jan 5, 2026
+                        </div>
+                    </td>
+                    <td>
+                        <a href="#" class="btn-sm btn-primary">
+                            <i class="bi bi-eye"></i>
+                            View
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="bi bi-file-earmark-text" style="color: var(--primary-color);"></i>
+                            <strong>Reporting Standards</strong>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.875rem;">
+                            Standards and templates for audit reporting
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.875rem; color: var(--secondary-color);">
+                            Dec 28, 2025
+                        </div>
+                    </td>
+                    <td>
+                        <a href="#" class="btn-sm btn-primary">
+                            <i class="bi bi-eye"></i>
+                            View
+                        </a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="table-card" id="faqs">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-question-circle"></i>
+            Frequently Asked Questions
+        </h2>
+    </div>
+
+    <div style="padding: 1.5rem;">
+        <div style="margin-bottom: 1.5rem;">
+            <div style="font-weight: 600; margin-bottom: 0.5rem; color: #1E293B;">
+                Q: How do I generate a compliance report?
+            </div>
+            <div style="font-size: 0.875rem; color: var(--secondary-color); padding-left: 1rem;">
+                A: Navigate to Reports > Audit Reports and select "Generate Report". Choose "Compliance Report" as the report type and select your date range.
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <div style="font-weight: 600; margin-bottom: 0.5rem; color: #1E293B;">
+                Q: What triggers a flagged transaction?
+            </div>
+            <div style="font-size: 0.875rem; color: var(--secondary-color); padding-left: 1rem;">
+                A: Transactions are flagged when they meet certain risk criteria such as: emergency procurements without proper justification, unplanned requisitions, single-bid tenders, or overdue deliveries.
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <div style="font-weight: 600; margin-bottom: 0.5rem; color: #1E293B;">
+                Q: How often should I review audit logs?
+            </div>
+            <div style="font-size: 0.875rem; color: var(--secondary-color); padding-left: 1rem;">
+                A: It's recommended to review audit logs at least weekly. Critical systems should be monitored daily. The system automatically flags suspicious activities for your attention.
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <div style="font-weight: 600; margin-bottom: 0.5rem; color: #1E293B;">
+                Q: Can I export audit data for external reporting?
+            </div>
+            <div style="font-size: 0.875rem; color: var(--secondary-color); padding-left: 1rem;">
+                A: Yes, all audit data can be exported in CSV, Excel, or PDF formats. Use the "Export" button on any data view to generate reports in your preferred format.
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <div style="font-weight: 600; margin-bottom: 0.5rem; color: #1E293B;">
+                Q: How do I track recommendation implementation?
+            </div>
+            <div style="font-size: 0.875rem; color: var(--secondary-color); padding-left: 1rem;">
+                A: Go to Reports > Recommendations to view all recommendations and their implementation status. You can track progress, add comments, and mark items as completed.
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="table-card" id="support">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-headset"></i>
+            Contact Support
+        </h2>
+    </div>
+
+    <div style="padding: 2rem;">
+        <div class="summary-grid">
+            <div class="summary-card">
+                <i class="bi bi-envelope" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 0.5rem;"></i>
+                <div style="font-weight: 600; margin-bottom: 0.25rem;">Email Support</div>
+                <div style="font-size: 0.875rem; color: var(--secondary-color); margin-bottom: 0.5rem;">
+                    audit@university.edu
+                </div>
+                <a href="mailto:audit@university.edu" class="btn-sm btn-primary">
+                    <i class="bi bi-envelope"></i>
+                    Send Email
+                </a>
+            </div>
+
+            <div class="summary-card">
+                <i class="bi bi-telephone" style="font-size: 2rem; color: var(--success-color); margin-bottom: 0.5rem;"></i>
+                <div style="font-weight: 600; margin-bottom: 0.25rem;">Phone Support</div>
+                <div style="font-size: 0.875rem; color: var(--secondary-color); margin-bottom: 0.5rem;">
+                    +254 700 000 000
+                </div>
+                <a href="tel:+254700000000" class="btn-sm btn-success">
+                    <i class="bi bi-telephone"></i>
+                    Call Now
+                </a>
+            </div>
+
+            <div class="summary-card">
+                <i class="bi bi-chat-dots" style="font-size: 2rem; color: var(--warning-color); margin-bottom: 0.5rem;"></i>
+                <div style="font-weight: 600; margin-bottom: 0.25rem;">Live Chat</div>
+                <div style="font-size: 0.875rem; color: var(--secondary-color); margin-bottom: 0.5rem;">
+                    Available 8AM - 5PM
+                </div>
+                <button class="btn-sm" style="background: var(--warning-color); color: white; border-color: var(--warning-color);">
+                    <i class="bi bi-chat-dots"></i>
+                    Start Chat
+                </button>
+            </div>
+
+            <div class="summary-card">
+                <i class="bi bi-ticket-perforated" style="font-size: 2rem; color: var(--danger-color); margin-bottom: 0.5rem;"></i>
+                <div style="font-weight: 600; margin-bottom: 0.25rem;">Submit Ticket</div>
+                <div style="font-size: 0.875rem; color: var(--secondary-color); margin-bottom: 0.5rem;">
+                    For technical issues
+                </div>
+                <a href="#" class="btn-sm btn-danger">
+                    <i class="bi bi-ticket-perforated"></i>
+                    Create Ticket
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
