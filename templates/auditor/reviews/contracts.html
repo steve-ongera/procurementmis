@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Contracts Review - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Contracts Compliance Review</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <span>/</span>
+            <span>Contracts Review</span>
+        </div>
+    </div>
+</div>
+
+<!-- Contracts Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2>Contract Compliance Status</h2>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Contract No.</th>
+                    <th>Supplier</th>
+                    <th>Type</th>
+                    <th>Value</th>
+                    <th>Period</th>
+                    <th>Status</th>
+                    <th>Compliance</th>
+                    <th>Issues</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contract in contracts %}
+                <tr class="{% if contract.compliance_status == 'Critical' %}critical-row{% elif contract.compliance_status == 'Warning' %}warning-row{% endif %}">
+                    <td>
+                        <strong>{{ contract.contract_number }}</strong>
+                    </td>
+                    <td>
+                        <div>{{ contract.supplier.name }}</div>
+                        <div class="text-muted">{{ contract.supplier.supplier_number }}</div>
+                    </td>
+                    <td>{{ contract.get_contract_type_display }}</td>
+                    <td class="text-right">
+                        KES {{ contract.contract_value|floatformat:2|intcomma }}
+                    </td>
+                    <td>
+                        <div>{{ contract.start_date|date:"M d, Y" }}</div>
+                        <div>to {{ contract.end_date|date:"M d, Y" }}</div>
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ contract.status|lower }}">
+                            {{ contract.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if contract.compliance_status == 'OK' %}
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i>
+                            Compliant
+                        </span>
+                        {% elif contract.compliance_status == 'Warning' %}
+                        <span class="badge badge-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Warning
+                        </span>
+                        {% else %}
+                        <span class="badge badge-danger">
+                            <i class="bi bi-x-circle"></i>
+                            Critical
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if contract.issues %}
+                        <div class="issue-list">
+                            {% for issue in contract.issues %}
+                            <div class="issue-item">
+                                <i class="bi bi-exclamation-circle"></i>
+                                {{ issue }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="text-muted">No issues</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-sm" onclick="viewContractDetails('{{ contract.id }}')">
+                                <i class="bi bi-eye"></i>
+                                Review
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center">No contracts found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Compliance Checklist -->
+<div class="info-card">
+    <h3>Contract Compliance Checks</h3>
+    <div class="checklist-grid">
+        <div class="check-item">
+            <i class="bi bi-check-square"></i>
+            <div>
+                <strong>Signing Status</strong>
+                <p>Verify both parties have signed the contract</p>
+            </div>
+        </div>
+        
+        <div class="check-item">
+            <i class="bi bi-check-square"></i>
+            <div>
+                <strong>Expiry Monitoring</strong>
+                <p>Flag contracts expiring within 30 days</p>
+            </div>
+        </div>
+        
+        <div class="check-item">
+            <i class="bi bi-check-square"></i>
+            <div>
+                <strong>Performance Bond</strong>
+                <p>Ensure required bonds are in place</p>
+            </div>
+        </div>
+        
+        <div class="check-item">
+            <i class="bi bi-check-square"></i>
+            <div>
+                <strong>Payment Terms</strong>
+                <p>Verify adherence to payment schedules</p>
+            </div>
+        </div>
+        
+        <div class="check-item">
+            <i class="bi bi-check-square"></i>
+            <div>
+                <strong>Milestone Tracking</strong>
+                <p>Monitor deliverable completion</p>
+            </div>
+        </div>
+        
+        <div class="check-item">
+            <i class="bi bi-check-square"></i>
+            <div>
+                <strong>Variation Orders</strong>
+                <p>Review all contract amendments</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contract Details Modal -->
+<div id="contractModal" class="modal" style="display: none;">
+    <div class="modal-content large">
+        <div class="modal-header">
+            <h3>Contract Compliance Details</h3>
+            <button class="close-modal" onclick="closeContractModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="contractDetailsContent">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<script>
+function viewContractDetails(contractId) {
+    fetch(`/api/contract/${contractId}/compliance/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('contractDetailsContent').innerHTML = `
+                <div class="contract-details">
+                    <h4>${data.contract_number} - ${data.title}</h4>
+                    
+                    <div class="detail-section">
+                        <h5>Signing Status</h5>
+                        <div class="status-grid">
+                            <div>
+                                <strong>University:</strong> 
+                                ${data.signed_by_university ? '✓ Signed' : '✗ Not Signed'}
+                            </div>
+                            <div>
+                                <strong>Supplier:</strong> 
+                                ${data.signed_by_supplier ? '✓ Signed' : '✗ Not Signed'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h5>Performance Bond</h5>
+                        <div>
+                            Required: ${data.performance_bond_required ? 'Yes' : 'No'}
+                        </div>
+                        ${data.performance_bond_required ? `
+                            <div>Amount: KES ${data.performance_bond_amount}</div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h5>Compliance Issues</h5>
+                        <ul>
+                            ${data.issues.map(issue => `<li>${issue}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            document.getElementById('contractModal').style.display = 'flex';
+        });
+}
+
+function closeContractModal() {
+    document.getElementById('contractModal').style.display = 'none';
+}
+</script>
+{% endblock %}

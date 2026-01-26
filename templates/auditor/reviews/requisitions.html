@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Requisitions Review - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Requisitions Review</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <span>/</span>
+            <span>Requisitions Review</span>
+        </div>
+    </div>
+    <div>
+        <button class="btn" onclick="exportToExcel()">
+            <i class="bi bi-file-excel"></i>
+            Export to Excel
+        </button>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Status</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Department</label>
+                <select name="department" class="form-control">
+                    <option value="">All Departments</option>
+                    <!-- Will be populated from departments -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Amount Range</label>
+                <select name="amount_range" class="form-control">
+                    <option value="">All Amounts</option>
+                    <option value="0-100000">Below KES 100,000</option>
+                    <option value="100000-500000">KES 100,000 - 500,000</option>
+                    <option value="500000-1000000">KES 500,000 - 1M</option>
+                    <option value="1000000+">Above KES 1M</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Risk Flag</label>
+                <select name="risk_flag" class="form-control">
+                    <option value="">All</option>
+                    <option value="suspicious">Suspicious Items</option>
+                    <option value="emergency">Emergency Procurements</option>
+                    <option value="high_value">High Value</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+            <a href="{% url 'auditor_requisitions_review' %}" class="btn">Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- Summary Cards -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ requisitions.count }}</div>
+        <div class="summary-label">Total Requisitions</div>
+    </div>
+    
+    <div class="summary-card">
+        <div class="summary-value">
+            {{ requisitions|length|add:0 }}
+        </div>
+        <div class="summary-label">Flagged Items</div>
+    </div>
+    
+    <div class="summary-card">
+        <div class="summary-value">
+            {{ requisitions|length|add:0 }}
+        </div>
+        <div class="summary-label">Emergency Procurements</div>
+    </div>
+    
+    <div class="summary-card">
+        <div class="summary-value">
+            KES {{ total_value|floatformat:0|intcomma|default:"0" }}
+        </div>
+        <div class="summary-label">Total Value</div>
+    </div>
+</div>
+
+<!-- Requisitions Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2>Requisitions Under Review</h2>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req. No.</th>
+                    <th>Date</th>
+                    <th>Department</th>
+                    <th>Requested By</th>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Flags</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requisitions %}
+                <tr class="{% if req.is_suspicious %}suspicious-row{% endif %}">
+                    <td>
+                        <strong>{{ req.requisition_number }}</strong>
+                    </td>
+                    <td>{{ req.created_at|date:"M d, Y" }}</td>
+                    <td>{{ req.department.code }}</td>
+                    <td>
+                        <div>{{ req.requested_by.get_full_name }}</div>
+                        <div class="text-muted">{{ req.requested_by.role }}</div>
+                    </td>
+                    <td>
+                        <div>{{ req.title|truncatechars:50 }}</div>
+                        {% if req.is_emergency %}
+                        <span class="badge badge-warning">EMERGENCY</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right">
+                        KES {{ req.estimated_amount|floatformat:2|intcomma }}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ req.status|lower }}">
+                            {{ req.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if req.is_suspicious %}
+                        <div class="flag-list">
+                            {% if req.is_emergency and not req.emergency_justification %}
+                            <span class="flag flag-danger" title="No emergency justification">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Missing Justification
+                            </span>
+                            {% endif %}
+                            
+                            {% if req.estimated_amount > 1000000 %}
+                            <span class="flag flag-warning" title="High value requisition">
+                                <i class="bi bi-currency-exchange"></i>
+                                High Value
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-muted">No flags</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'requisition_detail' req.id %}" class="btn-sm">
+                                <i class="bi bi-eye"></i>
+                                Review
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center">No requisitions found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Risk Analysis Modal -->
+<div id="riskModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Risk Analysis</h3>
+            <button class="close-modal" onclick="closeRiskModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="riskContent">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<script>
+function exportToExcel() {
+    window.location.href = "{% url 'auditor_requisitions_review' %}?export=excel&" + 
+        new URLSearchParams(window.location.search);
+}
+
+function viewRiskAnalysis(reqId) {
+    fetch(`/api/requisition/${reqId}/risk-analysis/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('riskContent').innerHTML = `
+                <div class="risk-details">
+                    <h4>Risk Indicators</h4>
+                    <ul>
+                        ${data.risks.map(risk => `<li>${risk}</li>`).join('')}
+                    </ul>
+                    <h4>Recommendation</h4>
+                    <p>${data.recommendation}</p>
+                </div>
+            `;
+            document.getElementById('riskModal').style.display = 'flex';
+        });
+}
+
+function closeRiskModal() {
+    document.getElementById('riskModal').style.display = 'none';
+}
+</script>
+{% endblock %}

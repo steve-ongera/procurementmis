@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load custom_filters %}
+{% block title %}Audit Analytics - Auditor Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Audit Analytics & Insights</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <span>Analytics</span>
+        </div>
+    </div>
+</div>
+
+<!-- Spending Patterns Section -->
+<section class="analytics-section">
+    <h2>Monthly Spending Patterns ({{ current_year }})</h2>
+    <div class="chart-container">
+        <canvas id="monthlySpendChart"></canvas>
+    </div>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Month</th>
+                <th>Total Spending</th>
+                <th>Trend</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for spend in monthly_spend %}
+            <tr>
+                <td>{{ spend.created_at__month|date:"F" }}</td>
+                <td>KES {{ spend.total|floatformat:2|intcomma }}</td>
+                <td class="trend-indicator">
+                    <!-- Add trend calculation logic -->
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No spending data available</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<!-- Department Spending Section -->
+<section class="analytics-section">
+    <h2>Department Budget Utilization</h2>
+    <div class="chart-container">
+        <canvas id="departmentSpendChart"></canvas>
+    </div>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Department</th>
+                <th>Allocated</th>
+                <th>Spent</th>
+                <th>Utilization %</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dept in dept_spending %}
+            <tr>
+                <td>{{ dept.department__name }}</td>
+                <td>KES {{ dept.allocated|floatformat:2|intcomma }}</td>
+                <td>KES {{ dept.spent|floatformat:2|intcomma }}</td>
+                <td>
+                    {% widthratio dept.spent dept.allocated 100 %}%
+                </td>
+                <td>
+                    {% if dept.spent > dept.allocated %}
+                    <span class="badge badge-danger">Over Budget</span>
+                    {% elif dept.spent >= dept.allocated|mul:0.9 %}
+                    <span class="badge badge-warning">Near Limit</span>
+                    {% else %}
+                    <span class="badge badge-success">Within Budget</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">No department spending data</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<!-- Top Suppliers Section -->
+<section class="analytics-section">
+    <h2>Top 10 Suppliers by Transaction Value</h2>
+    <div class="chart-container">
+        <canvas id="topSuppliersChart"></canvas>
+    </div>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Supplier Name</th>
+                <th>Total Orders</th>
+                <th>Total Value</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for supplier in top_suppliers %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ supplier.name }}</td>
+                <td>{{ supplier.total_orders }}</td>
+                <td>KES {{ supplier.total_value|floatformat:2|intcomma }}</td>
+                <td>
+                    <a href="{% url 'supplier_detail' supplier.id %}" class="btn-link">View Details</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">No supplier data available</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<script>
+// Charts will be initialized here with Chart.js
+document.addEventListener('DOMContentLoaded', function() {
+    // Monthly Spend Chart
+    const monthlyCtx = document.getElementById('monthlySpendChart');
+    if (monthlyCtx) {
+        new Chart(monthlyCtx, {
+            type: 'line',
+            data: {
+                labels: {{ monthly_labels|safe }},
+                datasets: [{
+                    label: 'Monthly Spending',
+                    data: {{ monthly_data|safe }},
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            }
+        });
+    }
+    
+    // Department Spend Chart
+    const deptCtx = document.getElementById('departmentSpendChart');
+    if (deptCtx) {
+        new Chart(deptCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ dept_labels|safe }},
+                datasets: [{
+                    label: 'Allocated',
+                    data: {{ dept_allocated|safe }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)'
+                }, {
+                    label: 'Spent',
+                    data: {{ dept_spent|safe }},
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)'
+                }]
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

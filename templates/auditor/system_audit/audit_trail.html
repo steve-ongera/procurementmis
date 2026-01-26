@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}System Audit Trail - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>System Audit Trail</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <span>/</span>
+            <span>Audit Trail</span>
+        </div>
+    </div>
+    <div>
+        <button class="btn" onclick="exportAuditLog()">
+            <i class="bi bi-download"></i>
+            Export Log
+        </button>
+    </div>
+</div>
+
+<!-- Advanced Filter Section -->
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label>Action Type</label>
+                <select name="action" class="form-control">
+                    <option value="">All Actions</option>
+                    {% for value, label in action_types %}
+                    <option value="{{ value }}" {% if request.GET.action == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>User</label>
+                <select name="user" class="form-control">
+                    <option value="">All Users</option>
+                    <!-- Populated from users -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+            </div>
+            
+            <div class="form-group">
+                <label>Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+            </div>
+            
+            <div class="form-group">
+                <label>Model Type</label>
+                <select name="model" class="form-control">
+                    <option value="">All Models</option>
+                    <option value="Requisition">Requisition</option>
+                    <option value="PurchaseOrder">Purchase Order</option>
+                    <option value="Invoice">Invoice</option>
+                    <option value="Payment">Payment</option>
+                    <option value="Tender">Tender</option>
+                    <option value="Bid">Bid</option>
+                    <option value="Contract">Contract</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Search in changes..." value="{{ request.GET.search }}">
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+                Search
+            </button>
+            <a href="{% url 'auditor_audit_trail' %}" class="btn">Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- Results Summary -->
+<div class="results-summary">
+    <div class="result-count">
+        Showing <strong>{{ audit_logs|length }}</strong> of {{ total_logs }} audit log entries
+    </div>
+    <div class="result-info">
+        Limited to 1,000 most recent records
+    </div>
+</div>
+
+<!-- Audit Trail Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2>Audit Log Entries</h2>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Model</th>
+                    <th>Object</th>
+                    <th>IP Address</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in audit_logs %}
+                <tr>
+                    <td>
+                        <div class="timestamp">
+                            <div><strong>{{ log.timestamp|date:"M d, Y" }}</strong></div>
+                            <div class="text-muted">{{ log.timestamp|time:"H:i:s" }}</div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if log.user %}
+                        <div class="user-info">
+                            <div><strong>{{ log.user.get_full_name }}</strong></div>
+                            <div class="text-muted">{{ log.user.username }}</div>
+                            <div class="text-muted">{{ log.user.get_role_display }}</div>
+                        </div>
+                        {% else %}
+                        <span class="text-muted">System</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-action badge-{{ log.action|lower }}">
+                            {{ log.get_action_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="model-badge">{{ log.model_name }}</span>
+                    </td>
+                    <td>
+                        <div class="object-info">
+                            <div><strong>{{ log.object_id|truncatechars:20 }}</strong></div>
+                            <div class="text-muted">{{ log.object_repr|truncatechars:40 }}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <code>{{ log.ip_address|default:"N/A" }}</code>
+                    </td>
+                    <td>
+                        <button class="btn-sm btn-details" onclick="viewLogDetails('{{ log.id }}')">
+                            <i class="bi bi-info-circle"></i>
+                            View Changes
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <p>No audit logs found matching your criteria</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if audit_logs %}
+<div class="pagination-container">
+    <div class="pagination-info">
+        Showing entries 1-{{ audit_logs|length }} 
+    </div>
+    <div class="pagination-note">
+        <i class="bi bi-info-circle"></i>
+        For performance reasons, only the 1,000 most recent entries are displayed. 
+        Use filters to narrow your search.
+    </div>
+</div>
+{% endif %}
+
+<!-- Log Details Modal -->
+<div id="logDetailsModal" class="modal" style="display: none;">
+    <div class="modal-content large">
+        <div class="modal-header">
+            <h3>Audit Log Details</h3>
+            <button class="close-modal" onclick="closeLogModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="logDetailsContent">
+            <div class="loading-spinner">
+                <i class="bi bi-hourglass-split"></i>
+                Loading...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewLogDetails(logId) {
+    document.getElementById('logDetailsModal').style.display = 'flex';
+    
+    fetch(`/api/audit-log/${logId}/details/`)
+        .then(response => response.json())
+        .then(data => {
+            let html = `
+                <div class="log-detail">
+                    <div class="detail-section">
+                        <h4>Basic Information</h4>
+                        <table class="detail-table">
+                            <tr>
+                                <td><strong>Timestamp:</strong></td>
+                                <td>${data.timestamp}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>User:</strong></td>
+                                <td>${data.user_name} (${data.user_role})</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Action:</strong></td>
+                                <td>${data.action}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Model:</strong></td>
+                                <td>${data.model_name}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Object:</strong></td>
+                                <td>${data.object_repr}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>IP Address:</strong></td>
+                                <td>${data.ip_address || 'N/A'}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4>User Agent</h4>
+                        <pre>${data.user_agent || 'N/A'}</pre>
+                    </div>
+            `;
+            
+            if (data.changes) {
+                html += `
+                    <div class="detail-section">
+                        <h4>Changes Made</h4>
+                        <pre class="changes-json">${JSON.stringify(data.changes, null, 2)}</pre>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            
+            document.getElementById('logDetailsContent').innerHTML = html;
+        })
+        .catch(error => {
+            document.getElementById('logDetailsContent').innerHTML = `
+                <div class="error-message">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Error loading audit log details
+                </div>
+            `;
+        });
+}
+
+function closeLogModal() {
+    document.getElementById('logDetailsModal').style.display = 'none';
+}
+
+function exportAuditLog() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'csv');
+    window.location.href = "{% url 'auditor_audit_trail' %}?" + params.toString();
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('logDetailsModal');
+    if (event.target == modal) {
+        closeLogModal();
+    }
+}
+</script>
+{% endblock %}

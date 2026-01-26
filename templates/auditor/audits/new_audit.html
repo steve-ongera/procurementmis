@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}Create New Audit - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Create New Audit</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'auditor_all_audits' %}">Audits</a>
+            <span>/</span>
+            <span>New Audit</span>
+        </div>
+    </div>
+</div>
+
+<div class="info-banner">
+    <i class="bi bi-info-circle"></i>
+    <div>
+        <strong>Feature Under Development:</strong> The Audit model and creation functionality 
+        will be implemented in the next phase. This page is a placeholder for the audit creation form.
+    </div>
+</div>
+
+<div class="form-card">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h3>Basic Information</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Audit Title *</label>
+                    <input type="text" name="title" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Audit Type *</label>
+                    <select name="audit_type" class="form-control" required>
+                        <option value="">Select Type</option>
+                        <option value="FINANCIAL">Financial Audit</option>
+                        <option value="COMPLIANCE">Compliance Audit</option>
+                        <option value="OPERATIONAL">Operational Audit</option>
+                        <option value="PERFORMANCE">Performance Audit</option>
+                        <option value="SYSTEMS">Systems Audit</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Department *</label>
+                    <select name="department" class="form-control" required>
+                        <option value="">Select Department</option>
+                        <!-- Will be populated from Department model -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Audit Period *</label>
+                    <select name="audit_period" class="form-control" required>
+                        <option value="">Select Period</option>
+                        <option value="Q1">Q1 (Jul-Sep)</option>
+                        <option value="Q2">Q2 (Oct-Dec)</option>
+                        <option value="Q3">Q3 (Jan-Mar)</option>
+                        <option value="Q4">Q4 (Apr-Jun)</option>
+                        <option value="ANNUAL">Annual</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>Audit Scope</h3>
+            
+            <div class="form-group">
+                <label>Objective *</label>
+                <textarea name="objective" class="form-control" rows="3" required></textarea>
+                <small class="form-text">Describe the main objectives of this audit</small>
+            </div>
+            
+            <div class="form-group">
+                <label>Scope Description *</label>
+                <textarea name="scope" class="form-control" rows="4" required></textarea>
+                <small class="form-text">Define what will be covered in this audit</small>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Start Date *</label>
+                    <input type="date" name="start_date" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Target Completion Date *</label>
+                    <input type="date" name="end_date" class="form-control" required>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>Audit Team</h3>
+            
+            <div class="form-group">
+                <label>Lead Auditor *</label>
+                <select name="lead_auditor" class="form-control" required>
+                    <option value="">Select Lead Auditor</option>
+                    <!-- Will be populated from User model with AUDITOR role -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Team Members</label>
+                <select name="team_members" class="form-control" multiple>
+                    <!-- Will be populated from User model -->
+                </select>
+                <small class="form-text">Hold Ctrl/Cmd to select multiple members</small>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>Risk Assessment</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Risk Level *</label>
+                    <select name="risk_level" class="form-control" required>
+                        <option value="">Select Risk Level</option>
+                        <option value="LOW">Low Risk</option>
+                        <option value="MEDIUM">Medium Risk</option>
+                        <option value="HIGH">High Risk</option>
+                        <option value="CRITICAL">Critical Risk</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Priority *</label>
+                    <select name="priority" class="form-control" required>
+                        <option value="">Select Priority</option>
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="URGENT">Urgent</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Key Risk Areas</label>
+                <textarea name="risk_areas" class="form-control" rows="3"></textarea>
+                <small class="form-text">Identify specific areas of concern</small>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>Methodology & Checklist</h3>
+            
+            <div class="form-group">
+                <label>Audit Methodology</label>
+                <textarea name="methodology" class="form-control" rows="4"></textarea>
+                <small class="form-text">Describe the approach and techniques to be used</small>
+            </div>
+            
+            <div class="form-group">
+                <label>Checklist Items</label>
+                <div id="checklistItems">
+                    <div class="checklist-item">
+                        <input type="text" name="checklist[]" class="form-control" placeholder="Enter checklist item">
+                        <button type="button" class="btn-sm" onclick="removeItem(this)">Remove</button>
+                    </div>
+                </div>
+                <button type="button" class="btn-sm btn-primary" onclick="addChecklistItem()">
+                    <i class="bi bi-plus"></i> Add Item
+                </button>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>Documentation</h3>
+            
+            <div class="form-group">
+                <label>Audit Plan Document</label>
+                <input type="file" name="audit_plan" class="form-control" accept=".pdf,.doc,.docx">
+            </div>
+            
+            <div class="form-group">
+                <label>Supporting Documents</label>
+                <input type="file" name="supporting_docs" class="form-control" multiple>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>Additional Notes</h3>
+            
+            <div class="form-group">
+                <label>Notes/Comments</label>
+                <textarea name="notes" class="form-control" rows="3"></textarea>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" name="action" value="save_draft" class="btn">
+                Save as Draft
+            </button>
+            <button type="submit" name="action" value="submit" class="btn btn-primary">
+                Create & Start Audit
+            </button>
+            <a href="{% url 'auditor_all_audits' %}" class="btn">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function addChecklistItem() {
+    const container = document.getElementById('checklistItems');
+    const item = document.createElement('div');
+    item.className = 'checklist-item';
+    item.innerHTML = `
+        <input type="text" name="checklist[]" class="form-control" placeholder="Enter checklist item">
+        <button type="button" class="btn-sm" onclick="removeItem(this)">Remove</button>
+    `;
+    container.appendChild(item);
+}
+
+function removeItem(button) {
+    button.parentElement.remove();
+}
+</script>
+{% endblock %}

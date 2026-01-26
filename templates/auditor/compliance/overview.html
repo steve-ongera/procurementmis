@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Compliance Overview - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Compliance Dashboard</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <span>/</span>
+            <span>Compliance</span>
+        </div>
+    </div>
+</div>
+
+<!-- Overall Compliance Score -->
+<div class="compliance-score-card">
+    <h2>Overall Compliance Score</h2>
+    <div class="score-display">
+        <div class="score-circle">
+            <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#e0e0e0" stroke-width="8"/>
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#4caf50" stroke-width="8" 
+                        stroke-dasharray="251.2" stroke-dashoffset="62.8" 
+                        transform="rotate(-90 50 50)"/>
+            </svg>
+            <div class="score-text">
+                <span class="score-value">75%</span>
+                <span class="score-label">Compliant</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Compliance Metrics Grid -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-icon requisition">
+            <i class="bi bi-file-text"></i>
+        </div>
+        <div class="metric-content">
+            <h3>Requisition Compliance</h3>
+            <div class="metric-value">{{ requisition_compliance|floatformat:1 }}%</div>
+            <div class="metric-detail">
+                {{ approved_requisitions }} of {{ total_requisitions }} approved properly
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ requisition_compliance }}%"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-icon tender">
+            <i class="bi bi-megaphone"></i>
+        </div>
+        <div class="metric-content">
+            <h3>Tender Compliance</h3>
+            <div class="metric-value">{{ tender_compliance|floatformat:1 }}%</div>
+            <div class="metric-detail">
+                {{ properly_evaluated }} of {{ total_tenders }} properly evaluated
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ tender_compliance }}%"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-icon payment">
+            <i class="bi bi-cash-coin"></i>
+        </div>
+        <div class="metric-content">
+            <h3>Payment Compliance</h3>
+            <div class="metric-value">{{ payment_compliance|floatformat:1 }}%</div>
+            <div class="metric-detail">
+                {{ timely_payments }} of {{ total_payments }} paid on time
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ payment_compliance }}%"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-icon supplier">
+            <i class="bi bi-building"></i>
+        </div>
+        <div class="metric-content">
+            <h3>Supplier Compliance</h3>
+            <div class="metric-value">{{ supplier_compliance|floatformat:1 }}%</div>
+            <div class="metric-detail">
+                {{ suppliers_compliant }} of {{ total_suppliers }} fully compliant
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ supplier_compliance }}%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Compliance Trends Chart -->
+<div class="chart-card">
+    <div class="chart-header">
+        <h3>Compliance Trends (Last 12 Months)</h3>
+        <div class="chart-legend">
+            <span class="legend-item"><span class="dot requisition"></span> Requisitions</span>
+            <span class="legend-item"><span class="dot tender"></span> Tenders</span>
+            <span class="legend-item"><span class="dot payment"></span> Payments</span>
+            <span class="legend-item"><span class="dot supplier"></span> Suppliers</span>
+        </div>
+    </div>
+    <div class="chart-container">
+        <canvas id="complianceTrendsChart"></canvas>
+    </div>
+</div>
+
+<!-- Key Compliance Areas -->
+<div class="compliance-areas-grid">
+    <div class="area-card">
+        <h4>Budget Management</h4>
+        <div class="area-status good">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>Good</span>
+        </div>
+        <ul class="area-points">
+            <li>Budget allocations properly documented</li>
+            <li>Variance analysis conducted regularly</li>
+            <li>Reallocations properly approved</li>
+        </ul>
+    </div>
+    
+    <div class="area-card">
+        <h4>Procurement Procedures</h4>
+        <div class="area-status attention">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>Needs Attention</span>
+        </div>
+        <ul class="area-points">
+            <li>Some emergency procurements lack justification</li>
+            <li>Tender evaluation timelines delayed</li>
+            <li>Documentation sometimes incomplete</li>
+        </ul>
+    </div>
+    
+    <div class="area-card">
+        <h4>Contract Management</h4>
+        <div class="area-status good">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>Good</span>
+        </div>
+        <ul class="area-points">
+            <li>Contracts properly signed and filed</li>
+            <li>Performance bonds in place</li>
+            <li>Milestone tracking active</li>
+        </ul>
+    </div>
+    
+    <div class="area-card">
+        <h4>Payment Processing</h4>
+        <div class="area-status attention">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>Needs Attention</span>
+        </div>
+        <ul class="area-points">
+            <li>Some late payments noted</li>
+            <li>Invoice verification delays</li>
+            <li>Three-way matching needs improvement</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Recent Non-Compliance Issues -->
+<div class="table-card">
+    <div class="table-header">
+        <h3>Recent Non-Compliance Issues</h3>
+        <a href="{% url 'auditor_flagged_items' %}" class="btn-link">View All</a>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Reference</th>
+                    <th>Issue</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Jan 20, 2026</td>
+                    <td>Requisition</td>
+                    <td>REQ-2026-000123</td>
+                    <td>Emergency procurement without justification</td>
+                    <td><span class="badge badge-warning">Medium</span></td>
+                    <td><span class="badge badge-pending">Pending</span></td>
+                </tr>
+                <tr>
+                    <td>Jan 19, 2026</td>
+                    <td>Payment</td>
+                    <td>PAY-2026-000456</td>
+                    <td>Payment made before invoice approval</td>
+                    <td><span class="badge badge-danger">High</span></td>
+                    <td><span class="badge badge-resolved">Resolved</span></td>
+                </tr>
+                <!-- More rows as needed -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('complianceTrendsChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'],
+                datasets: [
+                    {
+                        label: 'Requisitions',
+                        data: [75, 78, 80, 82, 85, 83, 86, 88, 87, 89, 90, 88],
+                        borderColor: '#2196F3',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Tenders',
+                        data: [70, 72, 75, 73, 76, 78, 80, 82, 81, 83, 85, 84],
+                        borderColor: '#FF9800',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Payments',
+                        data: [65, 68, 70, 72, 75, 77, 79, 81, 80, 82, 84, 83],
+                        borderColor: '#4CAF50',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Suppliers',
+                        data: [80, 82, 83, 85, 87, 86, 88, 90, 89, 91, 92, 91],
+                        borderColor: '#9C27B0',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

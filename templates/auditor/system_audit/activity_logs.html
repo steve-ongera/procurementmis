@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}User Activity Logs - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>User Activity Logs</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <span>/</span>
+            <span>Activity Logs</span>
+        </div>
+    </div>
+</div>
+
+<!-- User Activity Summary -->
+<div class="table-card">
+    <div class="table-header">
+        <h2>User Activity Summary</h2>
+        <div class="header-actions">
+            <input type="text" class="search-input" placeholder="Search users..." onkeyup="filterUsers(this.value)">
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table id="userActivityTable">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th>Total Actions</th>
+                    <th>Last Activity</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activity in user_activities %}
+                <tr>
+                    <td>
+                        <div class="user-info">
+                            <div><strong>{{ activity.user__get_full_name }}</strong></div>
+                            <div class="text-muted">{{ activity.user__username }}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="role-badge">{{ activity.user__role }}</span>
+                    </td>
+                    <td>{{ activity.user__department__name|default:"N/A" }}</td>
+                    <td class="text-center">
+                        <strong>{{ activity.total_actions }}</strong>
+                    </td>
+                    <td>
+                        <div>{{ activity.last_activity|date:"M d, Y" }}</div>
+                        <div class="text-muted">{{ activity.last_activity|time:"H:i" }}</div>
+                        <div class="text-muted">{{ activity.last_activity|timesince }} ago</div>
+                    </td>
+                    <td>
+                        <button class="btn-sm" onclick="viewUserActivity('{{ activity.user__id }}')">
+                            <i class="bi bi-eye"></i>
+                            View Details
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No user activity data</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Recent Activities -->
+<div class="table-card">
+    <div class="table-header">
+        <h2>Recent Activities (Last 100)</h2>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activity in recent_activities %}
+                <tr>
+                    <td>
+                        <div>{{ activity.timestamp|date:"M d" }}</div>
+                        <div class="text-muted">{{ activity.timestamp|time:"H:i" }}</div>
+                    </td>
+                    <td>
+                        {% if activity.user %}
+                        <div>{{ activity.user.get_full_name }}</div>
+                        <div class="text-muted">{{ activity.user.get_role_display }}</div>
+                        {% else %}
+                        <span class="text-muted">System</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ activity.action|lower }}">
+                            {{ activity.get_action_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <div><strong>{{ activity.model_name }}</strong></div>
+                        <div class="text-muted">{{ activity.object_id|truncatechars:30 }}</div>
+                    </td>
+                    <td>
+                        <div class="activity-description">
+                            {{ activity.object_repr|truncatechars:60 }}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No recent activities</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Activity Statistics -->
+<div class="stats-section">
+    <h3>Activity Statistics</h3>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ user_activities|length }}</div>
+                <div class="stat-label">Active Users</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="bi bi-activity"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_actions }}</div>
+                <div class="stat-label">Total Actions</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="bi bi-calendar-day"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ actions_today }}</div>
+                <div class="stat-label">Actions Today</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="bi bi-graph-up"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ avg_actions_per_user }}</div>
+                <div class="stat-label">Avg Actions/User</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Activity Detail Modal -->
+<div id="userActivityModal" class="modal" style="display: none;">
+    <div class="modal-content large">
+        <div class="modal-header">
+            <h3>User Activity Details</h3>
+            <button class="close-modal" onclick="closeActivityModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="userActivityContent">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<script>
+function filterUsers(searchTerm) {
+    const table = document.getElementById('userActivityTable');
+    const rows = table.getElementsByTagName('tr');
+    
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const text = row.textContent.toLowerCase();
+        
+        if (text.includes(searchTerm.toLowerCase())) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+}
+
+function viewUserActivity(userId) {
+    document.getElementById('userActivityModal').style.display = 'flex';
+    
+    fetch(`/api/user/${userId}/activity/`)
+        .then(response => response.json())
+        .then(data => {
+            let html = `
+                <div class="user-activity-detail">
+                    <div class="user-header">
+                        <h4>${data.user_name}</h4>
+                        <p>${data.role} - ${data.department || 'No Department'}</p>
+                    </div>
+                    
+                    <div class="activity-stats">
+                        <div class="stat-item">
+                            <strong>${data.total_actions}</strong>
+                            <span>Total Actions</span>
+                        </div>
+                        <div class="stat-item">
+                            <strong>${data.last_30_days}</strong>
+                            <span>Last 30 Days</span>
+                        </div>
+                        <div class="stat-item">
+                            <strong>${data.last_login}</strong>
+                            <span>Last Login</span>
+                        </div>
+                    </div>
+                    
+                    <div class="action-breakdown">
+                        <h5>Action Breakdown</h5>
+                        <table class="breakdown-table">
+                            <thead>
+                                <tr>
+                                    <th>Action Type</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            Object.entries(data.action_breakdown).forEach(([action, count]) => {
+                html += `
+                    <tr>
+                        <td>${action}</td>
+                        <td>${count}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="recent-actions">
+                        <h5>Recent Actions</h5>
+                        <table class="actions-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            data.recent_actions.forEach(action => {
+                html += `
+                    <tr>
+                        <td>${action.timestamp}</td>
+                        <td><span class="badge">${action.action}</span></td>
+                        <td>${action.details}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('userActivityContent').innerHTML = html;
+        })
+        .catch(error => {
+            document.getElementById('userActivityContent').innerHTML = `
+                <div class="error-message">
+                    Error loading user activity details
+                </div>
+            `;
+        });
+}
+
+function closeActivityModal() {
+    document.getElementById('userActivityModal').style.display = 'none';
+}
+</script>
+{% endblock %}

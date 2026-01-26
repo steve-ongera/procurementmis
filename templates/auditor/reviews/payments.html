@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Payments Review - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Payments Audit Review</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <span>/</span>
+            <span>Payments Review</span>
+        </div>
+    </div>
+</div>
+
+<!-- Payments Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2>Payment Records Audit</h2>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Payment No.</th>
+                    <th>Date</th>
+                    <th>Invoice</th>
+                    <th>Supplier</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Audit Flags</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr class="{% if payment.audit_flags %}flagged-row{% endif %}">
+                    <td>
+                        <strong>{{ payment.payment_number }}</strong>
+                    </td>
+                    <td>{{ payment.payment_date|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'invoice_detail' payment.invoice.id %}">
+                            {{ payment.invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td>
+                        <div>{{ payment.invoice.supplier.name }}</div>
+                        <div class="text-muted">{{ payment.invoice.supplier.supplier_number }}</div>
+                    </td>
+                    <td class="text-right">
+                        <div><strong>KES {{ payment.payment_amount|floatformat:2|intcomma }}</strong></div>
+                        <div class="text-muted">Invoice: KES {{ payment.invoice.total_amount|floatformat:2|intcomma }}</div>
+                    </td>
+                    <td>{{ payment.get_payment_method_display }}</td>
+                    <td>
+                        <span class="badge badge-{{ payment.status|lower }}">
+                            {{ payment.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if payment.audit_flags %}
+                        <div class="flag-list">
+                            {% for flag in payment.audit_flags %}
+                            <div class="audit-flag {% if 'exceeds' in flag or 'duplicate' in flag %}critical{% else %}warning{% endif %}">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                {{ flag }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i>
+                            Clean
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'payment_detail' payment.id %}" class="btn-sm">
+                                <i class="bi bi-eye"></i>
+                                Review
+                            </a>
+                            <button class="btn-sm" onclick="viewAuditTrail('{{ payment.id }}')">
+                                <i class="bi bi-clock-history"></i>
+                                Trail
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center">No payments found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Audit Flags Legend -->
+<div class="info-card">
+    <h3>Audit Flag Types</h3>
+    <div class="flag-legend">
+        <div class="legend-item critical">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>Critical:</strong> Payment exceeds invoice amount, possible duplicate payment
+        </div>
+        <div class="legend-item warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Warning:</strong> Invoice not approved, missing documentation
+        </div>
+        <div class="legend-item info">
+            <i class="bi bi-info-circle"></i>
+            <strong>Info:</strong> Variance from normal processing time
+        </div>
+    </div>
+</div>
+
+<!-- Payment Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <h4>Total Payments</h4>
+        <div class="stat-value">{{ payments.count }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <h4>Flagged Payments</h4>
+        <div class="stat-value warning">0</div>
+    </div>
+    
+    <div class="stat-card">
+        <h4>Total Value</h4>
+        <div class="stat-value">KES 0</div>
+    </div>
+    
+    <div class="stat-card">
+        <h4>Average Processing Time</h4>
+        <div class="stat-value">0 days</div>
+    </div>
+</div>
+
+<!-- Audit Trail Modal -->
+<div id="auditTrailModal" class="modal" style="display: none;">
+    <div class="modal-content large">
+        <div class="modal-header">
+            <h3>Payment Audit Trail</h3>
+            <button class="close-modal" onclick="closeAuditTrail()">&times;</button>
+        </div>
+        <div class="modal-body" id="auditTrailContent">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<script>
+function viewAuditTrail(paymentId) {
+    fetch(`/api/payment/${paymentId}/audit-trail/`)
+        .then(response => response.json())
+        .then(data => {
+            let html = '<div class="audit-timeline">';
+            data.trail.forEach(item => {
+                html += `
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <strong>${item.action}</strong>
+                                <span class="timeline-date">${item.timestamp}</span>
+                            </div>
+                            <div class="timeline-body">
+                                <div>By: ${item.user}</div>
+                                <div>Details: ${item.details}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            document.getElementById('auditTrailContent').innerHTML = html;
+            document.getElementById('auditTrailModal').style.display = 'flex';
+        });
+}
+
+function closeAuditTrail() {
+    document.getElementById('auditTrailModal').style.display = 'none';
+}
+</script>
+{% endblock %}

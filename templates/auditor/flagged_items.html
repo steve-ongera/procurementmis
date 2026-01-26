@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Flagged Items - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Flagged & Suspicious Items</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <span>/</span>
+            <span>Flagged Items</span>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="flagged-summary">
+    <div class="summary-item critical">
+        <i class="bi bi-exclamation-octagon"></i>
+        <div>
+            <div class="count">{{ high_value_reqs.count }}</div>
+            <div class="label">High Value Requisitions</div>
+        </div>
+    </div>
+    
+    <div class="summary-item warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        <div>
+            <div class="count">{{ emergency_procs.count }}</div>
+            <div class="label">Emergency Procurements</div>
+        </div>
+    </div>
+    
+    <div class="summary-item info">
+        <i class="bi bi-info-circle"></i>
+        <div>
+            <div class="count">{{ unplanned_reqs.count }}</div>
+            <div class="label">Unplanned Requisitions</div>
+        </div>
+    </div>
+    
+    <div class="summary-item warning">
+        <i class="bi bi-file-earmark-x"></i>
+        <div>
+            <div class="count">{{ direct_tenders.count }}</div>
+            <div class="label">Direct Procurements</div>
+        </div>
+    </div>
+</div>
+
+<!-- High Value Requisitions -->
+<div class="table-card">
+    <div class="table-header">
+        <h3>High Value Requisitions (≥ KES 1,000,000)</h3>
+        <span class="badge badge-danger">{{ high_value_reqs.count }}</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req. No.</th>
+                    <th>Date</th>
+                    <th>Department</th>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in high_value_reqs %}
+                <tr class="flagged-row">
+                    <td><strong>{{ req.requisition_number }}</strong></td>
+                    <td>{{ req.created_at|date:"M d, Y" }}</td>
+                    <td>{{ req.department.code }}</td>
+                    <td>{{ req.title|truncatechars:60 }}</td>
+                    <td class="text-right">
+                        <strong>KES {{ req.estimated_amount|floatformat:2|intcomma }}</strong>
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ req.status|lower }}">
+                            {{ req.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'requisition_detail' req.id %}" class="btn-sm">
+                            Review
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No high-value requisitions</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Emergency Procurements -->
+<div class="table-card">
+    <div class="table-header">
+        <h3>Emergency Procurements</h3>
+        <span class="badge badge-warning">{{ emergency_procs.count }}</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req. No.</th>
+                    <th>Date</th>
+                    <th>Department</th>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Justification</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in emergency_procs %}
+                <tr class="warning-row">
+                    <td><strong>{{ req.requisition_number }}</strong></td>
+                    <td>{{ req.created_at|date:"M d, Y" }}</td>
+                    <td>{{ req.department.code }}</td>
+                    <td>{{ req.title|truncatechars:50 }}</td>
+                    <td class="text-right">
+                        KES {{ req.estimated_amount|floatformat:2|intcomma }}
+                    </td>
+                    <td>
+                        {% if req.emergency_justification %}
+                        <span class="badge badge-success">
+                            <i class="bi bi-check"></i>
+                            Provided
+                        </span>
+                        {% else %}
+                        <span class="badge badge-danger">
+                            <i class="bi bi-x"></i>
+                            Missing
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'requisition_detail' req.id %}" class="btn-sm">
+                            Review
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No emergency procurements</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Unplanned Requisitions -->
+<div class="table-card">
+    <div class="table-header">
+        <h3>Unplanned Requisitions</h3>
+        <span class="badge badge-info">{{ unplanned_reqs.count }}</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req. No.</th>
+                    <th>Date</th>
+                    <th>Department</th>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in unplanned_reqs %}
+                <tr>
+                    <td><strong>{{ req.requisition_number }}</strong></td>
+                    <td>{{ req.created_at|date:"M d, Y" }}</td>
+                    <td>{{ req.department.code }}</td>
+                    <td>{{ req.title|truncatechars:50 }}</td>
+                    <td class="text-right">
+                        KES {{ req.estimated_amount|floatformat:2|intcomma }}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ req.status|lower }}">
+                            {{ req.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'requisition_detail' req.id %}" class="btn-sm">
+                            Review
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No unplanned requisitions</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Direct Procurements -->
+<div class="table-card">
+    <div class="table-header">
+        <h3>Direct Procurements (Single Bid)</h3>
+        <span class="badge badge-warning">{{ direct_tenders.count }}</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tender No.</th>
+                    <th>Date</th>
+                    <th>Title</th>
+                    <th>Budget</th>
+                    <th>Bids Received</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tender in direct_tenders %}
+                <tr class="warning-row">
+                    <td><strong>{{ tender.tender_number }}</strong></td>
+                    <td>{{ tender.created_at|date:"M d, Y" }}</td>
+                    <td>{{ tender.title|truncatechars:50 }}</td>
+                    <td class="text-right">
+                        KES {{ tender.estimated_budget|floatformat:2|intcomma }}
+                    </td>
+                    <td class="text-center">
+                        <span class="badge badge-warning">
+                            {{ tender.bid_count }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ tender.status|lower }}">
+                            {{ tender.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'tender_detail' tender.id %}" class="btn-sm">
+                            Review
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No direct procurements</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Late Payments -->
+<div class="table-card">
+    <div class="table-header">
+        <h3>Late Payments</h3>
+        <span class="badge badge-danger">{{ late_payments.count }}</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Payment No.</th>
+                    <th>Invoice</th>
+                    <th>Supplier</th>
+                    <th>Amount</th>
+                    <th>Due Date</th>
+                    <th>Days Overdue</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in late_payments %}
+                <tr class="critical-row">
+                    <td><strong>{{ payment.payment_number|default:"N/A" }}</strong></td>
+                    <td>{{ payment.invoice.invoice_number }}</td>
+                    <td>{{ payment.invoice.supplier.name }}</td>
+                    <td class="text-right">
+                        KES {{ payment.invoice.total_amount|floatformat:2|intcomma }}
+                    </td>
+                    <td>{{ payment.invoice.due_date|date:"M d, Y" }}</td>
+                    <td class="text-center">
+                        <span class="badge badge-danger">
+                            {{ payment.days_overdue }} days
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'invoice_detail' payment.invoice.id %}" class="btn-sm">
+                            Review
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No late payments</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Overdue Purchase Orders -->
+<div class="table-card">
+    <div class="table-header">
+        <h3>Overdue Purchase Orders</h3>
+        <span class="badge badge-danger">{{ overdue_pos.count }}</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>PO No.</th>
+                    <th>Date</th>
+                    <th>Supplier</th>
+                    <th>Amount</th>
+                    <th>Delivery Date</th>
+                    <th>Days Overdue</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in overdue_pos %}
+                <tr class="critical-row">
+                    <td><strong>{{ po.po_number }}</strong></td>
+                    <td>{{ po.po_date|date:"M d, Y" }}</td>
+                    <td>{{ po.supplier.name }}</td>
+                    <td class="text-right">
+                        KES {{ po.total_amount|floatformat:2|intcomma }}
+                    </td>
+                    <td>{{ po.delivery_date|date:"M d, Y" }}</td>
+                    <td class="text-center">
+                        <span class="badge badge-danger">
+                            {{ po.days_overdue }} days
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'po_detail' po.id %}" class="btn-sm">
+                            Review
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No overdue purchase orders</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

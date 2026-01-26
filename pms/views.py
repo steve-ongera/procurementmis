@@ -19565,7 +19565,7 @@ def auditor_activity_logs_view(request):
     
     # Group activities by user
     user_activities = AuditLog.objects.values(
-        'user__username', 'user__get_full_name'
+        'user__username', 'user__first_name'
     ).annotate(
         total_actions=Count('id'),
         last_activity=Max('timestamp')

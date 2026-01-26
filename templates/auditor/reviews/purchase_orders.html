@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Purchase Orders Review - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Purchase Orders Review</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <span>/</span>
+            <span>Purchase Orders Review</span>
+        </div>
+    </div>
+</div>
+
+<!-- Compliance Summary -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ purchase_orders.count }}</div>
+        <div class="summary-label">Total POs</div>
+    </div>
+    
+    <div class="summary-card compliant">
+        <div class="summary-value">0</div>
+        <div class="summary-label">Compliant</div>
+    </div>
+    
+    <div class="summary-card warning">
+        <div class="summary-value">0</div>
+        <div class="summary-label">With Issues</div>
+    </div>
+    
+    <div class="summary-card critical">
+        <div class="summary-value">0</div>
+        <div class="summary-label">Critical Issues</div>
+    </div>
+</div>
+
+<!-- Purchase Orders Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2>Purchase Orders Compliance Check</h2>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>PO Number</th>
+                    <th>Date</th>
+                    <th>Supplier</th>
+                    <th>Requisition</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Compliance Issues</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in purchase_orders %}
+                <tr class="{% if po.compliance_issues %}has-issues{% endif %}">
+                    <td>
+                        <strong>{{ po.po_number }}</strong>
+                    </td>
+                    <td>{{ po.po_date|date:"M d, Y" }}</td>
+                    <td>
+                        <div>{{ po.supplier.name }}</div>
+                        <div class="text-muted">{{ po.supplier.supplier_number }}</div>
+                    </td>
+                    <td>
+                        <a href="{% url 'requisition_detail' po.requisition.id %}">
+                            {{ po.requisition.requisition_number }}
+                        </a>
+                    </td>
+                    <td class="text-right">
+                        KES {{ po.total_amount|floatformat:2|intcomma }}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ po.status|lower }}">
+                            {{ po.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if po.compliance_issues %}
+                        <div class="issue-list">
+                            {% for issue in po.compliance_issues %}
+                            <div class="issue-item {% if 'Missing approval' in issue %}critical{% else %}warning{% endif %}">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                {{ issue }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i>
+                            Compliant
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'po_detail' po.id %}" class="btn-sm">
+                                <i class="bi bi-eye"></i>
+                                Review
+                            </a>
+                            {% if po.compliance_issues %}
+                            <button class="btn-sm btn-warning" onclick="flagForReview('{{ po.id }}')">
+                                <i class="bi bi-flag"></i>
+                                Flag
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No purchase orders found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Compliance Checks Detail -->
+<div class="info-card">
+    <h3>Automated Compliance Checks</h3>
+    <ul class="checklist">
+        <li>
+            <i class="bi bi-check-circle"></i>
+            PO amount matches requisition estimate (±10% variance allowed)
+        </li>
+        <li>
+            <i class="bi bi-check-circle"></i>
+            Proper approval trail present
+        </li>
+        <li>
+            <i class="bi bi-check-circle"></i>
+            Delivery timelines realistic
+        </li>
+        <li>
+            <i class="bi bi-check-circle"></i>
+            Supplier compliance verified
+        </li>
+        <li>
+            <i class="bi bi-check-circle"></i>
+            Budget availability confirmed
+        </li>
+    </ul>
+</div>
+
+<script>
+function flagForReview(poId) {
+    if (confirm('Flag this PO for detailed review?')) {
+        fetch(`/api/po/${poId}/flag/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('PO flagged successfully');
+            location.reload();
+        });
+    }
+}
+</script>
+{% endblock %}

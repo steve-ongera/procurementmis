@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}All Audits - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>All Audits</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'auditor_analytics' %}">Auditor</a>
+            <span>/</span>
+            <span>All Audits</span>
+        </div>
+    </div>
+    <div>
+        <a href="{% url 'auditor_new_audit' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create New Audit
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Filter Section -->
+<div class="filter-card">
+    <form method="get">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label>Audit Type</label>
+                <select name="audit_type" class="form-control">
+                    <option value="">All Types</option>
+                    <option value="FINANCIAL">Financial Audit</option>
+                    <option value="COMPLIANCE">Compliance Audit</option>
+                    <option value="OPERATIONAL">Operational Audit</option>
+                    <option value="PERFORMANCE">Performance Audit</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Status</option>
+                    <option value="PLANNED">Planned</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="COMPLETED">Completed</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Date Range</label>
+                <input type="date" name="date_from" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <input type="date" name="date_to" class="form-control">
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+            <a href="{% url 'auditor_all_audits' %}" class="btn">Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- Note: This is showing audit logs as placeholder until Audit model is created -->
+<div class="info-banner">
+    <i class="bi bi-info-circle"></i>
+    <div>
+        <strong>Note:</strong> Audit tracking system is under development. 
+        Currently showing system audit logs as reference.
+    </div>
+</div>
+
+<!-- Audit Logs Table -->
+<div class="table-card">
+    <div class="table-header">
+        <h2>System Audit Trail</h2>
+        <div>
+            <span class="badge">{{ audit_logs|length }} Records</span>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Model</th>
+                    <th>Object</th>
+                    <th>IP Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in audit_logs %}
+                <tr>
+                    <td>
+                        <div>{{ log.timestamp|date:"M d, Y" }}</div>
+                        <div class="text-muted">{{ log.timestamp|time:"H:i" }}</div>
+                    </td>
+                    <td>
+                        {% if log.user %}
+                        <div>{{ log.user.get_full_name }}</div>
+                        <div class="text-muted">{{ log.user.role }}</div>
+                        {% else %}
+                        <span class="text-muted">System</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ log.action|lower }}">
+                            {{ log.get_action_display }}
+                        </span>
+                    </td>
+                    <td>{{ log.model_name }}</td>
+                    <td>{{ log.object_repr|truncatechars:50 }}</td>
+                    <td>{{ log.ip_address|default:"N/A" }}</td>
+                    <td>
+                        <button class="btn-sm" onclick="viewAuditDetails('{{ log.id }}')">
+                            View Details
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No audit logs found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal for Audit Details -->
+<div id="auditDetailsModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Audit Log Details</h3>
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="auditDetailsContent">
+            <!-- Content loaded via JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+function viewAuditDetails(logId) {
+    // Load audit log details
+    fetch(`/api/audit-log/${logId}/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('auditDetailsContent').innerHTML = `
+                <div class="detail-grid">
+                    <div><strong>Timestamp:</strong> ${data.timestamp}</div>
+                    <div><strong>User:</strong> ${data.user}</div>
+                    <div><strong>Action:</strong> ${data.action}</div>
+                    <div><strong>Model:</strong> ${data.model_name}</div>
+                    <div><strong>Changes:</strong> <pre>${JSON.stringify(data.changes, null, 2)}</pre></div>
+                </div>
+            `;
+            document.getElementById('auditDetailsModal').style.display = 'flex';
+        });
+}
+
+function closeModal() {
+    document.getElementById('auditDetailsModal').style.display = 'none';
+}
+</script>
+{% endblock %}
