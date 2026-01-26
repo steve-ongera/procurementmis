@@ -3,7 +3,7 @@
 <!-- ============================================================================ -->
 {% extends 'base.html' %}
 {% load humanize %}
-
+{% load custom_filters %}
 {% block title %}Inventory Reports - Stores Management{% endblock %}
 
 {% block content %}
@@ -13,7 +13,7 @@
         <div class="breadcrumb">
             <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
             <i class="bi bi-chevron-right"></i>
-            <a href="{% url 'stores_dashboard' %}">Stores</a>
+            <a href="#">Stores</a>
             <i class="bi bi-chevron-right"></i>
             <span>Inventory Reports</span>
         </div>
@@ -103,7 +103,7 @@
                     <td>{{ stock.reorder_level }}</td>
                     <td class="text-danger">{{ stock.reorder_level|add:"-"|add:stock.quantity_on_hand }}</td>
                     <td>KES {{ stock.average_unit_cost|floatformat:2 }}</td>
-                    <td>KES {{ stock.average_unit_cost|multiply:stock.reorder_level|subtract:stock.total_value|floatformat:0|intcomma }}</td>
+                    <td>KES {{ stock.average_unit_cost|mul:stock.reorder_level|subtract:stock.total_value|floatformat:0|intcomma }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -117,7 +117,7 @@
     <h3 class="report-title">Stock Valuation Report</h3>
     <div class="summary-grid">
         <div class="summary-card">
-            <div class="summary-value">KES {{ data|sum_values:'total_value'|floatformat:0|intcomma }}</div>
+            <div class="summary-value">KES {{ data|sum_attr:'total_value'|floatformat:0|intcomma }}</div>
             <div class="summary-label">Total Stock Value</div>
         </div>
     </div>
