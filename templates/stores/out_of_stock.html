@@ -1,38 +1,667 @@
-<!-- ============================================================================ -->
-<!-- 9. out_of_stock.html -->
-<!-- ============================================================================ -->
 {% extends 'base.html' %}
 {% load humanize %}
 
 {% block title %}Out of Stock - Stores Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    /* Alert Banner */
+    .alert-banner {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-banner i {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .alert-banner div {
+        flex: 1;
+    }
+
+    .alert-banner strong {
+        font-weight: 600;
+    }
+
+    .alert-danger {
+        background: #FEE2E2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        border-color: #FDE68A;
+        color: #92400E;
+    }
+
+    .alert-info {
+        background: #E0E7FF;
+        border-color: #C7D2FE;
+        color: #3730A3;
+    }
+
+    /* Summary Grid */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .summary-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        font-weight: 500;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .form-control {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: var(--card-bg);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Table Styles */
+    .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        margin: 1rem 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+
+    thead {
+        background: var(--table-header);
+    }
+
+    th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Out of Stock Row Styling */
+    .out-of-stock-row {
+        background-color: #FEE2E2;
+        border-left: 4px solid var(--danger-color);
+    }
+
+    .out-of-stock-row:hover {
+        background-color: #FECACA;
+    }
+
+    .low-stock-row {
+        background-color: #FEF3C7;
+        border-left: 4px solid var(--warning-color);
+    }
+
+    .low-stock-row:hover {
+        background-color: #FDE68A;
+    }
+
+    /* Quantity Cells */
+    .quantity-cell {
+        text-align: right;
+        font-weight: 600;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .stock-critical {
+        color: var(--danger-color);
+    }
+
+    .stock-warning {
+        color: var(--warning-color);
+    }
+
+    .stock-normal {
+        color: var(--success-color);
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .table-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.25rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--secondary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+        background: var(--hover-bg);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        transform: translateY(-1px);
+    }
+
+    .btn-sm {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn-sm:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    /* Badge Styles */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .badge-danger {
+        background: #FEE2E2;
+        color: #991B1B;
+        border: 1px solid #FECACA;
+    }
+
+    .badge-warning {
+        background: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE68A;
+    }
+
+    .badge-success {
+        background: #D1FAE5;
+        color: #065F46;
+        border: 1px solid #A7F3D0;
+    }
+
+    /* Alert Messages */
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        border-color: #A7F3D0;
+        color: #065F46;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filter-card {
+            padding: 1.25rem;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+        
+        .filter-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-responsive {
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.6875rem;
+        }
+        
+        .form-control {
+            font-size: 0.8125rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Out of Stock Items</h1>
         <div class="breadcrumb">
-            <a href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Home</a>
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
             <i class="bi bi-chevron-right"></i>
             <a href="#">Stores</a>
             <i class="bi bi-chevron-right"></i>
             <span>Out of Stock</span>
         </div>
     </div>
+    <div class="header-actions">
+        <a href="#" class="btn">
+            <i class="bi bi-exclamation-triangle"></i>
+            Low Stock
+        </a>
+        <a href="#" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create Requisition
+        </a>
+        <a href="#" class="btn btn-danger" onclick="generateStockReport()">
+            <i class="bi bi-file-earmark-pdf"></i>
+            Export Report
+        </a>
+    </div>
 </div>
 
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Alert Banner -->
 <div class="alert-banner alert-danger">
     <i class="bi bi-x-circle"></i>
     <div>
         <strong>{{ out_of_stock_items.count }} items</strong> are completely out of stock
+        {% if out_of_stock_items.count > 0 %}
+        <div style="font-size: 0.875rem; margin-top: 0.25rem; opacity: 0.9;">
+            Immediate attention required for restocking
+        </div>
+        {% endif %}
     </div>
 </div>
 
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.total_out_of_stock|default:"0" }}</div>
+        <div class="summary-label">Out of Stock</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.total_low_stock|default:"0" }}</div>
+        <div class="summary-label">Low Stock</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">KES {{ stats.total_value_at_risk|floatformat:0|intcomma|default:"0" }}</div>
+        <div class="summary-label">Value at Risk</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-value">{{ stats.stores_affected|default:"0" }}</div>
+        <div class="summary-label">Stores Affected</div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="filter-card">
+    <form method="get" action="#">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Store</label>
+                <select name="store" class="form-control">
+                    <option value="">All Stores</option>
+                    {% for store in stores %}
+                    <option value="{{ store.id }}" {% if request.GET.store == store.id|stringformat:"s" %}selected{% endif %}>
+                        {{ store.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-control">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Sort By</label>
+                <select name="sort" class="form-control">
+                    <option value="last_issue" {% if request.GET.sort == 'last_issue' %}selected{% endif %}>Last Issue Date</option>
+                    <option value="item_name" {% if request.GET.sort == 'item_name' %}selected{% endif %}>Item Name</option>
+                    <option value="reorder_level" {% if request.GET.sort == 'reorder_level' %}selected{% endif %}>Reorder Level</option>
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i>
+                Apply Filters
+            </button>
+            <a href="#" class="btn">
+                <i class="bi bi-x-circle"></i>
+                Clear Filters
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Out of Stock Items Table -->
 <div class="table-card">
     <div class="table-header">
         <h2 class="table-title">
-            <i class="bi bi-x-circle"></i> Zero Stock Items
+            <i class="bi bi-x-circle"></i>
+            Zero Stock Items ({{ out_of_stock_items.count }})
         </h2>
     </div>
+
     {% if out_of_stock_items %}
     <div class="table-responsive">
         <table>
@@ -42,22 +671,64 @@
                     <th>Item Name</th>
                     <th>Category</th>
                     <th>Store</th>
+                    <th>Current Stock</th>
                     <th>Reorder Level</th>
                     <th>Last Issue</th>
+                    <th>Urgency</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for stock in out_of_stock_items %}
-                <tr>
-                    <td>{{ stock.item.code }}</td>
-                    <td>{{ stock.item.name }}</td>
-                    <td>{{ stock.item.category.name }}</td>
-                    <td>{{ stock.store.name }}</td>
-                    <td>{{ stock.reorder_level }}</td>
-                    <td>{{ stock.last_issue_date|date:"M d, Y"|default:"Never" }}</td>
+                <tr class="out-of-stock-row">
                     <td>
-                        <a href="#" class="btn-sm btn-primary">Create Requisition</a>
+                        <strong>{{ stock.item.code }}</strong>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500;">{{ stock.item.name }}</div>
+                        {% if stock.item.description %}
+                        <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.125rem;">
+                            {{ stock.item.description|truncatechars:50 }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge" style="background: #E0E7FF; color: #3730A3; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem;">
+                            {{ stock.item.category.name }}
+                        </span>
+                    </td>
+                    <td>{{ stock.store.name }}</td>
+                    <td class="quantity-cell stock-critical">0</td>
+                    <td class="quantity-cell">{{ stock.reorder_level }}</td>
+                    <td>
+                        {% if stock.last_issue_date %}
+                        <div>{{ stock.last_issue_date|date:"M d, Y" }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color);">
+                            {{ stock.last_issue_date|timesince }} ago
+                        </div>
+                        {% else %}
+                        <span style="color: var(--secondary-color); font-size: 0.875rem;">Never</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-danger">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            Critical
+                        </span>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="#" 
+                               class="btn-sm btn-primary" 
+                               title="Create Requisition"
+                               style="background: var(--primary-color); color: white; border-color: var(--primary-color);">
+                                <i class="bi bi-cart-plus"></i>
+                                Reorder
+                            </a>
+                            <a href="#" class="action-btn" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -68,7 +739,148 @@
     <div class="empty-state">
         <i class="bi bi-check-circle"></i>
         <p>No items are out of stock</p>
+        <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--secondary-color);">
+            All items have sufficient stock levels
+        </p>
     </div>
     {% endif %}
 </div>
+
+<!-- Recent Replenishments Table -->
+{% if recent_replenishments %}
+<div class="table-card">
+    <div class="table-header">
+        <h2 class="table-title">
+            <i class="bi bi-arrow-clockwise"></i>
+            Recent Replenishments
+        </h2>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requisition No</th>
+                    <th>Item</th>
+                    <th>Store</th>
+                    <th>Order Date</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th>Expected Delivery</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for replenishment in recent_replenishments %}
+                <tr>
+                    <td>
+                        <strong style="font-family: ui-monospace; font-size: 0.875rem;">
+                            REQ-{{ replenishment.id|stringformat:"06d" }}
+                        </strong>
+                    </td>
+                    <td>{{ replenishment.item.name }}</td>
+                    <td>{{ replenishment.store.name }}</td>
+                    <td>{{ replenishment.order_date|date:"M d, Y" }}</td>
+                    <td class="quantity-cell">{{ replenishment.quantity }}</td>
+                    <td>
+                        {% if replenishment.status == 'ORDERED' %}
+                        <span class="badge badge-warning">
+                            <i class="bi bi-clock"></i>
+                            Ordered
+                        </span>
+                        {% elif replenishment.status == 'DELIVERED' %}
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i>
+                            Delivered
+                        </span>
+                        {% elif replenishment.status == 'PENDING' %}
+                        <span class="badge" style="background: #E5E7EB; color: #374151;">
+                            Pending
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if replenishment.expected_delivery %}
+                        {{ replenishment.expected_delivery|date:"M d, Y" }}
+                        {% else %}
+                        <span style="color: var(--secondary-color);">Not specified</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function generateStockReport() {
+    // Generate stock report
+    const filters = new URLSearchParams(window.location.search);
+    const reportType = 'out_of_stock';
+    
+    // Show loading state
+    const originalText = event.target.innerHTML;
+    event.target.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating Report...';
+    event.target.disabled = true;
+    
+    // Simulate report generation (replace with actual API call)
+    setTimeout(() => {
+        alert('Stock report generated successfully. The PDF will be downloaded shortly.');
+        
+        // Reset button state
+        event.target.innerHTML = originalText;
+        event.target.disabled = false;
+        
+        // In real implementation, trigger actual PDF download
+        // window.open(`/reports/stock-report/?type=${reportType}&${filters.toString()}`, '_blank');
+    }, 1500);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Highlight critical items
+    const criticalItems = document.querySelectorAll('.out-of-stock-row');
+    
+    // Add click handlers for reorder buttons
+    document.querySelectorAll('.btn-primary').forEach(button => {
+        button.addEventListener('click', function(e) {
+            if (!this.href.includes('create_requisition')) return;
+            
+            const itemName = this.closest('tr').querySelector('td:nth-child(2) div').textContent;
+            const storeName = this.closest('tr').querySelector('td:nth-child(4)').textContent;
+            
+            if (!confirm(`Create requisition for "${itemName}" from ${storeName}?`)) {
+                e.preventDefault();
+            }
+        });
+    });
+    
+    // Auto-refresh page every 5 minutes to check for new out-of-stock items
+    setTimeout(() => {
+        if (document.visibilityState === 'visible') {
+            window.location.reload();
+        }
+    }, 300000); // 5 minutes
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+R to refresh
+        if (e.ctrlKey && e.key === 'r') {
+            e.preventDefault();
+            window.location.reload();
+        }
+        
+        // Ctrl+E to export report
+        if (e.ctrlKey && e.key === 'e') {
+            e.preventDefault();
+            generateStockReport();
+        }
+    });
+    
+    // Show keyboard shortcuts help
+    console.log('Keyboard shortcuts:');
+    console.log('Ctrl+R - Refresh page');
+    console.log('Ctrl+E - Export report');
+});
+</script>
 {% endblock %}
