@@ -13,7 +13,7 @@
             <i class="fas fa-home"></i>
             <span>Dashboard</span>
         </a>
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_inventory_reports' %}" class="menu-item">
             <i class="fas fa-chart-line"></i>
             <span>Inventory Analytics</span>
         </a>
@@ -23,23 +23,23 @@
     <div class="menu-section">
         <div class="menu-title">GOODS RECEIPT</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_pending_deliveries' %}" class="menu-item">
             <i class="fas fa-inbox"></i>
             <span>Pending Deliveries</span>
             <span class="badge">4</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_receive_goods' %}" class="menu-item">
             <i class="fas fa-check-square"></i>
             <span>Receive Goods</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_receipt_history' %}" class="menu-item">
             <i class="fas fa-history"></i>
             <span>Receipt History</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_quality_issues' %}" class="menu-item">
             <i class="fas fa-exclamation-triangle"></i>
             <span>Quality Issues</span>
         </a>
@@ -55,10 +55,10 @@
             <i class="fas fa-chevron-right arrow"></i>
         </div>
         <div class="submenu" id="submenu-stock">
-            <a href="#" class="submenu-item">All Stock Items</a>
-            <a href="#" class="submenu-item">Add Stock Item</a>
-            <a href="#" class="submenu-item">Low Stock Alert</a>
-            <a href="#" class="submenu-item">Out of Stock</a>
+            <a href="{% url 'store_all_stock' %}" class="submenu-item">All Stock Items</a>
+            <a href="{% url 'store_add_stock_item' %}" class="submenu-item">Add Stock Item</a>
+            <a href="{% url 'store_low_stock_alert' %}" class="submenu-item">Low Stock Alert</a>
+            <a href="{% url 'store_out_of_stock' %}" class="submenu-item">Out of Stock</a>
         </div>
         
         <div class="menu-item has-submenu" data-submenu="issues">
@@ -67,18 +67,18 @@
             <i class="fas fa-chevron-right arrow"></i>
         </div>
         <div class="submenu" id="submenu-issues">
-            <a href="#" class="submenu-item">Pending Issues</a>
-            <a href="#" class="submenu-item">Issue Stock</a>
-            <a href="#" class="submenu-item">Issue History</a>
-            <a href="#" class="submenu-item">Returns</a>
+            <a href="{% url 'store_pending_issues' %}" class="submenu-item">Pending Issues</a>
+            <a href="{% url 'store_create_issue' %}" class="submenu-item">Issue Stock</a>
+            <a href="{% url 'store_issue_history' %}" class="submenu-item">Issue History</a>
+            <a href="{% url 'store_returns' %}" class="submenu-item">Returns</a>
         </div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_stock_takes' %}" class="menu-item">
             <i class="fas fa-clipboard-check"></i>
             <span>Stock Takes</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_stock_transfers' %}" class="menu-item">
             <i class="fas fa-exchange-alt"></i>
             <span>Stock Transfers</span>
         </a>
@@ -88,22 +88,22 @@
     <div class="menu-section">
         <div class="menu-title">ASSETS</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_all_assets' %}" class="menu-item">
             <i class="fas fa-laptop"></i>
             <span>All Assets</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_register_asset' %}" class="menu-item">
             <i class="fas fa-plus-square"></i>
             <span>Register Asset</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_maintenance' %}" class="menu-item">
             <i class="fas fa-tools"></i>
             <span>Maintenance</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_disposal' %}" class="menu-item">
             <i class="fas fa-trash-alt"></i>
             <span>Disposal</span>
         </a>
@@ -113,12 +113,12 @@
     <div class="menu-section">
         <div class="menu-title">REPORTS</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_inventory_reports' %}" class="menu-item">
             <i class="fas fa-chart-bar"></i>
             <span>Inventory Reports</span>
         </a>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_movement_reports' %}" class="menu-item">
             <i class="fas fa-file-alt"></i>
             <span>Movement Reports</span>
         </a>
@@ -128,7 +128,7 @@
     <div class="menu-section">
         <div class="menu-title">SUPPORT</div>
         
-        <a href="#" class="menu-item">
+        <a href="{% url 'store_help_center' %}" class="menu-item">
             <i class="fas fa-life-ring"></i>
             <span>Help Center</span>
         </a>
