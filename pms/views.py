@@ -8767,57 +8767,273 @@ def supplier_detail(request, supplier_id):
     return render(request, 'suppliers/supplier_detail.html', context)
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.db import transaction
+import random
+import string
+
+from .models import Supplier, ItemCategory, User
+
+User = get_user_model()
+
+
+def generate_password(length=12):
+    """Generate a secure random password"""
+    characters = string.ascii_letters + string.digits + string.punctuation
+    # Ensure password has at least one of each type
+    password = [
+        random.choice(string.ascii_uppercase),
+        random.choice(string.ascii_lowercase),
+        random.choice(string.digits),
+        random.choice(string.punctuation)
+    ]
+    # Fill the rest randomly
+    password += [random.choice(characters) for _ in range(length - 4)]
+    # Shuffle to avoid predictable patterns
+    random.shuffle(password)
+    return ''.join(password)
+
+
+def generate_employee_id(supplier_number):
+    """Generate employee ID from supplier number"""
+    # Convert SUP-2025-000001 to EMP-SUP-2025-000001
+    return f"EMP-{supplier_number}"
+
+
+def send_supplier_credentials_email(supplier, username, password):
+    """Send login credentials to supplier via email"""
+    subject = 'Your University Procurement System Account'
+    
+    message = f"""
+Dear {supplier.contact_person},
+
+Welcome to the University Procurement System!
+
+Your supplier account has been successfully created. Below are your login credentials:
+
+Organization: {supplier.name}
+Supplier Number: {supplier.supplier_number}
+
+Login Credentials:
+------------------
+Username: {username}
+Password: {password}
+
+Login URL: {settings.SITE_URL}/login/
+
+IMPORTANT SECURITY NOTICE:
+- Please change your password immediately after your first login
+- Keep your credentials secure and do not share them with unauthorized persons
+- Contact the procurement office if you experience any login issues
+
+For any questions or support, please contact:
+Email: procurement@university.edu
+Phone: [Your Support Number]
+
+Best regards,
+University Procurement Office
+
+---
+This is an automated message. Please do not reply to this email.
+"""
+    
+    html_message = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background-color: #2563EB; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }}
+        .content {{ background-color: #f9f9f9; padding: 30px; border: 1px solid #ddd; }}
+        .credentials {{ background-color: #fff; padding: 20px; border-left: 4px solid #2563EB; margin: 20px 0; }}
+        .credential-item {{ margin: 10px 0; }}
+        .credential-label {{ font-weight: bold; color: #2563EB; }}
+        .warning {{ background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 15px; margin: 20px 0; }}
+        .button {{ display: inline-block; padding: 12px 30px; background-color: #2563EB; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+        .footer {{ text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Welcome to University Procurement System</h2>
+        </div>
+        
+        <div class="content">
+            <p>Dear <strong>{supplier.contact_person}</strong>,</p>
+            
+            <p>Your supplier account has been successfully created in our procurement system.</p>
+            
+            <div class="credentials">
+                <h3>Organization Details</h3>
+                <div class="credential-item">
+                    <span class="credential-label">Organization:</span> {supplier.name}
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Supplier Number:</span> {supplier.supplier_number}
+                </div>
+                
+                <h3 style="margin-top: 20px;">Login Credentials</h3>
+                <div class="credential-item">
+                    <span class="credential-label">Username:</span> {username}
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Temporary Password:</span> {password}
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="{settings.SITE_URL}/login/" class="button">Login to Your Account</a>
+            </div>
+            
+            <div class="warning">
+                <h4 style="margin-top: 0;">⚠️ Important Security Notice</h4>
+                <ul style="margin: 10px 0;">
+                    <li>Please change your password immediately after your first login</li>
+                    <li>Keep your credentials secure and confidential</li>
+                    <li>Do not share your login details with unauthorized persons</li>
+                    <li>Contact us immediately if you suspect unauthorized access</li>
+                </ul>
+            </div>
+            
+            <h3>Need Help?</h3>
+            <p>If you have any questions or experience any issues, please contact our support team:</p>
+            <ul>
+                <li><strong>Email:</strong> procurement@university.edu</li>
+                <li><strong>Phone:</strong> [Your Support Number]</li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message from the University Procurement System.</p>
+            <p>Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[supplier.contact_person_email, supplier.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        print(f"Error sending email: {str(e)}")
+        return False
+
+
 @login_required
 def supplier_create(request):
-    """Create new supplier"""
+    """Create new supplier with user account"""
     
     if request.method == 'POST':
         try:
-            # Generate supplier number
-            year = timezone.now().year
-            last_supplier = Supplier.objects.filter(
-                supplier_number__startswith=f'SUP-{year}'
-            ).order_by('-supplier_number').first()
-            
-            if last_supplier:
-                last_number = int(last_supplier.supplier_number.split('-')[-1])
-                new_number = last_number + 1
-            else:
-                new_number = 1
-            
-            supplier_number = f'SUP-{year}-{new_number:06d}'
-            
-            # Create supplier
-            supplier = Supplier.objects.create(
-                supplier_number=supplier_number,
-                name=request.POST.get('name'),
-                registration_number=request.POST.get('registration_number'),
-                tax_id=request.POST.get('tax_id', ''),
-                email=request.POST.get('email'),
-                phone_number=request.POST.get('phone_number'),
-                physical_address=request.POST.get('physical_address'),
-                postal_address=request.POST.get('postal_address', ''),
-                website=request.POST.get('website', ''),
-                contact_person=request.POST.get('contact_person'),
-                contact_person_phone=request.POST.get('contact_person_phone'),
-                contact_person_email=request.POST.get('contact_person_email'),
-                bank_name=request.POST.get('bank_name'),
-                bank_branch=request.POST.get('bank_branch'),
-                account_number=request.POST.get('account_number'),
-                account_name=request.POST.get('account_name'),
-                swift_code=request.POST.get('swift_code', ''),
-                notes=request.POST.get('notes', ''),
-                created_by=request.user
-            )
-            
-            # Add categories
-            category_ids = request.POST.getlist('categories')
-            if category_ids:
-                supplier.categories.set(category_ids)
-            
-            messages.success(request, f'Supplier {supplier.name} created successfully!')
-            return redirect('supplier_detail', supplier_id=supplier.id)
-            
+            with transaction.atomic():
+                # Generate supplier number
+                year = timezone.now().year
+                last_supplier = Supplier.objects.filter(
+                    supplier_number__startswith=f'SUP-{year}'
+                ).order_by('-supplier_number').first()
+                
+                if last_supplier:
+                    last_number = int(last_supplier.supplier_number.split('-')[-1])
+                    new_number = last_number + 1
+                else:
+                    new_number = 1
+                
+                supplier_number = f'SUP-{year}-{new_number:06d}'
+                
+                # Generate username from supplier name and number
+                supplier_name = request.POST.get('name')
+                # Create username: first 3 letters of name + last 4 digits of supplier number
+                username_base = supplier_name.replace(' ', '')[:3].upper()
+                username = f"{username_base}{supplier_number.split('-')[-1]}"
+                
+                # Check if username exists, add random suffix if needed
+                original_username = username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{original_username}{counter}"
+                    counter += 1
+                
+                # Generate secure password
+                temp_password = generate_password()
+                
+                # Create user account
+                user = User.objects.create_user(
+                    username=username,
+                    email=request.POST.get('contact_person_email'),
+                    password=temp_password,
+                    first_name=request.POST.get('contact_person', '').split()[0] if request.POST.get('contact_person') else '',
+                    last_name=' '.join(request.POST.get('contact_person', '').split()[1:]) if len(request.POST.get('contact_person', '').split()) > 1 else '',
+                    role='SUPPLIER',
+                    employee_id=generate_employee_id(supplier_number),
+                    phone_number=request.POST.get('contact_person_phone', ''),
+                    is_active_user=True
+                )
+                
+                # Create supplier
+                supplier = Supplier.objects.create(
+                    user=user,  # Link to user account
+                    supplier_number=supplier_number,
+                    name=request.POST.get('name'),
+                    registration_number=request.POST.get('registration_number'),
+                    tax_id=request.POST.get('tax_id', ''),
+                    email=request.POST.get('email'),
+                    phone_number=request.POST.get('phone_number'),
+                    physical_address=request.POST.get('physical_address'),
+                    postal_address=request.POST.get('postal_address', ''),
+                    website=request.POST.get('website', ''),
+                    contact_person=request.POST.get('contact_person'),
+                    contact_person_phone=request.POST.get('contact_person_phone'),
+                    contact_person_email=request.POST.get('contact_person_email'),
+                    bank_name=request.POST.get('bank_name'),
+                    bank_branch=request.POST.get('bank_branch'),
+                    account_number=request.POST.get('account_number'),
+                    account_name=request.POST.get('account_name'),
+                    swift_code=request.POST.get('swift_code', ''),
+                    notes=request.POST.get('notes', ''),
+                    status='PENDING',  # Set to pending for approval
+                    created_by=request.user
+                )
+                
+                # Add categories
+                category_ids = request.POST.getlist('categories')
+                if category_ids:
+                    supplier.categories.set(category_ids)
+                
+                # Send credentials email
+                email_sent = send_supplier_credentials_email(supplier, username, temp_password)
+                
+                if email_sent:
+                    messages.success(
+                        request, 
+                        f'Supplier "{supplier.name}" created successfully! '
+                        f'Login credentials have been sent to {supplier.contact_person_email}'
+                    )
+                else:
+                    messages.warning(
+                        request,
+                        f'Supplier "{supplier.name}" created successfully! '
+                        f'However, there was an issue sending the email. '
+                        f'Username: {username}, Please contact the supplier to provide credentials manually.'
+                    )
+                
+                return redirect('supplier_detail', supplier_id=supplier.id)
+                
         except Exception as e:
             messages.error(request, f'Error creating supplier: {str(e)}')
     
@@ -8838,32 +9054,47 @@ def supplier_edit(request, supplier_id):
     
     if request.method == 'POST':
         try:
-            supplier.name = request.POST.get('name')
-            supplier.registration_number = request.POST.get('registration_number')
-            supplier.tax_id = request.POST.get('tax_id', '')
-            supplier.email = request.POST.get('email')
-            supplier.phone_number = request.POST.get('phone_number')
-            supplier.physical_address = request.POST.get('physical_address')
-            supplier.postal_address = request.POST.get('postal_address', '')
-            supplier.website = request.POST.get('website', '')
-            supplier.contact_person = request.POST.get('contact_person')
-            supplier.contact_person_phone = request.POST.get('contact_person_phone')
-            supplier.contact_person_email = request.POST.get('contact_person_email')
-            supplier.bank_name = request.POST.get('bank_name')
-            supplier.bank_branch = request.POST.get('bank_branch')
-            supplier.account_number = request.POST.get('account_number')
-            supplier.account_name = request.POST.get('account_name')
-            supplier.swift_code = request.POST.get('swift_code', '')
-            supplier.notes = request.POST.get('notes', '')
-            supplier.save()
-            
-            # Update categories
-            category_ids = request.POST.getlist('categories')
-            supplier.categories.set(category_ids)
-            
-            messages.success(request, 'Supplier updated successfully!')
-            return redirect('supplier_detail', supplier_id=supplier.id)
-            
+            with transaction.atomic():
+                # Update supplier details
+                supplier.name = request.POST.get('name')
+                supplier.registration_number = request.POST.get('registration_number')
+                supplier.tax_id = request.POST.get('tax_id', '')
+                supplier.email = request.POST.get('email')
+                supplier.phone_number = request.POST.get('phone_number')
+                supplier.physical_address = request.POST.get('physical_address')
+                supplier.postal_address = request.POST.get('postal_address', '')
+                supplier.website = request.POST.get('website', '')
+                supplier.contact_person = request.POST.get('contact_person')
+                supplier.contact_person_phone = request.POST.get('contact_person_phone')
+                supplier.contact_person_email = request.POST.get('contact_person_email')
+                supplier.bank_name = request.POST.get('bank_name')
+                supplier.bank_branch = request.POST.get('bank_branch')
+                supplier.account_number = request.POST.get('account_number')
+                supplier.account_name = request.POST.get('account_name')
+                supplier.swift_code = request.POST.get('swift_code', '')
+                supplier.notes = request.POST.get('notes', '')
+                supplier.save()
+                
+                # Update linked user account if exists
+                if supplier.user:
+                    supplier.user.email = request.POST.get('contact_person_email')
+                    supplier.user.phone_number = request.POST.get('contact_person_phone')
+                    
+                    # Update first and last name from contact person
+                    contact_person_parts = request.POST.get('contact_person', '').split()
+                    if contact_person_parts:
+                        supplier.user.first_name = contact_person_parts[0]
+                        supplier.user.last_name = ' '.join(contact_person_parts[1:]) if len(contact_person_parts) > 1 else ''
+                    
+                    supplier.user.save()
+                
+                # Update categories
+                category_ids = request.POST.getlist('categories')
+                supplier.categories.set(category_ids)
+                
+                messages.success(request, 'Supplier updated successfully!')
+                return redirect('supplier_detail', supplier_id=supplier.id)
+                
         except Exception as e:
             messages.error(request, f'Error updating supplier: {str(e)}')
     
@@ -8876,6 +9107,44 @@ def supplier_edit(request, supplier_id):
     
     return render(request, 'suppliers/supplier_edit.html', context)
 
+
+@login_required
+def supplier_resend_credentials(request, supplier_id):
+    """Resend login credentials to supplier"""
+    supplier = get_object_or_404(Supplier, id=supplier_id)
+    
+    if not supplier.user:
+        messages.error(request, 'This supplier does not have a user account.')
+        return redirect('supplier_detail', supplier_id=supplier.id)
+    
+    try:
+        # Generate new password
+        new_password = generate_password()
+        supplier.user.set_password(new_password)
+        supplier.user.save()
+        
+        # Send credentials email
+        email_sent = send_supplier_credentials_email(
+            supplier, 
+            supplier.user.username, 
+            new_password
+        )
+        
+        if email_sent:
+            messages.success(
+                request,
+                f'New login credentials have been sent to {supplier.contact_person_email}'
+            )
+        else:
+            messages.error(
+                request,
+                f'Failed to send email. New password: {new_password} (Username: {supplier.user.username})'
+            )
+            
+    except Exception as e:
+        messages.error(request, f'Error resending credentials: {str(e)}')
+    
+    return redirect('supplier_detail', supplier_id=supplier.id)
 
 @login_required
 def supplier_update_status(request, supplier_id):

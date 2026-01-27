@@ -189,10 +189,12 @@ urlpatterns = [
     path('policies/<uuid:policy_id>/', views.policy_detail, name='policy_detail'),
     
     # Supplier URLs
-    path('suppliers/', views.supplier_list, name='supplier_list'),
     path('suppliers/create/', views.supplier_create, name='supplier_create'),
     path('suppliers/<uuid:supplier_id>/', views.supplier_detail, name='supplier_detail'),
     path('suppliers/<uuid:supplier_id>/edit/', views.supplier_edit, name='supplier_edit'),
+    path('suppliers/<uuid:supplier_id>/resend-credentials/', views.supplier_resend_credentials, name='supplier_resend_credentials'),
+    
+    path('suppliers/', views.supplier_list, name='supplier_list'),
     path('suppliers/<uuid:supplier_id>/update-status/', views.supplier_update_status, name='supplier_update_status'),
     path('suppliers/<uuid:supplier_id>/documents/', views.supplier_documents, name='supplier_documents'),
     path('suppliers/documents/<uuid:document_id>/verify/', views.supplier_verify_document, name='supplier_verify_document'),

@@ -132,6 +132,19 @@ EMAIL_HOST_USER='innovationhubsoftwaresltd@gmail.com'
 EMAIL_HOST_PASSWORD='wtzg mvcn ztoe qige'
 DEFAULT_FROM_EMAIL = 'University Procurement <noreply@university.edu>'
 
+# Site URL for email links
+SITE_URL = 'http://localhost:8000'  # Change to your production URL
+
+# Default from email
+DEFAULT_FROM_EMAIL = 'noreply@university.edu'
+
+# Admin email for notifications
+ADMINS = [
+    ('Procurement Admin', 'admin@university.edu'),
+]
+
+# Email timeout
+EMAIL_TIMEOUT = 30
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
