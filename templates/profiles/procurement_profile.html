@@ -1,0 +1,965 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Procurement Officer Profile - {{ user.get_full_name }} - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --secondary-color: #10B981;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+    }
+
+    .profile-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    /* Profile Header */
+    .profile-header {
+        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+        border-radius: 1rem;
+        padding: 3rem;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 500px;
+        height: 500px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+    }
+
+    .profile-header-content {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        flex-shrink: 0;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .profile-info h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .profile-role {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .profile-meta {
+        display: flex;
+        gap: 2rem;
+        font-size: 0.875rem;
+        opacity: 0.95;
+        flex-wrap: wrap;
+    }
+
+    .profile-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .profile-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 1rem;
+    }
+
+    .btn {
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-white {
+        background: white;
+        color: var(--primary-color);
+    }
+
+    .btn-white:hover {
+        background: #F8FAFC;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-outline-white {
+        background: transparent;
+        color: white;
+        border: 2px solid white;
+    }
+
+    .btn-outline-white:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+    }
+
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        padding: 1.75rem;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: var(--hover-bg);
+        border-radius: 50%;
+        transform: translate(30%, -30%);
+        transition: all 0.3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        border-color: var(--primary-color);
+    }
+
+    .stat-card:hover::before {
+        transform: translate(20%, -20%) scale(1.2);
+    }
+
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+    }
+
+    .stat-icon.blue { 
+        background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+        color: #2563EB; 
+    }
+    .stat-icon.green { 
+        background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+        color: #10B981; 
+    }
+    .stat-icon.orange { 
+        background: linear-gradient(135deg, #FED7AA 0%, #FDBA74 100%);
+        color: #F59E0B; 
+    }
+    .stat-icon.purple { 
+        background: linear-gradient(135deg, #E9D5FF 0%, #D8B4FE 100%);
+        color: #8B5CF6; 
+    }
+    .stat-icon.red { 
+        background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+        color: #EF4444; 
+    }
+
+    .stat-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .stat-value {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #64748B;
+        font-weight: 500;
+    }
+
+    .stat-change {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        margin-top: 0.5rem;
+    }
+
+    .stat-change.positive {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .stat-change.neutral {
+        background: #E2E8F0;
+        color: #475569;
+    }
+
+    /* Content Layout */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 1200px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .full-width {
+        grid-column: 1 / -1;
+    }
+
+    /* Card Styles */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s;
+    }
+
+    .card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-action {
+        font-size: 0.813rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .card-action:hover {
+        color: #1D4ED8;
+        text-decoration: underline;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Tender/PO Items */
+    .item-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .item {
+        padding: 1.25rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .item:hover {
+        background: var(--hover-bg);
+        border-color: var(--primary-color);
+        transform: translateX(4px);
+    }
+
+    .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 0.75rem;
+    }
+
+    .item-number {
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+        font-size: 0.938rem;
+    }
+
+    .item-number:hover {
+        text-decoration: underline;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .status-draft { background: #F1F5F9; color: #475569; }
+    .status-published { background: #DBEAFE; color: #1E40AF; }
+    .status-evaluating { background: #FEF3C7; color: #92400E; }
+    .status-awarded { background: #D1FAE5; color: #065F46; }
+    .status-approved { background: #D1FAE5; color: #065F46; }
+    .status-sent { background: #BFDBFE; color: #1E40AF; }
+    .status-pending { background: #FED7AA; color: #92400E; }
+
+    .item-title {
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.5rem;
+    }
+
+    .item-details {
+        display: flex;
+        gap: 1.5rem;
+        font-size: 0.813rem;
+        color: #64748B;
+        flex-wrap: wrap;
+    }
+
+    .item-detail {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .item-detail i {
+        font-size: 0.75rem;
+    }
+
+    /* Info Panel */
+    .info-panel {
+        background: linear-gradient(135deg, var(--hover-bg) 0%, white 100%);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+    }
+
+    .info-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .info-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #64748B;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .info-value {
+        font-size: 0.875rem;
+        color: #1E293B;
+        font-weight: 600;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .action-button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1.5rem;
+        background: var(--hover-bg);
+        border: 2px solid var(--border-color);
+        border-radius: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        text-align: center;
+    }
+
+    .action-button:hover {
+        background: white;
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+    }
+
+    .action-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .action-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .action-sublabel {
+        font-size: 0.75rem;
+        color: #64748B;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.4;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 0.938rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .profile-container {
+            padding: 1rem;
+        }
+
+        .profile-header {
+            padding: 2rem;
+        }
+
+        .profile-header-content {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .profile-actions {
+            margin-left: 0;
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .quick-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <!-- Profile Header -->
+    <div class="profile-header">
+        <div class="profile-header-content">
+            <div class="profile-avatar">
+                {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                {% else %}
+                    {{ user.first_name.0|upper }}{{ user.last_name.0|upper }}
+                {% endif %}
+            </div>
+            <div class="profile-info" style="flex: 1;">
+                <h1>{{ user.get_full_name }}</h1>
+                <div class="profile-role">
+                    <i class="bi bi-briefcase-fill"></i>
+                    {{ user.get_role_display }}
+                </div>
+                <div class="profile-meta">
+                    <div class="profile-meta-item">
+                        <i class="bi bi-envelope-fill"></i>
+                        <span>{{ user.email }}</span>
+                    </div>
+                    {% if user.phone_number %}
+                    <div class="profile-meta-item">
+                        <i class="bi bi-telephone-fill"></i>
+                        <span>{{ user.phone_number }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.employee_id %}
+                    <div class="profile-meta-item">
+                        <i class="bi bi-person-badge"></i>
+                        <span>ID: {{ user.employee_id }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="profile-actions">
+                <a href="{% url 'profile_update' %}" class="btn btn-white">
+                    <i class="bi bi-pencil-square"></i> Edit Profile
+                </a>
+                <a href="{% url 'settings' %}" class="btn btn-outline-white">
+                    <i class="bi bi-gear-fill"></i> Settings
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon blue">
+                    <i class="bi bi-file-earmark-text"></i>
+                </div>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_tenders|intcomma }}</div>
+                <div class="stat-label">Total Tenders Created</div>
+                <div class="stat-change neutral">
+                    <i class="bi bi-dash"></i> All time
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon green">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ active_tenders|intcomma }}</div>
+                <div class="stat-label">Active Tenders</div>
+                <div class="stat-change positive">
+                    <i class="bi bi-arrow-up"></i> In progress
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon purple">
+                    <i class="bi bi-cart-check"></i>
+                </div>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_pos|intcomma }}</div>
+                <div class="stat-label">Purchase Orders Created</div>
+                <div class="stat-change neutral">
+                    <i class="bi bi-dash"></i> All time
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon orange">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ pending_pos|intcomma }}</div>
+                <div class="stat-label">Pending Purchase Orders</div>
+                <div class="stat-change neutral">
+                    <i class="bi bi-exclamation-circle"></i> Needs attention
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="grid-column: span 2;">
+            <div class="stat-header">
+                <div class="stat-icon blue">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">KES {{ total_procurement_value|floatformat:0|intcomma }}</div>
+                <div class="stat-label">Total Procurement Value</div>
+                <div class="stat-change positive">
+                    <i class="bi bi-graph-up"></i> Approved & Delivered
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon green">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ suppliers_count|intcomma }}</div>
+                <div class="stat-label">Suppliers Managed</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon red">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ pending_requisitions|intcomma }}</div>
+                <div class="stat-label">Pending Requisitions</div>
+                <div class="stat-change neutral">
+                    <i class="bi bi-arrow-right"></i> To process
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card full-width">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="bi bi-lightning-charge-fill"></i>
+                Quick Actions
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="quick-actions">
+                <a href="{% url 'procurement_create_tender' %}" class="action-button">
+                    <div class="action-icon">
+                        <i class="bi bi-plus-lg"></i>
+                    </div>
+                    <div class="action-label">Create New Tender</div>
+                    <div class="action-sublabel">Publish tender opportunity</div>
+                </a>
+                <a href="{% url 'procurement_create_order' %}" class="action-button">
+                    <div class="action-icon">
+                        <i class="bi bi-cart-plus"></i>
+                    </div>
+                    <div class="action-label">Create Purchase Order</div>
+                    <div class="action-sublabel">Issue new PO</div>
+                </a>
+                <a href="{% url 'procurement_all_suppliers' %}" class="action-button">
+                    <div class="action-icon">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <div class="action-label">Manage Suppliers</div>
+                    <div class="action-sublabel">View supplier database</div>
+                </a>
+                <a href="{% url 'procurement_pending_requisitions' %}" class="action-button">
+                    <div class="action-icon">
+                        <i class="bi bi-list-check"></i>
+                    </div>
+                    <div class="action-label">Process Requisitions</div>
+                    <div class="action-sublabel">{{ pending_requisitions }} pending</div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+        <!-- Recent Tenders -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="bi bi-megaphone"></i>
+                    Recent Tenders
+                </h2>
+                <a href="{% url 'procurement_active_tenders' %}" class="card-action">
+                    View All <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_tenders %}
+                    <div class="item-list">
+                        {% for tender in recent_tenders %}
+                        <div class="item">
+                            <div class="item-header">
+                                <a href="{% url 'tender_detail' tender.id %}" class="item-number">
+                                    {{ tender.tender_number }}
+                                </a>
+                                <span class="status-badge status-{{ tender.status|lower }}">
+                                    {{ tender.get_status_display }}
+                                </span>
+                            </div>
+                            <div class="item-title">{{ tender.title|truncatewords:10 }}</div>
+                            <div class="item-details">
+                                <div class="item-detail">
+                                    <i class="bi bi-calendar"></i>
+                                    {{ tender.created_at|date:"M d, Y" }}
+                                </div>
+                                <div class="item-detail">
+                                    <i class="bi bi-cash"></i>
+                                    KES {{ tender.estimated_budget|floatformat:0|intcomma }}
+                                </div>
+                                {% if tender.closing_date %}
+                                <div class="item-detail">
+                                    <i class="bi bi-clock"></i>
+                                    Closes {{ tender.closing_date|date:"M d" }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-megaphone"></i>
+                        <p>No tenders created yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Purchase Orders -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="bi bi-receipt"></i>
+                    Recent Purchase Orders
+                </h2>
+                <a href="{% url 'procurement_all_orders' %}" class="card-action">
+                    View All <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_pos %}
+                    <div class="item-list">
+                        {% for po in recent_pos %}
+                        <div class="item">
+                            <div class="item-header">
+                                <a href="{% url 'po_detail' po.id %}" class="item-number">
+                                    {{ po.po_number }}
+                                </a>
+                                <span class="status-badge status-{{ po.status|lower }}">
+                                    {{ po.get_status_display }}
+                                </span>
+                            </div>
+                            <div class="item-title">{{ po.supplier.name|truncatewords:8 }}</div>
+                            <div class="item-details">
+                                <div class="item-detail">
+                                    <i class="bi bi-calendar"></i>
+                                    {{ po.po_date|date:"M d, Y" }}
+                                </div>
+                                <div class="item-detail">
+                                    <i class="bi bi-cash"></i>
+                                    KES {{ po.total_amount|floatformat:0|intcomma }}
+                                </div>
+                                {% if po.delivery_date %}
+                                <div class="item-detail">
+                                    <i class="bi bi-truck"></i>
+                                    Due {{ po.delivery_date|date:"M d" }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-receipt"></i>
+                        <p>No purchase orders yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Personal Information & Account Details -->
+    <div class="content-grid">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="bi bi-person-circle"></i>
+                    Personal Information
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="info-panel">
+                    <div class="info-list">
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="bi bi-person-badge"></i>
+                                Employee ID
+                            </div>
+                            <div class="info-value">{{ user.employee_id|default:"-" }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="bi bi-envelope"></i>
+                                Email Address
+                            </div>
+                            <div class="info-value">{{ user.email }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="bi bi-telephone"></i>
+                                Phone Number
+                            </div>
+                            <div class="info-value">{{ user.phone_number|default:"-" }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="bi bi-building"></i>
+                                Department
+                            </div>
+                            <div class="info-value">{{ user.department.name|default:"-" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="bi bi-bar-chart-line"></i>
+                    Performance Overview
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="info-panel">
+                    <div class="info-list">
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="bi bi-calendar-check"></i>
+                                Member Since
+                            </div>
+                            <div class="info-value">{{ user.date_joined|date:"M d, Y" }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="bi bi-trophy"></i>
+                                Tenders Published
+                            </div>
+                            <div class="info-value">{{ total_tenders }} tenders</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="bi bi-check2-circle"></i>
+                                POs Processed
+                            </div>
+                            <div class="info-value">{{ total_pos }} orders</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="bi bi-graph-up"></i>
+                                Total Value
+                            </div>
+                            <div class="info-value">KES {{ total_procurement_value|floatformat:0|intcomma }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
