@@ -3,7 +3,7 @@
 <!-- ========================================== -->
 {% extends 'base.html' %}
 {% load humanize %}
-
+{% load custom_filters %}
 {% block title %}Verify Invoice - {{ invoice.invoice_number }} - University Procurement System{% endblock %}
 
 {% block extra_css %}
@@ -788,7 +788,7 @@
         <i class="bi {% if invoice.total_amount == po.total_amount %}bi-check-circle-fill success{% else %}bi-exclamation-circle-fill warning{% endif %}"></i>
         <div>
             <strong>Amount Match</strong>
-            <span>{% if invoice.total_amount == po.total_amount %}✅ Matched{% else %}⚠️ Difference: KES {{ invoice.total_amount|sub:po.total_amount|floatformat:0|intcomma }}{% endif %}</span>
+            <span>{% if invoice.total_amount == po.total_amount %}✅ Matched{% else %}⚠️ Difference: KES {{ invoice.total_amount|subtract:po.total_amount|floatformat:0|intcomma }}{% endif %}</span>
         </div>
     </div>
 </div>
@@ -842,7 +842,7 @@
                     <td class="amount-cell">KES {{ item.unit_price|floatformat:2|intcomma }}</td>
                     <td class="amount-cell {% if item.unit_price != item.po_item.unit_price %}" style="color: var(--danger-color);{% endif %}">
                         {% if item.unit_price != item.po_item.unit_price %}
-                        KES {{ item.unit_price|sub:item.po_item.unit_price|floatformat:2|intcomma }}
+                        KES {{ item.unit_price|subtract:item.po_item.unit_price|floatformat:2|intcomma }}
                         {% else %}-{% endif %}
                     </td>
                     <td>
@@ -856,10 +856,10 @@
                         </span>
                         <div class="matching-indicator mismatch" style="margin-top: 0.25rem;">
                             {% if item.quantity != item.po_item.quantity %}
-                            <span>Qty diff: {{ item.quantity|sub:item.po_item.quantity }}</span>
+                            <span>Qty diff: {{ item.quantity|subtract:item.po_item.quantity }}</span>
                             {% endif %}
                             {% if item.unit_price != item.po_item.unit_price %}
-                            <span>Price diff: {{ item.unit_price|sub:item.po_item.unit_price|floatformat:2 }}</span>
+                            <span>Price diff: {{ item.unit_price|subtract:item.po_item.unit_price|floatformat:2 }}</span>
                             {% endif %}
                         </div>
                         {% endif %}
@@ -894,11 +894,11 @@
         </div>
 
         <div class="form-actions">
-            <button type="submit" name="action" value="dispute" class="btn btn-warning">
+            <button type="subtractmit" name="action" value="dispute" class="btn btn-warning">
                 <i class="bi bi-exclamation-triangle"></i>
                 Mark as Disputed
             </button>
-            <button type="submit" name="action" value="approve" class="btn btn-primary">
+            <button type="subtractmit" name="action" value="approve" class="btn btn-primary">
                 <i class="bi bi-check-circle"></i>
                 Verify & Approve for Payment
             </button>
