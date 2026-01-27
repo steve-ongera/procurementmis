@@ -11670,6 +11670,17 @@ from datetime import timedelta
 import traceback
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
+from decimal import Decimal
+from datetime import timedelta
+import traceback
+
+
 @login_required
 def supplier_submit_invoice(request, po_id=None):
     """Submit a new invoice"""
@@ -11736,11 +11747,19 @@ def supplier_submit_invoice(request, po_id=None):
                 invoice.status = 'SUBMITTED'
                 invoice.submitted_by = request.user
                 
+                # CRITICAL FIX: Initialize money fields to avoid NULL constraint violation
+                invoice.subtotal = Decimal('0.00')
+                invoice.tax_amount = Decimal('0.00')
+                invoice.total_amount = Decimal('0.00')
+                
                 print(f"Invoice object created (not yet saved)")
                 print(f"  Supplier Invoice #: {invoice.supplier_invoice_number}")
                 print(f"  PO: {invoice.purchase_order.po_number if invoice.purchase_order else 'None'}")
                 print(f"  Invoice Date: {invoice.invoice_date}")
                 print(f"  Due Date: {invoice.due_date}")
+                print(f"  Initialized subtotal: {invoice.subtotal}")
+                print(f"  Initialized tax_amount: {invoice.tax_amount}")
+                print(f"  Initialized total_amount: {invoice.total_amount}")
                 
                 # Save invoice to get ID
                 invoice.save()
@@ -11750,17 +11769,32 @@ def supplier_submit_invoice(request, po_id=None):
                 # Save items and calculate totals
                 print("\n--- Saving Invoice Items ---")
                 items = item_formset.save(commit=False)
-                subtotal = Decimal('0')
-                tax_total = Decimal('0')
+                
+                if not items or len(items) == 0:
+                    print("✗ ERROR: No items to save!")
+                    messages.error(request, "Please add at least one invoice item.")
+                    invoice.delete()  # Clean up
+                    return redirect(request.path)
+                
+                subtotal = Decimal('0.00')
+                tax_total = Decimal('0.00')
                 
                 for idx, item in enumerate(items, 1):
                     item.invoice = invoice
+                    
+                    # Ensure item totals are calculated
+                    if not item.total_price or item.total_price == 0:
+                        item.total_price = item.quantity * item.unit_price
+                    if not item.tax_amount or item.tax_amount == 0:
+                        item.tax_amount = item.total_price * (item.tax_rate / Decimal('100.0'))
+                    
                     item.save()
                     
                     print(f"Item {idx}:")
                     print(f"  Description: {item.description[:50]}...")
                     print(f"  Quantity: {item.quantity}")
                     print(f"  Unit Price: {item.unit_price}")
+                    print(f"  Tax Rate: {item.tax_rate}%")
                     print(f"  Total Price: {item.total_price}")
                     print(f"  Tax Amount: {item.tax_amount}")
                     
@@ -11775,11 +11809,19 @@ def supplier_submit_invoice(request, po_id=None):
                 # Update invoice totals
                 invoice.subtotal = subtotal
                 invoice.tax_amount = tax_total
-                invoice.total_amount = subtotal + tax_total + invoice.other_charges
+                invoice.total_amount = subtotal + tax_total + (invoice.other_charges or Decimal('0.00'))
+                
+                # Also initialize balance fields
+                invoice.amount_paid = Decimal('0.00')
+                invoice.balance_due = invoice.total_amount
+                
                 invoice.save()
                 
                 print(f"✓ Invoice totals updated")
+                print(f"  Final Subtotal: {invoice.subtotal}")
+                print(f"  Final Tax Amount: {invoice.tax_amount}")
                 print(f"  Final Total Amount: {invoice.total_amount}")
+                print(f"  Balance Due: {invoice.balance_due}")
                 
                 # Handle document uploads
                 print("\n--- Processing Documents ---")
