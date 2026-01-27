@@ -5047,6 +5047,15 @@ def po_approve(request, po_id):
     
     return render(request, 'procurement/po_approve.html', {'po': po})
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
+from django.utils.html import strip_tags
+
 
 @login_required
 def po_send(request, po_id):
@@ -5059,17 +5068,100 @@ def po_send(request, po_id):
         return redirect('po_detail', po_id=po.id)
     
     if request.method == 'POST':
-        po.status = 'SENT'
-        po.sent_at = timezone.now()
-        po.save()
-        
-        # TODO: Send email to supplier
-        
-        messages.success(request, f'Purchase Order {po.po_number} sent to supplier')
-        return redirect('po_detail', po_id=po.id)
+        try:
+            # Update PO status
+            po.status = 'SENT'
+            po.sent_at = timezone.now()
+            po.save()
+            
+            # Send email to supplier
+            send_po_email(po)
+            
+            # Log the email
+            EmailLog.objects.create(
+                recipient=po.supplier.email,
+                subject=f'Purchase Order {po.po_number}',
+                body=f'Purchase Order {po.po_number} has been sent',
+                status='SENT',
+                sent_at=timezone.now()
+            )
+            
+            messages.success(request, f'Purchase Order {po.po_number} sent to supplier')
+            return redirect('po_detail', po_id=po.id)
+            
+        except Exception as e:
+            # Revert status if email fails
+            po.status = 'APPROVED'
+            po.sent_at = None
+            po.save()
+            
+            # Log the failed email
+            EmailLog.objects.create(
+                recipient=po.supplier.email,
+                subject=f'Purchase Order {po.po_number}',
+                body=f'Purchase Order {po.po_number} - Failed to send',
+                status='FAILED',
+                error_message=str(e)
+            )
+            
+            messages.error(request, f'Failed to send email to supplier: {str(e)}')
+            return redirect('po_detail', po_id=po.id)
     
     return render(request, 'procurement/po_send.html', {'po': po})
 
+
+def send_po_email(po):
+    """
+    Send purchase order email to supplier
+    
+    Args:
+        po: PurchaseOrder instance
+    """
+    
+    # Email context
+    context = {
+        'po': po,
+        'supplier': po.supplier,
+        'items': po.items.all(),
+        'company_name': getattr(settings, 'COMPANY_NAME', 'University'),
+        'company_email': getattr(settings, 'DEFAULT_FROM_EMAIL', 'procurement@university.edu'),
+    }
+    
+    # Render HTML email template
+    html_content = render_to_string('emails/purchase_order.html', context)
+    text_content = strip_tags(html_content)
+    
+    # Create email
+    subject = f'Purchase Order {po.po_number} - {po.requisition.title}'
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'procurement@university.edu')
+    to_email = po.supplier.email
+    
+    # Add CC if needed (procurement officer, department head, etc.)
+    cc_emails = []
+    if po.created_by and po.created_by.email:
+        cc_emails.append(po.created_by.email)
+    if po.requisition.department.hod and po.requisition.department.hod.email:
+        cc_emails.append(po.requisition.department.hod.email)
+    
+    # Create the email
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=from_email,
+        to=[to_email],
+        cc=cc_emails,
+        reply_to=[from_email]
+    )
+    
+    # Attach HTML version
+    email.attach_alternative(html_content, "text/html")
+    
+    # TODO: Optionally attach PO PDF
+    # po_pdf = generate_po_pdf(po)
+    # email.attach(f'PO_{po.po_number}.pdf', po_pdf, 'application/pdf')
+    
+    # Send the email
+    email.send(fail_silently=False)
 
 @login_required
 def po_cancel(request, po_id):
