@@ -694,15 +694,15 @@
                             <div class="dropdown-user-email">{{ user.email }}</div>
                         </div>
                         <div class="dropdown-menu">
-                            <a href="#" class="dropdown-item">
+                            <a href="{% url 'profile' %}" class="dropdown-item">
                                 <i class="fas fa-user"></i>
                                 <span>Profile</span>
                             </a>
-                            <a href="#" class="dropdown-item">
+                            <a href="{% url 'settings' %}" class="dropdown-item">
                                 <i class="fas fa-cog"></i>
                                 <span>Settings</span>
                             </a>
-                            <a href="#" class="dropdown-item">
+                            <a href="{% url 'help_center' %}" class="dropdown-item">
                                 <i class="fas fa-question-circle"></i>
                                 <span>Help & Support</span>
                             </a>
