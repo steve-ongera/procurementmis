@@ -8,31 +8,133 @@
 <style>
     :root {
         --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
         --border-color: #E2E8F0;
         --card-bg: #FFFFFF;
         --hover-bg: #F8FAFC;
         --table-header: #F1F5F9;
+     
     }
 
     .profile-container {
-        max-width: 1400px;
+        max-width: 1600px;
         margin: 0 auto;
-        padding: 2rem;
+        padding: 1.5rem;
     }
 
-    .profile-header {
-        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
-        border-radius: 1rem;
-        padding: 3rem;
-        color: white;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
     }
 
-    .profile-header-content {
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .breadcrumb {
         display: flex;
         align-items: center;
-        gap: 2rem;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #64748B;
+        margin: 0.5rem 0 0 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: #475569;
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-outline {
+        background: transparent;
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .btn-outline:hover {
+        background: var(--primary-light);
+    }
+
+    /* Main Content Grid - 4 x 8 layout */
+    .profile-grid {
+        display: grid;
+        grid-template-columns: 1fr 3fr; /* 4:8 ratio (33.33% : 66.67%) */
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+        .profile-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Sidebar (4-column section) */
+    .profile-sidebar {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+
+    .profile-sidebar-header {
+        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+        padding: 2rem;
+        text-align: center;
+        color: white;
     }
 
     .profile-avatar {
@@ -43,11 +145,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 3rem;
+        font-size: 2.5rem;
         font-weight: 700;
         color: var(--primary-color);
+        margin: 0 auto 1rem auto;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        flex-shrink: 0;
     }
 
     .profile-avatar img {
@@ -57,112 +159,117 @@
         object-fit: cover;
     }
 
-    .profile-info h1 {
+    .profile-sidebar-header h2 {
         margin: 0 0 0.5rem 0;
-        font-size: 2rem;
-        font-weight: 700;
+        font-size: 1.5rem;
+        font-weight: 600;
     }
 
     .profile-role {
         display: inline-block;
-        padding: 0.5rem 1rem;
+        padding: 0.375rem 0.75rem;
         background: rgba(255, 255, 255, 0.2);
         border-radius: 2rem;
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         font-weight: 600;
         margin-bottom: 1rem;
     }
 
-    .profile-meta {
-        display: flex;
-        gap: 2rem;
-        font-size: 0.875rem;
-        opacity: 0.9;
+    .sidebar-content {
+        padding: 1.5rem;
     }
 
-    .profile-meta-item {
+    .info-list {
         display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .profile-actions {
-        margin-left: auto;
-        display: flex;
+        flex-direction: column;
         gap: 1rem;
     }
 
-    .btn {
-        padding: 0.625rem 1.25rem;
-        border-radius: 0.375rem;
-        font-weight: 500;
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .info-value {
         font-size: 0.875rem;
-        border: none;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-        transition: all 0.2s;
+        color: #1E293B;
+        font-weight: 500;
     }
 
-    .btn-white {
-        background: white;
-        color: var(--primary-color);
+    .sidebar-actions {
+        margin-top: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
     }
 
-    .btn-white:hover {
-        background: #F8FAFC;
+    .sidebar-actions .btn {
+        width: 100%;
+        justify-content: center;
     }
 
-    .btn-outline-white {
-        background: transparent;
-        color: white;
-        border: 2px solid white;
+    /* Main Content (8-column section) */
+    .profile-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
     }
 
-    .btn-outline-white:hover {
-        background: rgba(255, 255, 255, 0.1);
-    }
-
+    /* Statistics Grid */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
     }
 
     .stat-card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
-        padding: 1.5rem;
-        transition: transform 0.2s, box-shadow 0.2s;
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
     }
 
     .stat-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .stat-icon {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border-radius: 0.5rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
+        font-size: 1.25rem;
+        margin-bottom: 0.75rem;
     }
 
     .stat-icon.blue { background: #DBEAFE; color: #2563EB; }
-    .stat-icon.green { background: #D1FAE5; color: #10B981; }
     .stat-icon.orange { background: #FED7AA; color: #F59E0B; }
-    .stat-icon.red { background: #FEE2E2; color: #EF4444; }
+    .stat-icon.green { background: #D1FAE5; color: #10B981; }
+    .stat-icon.purple { background: #E9D5FF; color: #7C3AED; }
 
     .stat-value {
-        font-size: 2rem;
+        font-size: 1.5rem;
         font-weight: 700;
         color: #1E293B;
         margin-bottom: 0.25rem;
@@ -174,24 +281,12 @@
         font-weight: 500;
     }
 
-    .content-grid {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 1.5rem;
-    }
-
-    @media (max-width: 1024px) {
-        .content-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
+    /* Content Cards */
     .card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
         border-radius: 0.75rem;
         overflow: hidden;
-        margin-bottom: 1.5rem;
     }
 
     .card-header {
@@ -217,37 +312,7 @@
         padding: 1.5rem;
     }
 
-    .info-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .info-item {
-        display: grid;
-        grid-template-columns: 140px 1fr;
-        gap: 1rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .info-item:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
-    }
-
-    .info-label {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #64748B;
-    }
-
-    .info-value {
-        font-size: 0.875rem;
-        color: #1E293B;
-        font-weight: 500;
-    }
-
+    /* Requisition Items */
     .requisition-item {
         padding: 1rem;
         border: 1px solid var(--border-color);
@@ -272,31 +337,37 @@
         font-weight: 600;
         color: var(--primary-color);
         text-decoration: none;
+        font-size: 0.875rem;
     }
 
     .req-number:hover {
         text-decoration: underline;
     }
 
-    .status-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
+    /* Status Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
         border-radius: 1rem;
         font-size: 0.75rem;
         font-weight: 600;
         text-transform: uppercase;
+        letter-spacing: 0.025em;
     }
 
-    .status-draft { background: #F1F5F9; color: #475569; }
-    .status-submitted { background: #DBEAFE; color: #1E40AF; }
-    .status-approved { background: #D1FAE5; color: #065F46; }
-    .status-rejected { background: #FEE2E2; color: #991B1B; }
+    .badge-draft { background: #F1F5F9; color: #64748B; }
+    .badge-submitted { background: #DBEAFE; color: #1E40AF; }
+    .badge-approved { background: #D1FAE5; color: #047857; }
+    .badge-rejected { background: #FEE2E2; color: #B91C1C; }
 
     .req-details {
         font-size: 0.875rem;
         color: #64748B;
     }
 
+    /* Activity Items */
     .activity-item {
         display: flex;
         gap: 1rem;
@@ -335,6 +406,7 @@
         margin-top: 0.25rem;
     }
 
+    /* Empty State */
     .empty-state {
         text-align: center;
         padding: 3rem 1rem;
@@ -346,95 +418,170 @@
         margin-bottom: 1rem;
         opacity: 0.5;
     }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .profile-grid {
+            gap: 1rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .header-actions {
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            flex: 1;
+            min-width: 140px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="profile-container">
-    <!-- Profile Header -->
-    <div class="profile-header">
-        <div class="profile-header-content">
-            <div class="profile-avatar">
-                {% if user.profile_picture %}
-                    <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
-                {% else %}
-                    {{ user.first_name.0|upper }}{{ user.last_name.0|upper }}
-                {% endif %}
-            </div>
-            <div class="profile-info" style="flex: 1;">
-                <h1>{{ user.get_full_name }}</h1>
-                <div class="profile-role">
-                    <i class="bi bi-briefcase"></i> {{ user.get_role_display }}
-                </div>
-                <div class="profile-meta">
-                    <div class="profile-meta-item">
-                        <i class="bi bi-envelope"></i>
-                        <span>{{ user.email }}</span>
-                    </div>
-                    {% if user.phone_number %}
-                    <div class="profile-meta-item">
-                        <i class="bi bi-telephone"></i>
-                        <span>{{ user.phone_number }}</span>
-                    </div>
-                    {% endif %}
-                    {% if user.department %}
-                    <div class="profile-meta-item">
-                        <i class="bi bi-building"></i>
-                        <span>{{ user.department.name }}</span>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="profile-actions">
-                <a href="{% url 'profile_update' %}" class="btn btn-white">
-                    <i class="bi bi-pencil"></i> Edit Profile
-                </a>
-                <a href="{% url 'settings' %}" class="btn btn-outline-white">
-                    <i class="bi bi-gear"></i> Settings
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Statistics -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon blue">
-                <i class="bi bi-file-text"></i>
-            </div>
-            <div class="stat-value">{{ total_requisitions|intcomma }}</div>
-            <div class="stat-label">Total Requisitions</div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon orange">
-                <i class="bi bi-clock-history"></i>
-            </div>
-            <div class="stat-value">{{ pending_requisitions|intcomma }}</div>
-            <div class="stat-label">Pending Requisitions</div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon green">
-                <i class="bi bi-check-circle"></i>
-            </div>
-            <div class="stat-value">{{ approved_requisitions|intcomma }}</div>
-            <div class="stat-label">Approved Requisitions</div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon blue">
-                <i class="bi bi-cash-stack"></i>
-            </div>
-            <div class="stat-value">KES {{ total_value|floatformat:0|intcomma }}</div>
-            <div class="stat-label">Total Value</div>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="content-grid">
-        <!-- Left Column -->
+    <!-- Page Header -->
+    <div class="page-header">
         <div>
+            <h1 class="page-title">My Profile</h1>
+            <div class="breadcrumb">
+                <a href="{% url 'dashboard' %}">
+                    <i class="bi bi-house"></i>
+                    Home
+                </a>
+                <i class="bi bi-chevron-right"></i>
+                <span>My Profile</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'profile_update' %}" class="btn btn-primary">
+                <i class="bi bi-pencil"></i>
+                Edit Profile
+            </a>
+            <a href="{% url 'settings' %}" class="btn btn-outline">
+                <i class="bi bi-gear"></i>
+                Settings
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content Grid (4 x 8 layout) -->
+    <div class="profile-grid">
+        <!-- Sidebar (4-column) -->
+        <div class="profile-sidebar">
+            <div class="profile-sidebar-header">
+                <div class="profile-avatar">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                    {% else %}
+                        {{ user.first_name.0|upper }}{{ user.last_name.0|upper }}
+                    {% endif %}
+                </div>
+                <h2>{{ user.get_full_name }}</h2>
+                <div class="profile-role">
+                    <i class="bi bi-briefcase"></i>
+                    {{ user.get_role_display }}
+                </div>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="info-list">
+                    <div class="info-item">
+                        <div class="info-label">Employee ID</div>
+                        <div class="info-value">{{ user.employee_id|default:"-" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ user.email }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Phone</div>
+                        <div class="info-value">{{ user.phone_number|default:"-" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Department</div>
+                        <div class="info-value">{{ user.department.name|default:"-" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Member Since</div>
+                        <div class="info-value">{{ user.date_joined|date:"F d, Y" }}</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-actions">
+                    <a href="{% url 'staff_requisitions_list' %}" class="btn">
+                        <i class="bi bi-file-text"></i>
+                        My Requisitions
+                    </a>
+                    <a href="#" class="btn">
+                        <i class="bi bi-shield-lock"></i>
+                        Change Password
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content (8-column) -->
+        <div class="profile-content">
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="bi bi-file-text"></i>
+                    </div>
+                    <div class="stat-value">{{ total_requisitions|intcomma }}</div>
+                    <div class="stat-label">Total Requisitions</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div class="stat-value">{{ pending_requisitions|intcomma }}</div>
+                    <div class="stat-label">Pending Requisitions</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div class="stat-value">{{ approved_requisitions|intcomma }}</div>
+                    <div class="stat-label">Approved Requisitions</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div class="stat-value">KES {{ total_value|floatformat:0|intcomma }}</div>
+                    <div class="stat-label">Total Value</div>
+                </div>
+            </div>
+
             <!-- Recent Requisitions -->
             <div class="card">
                 <div class="card-header">
@@ -442,7 +589,7 @@
                         <i class="bi bi-file-text"></i>
                         Recent Requisitions
                     </h2>
-                    <a href="{% url 'staff_requisitions_list' %}" class="btn btn-white" style="padding: 0.5rem 1rem; font-size: 0.813rem;">
+                    <a href="{% url 'staff_requisitions_list' %}" class="btn" style="padding: 0.5rem 0.75rem; font-size: 0.813rem;">
                         View All
                     </a>
                 </div>
@@ -454,9 +601,15 @@
                                 <a href="{% url 'staff_requisition_detail' req.id %}" class="req-number">
                                     {{ req.requisition_number }}
                                 </a>
-                                <span class="status-badge status-{{ req.status|lower }}">
-                                    {{ req.get_status_display }}
-                                </span>
+                                {% if req.status == 'DRAFT' %}
+                                <span class="badge badge-draft">Draft</span>
+                                {% elif req.status == 'SUBMITTED' %}
+                                <span class="badge badge-submitted">Submitted</span>
+                                {% elif req.status == 'APPROVED' %}
+                                <span class="badge badge-approved">Approved</span>
+                                {% elif req.status == 'REJECTED' %}
+                                <span class="badge badge-rejected">Rejected</span>
+                                {% endif %}
                             </div>
                             <div class="req-details">
                                 <strong>{{ req.title }}</strong><br>
@@ -473,43 +626,6 @@
                             <p>No requisitions yet</p>
                         </div>
                     {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Column -->
-        <div>
-            <!-- Personal Information -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <i class="bi bi-person"></i>
-                        Personal Information
-                    </h2>
-                </div>
-                <div class="card-body">
-                    <div class="info-list">
-                        <div class="info-item">
-                            <div class="info-label">Employee ID</div>
-                            <div class="info-value">{{ user.employee_id|default:"-" }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Email</div>
-                            <div class="info-value">{{ user.email }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Phone</div>
-                            <div class="info-value">{{ user.phone_number|default:"-" }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Department</div>
-                            <div class="info-value">{{ user.department.name|default:"-" }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Member Since</div>
-                            <div class="info-value">{{ user.date_joined|date:"F d, Y" }}</div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
