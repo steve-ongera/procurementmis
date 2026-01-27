@@ -1,0 +1,68 @@
+{{ company_name }}
+PURCHASE ORDER
+================================================================================
+
+Dear {{ supplier.contact_person }},
+
+We are pleased to issue the following Purchase Order for your review and acknowledgment:
+
+PURCHASE ORDER DETAILS
+--------------------------------------------------------------------------------
+PO Number:              {{ po.po_number }}
+PO Date:                {{ po.po_date|date:"F d, Y" }}
+Requisition:            {{ po.requisition.requisition_number }} - {{ po.requisition.title }}
+Department:             {{ po.requisition.department.name }}
+Required Delivery Date: {{ po.delivery_date|date:"F d, Y" }}
+
+Delivery Address:
+{{ po.delivery_address }}
+
+ITEMS ORDERED
+--------------------------------------------------------------------------------
+{% for item in items %}
+{{ forloop.counter }}. {{ item.item_description }}
+   {% if item.specifications %}Specifications: {{ item.specifications|truncatewords:20 }}{% endif %}
+   Quantity: {{ item.quantity }} {{ item.unit_of_measure }}
+   Unit Price: {{ item.unit_price|floatformat:2 }}
+   Total: {{ item.total_price|floatformat:2 }}
+
+{% endfor %}
+
+PAYMENT SUMMARY
+--------------------------------------------------------------------------------
+Subtotal:       {{ po.subtotal|floatformat:2 }}
+{% if po.tax_amount > 0 %}Tax:            {{ po.tax_amount|floatformat:2 }}{% endif %}
+GRAND TOTAL:    {{ po.total_amount|floatformat:2 }}
+
+TERMS AND CONDITIONS
+--------------------------------------------------------------------------------
+Payment Terms:
+{{ po.payment_terms }}
+
+{% if po.warranty_terms %}Warranty Terms:
+{{ po.warranty_terms }}
+{% endif %}
+{% if po.special_instructions %}Special Instructions:
+{{ po.special_instructions }}
+{% endif %}
+
+IMPORTANT: Please acknowledge receipt of this Purchase Order within 48 hours.
+If you have any questions or concerns, please contact us immediately.
+
+To acknowledge this Purchase Order, please reply to this email with your 
+confirmation and estimated delivery timeline.
+
+Contact Information:
+Email: {{ company_email }}
+Department: {{ po.requisition.department.name }}
+
+Thank you for your continued partnership.
+
+Regards,
+{{ company_name }}
+Procurement Department
+
+================================================================================
+This is an automated email. Please do not reply directly to this message.
+(c) {% now "Y" %} {{ company_name }}. All rights reserved.
+This Purchase Order is subject to our standard terms and conditions.

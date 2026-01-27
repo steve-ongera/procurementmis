@@ -11659,72 +11659,203 @@ def supplier_invoice_detail(request, invoice_id):
     return render(request, 'supplier/invoice_detail.html', context)
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
+from decimal import Decimal
+from datetime import timedelta
+import traceback
+
+
 @login_required
 def supplier_submit_invoice(request, po_id=None):
     """Submit a new invoice"""
     
-    supplier = request.user.supplier_profile
+    print("=" * 80)
+    print("STARTING INVOICE SUBMISSION")
+    print("=" * 80)
+    
+    # Get supplier profile
+    try:
+        supplier = request.user.supplier_profile
+        print(f"✓ Supplier: {supplier.name} (ID: {supplier.id})")
+    except Exception as e:
+        print(f"✗ ERROR: Could not get supplier profile: {e}")
+        messages.error(request, "Supplier profile not found. Please contact administrator.")
+        return redirect('supplier_dashboard')
     
     # If PO specified, get it
     po = None
     if po_id:
-        po = get_object_or_404(PurchaseOrder, id=po_id, supplier=supplier)
+        try:
+            po = get_object_or_404(PurchaseOrder, id=po_id, supplier=supplier)
+            print(f"✓ Purchase Order: {po.po_number} (ID: {po.id})")
+            print(f"  Status: {po.status}")
+            print(f"  Total Amount: {po.total_amount}")
+        except Exception as e:
+            print(f"✗ ERROR: Could not get purchase order: {e}")
+            messages.error(request, "Purchase order not found.")
+            return redirect('supplier_invoices_list')
     
     if request.method == 'POST':
+        print("\n" + "=" * 80)
+        print("PROCESSING POST REQUEST")
+        print("=" * 80)
+        
+        # Debug: Print POST data
+        print("\nPOST Data:")
+        for key, value in request.POST.items():
+            if not key.startswith('items-'):  # Don't print all formset items
+                print(f"  {key}: {value}")
+        
         invoice_form = InvoiceForm(request.POST, supplier=supplier)
         item_formset = InvoiceItemFormSet(request.POST, prefix='items')
         
+        print("\n--- Form Validation ---")
+        print(f"Invoice Form Valid: {invoice_form.is_valid()}")
+        if not invoice_form.is_valid():
+            print(f"Invoice Form Errors: {invoice_form.errors}")
+        
+        print(f"Item Formset Valid: {item_formset.is_valid()}")
+        if not item_formset.is_valid():
+            print(f"Item Formset Errors: {item_formset.errors}")
+            for i, form in enumerate(item_formset):
+                if form.errors:
+                    print(f"  Item {i} errors: {form.errors}")
+        
         if invoice_form.is_valid() and item_formset.is_valid():
-            # Create invoice
-            invoice = invoice_form.save(commit=False)
-            invoice.supplier = supplier
-            invoice.status = 'SUBMITTED'
-            invoice.submitted_by = request.user
-            invoice.save()
-            
-            # Save items
-            items = item_formset.save(commit=False)
-            total = Decimal('0')
-            tax_total = Decimal('0')
-            
-            for item in items:
-                item.invoice = invoice
-                item.save()
-                total += item.total_price
-                tax_total += item.tax_amount
-            
-            # Update invoice totals
-            invoice.subtotal = total
-            invoice.tax_amount = tax_total
-            invoice.total_amount = total + tax_total + invoice.other_charges
-            invoice.save()
-            
-            # Handle document uploads
-            documents = request.FILES.getlist('documents')
-            doc_names = request.POST.getlist('doc_names')
-            
-            for i, doc_file in enumerate(documents):
-                InvoiceDocument.objects.create(
-                    invoice=invoice,
-                    document_name=doc_names[i] if i < len(doc_names) else doc_file.name,
-                    file=doc_file
+            try:
+                print("\n--- Creating Invoice ---")
+                
+                # Create invoice
+                invoice = invoice_form.save(commit=False)
+                invoice.supplier = supplier
+                invoice.status = 'SUBMITTED'
+                invoice.submitted_by = request.user
+                
+                print(f"Invoice object created (not yet saved)")
+                print(f"  Supplier Invoice #: {invoice.supplier_invoice_number}")
+                print(f"  PO: {invoice.purchase_order.po_number if invoice.purchase_order else 'None'}")
+                print(f"  Invoice Date: {invoice.invoice_date}")
+                print(f"  Due Date: {invoice.due_date}")
+                
+                # Save invoice to get ID
+                invoice.save()
+                print(f"✓ Invoice saved with ID: {invoice.id}")
+                print(f"✓ System Invoice Number: {invoice.invoice_number}")
+                
+                # Save items and calculate totals
+                print("\n--- Saving Invoice Items ---")
+                items = item_formset.save(commit=False)
+                subtotal = Decimal('0')
+                tax_total = Decimal('0')
+                
+                for idx, item in enumerate(items, 1):
+                    item.invoice = invoice
+                    item.save()
+                    
+                    print(f"Item {idx}:")
+                    print(f"  Description: {item.description[:50]}...")
+                    print(f"  Quantity: {item.quantity}")
+                    print(f"  Unit Price: {item.unit_price}")
+                    print(f"  Total Price: {item.total_price}")
+                    print(f"  Tax Amount: {item.tax_amount}")
+                    
+                    subtotal += item.total_price
+                    tax_total += item.tax_amount
+                
+                print(f"\n--- Calculating Totals ---")
+                print(f"Subtotal: {subtotal}")
+                print(f"Tax Total: {tax_total}")
+                print(f"Other Charges: {invoice.other_charges}")
+                
+                # Update invoice totals
+                invoice.subtotal = subtotal
+                invoice.tax_amount = tax_total
+                invoice.total_amount = subtotal + tax_total + invoice.other_charges
+                invoice.save()
+                
+                print(f"✓ Invoice totals updated")
+                print(f"  Final Total Amount: {invoice.total_amount}")
+                
+                # Handle document uploads
+                print("\n--- Processing Documents ---")
+                documents = request.FILES.getlist('documents')
+                doc_names = request.POST.getlist('doc_names')
+                
+                print(f"Number of documents: {len(documents)}")
+                
+                for i, doc_file in enumerate(documents):
+                    doc_name = doc_names[i] if i < len(doc_names) and doc_names[i] else doc_file.name
+                    
+                    InvoiceDocument.objects.create(
+                        invoice=invoice,
+                        document_name=doc_name,
+                        file=doc_file
+                    )
+                    print(f"✓ Document {i+1} saved: {doc_name}")
+                
+                # Send email notification
+                print("\n--- Sending Email Notification ---")
+                try:
+                    send_invoice_notification_email(invoice)
+                    print("✓ Email sent successfully")
+                except Exception as email_error:
+                    print(f"✗ Email Error: {email_error}")
+                    print(traceback.format_exc())
+                    # Don't fail the entire process if email fails
+                    messages.warning(
+                        request, 
+                        f"Invoice submitted successfully but email notification failed. "
+                        f"Please contact procurement office directly."
+                    )
+                
+                print("\n" + "=" * 80)
+                print("✓ INVOICE SUBMISSION COMPLETED SUCCESSFULLY")
+                print("=" * 80)
+                
+                messages.success(
+                    request, 
+                    f"Invoice {invoice.invoice_number} submitted successfully!"
                 )
-            
-            messages.success(request, f"Invoice {invoice.invoice_number} submitted successfully!")
-            return redirect('supplier_invoice_detail', invoice_id=invoice.id)
+                return redirect('supplier_invoice_detail', invoice_id=invoice.id)
+                
+            except Exception as e:
+                print("\n" + "=" * 80)
+                print("✗ ERROR DURING INVOICE CREATION")
+                print("=" * 80)
+                print(f"Error: {e}")
+                print(traceback.format_exc())
+                messages.error(
+                    request, 
+                    f"An error occurred while submitting the invoice: {str(e)}"
+                )
+        else:
+            print("\n✗ Form validation failed")
+            messages.error(request, "Please correct the errors below.")
+    
     else:
+        print("\n--- GET Request - Initializing Forms ---")
+        
         initial = {}
         if po:
             initial = {
                 'purchase_order': po,
+                'invoice_date': timezone.now().date(),
                 'due_date': timezone.now().date() + timedelta(days=30)
             }
+            print(f"Initial data set for PO: {po.po_number}")
         
         invoice_form = InvoiceForm(initial=initial, supplier=supplier)
         
         # If PO specified, pre-fill items
         if po:
             po_items = PurchaseOrderItem.objects.filter(purchase_order=po)
+            print(f"Found {po_items.count()} PO items to pre-fill")
+            
             item_formset = InvoiceItemFormSet(
                 prefix='items',
                 queryset=InvoiceItem.objects.none(),
@@ -11733,10 +11864,14 @@ def supplier_submit_invoice(request, po_id=None):
                     'description': item.item_description,
                     'quantity': item.quantity,
                     'unit_price': item.unit_price,
+                    'tax_rate': 16,  # Default tax rate
                 } for item in po_items]
             )
         else:
-            item_formset = InvoiceItemFormSet(prefix='items', queryset=InvoiceItem.objects.none())
+            item_formset = InvoiceItemFormSet(
+                prefix='items', 
+                queryset=InvoiceItem.objects.none()
+            )
     
     context = {
         'invoice_form': invoice_form,
@@ -11745,6 +11880,168 @@ def supplier_submit_invoice(request, po_id=None):
     }
     
     return render(request, 'supplier/submit_invoice.html', context)
+
+
+def send_invoice_notification_email(invoice):
+    """
+    Send email notification to procurement officer about new invoice submission
+    
+    Args:
+        invoice: Invoice instance
+    """
+    print(f"\n--- Email Details ---")
+    print(f"Invoice: {invoice.invoice_number}")
+    print(f"Supplier: {invoice.supplier.name}")
+    print(f"Amount: {invoice.total_amount}")
+    
+    # Get procurement officer email
+    # Try to get from PO creator, then requisition department HOD, then procurement manager
+    recipient_email = None
+    recipient_name = "Procurement Officer"
+    
+    try:
+        if invoice.purchase_order:
+            po = invoice.purchase_order
+            
+            # Try PO creator
+            if po.created_by and po.created_by.email:
+                recipient_email = po.created_by.email
+                recipient_name = po.created_by.get_full_name()
+                print(f"Recipient: {recipient_name} (PO Creator)")
+            
+            # Try Department HOD
+            elif po.requisition.department.hod and po.requisition.department.hod.email:
+                recipient_email = po.requisition.department.hod.email
+                recipient_name = po.requisition.department.hod.get_full_name()
+                print(f"Recipient: {recipient_name} (Department HOD)")
+            
+            # Try to find any procurement officer
+            else:
+                from .models import User
+                procurement_officer = User.objects.filter(
+                    role='PROCUREMENT',
+                    is_active_user=True,
+                    email__isnull=False
+                ).exclude(email='').first()
+                
+                if procurement_officer:
+                    recipient_email = procurement_officer.email
+                    recipient_name = procurement_officer.get_full_name()
+                    print(f"Recipient: {recipient_name} (Procurement Officer)")
+    except Exception as e:
+        print(f"Error finding recipient: {e}")
+    
+    # Fallback to settings
+    if not recipient_email:
+        recipient_email = getattr(settings, 'PROCUREMENT_EMAIL', None)
+        if not recipient_email:
+            recipient_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'procurement@university.edu')
+        print(f"Using fallback email: {recipient_email}")
+    
+    # Email content
+    subject = f"New Invoice Submitted - {invoice.invoice_number}"
+    
+    message = f"""
+INVOICE SUBMISSION NOTIFICATION
+================================
+
+A new invoice has been submitted by {invoice.supplier.name}.
+
+INVOICE DETAILS:
+-----------------
+Invoice Number:     {invoice.invoice_number}
+Supplier Invoice #: {invoice.supplier_invoice_number}
+Supplier:           {invoice.supplier.name}
+Purchase Order:     {invoice.purchase_order.po_number if invoice.purchase_order else 'N/A'}
+Invoice Date:       {invoice.invoice_date.strftime('%B %d, %Y')}
+Due Date:           {invoice.due_date.strftime('%B %d, %Y')}
+
+AMOUNT:
+-------
+Subtotal:           KES {invoice.subtotal:,.2f}
+Tax:                KES {invoice.tax_amount:,.2f}
+Other Charges:      KES {invoice.other_charges:,.2f}
+TOTAL AMOUNT:       KES {invoice.total_amount:,.2f}
+
+ITEMS:
+------
+"""
+    
+    # Add items
+    for idx, item in enumerate(invoice.items.all(), 1):
+        message += f"""
+{idx}. {item.description[:80]}
+   Quantity: {item.quantity} x {item.unit_price} = {item.total_price:,.2f}
+"""
+    
+    message += f"""
+
+NOTES:
+------
+{invoice.notes if invoice.notes else 'No additional notes'}
+
+ACTION REQUIRED:
+----------------
+Please review and verify this invoice in the procurement system.
+
+Login to the system to view full details and take appropriate action.
+
+---
+This is an automated notification from the University Procurement System.
+Submitted by: {invoice.submitted_by.get_full_name() if invoice.submitted_by else invoice.supplier.name}
+Submission Date: {timezone.now().strftime('%B %d, %Y at %I:%M %p')}
+"""
+    
+    print(f"\nEmail Subject: {subject}")
+    print(f"Email To: {recipient_email}")
+    print(f"Email Length: {len(message)} characters")
+    
+    # Send email
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@university.edu')
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=from_email,
+            recipient_list=[recipient_email],
+            fail_silently=False,
+        )
+        print("✓ Email sent via send_mail()")
+        
+        # Log the email
+        try:
+            from .models import EmailLog
+            EmailLog.objects.create(
+                recipient=recipient_email,
+                subject=subject,
+                body=message,
+                status='SENT',
+                sent_at=timezone.now()
+            )
+            print("✓ Email logged to database")
+        except Exception as log_error:
+            print(f"Warning: Could not log email: {log_error}")
+            
+    except Exception as e:
+        print(f"✗ Failed to send email: {e}")
+        print(traceback.format_exc())
+        
+        # Log the failed email
+        try:
+            from .models import EmailLog
+            EmailLog.objects.create(
+                recipient=recipient_email,
+                subject=subject,
+                body=message,
+                status='FAILED',
+                error_message=str(e)
+            )
+            print("✓ Failed email logged to database")
+        except Exception as log_error:
+            print(f"Warning: Could not log failed email: {log_error}")
+        
+        raise  # Re-raise to be caught by the calling function
 
 
 @login_required

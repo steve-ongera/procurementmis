@@ -6,6 +6,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 <style>
+    /* ... Keep all your existing CSS ... */
     :root {
         --primary-color: #2563EB;
         --primary-light: #EFF6FF;
@@ -41,7 +42,6 @@
         margin: 0;
     }
 
-    /* Info Card */
     .info-card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
@@ -85,7 +85,6 @@
         font-weight: 500;
     }
 
-    /* Form Card */
     .form-card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
@@ -176,7 +175,6 @@
         margin: 0.5rem 0 0 0;
     }
 
-    /* Items Table */
     .table-responsive {
         overflow-x: auto;
         margin-bottom: 1.5rem;
@@ -230,7 +228,6 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
-    /* Buttons */
     .btn {
         display: inline-flex;
         align-items: center;
@@ -296,7 +293,6 @@
         background: #FECACA;
     }
 
-    /* Totals Summary */
     .totals-summary {
         background: #F1F5F9;
         border: 1px solid var(--border-color);
@@ -342,7 +338,6 @@
         color: var(--primary-color);
     }
 
-    /* Documents Upload */
     .document-upload-row {
         display: grid;
         grid-template-columns: 1fr 1fr auto;
@@ -363,7 +358,6 @@
         padding: 0.5rem;
     }
 
-    /* Form Actions */
     .form-actions {
         display: flex;
         justify-content: flex-end;
@@ -372,7 +366,6 @@
         border-top: 1px solid var(--border-color);
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
         .page-header {
             flex-direction: column;
@@ -547,7 +540,7 @@
     <!-- Invoice Items -->
     <div class="form-card">
         <div class="card-header-with-action">
-            <h3 class="card-title">Invoice Items</h3>
+            <h3 class="card-title" style="margin: 0;">Invoice Items</h3>
             <button type="button" class="btn btn-primary" onclick="addItem()">
                 <i class="bi bi-plus-circle"></i> Add Item
             </button>
@@ -560,18 +553,18 @@
                 <table class="items-table">
                     <thead>
                         <tr>
-                            <th>PO Item</th>
-                            <th>Description</th>
-                            <th>Quantity</th>
-                            <th>Unit Price</th>
-                            <th>Tax Rate (%)</th>
-                            <th>Total</th>
-                            <th>Actions</th>
+                            <th style="width: 20%;">PO Item</th>
+                            <th style="width: 25%;">Description</th>
+                            <th style="width: 10%;">Quantity</th>
+                            <th style="width: 12%;">Unit Price</th>
+                            <th style="width: 10%;">Tax Rate (%)</th>
+                            <th style="width: 13%;">Total</th>
+                            <th style="width: 10%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="items-tbody">
                         {% for form in item_formset %}
-                        <tr class="item-row">
+                        <tr class="item-row" data-form-index="{{ forloop.counter0 }}">
                             <td>
                                 {{ form.po_item }}
                                 {{ form.id }}
@@ -631,11 +624,11 @@
         
         <div id="documents-container">
             <div class="document-upload-row">
-                <div class="form-group">
+                <div class="form-group" style="margin: 0;">
                     <label class="form-label">Document Name</label>
                     <input type="text" name="doc_names" class="form-control" placeholder="e.g., Delivery Note">
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="margin: 0;">
                     <label class="form-label">Choose File</label>
                     <input type="file" name="documents" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
                 </div>
@@ -645,7 +638,7 @@
             </div>
         </div>
         
-        <button type="button" class="btn btn-secondary" onclick="addDocument()">
+        <button type="button" class="btn btn-secondary" onclick="addDocument()" style="margin-top: 1rem;">
             <i class="bi bi-plus-circle"></i> Add Another Document
         </button>
     </div>
@@ -662,8 +655,11 @@
 </form>
 
 <script>
-// Item counter for dynamic forms
-let itemCounter = {{ item_formset.total_form_count }};
+console.log('=== Invoice Form JavaScript Loaded ===');
+
+// Get total form count from Django
+let totalForms = parseInt(document.querySelector('[name$="TOTAL_FORMS"]').value);
+console.log('Initial total forms:', totalForms);
 
 // Calculate item totals
 function calculateItemTotal(row) {
@@ -676,6 +672,8 @@ function calculateItemTotal(row) {
     const total = subtotal + tax;
     
     row.querySelector('.item-total').textContent = total.toFixed(2);
+    
+    console.log('Item calculated:', {quantity, unitPrice, taxRate, subtotal, tax, total});
     
     calculateGrandTotal();
 }
@@ -704,72 +702,166 @@ function calculateGrandTotal() {
     document.getElementById('tax-total').textContent = 'KES ' + taxTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     document.getElementById('other-charges').textContent = 'KES ' + otherCharges.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     document.getElementById('grand-total').textContent = 'KES ' + grandTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    
+    console.log('Grand totals:', {subtotal, taxTotal, otherCharges, grandTotal});
 }
 
 // Add item row
 function addItem() {
-    const tbody = document.getElementById('items-tbody');
-    const newRow = tbody.querySelector('.item-row').cloneNode(true);
+    console.log('=== Adding New Item ===');
+    console.log('Current totalForms:', totalForms);
     
-    // Clear values
-    newRow.querySelectorAll('input, select').forEach(input => {
-        if (input.name.includes('__prefix__')) {
-            input.name = input.name.replace('__prefix__', itemCounter);
-        }
-        if (input.type !== 'hidden') {
-            input.value = '';
+    const tbody = document.getElementById('items-tbody');
+    const firstRow = tbody.querySelector('.item-row');
+    
+    if (!firstRow) {
+        console.error('No template row found!');
+        return;
+    }
+    
+    // Clone the first row
+    const newRow = firstRow.cloneNode(true);
+    newRow.setAttribute('data-form-index', totalForms);
+    
+    // Update all form fields with new index
+    newRow.querySelectorAll('input, select, textarea').forEach(input => {
+        const name = input.getAttribute('name');
+        if (name) {
+            // Replace the index in the name
+            const newName = name.replace(/items-\d+-/, `items-${totalForms}-`);
+            input.setAttribute('name', newName);
+            input.setAttribute('id', 'id_' + newName);
+            
+            // Clear value for visible inputs
+            if (input.type !== 'hidden') {
+                input.value = '';
+            }
+            
+            console.log('Updated field:', name, '->', newName);
         }
     });
     
-    // Update ID for new row
+    // Clear the total display
     newRow.querySelector('.item-total').textContent = '0.00';
+    
+    // Add event listeners to new row
+    newRow.querySelectorAll('input[type="number"], select').forEach(input => {
+        input.addEventListener('input', () => calculateItemTotal(newRow));
+        input.addEventListener('change', () => calculateItemTotal(newRow));
+    });
+    
+    // Append new row
     tbody.appendChild(newRow);
     
-    // Add event listeners
-    newRow.querySelectorAll('input[type="number"]').forEach(input => {
-        input.addEventListener('input', () => calculateItemTotal(newRow));
-    });
+    // Increment counter
+    totalForms++;
+    document.querySelector('[name$="TOTAL_FORMS"]').value = totalForms;
     
-    itemCounter++;
-    document.querySelector('[name$="TOTAL_FORMS"]').value = itemCounter;
+    console.log('New row added. New totalForms:', totalForms);
+    
+    calculateGrandTotal();
 }
 
 // Remove item row
 function removeItem(button) {
-    if (document.querySelectorAll('.item-row').length > 1) {
-        button.closest('.item-row').remove();
-        calculateGrandTotal();
-    } else {
+    const rows = document.querySelectorAll('.item-row');
+    
+    if (rows.length <= 1) {
         alert('You must have at least one item in the invoice.');
+        return;
     }
+    
+    console.log('=== Removing Item ===');
+    console.log('Current rows:', rows.length);
+    
+    button.closest('.item-row').remove();
+    
+    // Decrement total forms count
+    totalForms--;
+    document.querySelector('[name$="TOTAL_FORMS"]').value = totalForms;
+    
+    console.log('Row removed. New totalForms:', totalForms);
+    
+    calculateGrandTotal();
 }
 
 // Add document upload row
 function addDocument() {
+    console.log('Adding document upload row');
     const container = document.getElementById('documents-container');
-    const newRow = container.querySelector('.document-upload-row').cloneNode(true);
+    const firstRow = container.querySelector('.document-upload-row');
+    const newRow = firstRow.cloneNode(true);
     newRow.querySelectorAll('input').forEach(input => input.value = '');
     container.appendChild(newRow);
 }
 
 // Remove document upload row
 function removeDocument(button) {
-    if (document.querySelectorAll('.document-upload-row').length > 1) {
+    const rows = document.querySelectorAll('.document-upload-row');
+    if (rows.length > 1) {
         button.closest('.document-upload-row').remove();
+    } else {
+        alert('You must have at least one document upload row.');
     }
 }
 
-// Initialize event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.item-row').forEach(row => {
-        row.querySelectorAll('input[type="number"]').forEach(input => {
-            input.addEventListener('input', () => calculateItemTotal(row));
-        });
+// Form submission validation
+document.getElementById('invoiceForm').addEventListener('submit', function(e) {
+    console.log('=== Form Submission ===');
+    
+    // Check if at least one item has data
+    const rows = document.querySelectorAll('.item-row');
+    let hasValidItem = false;
+    
+    rows.forEach((row, index) => {
+        const description = row.querySelector('[name*="description"]').value.trim();
+        const quantity = row.querySelector('[name*="quantity"]').value;
+        const unitPrice = row.querySelector('[name*="unit_price"]').value;
+        
+        console.log(`Row ${index}:`, {description, quantity, unitPrice});
+        
+        if (description && quantity && unitPrice) {
+            hasValidItem = true;
+        }
     });
     
-    document.querySelector('[name="other_charges"]').addEventListener('input', calculateGrandTotal);
+    if (!hasValidItem) {
+        e.preventDefault();
+        alert('Please add at least one invoice item with complete information.');
+        return false;
+    }
     
+    console.log('Form validation passed. Submitting...');
+});
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== Initializing Form ===');
+    
+    // Add event listeners to existing rows
+    document.querySelectorAll('.item-row').forEach((row, index) => {
+        console.log('Setting up row', index);
+        
+        row.querySelectorAll('input[type="number"], select').forEach(input => {
+            input.addEventListener('input', () => calculateItemTotal(row));
+            input.addEventListener('change', () => calculateItemTotal(row));
+        });
+        
+        // Calculate initial total for this row
+        calculateItemTotal(row);
+    });
+    
+    // Add listener for other charges
+    const otherChargesInput = document.querySelector('[name="other_charges"]');
+    if (otherChargesInput) {
+        otherChargesInput.addEventListener('input', calculateGrandTotal);
+        otherChargesInput.addEventListener('change', calculateGrandTotal);
+    }
+    
+    // Initial calculation
     calculateGrandTotal();
+    
+    console.log('Form initialization complete');
 });
 </script>
 

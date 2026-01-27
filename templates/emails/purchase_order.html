@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Order {{ po.po_number }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #0066cc;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border: 1px solid #ddd;
+        }
+        .po-details {
+            background-color: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border-left: 4px solid #0066cc;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+        .value {
+            color: #333;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: white;
+        }
+        .items-table th {
+            background-color: #0066cc;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+        .items-table td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        .items-table tr:last-child td {
+            border-bottom: none;
+        }
+        .items-table tr:hover {
+            background-color: #f5f5f5;
+        }
+        .total-section {
+            background-color: white;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: right;
+            border-radius: 5px;
+        }
+        .total-row {
+            padding: 8px 0;
+            font-size: 14px;
+        }
+        .grand-total {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0066cc;
+            padding: 12px 0;
+            border-top: 2px solid #0066cc;
+            margin-top: 10px;
+        }
+        .terms-section {
+            background-color: #fffbf0;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ffa500;
+        }
+        .terms-section h3 {
+            color: #ff8c00;
+            margin-top: 0;
+        }
+        .footer {
+            background-color: #f0f0f0;
+            padding: 20px;
+            text-align: center;
+            border-radius: 0 0 5px 5px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+        .action-button {
+            display: inline-block;
+            background-color: #0066cc;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .alert-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ company_name }}</h1>
+        <p>Purchase Order</p>
+    </div>
+
+    <div class="content">
+        <p>Dear {{ supplier.contact_person }},</p>
+        
+        <p>We are pleased to issue the following Purchase Order for your review and acknowledgment:</p>
+
+        <div class="po-details">
+            <h2 style="margin-top: 0; color: #0066cc;">Purchase Order Details</h2>
+            
+            <div class="detail-row">
+                <span class="label">PO Number:</span>
+                <span class="value">{{ po.po_number }}</span>
+            </div>
+            
+            <div class="detail-row">
+                <span class="label">PO Date:</span>
+                <span class="value">{{ po.po_date|date:"F d, Y" }}</span>
+            </div>
+            
+            <div class="detail-row">
+                <span class="label">Requisition:</span>
+                <span class="value">{{ po.requisition.requisition_number }} - {{ po.requisition.title }}</span>
+            </div>
+            
+            <div class="detail-row">
+                <span class="label">Department:</span>
+                <span class="value">{{ po.requisition.department.name }}</span>
+            </div>
+            
+            <div class="detail-row">
+                <span class="label">Required Delivery Date:</span>
+                <span class="value">{{ po.delivery_date|date:"F d, Y" }}</span>
+            </div>
+            
+            <div class="detail-row">
+                <span class="label">Delivery Address:</span>
+                <span class="value">{{ po.delivery_address|linebreaks }}</span>
+            </div>
+        </div>
+
+        <h3 style="color: #0066cc;">Items Ordered</h3>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 40%;">Description</th>
+                    <th style="width: 15%;">Quantity</th>
+                    <th style="width: 10%;">Unit</th>
+                    <th style="width: 15%;">Unit Price</th>
+                    <th style="width: 15%;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <strong>{{ item.item_description }}</strong>
+                        {% if item.specifications %}
+                        <br><small style="color: #666;">{{ item.specifications|truncatewords:20 }}</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.unit_of_measure }}</td>
+                    <td>{{ item.unit_price|floatformat:2 }}</td>
+                    <td><strong>{{ item.total_price|floatformat:2 }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="total-section">
+            <div class="total-row">
+                <strong>Subtotal:</strong> {{ po.subtotal|floatformat:2 }}
+            </div>
+            {% if po.tax_amount > 0 %}
+            <div class="total-row">
+                <strong>Tax:</strong> {{ po.tax_amount|floatformat:2 }}
+            </div>
+            {% endif %}
+            <div class="grand-total">
+                <strong>GRAND TOTAL:</strong> {{ po.total_amount|floatformat:2 }}
+            </div>
+        </div>
+
+        <div class="terms-section">
+            <h3>Terms and Conditions</h3>
+            
+            <p><strong>Payment Terms:</strong></p>
+            <p>{{ po.payment_terms|linebreaks }}</p>
+            
+            {% if po.warranty_terms %}
+            <p><strong>Warranty Terms:</strong></p>
+            <p>{{ po.warranty_terms|linebreaks }}</p>
+            {% endif %}
+            
+            {% if po.special_instructions %}
+            <p><strong>Special Instructions:</strong></p>
+            <p>{{ po.special_instructions|linebreaks }}</p>
+            {% endif %}
+        </div>
+
+        <div class="alert-box">
+            <strong>⚠️ Important:</strong> Please acknowledge receipt of this Purchase Order within 48 hours. 
+            If you have any questions or concerns, please contact us immediately.
+        </div>
+
+        <p>To acknowledge this Purchase Order, please reply to this email with your confirmation and estimated delivery timeline.</p>
+
+        <p style="margin-top: 30px;">
+            <strong>Contact Information:</strong><br>
+            Email: {{ company_email }}<br>
+            Department: {{ po.requisition.department.name }}
+        </p>
+
+        <p>Thank you for your continued partnership.</p>
+
+        <p>
+            Regards,<br>
+            <strong>{{ company_name }}</strong><br>
+            Procurement Department
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>This is an automated email. Please do not reply directly to this message.</p>
+        <p>&copy; {% now "Y" %} {{ company_name }}. All rights reserved.</p>
+        <p style="font-size: 11px; color: #999;">
+            This Purchase Order is subject to our standard terms and conditions.
+        </p>
+    </div>
+</body>
+</html>
