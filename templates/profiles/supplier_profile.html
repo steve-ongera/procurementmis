@@ -1,0 +1,857 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Supplier Profile - {{ supplier.name }} - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .profile-container {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 1.5rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #64748B;
+        margin: 0.5rem 0 0 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: #475569;
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-outline {
+        background: transparent;
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .btn-outline:hover {
+        background: var(--primary-light);
+    }
+
+    /* Main Content Grid - 4 x 8 layout */
+    .profile-grid {
+        display: grid;
+        grid-template-columns: 1fr 3fr;
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+        .profile-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Sidebar (4-column section) */
+    .profile-sidebar {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+
+    .profile-sidebar-header {
+        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+        padding: 2rem;
+        text-align: center;
+        color: white;
+    }
+
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin: 0 auto 1rem auto;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .profile-sidebar-header h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .profile-role {
+        display: inline-block;
+        padding: 0.375rem 0.75rem;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .supplier-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-top: 0.5rem;
+    }
+
+    .supplier-status.approved {
+        background: rgba(16, 185, 129, 0.2);
+        color: #D1FAE5;
+    }
+
+    .supplier-status.pending {
+        background: rgba(245, 158, 11, 0.2);
+        color: #FED7AA;
+    }
+
+    .supplier-status.suspended {
+        background: rgba(239, 68, 68, 0.2);
+        color: #FEE2E2;
+    }
+
+    .sidebar-content {
+        padding: 1.5rem;
+    }
+
+    .info-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .info-value {
+        font-size: 0.875rem;
+        color: #1E293B;
+        font-weight: 500;
+    }
+
+    .sidebar-actions {
+        margin-top: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .sidebar-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Performance Rating */
+    .rating-display {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .stars {
+        color: #FBBF24;
+        font-size: 1rem;
+    }
+
+    .rating-value {
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    /* Main Content (8-column section) */
+    .profile-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transform: translateY(-2px);
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-icon.blue { background: #DBEAFE; color: #2563EB; }
+    .stat-icon.orange { background: #FED7AA; color: #F59E0B; }
+    .stat-icon.green { background: #D1FAE5; color: #10B981; }
+    .stat-icon.purple { background: #E9D5FF; color: #7C3AED; }
+    .stat-icon.teal { background: #CCFBF1; color: #0D9488; }
+    .stat-icon.rose { background: #FCE7F3; color: #DB2777; }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #64748B;
+        font-weight: 500;
+    }
+
+    /* Content Cards */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* List Items */
+    .list-item {
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s;
+    }
+
+    .list-item:hover {
+        background: var(--hover-bg);
+        border-color: var(--primary-color);
+    }
+
+    .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 0.5rem;
+    }
+
+    .item-number {
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+
+    .item-number:hover {
+        text-decoration: underline;
+    }
+
+    /* Status Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .badge-draft { background: #F1F5F9; color: #64748B; }
+    .badge-submitted { background: #DBEAFE; color: #1E40AF; }
+    .badge-evaluating { background: #FEF3C7; color: #92400E; }
+    .badge-awarded { background: #D1FAE5; color: #047857; }
+    .badge-rejected { background: #FEE2E2; color: #B91C1C; }
+    .badge-approved { background: #D1FAE5; color: #047857; }
+    .badge-sent { background: #DBEAFE; color: #1E40AF; }
+    .badge-acknowledged { background: #E0E7FF; color: #3730A3; }
+    .badge-delivered { background: #D1FAE5; color: #047857; }
+    .badge-paid { background: #D1FAE5; color: #047857; }
+    .badge-pending { background: #FED7AA; color: #92400E; }
+
+    .item-details {
+        font-size: 0.875rem;
+        color: #64748B;
+    }
+
+    .item-meta {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+        font-size: 0.813rem;
+        color: #94A3B8;
+    }
+
+    .item-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    /* Document Compliance */
+    .compliance-bar {
+        margin-top: 1rem;
+    }
+
+    .compliance-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .progress-bar {
+        height: 8px;
+        background: #E2E8F0;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #10B981 0%, #059669 100%);
+        border-radius: 1rem;
+        transition: width 0.3s ease;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #94A3B8;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .profile-grid {
+            gap: 1rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .header-actions {
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            flex: 1;
+            min-width: 140px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .header-actions {
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .item-meta {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Supplier Profile</h1>
+            <div class="breadcrumb">
+                <a href="{% url 'supplier_dashboard' %}">
+                    <i class="bi bi-house"></i>
+                    Home
+                </a>
+                <i class="bi bi-chevron-right"></i>
+                <span>My Profile</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="#" class="btn btn-primary">
+                <i class="bi bi-pencil"></i>
+                Edit Profile
+            </a>
+            <a href="#" class="btn btn-outline">
+                <i class="bi bi-file-earmark-text"></i>
+                Documents
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content Grid (4 x 8 layout) -->
+    <div class="profile-grid">
+        <!-- Sidebar (4-column) -->
+        <div class="profile-sidebar">
+            <div class="profile-sidebar-header">
+                <div class="profile-avatar">
+                    {{ supplier.name.0|upper }}{{ supplier.name.1|upper }}
+                </div>
+                <h2>{{ supplier.name }}</h2>
+                <div class="profile-role">
+                    <i class="bi bi-shop"></i>
+                    Supplier
+                </div>
+                {% if supplier.status == 'APPROVED' %}
+                <div class="supplier-status approved">
+                    <i class="bi bi-check-circle-fill"></i>
+                    Approved Supplier
+                </div>
+                {% elif supplier.status == 'PENDING' %}
+                <div class="supplier-status pending">
+                    <i class="bi bi-clock-fill"></i>
+                    Pending Approval
+                </div>
+                {% elif supplier.status == 'SUSPENDED' %}
+                <div class="supplier-status suspended">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    Suspended
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="info-list">
+                    <div class="info-item">
+                        <div class="info-label">Supplier Number</div>
+                        <div class="info-value">{{ supplier.supplier_number }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Registration Number</div>
+                        <div class="info-value">{{ supplier.registration_number }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Tax ID</div>
+                        <div class="info-value">{{ supplier.tax_id|default:"-" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ supplier.email }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Phone</div>
+                        <div class="info-value">{{ supplier.phone_number }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Contact Person</div>
+                        <div class="info-value">{{ supplier.contact_person }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Member Since</div>
+                        <div class="info-value">{{ supplier.created_at|date:"F d, Y" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Performance Rating</div>
+                        <div class="rating-display">
+                            <div class="stars">
+                                {% if avg_rating >= 1 %}<i class="bi bi-star-fill"></i>{% else %}<i class="bi bi-star"></i>{% endif %}
+                                {% if avg_rating >= 2 %}<i class="bi bi-star-fill"></i>{% else %}<i class="bi bi-star"></i>{% endif %}
+                                {% if avg_rating >= 3 %}<i class="bi bi-star-fill"></i>{% else %}<i class="bi bi-star"></i>{% endif %}
+                                {% if avg_rating >= 4 %}<i class="bi bi-star-fill"></i>{% else %}<i class="bi bi-star"></i>{% endif %}
+                                {% if avg_rating >= 5 %}<i class="bi bi-star-fill"></i>{% else %}<i class="bi bi-star"></i>{% endif %}
+                            </div>
+                            <span class="rating-value">{{ avg_rating|floatformat:1 }}/5.0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Document Compliance -->
+                <div class="compliance-bar">
+                    <div class="compliance-label">
+                        <span>Document Compliance</span>
+                        <strong>{{ verified_documents }}/{{ total_documents }}</strong>
+                    </div>
+                    <div class="progress-bar">
+                        {% widthratio verified_documents total_documents 100 as compliance_percent %}
+                        <div class="progress-fill" style="width: {{ compliance_percent|default:0 }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="sidebar-actions">
+                    <a href="#" class="btn">
+                        <i class="bi bi-file-earmark-check"></i>
+                        My Bids
+                    </a>
+                    <a href="#" class="btn">
+                        <i class="bi bi-receipt"></i>
+                        Purchase Orders
+                    </a>
+                    <a href="#" class="btn">
+                        <i class="bi bi-file-text"></i>
+                        Invoices
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content (8-column) -->
+        <div class="profile-content">
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="bi bi-file-earmark-check"></i>
+                    </div>
+                    <div class="stat-value">{{ total_bids|intcomma }}</div>
+                    <div class="stat-label">Total Bids</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="bi bi-trophy"></i>
+                    </div>
+                    <div class="stat-value">{{ won_bids|intcomma }}</div>
+                    <div class="stat-label">Bids Won</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div class="stat-value">{{ pending_bids|intcomma }}</div>
+                    <div class="stat-label">Pending Bids</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+                    <div class="stat-value">{{ total_pos|intcomma }}</div>
+                    <div class="stat-label">Purchase Orders</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon teal">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div class="stat-value">{{ active_pos|intcomma }}</div>
+                    <div class="stat-label">Active Orders</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon rose">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div class="stat-value">KES {{ total_business_value|floatformat:0|intcomma }}</div>
+                    <div class="stat-label">Total Business Value</div>
+                </div>
+            </div>
+
+            <!-- Financial Statistics -->
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </div>
+                    <div class="stat-value">{{ total_invoices|intcomma }}</div>
+                    <div class="stat-label">Total Invoices</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <div class="stat-value">{{ pending_invoices|intcomma }}</div>
+                    <div class="stat-label">Pending Invoices</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                    <div class="stat-value">{{ paid_invoices|intcomma }}</div>
+                    <div class="stat-label">Paid Invoices</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <div class="stat-value">KES {{ total_payments|floatformat:0|intcomma }}</div>
+                    <div class="stat-label">Total Payments Received</div>
+                </div>
+            </div>
+
+            <!-- Recent Tenders -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="bi bi-megaphone"></i>
+                        Recent Tenders
+                    </h2>
+                    <a href="#" class="btn" style="padding: 0.5rem 0.75rem; font-size: 0.813rem;">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_tenders %}
+                        {% for tender in recent_tenders %}
+                        <div class="list-item">
+                            <div class="item-header">
+                                <a href="#" class="item-number">
+                                    {{ tender.tender_number }}
+                                </a>
+                                {% if tender.status == 'PUBLISHED' %}
+                                <span class="badge badge-submitted">Published</span>
+                                {% elif tender.status == 'CLOSED' %}
+                                <span class="badge badge-draft">Closed</span>
+                                {% elif tender.status == 'EVALUATING' %}
+                                <span class="badge badge-evaluating">Evaluating</span>
+                                {% elif tender.status == 'AWARDED' %}
+                                <span class="badge badge-awarded">Awarded</span>
+                                {% endif %}
+                            </div>
+                            <div class="item-details">
+                                <strong>{{ tender.title }}</strong>
+                            </div>
+                            <div class="item-meta">
+                                <span>
+                                    <i class="bi bi-cash"></i>
+                                    Budget: KES {{ tender.estimated_budget|floatformat:0|intcomma }}
+                                </span>
+                                <span>
+                                    <i class="bi bi-calendar"></i>
+                                    Closes: {{ tender.closing_date|date:"M d, Y" }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="bi bi-megaphone"></i>
+                            <p>No recent tenders</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Purchase Orders -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="bi bi-receipt"></i>
+                        Recent Purchase Orders
+                    </h2>
+                    <a href="#" class="btn" style="padding: 0.5rem 0.75rem; font-size: 0.813rem;">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_pos %}
+                        {% for po in recent_pos %}
+                        <div class="list-item">
+                            <div class="item-header">
+                                <a href="#" class="item-number">
+                                    {{ po.po_number }}
+                                </a>
+                                {% if po.status == 'APPROVED' %}
+                                <span class="badge badge-approved">Approved</span>
+                                {% elif po.status == 'SENT' %}
+                                <span class="badge badge-sent">Sent</span>
+                                {% elif po.status == 'ACKNOWLEDGED' %}
+                                <span class="badge badge-acknowledged">Acknowledged</span>
+                                {% elif po.status == 'DELIVERED' %}
+                                <span class="badge badge-delivered">Delivered</span>
+                                {% elif po.status == 'PARTIAL_DELIVERY' %}
+                                <span class="badge badge-pending">Partial Delivery</span>
+                                {% endif %}
+                            </div>
+                            <div class="item-details">
+                                <strong>{{ po.requisition.title }}</strong>
+                            </div>
+                            <div class="item-meta">
+                                <span>
+                                    <i class="bi bi-cash"></i>
+                                    Amount: KES {{ po.total_amount|floatformat:0|intcomma }}
+                                </span>
+                                <span>
+                                    <i class="bi bi-calendar"></i>
+                                    Delivery: {{ po.delivery_date|date:"M d, Y" }}
+                                </span>
+                                <span>
+                                    <i class="bi bi-clock"></i>
+                                    {{ po.created_at|date:"M d, Y" }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="bi bi-receipt"></i>
+                            <p>No purchase orders yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
