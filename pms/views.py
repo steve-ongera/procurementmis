@@ -12147,7 +12147,14 @@ def staff_requisition_edit(request, pk):
     
     requisition = get_object_or_404(
         Requisition.objects.select_related(
-            'procurement_plan_item__procurement_plan'
+            'procurement_plan_item__procurement_plan',
+            'procurement_plan_item__budget',
+            'department',
+            'budget',
+            'requested_by'
+        ).prefetch_related(
+            'items__item',
+            'attachments'
         ),
         pk=pk
     )
@@ -12214,24 +12221,59 @@ def staff_requisition_edit(request, pk):
                     attachment.uploaded_by = request.user
                 attachment.save()
             
+            # Handle deleted attachments
+            for obj in attachment_formset.deleted_objects:
+                obj.delete()
+            
             messages.success(request, 'Requisition updated successfully!')
             return redirect('staff_requisition_detail', pk=pk)
     else:
+        # Initialize form with existing data
         form = RequisitionForm(instance=requisition, user=request.user)
         formset = RequisitionItemFormSet(instance=requisition)
         attachment_formset = RequisitionAttachmentFormSet(instance=requisition)
     
-    # Get available plan items
+    # Get available plan items including the currently selected one
     available_plan_items = None
-    if request.user.department:
-        current_budget_year = BudgetYear.objects.filter(is_active=True).first()
-        if current_budget_year:
-            available_plan_items = ProcurementPlanItem.objects.filter(
-                procurement_plan__department=request.user.department,
-                procurement_plan__budget_year=current_budget_year,
-                procurement_plan__status='APPROVED',
-                status='PLANNED'
-            ).select_related('procurement_plan', 'budget')
+    current_budget_year = BudgetYear.objects.filter(is_active=True).first()
+    
+    if request.user.department and current_budget_year:
+        # Base queryset for available plan items
+        available_plan_items_qs = ProcurementPlanItem.objects.filter(
+            procurement_plan__department=request.user.department,
+            procurement_plan__budget_year=current_budget_year,
+            procurement_plan__status='APPROVED',
+            status='PLANNED'
+        ).select_related('procurement_plan', 'budget', 'item')
+        
+        # If requisition has a plan item, make sure it's included even if status changed
+        if requisition.procurement_plan_item:
+            # Get the existing plan item
+            existing_plan_item = requisition.procurement_plan_item
+            
+            # Combine with available items, ensuring the existing one is included
+            available_plan_items = available_plan_items_qs.filter(
+                id=existing_plan_item.id
+            ) | available_plan_items_qs.exclude(
+                id=existing_plan_item.id
+            )
+        else:
+            available_plan_items = available_plan_items_qs
+        
+        available_plan_items = available_plan_items.distinct().order_by(
+            'planned_quarter', 
+            'description'
+        )
+    
+    # Debug information
+    debug_info = {
+        'has_department': bool(request.user.department),
+        'department': request.user.department.name if request.user.department else None,
+        'budget_year': current_budget_year.name if current_budget_year else None,
+        'requisition_plan_item': requisition.procurement_plan_item.description[:50] if requisition.procurement_plan_item else None,
+        'is_planned': requisition.is_planned,
+        'plan_items_count': available_plan_items.count() if available_plan_items else 0,
+    }
     
     context = {
         'form': form,
@@ -12240,6 +12282,8 @@ def staff_requisition_edit(request, pk):
         'requisition': requisition,
         'page_title': f'Edit Requisition {requisition.requisition_number}',
         'available_plan_items': available_plan_items,
+        'current_budget_year': current_budget_year,
+        'debug_info': debug_info,
     }
     
     return render(request, 'staff/requisition_form.html', context)

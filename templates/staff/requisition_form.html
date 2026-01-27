@@ -1045,7 +1045,7 @@
 
 <script>
 // ============================================================================
-// REQUISITION FORM DYNAMIC FUNCTIONALITY
+// REQUISITION FORM DYNAMIC FUNCTIONALITY - COMPLETE VERSION
 // ============================================================================
 
 (function() {
@@ -1056,6 +1056,17 @@
     let searchTimeout = null;
 
     // ========================================================================
+    // UTILITY FUNCTIONS (Define first)
+    // ========================================================================
+
+    function formatCurrency(amount) {
+        return amount.toLocaleString('en-KE', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    // ========================================================================
     // PLANNED VS UNPLANNED TOGGLE
     // ========================================================================
     
@@ -1063,6 +1074,8 @@
         const plannedSection = document.getElementById('planned-section');
         const unplannedSection = document.getElementById('unplanned-section');
         const planItemSelect = document.getElementById('id_procurement_plan_item');
+        
+        if (!plannedSection || !unplannedSection) return;
         
         document.querySelectorAll('input[name="is_planned"]').forEach(radio => {
             radio.addEventListener('change', function() {
@@ -1092,40 +1105,6 @@
     // PLAN ITEM DETAILS DISPLAY
     // ========================================================================
     
-    function initializePlanItemDetails() {
-        const planItemSelect = document.getElementById('id_procurement_plan_item');
-        const infoBox = document.getElementById('plan-item-info');
-        
-        if (!planItemSelect || !infoBox) return;
-        
-        planItemSelect.addEventListener('change', function() {
-            const option = this.options[this.selectedIndex];
-            
-            if (this.value) {
-                infoBox.classList.add('active');
-                
-                const cost = parseFloat(option.dataset.cost);
-                const remaining = parseFloat(option.dataset.remaining);
-                
-                document.getElementById('plan-cost').textContent = 'KES ' + formatCurrency(cost);
-                document.getElementById('plan-remaining').textContent = 'KES ' + formatCurrency(remaining);
-                document.getElementById('plan-quarter').textContent = option.dataset.quarter;
-                document.getElementById('plan-method').textContent = option.dataset.method;
-                document.getElementById('plan-quantity').textContent = option.dataset.quantity + ' ' + option.dataset.uom;
-                
-                // Auto-populate first item if empty
-                populateFromPlanItem(option);
-            } else {
-                infoBox.classList.remove('active');
-            }
-        });
-        
-        // Trigger on page load if already selected
-        if (planItemSelect.value) {
-            planItemSelect.dispatchEvent(new Event('change'));
-        }
-    }
-
     function populateFromPlanItem(option) {
         const firstItemForm = document.querySelector('.item-form');
         if (!firstItemForm) return;
@@ -1146,40 +1125,74 @@
         }
     }
 
+    function initializePlanItemDetails() {
+        const planItemSelect = document.getElementById('id_procurement_plan_item');
+        const infoBox = document.getElementById('plan-item-info');
+        
+        if (!planItemSelect || !infoBox) return;
+        
+        planItemSelect.addEventListener('change', function() {
+            const option = this.options[this.selectedIndex];
+            
+            if (this.value) {
+                infoBox.classList.add('active');
+                
+                const cost = parseFloat(option.dataset.cost || 0);
+                const remaining = parseFloat(option.dataset.remaining || 0);
+                
+                document.getElementById('plan-cost').textContent = 'KES ' + formatCurrency(cost);
+                document.getElementById('plan-remaining').textContent = 'KES ' + formatCurrency(remaining);
+                document.getElementById('plan-quarter').textContent = option.dataset.quarter || '';
+                document.getElementById('plan-method').textContent = option.dataset.method || '';
+                document.getElementById('plan-quantity').textContent = (option.dataset.quantity || '') + ' ' + (option.dataset.uom || '');
+                
+                // Auto-populate first item if empty
+                populateFromPlanItem(option);
+            } else {
+                infoBox.classList.remove('active');
+            }
+        });
+        
+        // Trigger on page load if already selected
+        if (planItemSelect.value) {
+            planItemSelect.dispatchEvent(new Event('change'));
+        }
+    }
+
     // ========================================================================
     // ITEM CATALOG SEARCH
     // ========================================================================
     
-    function initializeItemSearch() {
-        document.querySelectorAll('.item-search').forEach(searchInput => {
-            const resultsDiv = searchInput.nextElementSibling.nextElementSibling;
-            
-            if (!resultsDiv) return;
-            
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                const query = this.value.trim();
-                
-                if (query.length < 2) {
-                    resultsDiv.classList.remove('active');
-                    return;
-                }
-                
-                resultsDiv.innerHTML = '<div class="loading-spinner"><i class="bi bi-hourglass-split"></i> Searching...</div>';
-                resultsDiv.classList.add('active');
-                
-                searchTimeout = setTimeout(() => {
-                    searchItems(query, resultsDiv, searchInput);
-                }, SEARCH_DELAY);
-            });
-            
-            // Close results when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
-                    resultsDiv.classList.remove('active');
-                }
-            });
-        });
+    function selectItem(item, searchInput) {
+        const itemForm = searchInput.closest('.item-form');
+        
+        // Populate item select
+        const itemSelect = itemForm.querySelector('[name$="item"]');
+        if (itemSelect) {
+            // Add option if doesn't exist
+            let option = itemSelect.querySelector(`option[value="${item.id}"]`);
+            if (!option) {
+                option = new Option(`${item.code} - ${item.name}`, item.id, true, true);
+                itemSelect.add(option);
+            }
+            itemSelect.value = item.id;
+        }
+        
+        // Auto-fill fields
+        const descInput = itemForm.querySelector('[name$="item_description"]');
+        const specInput = itemForm.querySelector('[name$="specifications"]');
+        const uomInput = itemForm.querySelector('[name$="unit_of_measure"]');
+        const priceInput = itemForm.querySelector('[name$="estimated_unit_price"]');
+        
+        if (descInput) descInput.value = item.description;
+        if (specInput) specInput.value = item.specifications || '';
+        if (uomInput) uomInput.value = item.unit_of_measure;
+        if (priceInput && item.standard_price) {
+            priceInput.value = parseFloat(item.standard_price).toFixed(2);
+            calculateItemTotal(itemForm);
+        }
+        
+        searchInput.value = `${item.code} - ${item.name}`;
     }
 
     function searchItems(query, resultsDiv, searchInput) {
@@ -1214,56 +1227,46 @@
             });
     }
 
-    function selectItem(item, searchInput) {
-        const itemForm = searchInput.closest('.item-form');
+    function initializeItemSearchForForm(formElement) {
+        const searchInput = formElement.querySelector('.item-search');
+        const resultsDiv = formElement.querySelector('.search-results');
         
-        // Populate item select
-        const itemSelect = itemForm.querySelector('[name$="item"]');
-        if (itemSelect) {
-            // Add option if doesn't exist
-            let option = itemSelect.querySelector(`option[value="${item.id}"]`);
-            if (!option) {
-                option = new Option(`${item.code} - ${item.name}`, item.id, true, true);
-                itemSelect.add(option);
+        if (!searchInput || !resultsDiv) return;
+        
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length < 2) {
+                resultsDiv.classList.remove('active');
+                return;
             }
-            itemSelect.value = item.id;
-        }
+            
+            resultsDiv.innerHTML = '<div class="loading-spinner"><i class="bi bi-hourglass-split"></i> Searching...</div>';
+            resultsDiv.classList.add('active');
+            
+            searchTimeout = setTimeout(() => {
+                searchItems(query, resultsDiv, searchInput);
+            }, SEARCH_DELAY);
+        });
         
-        // Auto-fill fields
-        const descInput = itemForm.querySelector('[name$="item_description"]');
-        const specInput = itemForm.querySelector('[name$="specifications"]');
-        const uomInput = itemForm.querySelector('[name$="unit_of_measure"]');
-        const priceInput = itemForm.querySelector('[name$="estimated_unit_price"]');
-        
-        if (descInput) descInput.value = item.description;
-        if (specInput) specInput.value = item.specifications || '';
-        if (uomInput) uomInput.value = item.unit_of_measure;
-        if (priceInput && item.standard_price) {
-            priceInput.value = parseFloat(item.standard_price).toFixed(2);
-            calculateItemTotal(itemForm);
-        }
-        
-        searchInput.value = `${item.code} - ${item.name}`;
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                resultsDiv.classList.remove('active');
+            }
+        });
+    }
+
+    function initializeItemSearch() {
+        document.querySelectorAll('.item-form').forEach(formElement => {
+            initializeItemSearchForForm(formElement);
+        });
     }
 
     // ========================================================================
     // ITEM CALCULATION
     // ========================================================================
     
-    function initializeCalculations() {
-        document.querySelectorAll('.item-form').forEach(itemForm => {
-            const qtyInput = itemForm.querySelector('[name$="quantity"]');
-            const priceInput = itemForm.querySelector('[name$="estimated_unit_price"]');
-            
-            if (qtyInput) {
-                qtyInput.addEventListener('input', () => calculateItemTotal(itemForm));
-            }
-            if (priceInput) {
-                priceInput.addEventListener('input', () => calculateItemTotal(itemForm));
-            }
-        });
-    }
-
     function calculateItemTotal(itemForm) {
         const qtyInput = itemForm.querySelector('[name$="quantity"]');
         const priceInput = itemForm.querySelector('[name$="estimated_unit_price"]');
@@ -1302,47 +1305,37 @@
         }
     }
 
+    function initializeCalculationsForForm(formElement) {
+        const qtyInput = formElement.querySelector('[name$="quantity"]');
+        const priceInput = formElement.querySelector('[name$="estimated_unit_price"]');
+        
+        if (qtyInput) {
+            qtyInput.addEventListener('input', () => calculateItemTotal(formElement));
+        }
+        if (priceInput) {
+            priceInput.addEventListener('input', () => calculateItemTotal(formElement));
+        }
+    }
+
+    function initializeCalculations() {
+        document.querySelectorAll('.item-form').forEach(itemForm => {
+            initializeCalculationsForForm(itemForm);
+        });
+    }
+
     // ========================================================================
     // ADD/REMOVE ITEMS
     // ========================================================================
     
-    function initializeAddRemoveItems() {
-        const addBtn = document.getElementById('add-item-btn');
-        const container = document.getElementById('items-container');
-        const totalFormsInput = document.querySelector('[name$="TOTAL_FORMS"]');
-        
-        if (!addBtn || !container || !totalFormsInput) return;
-        
-        addBtn.addEventListener('click', function() {
-            const formCount = parseInt(totalFormsInput.value);
-            const newForm = createItemForm(formCount);
-            
-            container.insertAdjacentHTML('beforeend', newForm);
-            totalFormsInput.value = formCount + 1;
-            
-            // Re-initialize for new form
-            const newFormElement = container.lastElementChild;
-            initializeItemSearchForForm(newFormElement);
-            initializeCalculationsForForm(newFormElement);
-            updateItemNumbers();
-        });
-        
-        // Remove item handlers
-        container.addEventListener('click', function(e) {
-            if (e.target.closest('.remove-item-btn')) {
-                const itemForm = e.target.closest('.item-form');
-                const deleteCheckbox = itemForm.querySelector('[name$="DELETE"]');
-                
-                if (deleteCheckbox) {
-                    deleteCheckbox.checked = true;
-                    itemForm.style.display = 'none';
-                } else {
-                    itemForm.remove();
-                    totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+    function updateItemNumbers() {
+        let visibleIndex = 1;
+        document.querySelectorAll('.item-form').forEach((form) => {
+            const deleteCheckbox = form.querySelector('[name$="DELETE"]');
+            if (!deleteCheckbox || !deleteCheckbox.checked) {
+                const numberSpan = form.querySelector('.item-number');
+                if (numberSpan) {
+                    numberSpan.textContent = visibleIndex++;
                 }
-                
-                updateItemNumbers();
-                calculateGrandTotal();
             }
         });
     }
@@ -1418,57 +1411,43 @@
         `;
     }
 
-    function initializeItemSearchForForm(formElement) {
-        const searchInput = formElement.querySelector('.item-search');
-        const resultsDiv = formElement.querySelector('.search-results');
+    function initializeAddRemoveItems() {
+        const addBtn = document.getElementById('add-item-btn');
+        const container = document.getElementById('items-container');
+        const totalFormsInput = document.querySelector('[name$="TOTAL_FORMS"]');
         
-        if (!searchInput || !resultsDiv) return;
+        if (!addBtn || !container || !totalFormsInput) return;
         
-        searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            const query = this.value.trim();
+        addBtn.addEventListener('click', function() {
+            const formCount = parseInt(totalFormsInput.value);
+            const newForm = createItemForm(formCount);
             
-            if (query.length < 2) {
-                resultsDiv.classList.remove('active');
-                return;
-            }
+            container.insertAdjacentHTML('beforeend', newForm);
+            totalFormsInput.value = formCount + 1;
             
-            resultsDiv.innerHTML = '<div class="loading-spinner"><i class="bi bi-hourglass-split"></i> Searching...</div>';
-            resultsDiv.classList.add('active');
-            
-            searchTimeout = setTimeout(() => {
-                searchItems(query, resultsDiv, searchInput);
-            }, SEARCH_DELAY);
+            // Re-initialize for new form
+            const newFormElement = container.lastElementChild;
+            initializeItemSearchForForm(newFormElement);
+            initializeCalculationsForForm(newFormElement);
+            updateItemNumbers();
         });
         
-        document.addEventListener('click', function(e) {
-            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
-                resultsDiv.classList.remove('active');
-            }
-        });
-    }
-
-    function initializeCalculationsForForm(formElement) {
-        const qtyInput = formElement.querySelector('[name$="quantity"]');
-        const priceInput = formElement.querySelector('[name$="estimated_unit_price"]');
-        
-        if (qtyInput) {
-            qtyInput.addEventListener('input', () => calculateItemTotal(formElement));
-        }
-        if (priceInput) {
-            priceInput.addEventListener('input', () => calculateItemTotal(formElement));
-        }
-    }
-
-    function updateItemNumbers() {
-        let visibleIndex = 1;
-        document.querySelectorAll('.item-form').forEach((form) => {
-            const deleteCheckbox = form.querySelector('[name$="DELETE"]');
-            if (!deleteCheckbox || !deleteCheckbox.checked) {
-                const numberSpan = form.querySelector('.item-number');
-                if (numberSpan) {
-                    numberSpan.textContent = visibleIndex++;
+        // Remove item handlers
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-item-btn')) {
+                const itemForm = e.target.closest('.item-form');
+                const deleteCheckbox = itemForm.querySelector('[name$="DELETE"]');
+                
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    itemForm.style.display = 'none';
+                } else {
+                    itemForm.remove();
+                    totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
                 }
+                
+                updateItemNumbers();
+                calculateGrandTotal();
             }
         });
     }
@@ -1476,37 +1455,6 @@
     // ========================================================================
     // ADD/REMOVE ATTACHMENTS
     // ========================================================================
-
-    function initializeAddRemoveAttachments() {
-        const addBtn = document.getElementById('add-attachment-btn');
-        const container = document.getElementById('attachments-container');
-        const totalFormsInput = document.querySelector('[name$="attachments-TOTAL_FORMS"]');
-        
-        if (!addBtn || !container || !totalFormsInput) return;
-        
-        addBtn.addEventListener('click', function() {
-            const formCount = parseInt(totalFormsInput.value);
-            const newForm = createAttachmentForm(formCount);
-            
-            container.insertAdjacentHTML('beforeend', newForm);
-            totalFormsInput.value = formCount + 1;
-        });
-        
-        container.addEventListener('click', function(e) {
-            if (e.target.closest('.remove-attachment-btn')) {
-                const attachmentForm = e.target.closest('.attachment-form');
-                const deleteCheckbox = attachmentForm.querySelector('[name$="DELETE"]');
-                
-                if (deleteCheckbox) {
-                    deleteCheckbox.checked = true;
-                    attachmentForm.style.display = 'none';
-                } else {
-                    attachmentForm.remove();
-                    totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
-                }
-            }
-        });
-    }
 
     function createAttachmentForm(index) {
         const prefix = 'attachments';
@@ -1553,15 +1501,71 @@
         `;
     }
 
+    function initializeAddRemoveAttachments() {
+        const addBtn = document.getElementById('add-attachment-btn');
+        const container = document.getElementById('attachments-container');
+        const totalFormsInput = document.querySelector('[name$="attachments-TOTAL_FORMS"]');
+        
+        if (!addBtn || !container || !totalFormsInput) return;
+        
+        addBtn.addEventListener('click', function() {
+            const formCount = parseInt(totalFormsInput.value);
+            const newForm = createAttachmentForm(formCount);
+            
+            container.insertAdjacentHTML('beforeend', newForm);
+            totalFormsInput.value = formCount + 1;
+        });
+        
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-attachment-btn')) {
+                const attachmentForm = e.target.closest('.attachment-form');
+                const deleteCheckbox = attachmentForm.querySelector('[name$="DELETE"]');
+                
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    attachmentForm.style.display = 'none';
+                } else {
+                    attachmentForm.remove();
+                    totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+                }
+            }
+        });
+    }
+
     // ========================================================================
-    // UTILITY FUNCTIONS
+    // EDIT MODE INITIALIZATION
     // ========================================================================
 
-    function formatCurrency(amount) {
-        return amount.toLocaleString('en-KE', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
+    function initializeEditMode() {
+        const requisition = window.requisitionData;
+        
+        if (!requisition) return; // Not in edit mode
+        
+        // Set requisition type (planned vs unplanned)
+        if (requisition.is_planned !== undefined) {
+            const radio = document.querySelector(`input[name="is_planned"][value="${requisition.is_planned ? 'true' : 'false'}"]`);
+            if (radio) {
+                radio.checked = true;
+                radio.dispatchEvent(new Event('change'));
+            }
+        }
+        
+        // Set procurement plan item if exists
+        if (requisition.procurement_plan_item_id) {
+            const planSelect = document.getElementById('id_procurement_plan_item');
+            if (planSelect) {
+                planSelect.value = requisition.procurement_plan_item_id;
+                planSelect.dispatchEvent(new Event('change'));
+            }
+        }
+        
+        // Set emergency type if unplanned
+        if (!requisition.is_planned && requisition.emergency_type) {
+            const emergencyTypeSelect = document.querySelector('[name="emergency_type"]');
+            if (emergencyTypeSelect) {
+                emergencyTypeSelect.value = requisition.emergency_type;
+            }
+        }
     }
 
     // ========================================================================
@@ -1575,6 +1579,9 @@
         initializeCalculations();
         initializeAddRemoveItems();
         initializeAddRemoveAttachments();
+        
+        // Initialize edit mode if requisition data exists
+        initializeEditMode();
         
         // Initial calculation
         calculateGrandTotal();
