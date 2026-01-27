@@ -567,6 +567,30 @@ urlpatterns = [
 
     # Help & Support
     path('auditor/help/', views.auditor_help_center_view, name='auditor_help_center'),
+    # ============================================================================
+    # PROFILE MANAGEMENT URLs
+    # ============================================================================
+    
+    # Main profile router (checks role and redirects)
+    path('profile/', views.profile_view, name='profile'),
+    
+    # Role-specific profile views
+    path('profile/staff/', views.staff_profile, name='staff_profile'),
+    path('profile/hod/', views.hod_profile, name='hod_profile'),
+    path('profile/procurement/', views.procurement_profile, name='procurement_profile'),
+    path('profile/finance/', views.finance_profile, name='finance_profile'),
+    path('profile/stores/', views.stores_profile, name='stores_profile'),
+    path('profile/supplier/', views.supplier_profile, name='supplier_profile'),
+    path('profile/auditor/', views.auditor_profile, name='auditor_profile'),
+    path('profile/admin/', views.admin_profile, name='admin_profile'),
+    path('profile/generic/', views.generic_profile, name='generic_profile'),
+    
+    # Profile update
+    path('profile/update/', views.profile_update, name='profile_update'),
+    
+    # Settings (you can create these later)
+    path('settings/', views.user_settings, name='settings'),
+    path('help/', views.help_center, name='help_center'),  # If not already added
    
     
 ]

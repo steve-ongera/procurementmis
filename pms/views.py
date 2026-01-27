@@ -20613,3 +20613,55 @@ def profile_update(request):
         return redirect('profile')
     
     return render(request, 'profiles/profile_update.html', {'user': user})
+
+
+# ============================================================================
+# SETTINGS VIEW
+# ============================================================================
+
+@login_required
+def user_settings(request):
+    """User settings and preferences"""
+    user = request.user
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'update_profile':
+            user.first_name = request.POST.get('first_name', user.first_name)
+            user.last_name = request.POST.get('last_name', user.last_name)
+            user.email = request.POST.get('email', user.email)
+            user.phone_number = request.POST.get('phone_number', user.phone_number)
+            
+            if request.FILES.get('profile_picture'):
+                user.profile_picture = request.FILES['profile_picture']
+            
+            user.save()
+            messages.success(request, 'Profile updated successfully.')
+            
+        elif action == 'change_password':
+            from django.contrib.auth import update_session_auth_hash
+            from django.contrib.auth.forms import PasswordChangeForm
+            
+            form = PasswordChangeForm(user, request.POST)
+            if form.is_valid():
+                user = form.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, 'Password changed successfully.')
+            else:
+                for error in form.errors.values():
+                    messages.error(request, error)
+        
+        elif action == 'notification_preferences':
+            # Save notification preferences (you can extend this)
+            email_notifications = request.POST.get('email_notifications') == 'on'
+            # Store in user preferences or separate model
+            messages.success(request, 'Notification preferences updated.')
+        
+        return redirect('settings')
+    
+    context = {
+        'user': user,
+    }
+    
+    return render(request, 'settings.html', context)
