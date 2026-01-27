@@ -4777,6 +4777,93 @@ def po_detail(request, po_id):
     
     return render(request, 'procurement/po_detail.html', context)
 
+from django.views.decorators.http import require_http_methods, require_POST
+from django.db import transaction
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.views import View
+
+@csrf_exempt
+@login_required
+@require_POST
+def po_submit_for_approval(request, po_id):
+    """
+    Ajax API endpoint to submit PO from DRAFT to PENDING_APPROVAL
+    """
+    try:
+        po = get_object_or_404(PurchaseOrder, id=po_id)
+        
+        # Check permissions - only creator or procurement can submit
+        if po.created_by != request.user and request.user.role not in ['PROCUREMENT', 'ADMIN']:
+            return JsonResponse({
+                'success': False,
+                'message': 'You do not have permission to submit this purchase order.'
+            }, status=403)
+        
+        # Check current status
+        if po.status != 'DRAFT':
+            return JsonResponse({
+                'success': False,
+                'message': f'Cannot submit PO with status: {po.get_status_display()}'
+            }, status=400)
+        
+        # Validate PO has items
+        if not po.items.exists():
+            return JsonResponse({
+                'success': False,
+                'message': 'Cannot submit purchase order without items.'
+            }, status=400)
+        
+        # Validate total amount
+        if po.total_amount <= 0:
+            return JsonResponse({
+                'success': False,
+                'message': 'Purchase order total amount must be greater than zero.'
+            }, status=400)
+        
+        with transaction.atomic():
+            # Update status
+            po.status = 'PENDING_APPROVAL'
+            po.save()
+            
+            # Create notification for approvers
+            approvers = User.objects.filter(
+                role__in=['PROCUREMENT', 'FINANCE', 'ADMIN'],
+                is_active=True
+            )
+            
+            for approver in approvers:
+                Notification.objects.create(
+                    user=approver,
+                    notification_type='PO',
+                    priority='MEDIUM',
+                    title=f'PO Pending Approval: {po.po_number}',
+                    message=f'Purchase Order {po.po_number} for {po.supplier.name} '
+                            f'(KES {po.total_amount:,.2f}) has been submitted for approval.',
+                    link_url=f'/procurement/po/{po.id}/'
+                )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Purchase order submitted for approval successfully.',
+            'data': {
+                'po_number': po.po_number,
+                'status': po.status,
+                'status_display': po.get_status_display()
+            }
+        })
+        
+    except PurchaseOrder.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Purchase order not found.'
+        }, status=404)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }, status=500)
 
 @login_required
 def po_create(request):

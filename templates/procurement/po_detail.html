@@ -570,6 +570,14 @@
 {% endblock %}
 
 {% block content %}
+<!-- Toast notification container -->
+<div id="toast-container"></div>
+
+<!-- Loading overlay -->
+<div id="loading-overlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Processing...</div>
+</div>
 <div class="page-header">
     <div>
         <h1 class="page-title">
@@ -590,6 +598,13 @@
         </div>
     </div>
     <div class="header-actions">
+        {% if po.status == 'DRAFT' %}
+        <button onclick="submitPoForApproval('{{ po.id }}')" class="btn btn-primary" id="submit-po-btn">
+            <i class="bi bi-send-check"></i>
+            Submit for Approval
+        </button>
+        {% endif %}
+        
         {% if po.status == 'DRAFT' or po.status == 'PENDING_APPROVAL' %}
         <a href="{% url 'po_update' po.id %}" class="btn btn-secondary">
             <i class="bi bi-pencil"></i>
@@ -1046,5 +1061,156 @@
         document.getElementById(tabName + '-tab').classList.add('active');
         event.currentTarget.classList.add('active');
     }
+</script>
+
+<script>
+// Toast notification function
+function showToast(type, title, message, duration = 5000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const toastId = 'toast-' + Date.now();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.id = toastId;
+    toast.innerHTML = `
+        <div class="toast-header">
+            <div class="toast-title">${title}</div>
+            <button class="toast-close" onclick="document.getElementById('${toastId}').remove()">×</button>
+        </div>
+        <div class="toast-message">${message}</div>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Show toast with animation
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Auto-remove after duration
+    if (duration > 0) {
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
+}
+
+// Show/hide loading overlay
+function showLoading(show = true) {
+    const overlay = document.getElementById('loading-overlay');
+    if (!overlay) return;
+    
+    if (show) {
+        overlay.classList.add('show');
+    } else {
+        overlay.classList.remove('show');
+    }
+}
+
+// Function to get CSRF token from cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Submit PO for approval API call
+function submitPoForApproval(poId) {
+    // Show loading overlay
+    showLoading(true);
+    
+    // Disable submit button to prevent multiple clicks
+    const submitBtn = document.getElementById('submit-po-btn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Submitting...';
+    }
+    
+    // Get CSRF token from cookie
+    const csrftoken = getCookie('csrftoken');
+    
+    if (!csrftoken) {
+        showToast('error', 'Error', 'CSRF token not found. Please refresh the page.');
+        showLoading(false);
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-send-check"></i> Submit for Approval';
+        }
+        return;
+    }
+    
+    // Make AJAX POST request
+    fetch(`/api/po/${poId}/submit/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({})
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast('success', 'Success', data.message);
+            
+            // Update UI after successful submission
+            if (submitBtn) {
+                submitBtn.remove(); // Remove submit button
+            }
+            
+            // Update status display
+            const statusElement = document.querySelector('.status-badge');
+            if (statusElement && data.data) {
+                statusElement.textContent = data.data.status_display;
+                statusElement.className = `status-badge status-${data.data.status.toLowerCase()}`;
+            }
+            
+            // Reload page after 2 seconds to show updated status
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+            
+        } else {
+            showToast('error', 'Error', data.message);
+            
+            // Re-enable submit button on error
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-send-check"></i> Submit for Approval';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting PO:', error);
+        showToast('error', 'Error', 'Failed to submit PO. Please try again.');
+        
+        // Re-enable submit button on error
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-send-check"></i> Submit for Approval';
+        }
+    })
+    .finally(() => {
+        // Hide loading overlay
+        showLoading(false);
+    });
+}
 </script>
 {% endblock %}
