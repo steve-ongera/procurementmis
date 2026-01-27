@@ -15483,60 +15483,200 @@ def procurement_dashboard_view(request):
 
 @login_required
 def procurement_analytics_view(request):
-    """Procurement analytics and insights"""
+    """Procurement analytics and insights with interactive charts"""
     if not check_procurement_permission(request.user):
         messages.error(request, 'You do not have procurement officer permissions.')
         return redirect('dashboard')
     
     # Date range filter
-    date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
-    date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+    date_from_str = request.GET.get('date_from', (timezone.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
+    date_to_str = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
     
-    # Spend analysis
+    date_from = timezone.datetime.strptime(date_from_str, '%Y-%m-%d').date()
+    date_to = timezone.datetime.strptime(date_to_str, '%Y-%m-%d').date()
+    
+    # ====================
+    # KEY METRICS
+    # ====================
+    
+    # Total spend
     total_spend = PurchaseOrder.objects.filter(
         po_date__gte=date_from,
         po_date__lte=date_to,
-        status__in=['APPROVED', 'SENT', 'DELIVERED']
-    ).aggregate(total=Sum('total_amount'))['total'] or 0
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'PARTIAL_DELIVERY', 'DELIVERED', 'CLOSED']
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     
-    # Department spending
+    # Total orders
+    total_orders = PurchaseOrder.objects.filter(
+        po_date__gte=date_from,
+        po_date__lte=date_to
+    ).count()
+    
+    # Active suppliers
+    active_suppliers = PurchaseOrder.objects.filter(
+        po_date__gte=date_from,
+        po_date__lte=date_to
+    ).values('supplier').distinct().count()
+    
+    # Average processing time (requisition submitted to approved)
+    from django.db.models import F, ExpressionWrapper, fields
+    from django.db.models.functions import Coalesce
+    
+    approved_requisitions = Requisition.objects.filter(
+        status='APPROVED',
+        submitted_at__isnull=False,
+        submitted_at__gte=date_from,
+        updated_at__lte=date_to
+    )
+    
+    # Calculate processing time in days
+    processing_times = []
+    for req in approved_requisitions:
+        if req.submitted_at:
+            days = (req.updated_at.date() - req.submitted_at.date()).days
+            processing_times.append(days)
+    
+    avg_processing_time = sum(processing_times) / len(processing_times) if processing_times else 0
+    
+    # ====================
+    # GRAPH 1: MONTHLY SPENDING TREND
+    # ====================
+    from django.db.models.functions import TruncMonth
+    
+    monthly_spending = PurchaseOrder.objects.filter(
+        po_date__gte=date_from,
+        po_date__lte=date_to,
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'PARTIAL_DELIVERY', 'DELIVERED', 'CLOSED']
+    ).annotate(
+        month=TruncMonth('po_date')
+    ).values('month').annotate(
+        total=Sum('total_amount'),
+        count=Count('id')
+    ).order_by('month')
+    
+    # Format for chart
+    monthly_labels = [item['month'].strftime('%b %Y') for item in monthly_spending]
+    monthly_values = [float(item['total']) for item in monthly_spending]
+    monthly_counts = [item['count'] for item in monthly_spending]
+    
+    # ====================
+    # GRAPH 2: DEPARTMENT SPENDING (TOP 10)
+    # ====================
     dept_spending = PurchaseOrder.objects.filter(
         po_date__gte=date_from,
         po_date__lte=date_to,
-        status__in=['APPROVED', 'SENT', 'DELIVERED']
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'PARTIAL_DELIVERY', 'DELIVERED', 'CLOSED']
     ).values(
         'requisition__department__name'
     ).annotate(
-        total=Sum('total_amount')
+        total=Sum('total_amount'),
+        order_count=Count('id')
     ).order_by('-total')[:10]
     
-    # Supplier performance
+    # Format for chart
+    dept_labels = [item['requisition__department__name'] or 'Unknown' for item in dept_spending]
+    dept_values = [float(item['total']) for item in dept_spending]
+    dept_counts = [item['order_count'] for item in dept_spending]
+    
+    # ====================
+    # GRAPH 3: SUPPLIER PERFORMANCE (TOP 10)
+    # ====================
     supplier_stats = PurchaseOrder.objects.filter(
         po_date__gte=date_from,
         po_date__lte=date_to
     ).values(
-        'supplier__name'
+        'supplier__name',
+        'supplier__id'
     ).annotate(
         order_count=Count('id'),
         total_value=Sum('total_amount')
     ).order_by('-total_value')[:10]
     
-    # Processing times
-    avg_processing_time = Requisition.objects.filter(
-        status='APPROVED',
-        submitted_at__gte=date_from,
-        updated_at__lte=date_to
+    # Format for chart
+    supplier_labels = [item['supplier__name'] for item in supplier_stats]
+    supplier_order_counts = [item['order_count'] for item in supplier_stats]
+    supplier_values = [float(item['total_value']) for item in supplier_stats]
+    
+    # ====================
+    # ADDITIONAL ANALYTICS
+    # ====================
+    
+    # Procurement method distribution
+    procurement_methods = Tender.objects.filter(
+        created_at__gte=date_from,
+        created_at__lte=date_to
+    ).values('procurement_method').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # Status distribution
+    order_status_dist = PurchaseOrder.objects.filter(
+        po_date__gte=date_from,
+        po_date__lte=date_to
+    ).values('status').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # Top items by quantity ordered
+    top_items = PurchaseOrderItem.objects.filter(
+        purchase_order__po_date__gte=date_from,
+        purchase_order__po_date__lte=date_to
+    ).values(
+        'item_description'
     ).annotate(
-        processing_days=(timezone.now() - timezone.now())  # Placeholder
-    ).count()
+        total_quantity=Sum('quantity'),
+        total_value=Sum('total_price')
+    ).order_by('-total_value')[:10]
+    
+    # Budget utilization
+    budget_utilization = Budget.objects.filter(
+        is_active=True
+    ).annotate(
+        utilization_percentage=ExpressionWrapper(
+            (F('committed_amount') + F('actual_spent')) * 100.0 / F('allocated_amount'),
+            output_field=fields.FloatField()
+        )
+    ).values(
+        'department__name',
+        'category__name',
+        'allocated_amount',
+        'committed_amount',
+        'actual_spent',
+        'utilization_percentage'
+    ).order_by('-utilization_percentage')[:10]
     
     context = {
-        'date_from': date_from,
-        'date_to': date_to,
+        'date_from': date_from_str,
+        'date_to': date_to_str,
+        
+        # Key metrics
         'total_spend': total_spend,
+        'total_orders': total_orders,
+        'active_suppliers': active_suppliers,
+        'avg_processing_time': round(avg_processing_time, 1),
+        
+        # Graph 1: Monthly Spending Trend
+        'monthly_labels': json.dumps(monthly_labels),
+        'monthly_values': json.dumps(monthly_values),
+        'monthly_counts': json.dumps(monthly_counts),
+        
+        # Graph 2: Department Spending
+        'dept_labels': json.dumps(dept_labels),
+        'dept_values': json.dumps(dept_values),
+        'dept_counts': dept_counts,
+        
+        # Graph 3: Supplier Performance
+        'supplier_labels': json.dumps(supplier_labels),
+        'supplier_order_counts': json.dumps(supplier_order_counts),
+        'supplier_values': json.dumps(supplier_values),
+        
+        # Additional data
         'dept_spending': dept_spending,
         'supplier_stats': supplier_stats,
-        'avg_processing_time': avg_processing_time,
+        'procurement_methods': procurement_methods,
+        'order_status_dist': order_status_dist,
+        'top_items': top_items,
+        'budget_utilization': budget_utilization,
     }
     
     return render(request, 'procurement/procurement_module/analytics.html', context)
