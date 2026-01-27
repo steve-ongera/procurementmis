@@ -19888,3 +19888,728 @@ def auditor_help_center_view(request):
         return redirect('dashboard')
     
     return render(request, 'auditor/help_center.html')
+
+
+# ============================================================================
+# PROFILE VIEWS - Role-based profile routing and display
+# ============================================================================
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Sum, Count, Q
+from decimal import Decimal
+from datetime import timedelta
+from django.utils import timezone
+
+@login_required
+def profile_view(request):
+    """
+    Main profile view that routes to role-specific profile
+    """
+    user = request.user
+    
+    # Route based on user role
+    role_routes = {
+        'STAFF': 'staff_profile',
+        'HOD': 'hod_profile',
+        'PROCUREMENT': 'procurement_profile',
+        'FINANCE': 'finance_profile',
+        'STORES': 'stores_profile',
+        'SUPPLIER': 'supplier_profile',
+        'AUDITOR': 'auditor_profile',
+        'ADMIN': 'admin_profile',
+    }
+    
+    route = role_routes.get(user.role)
+    if route:
+        return redirect(route)
+    
+    # Fallback to generic profile
+    return redirect('generic_profile')
+
+
+# ============================================================================
+# STAFF PROFILE
+# ============================================================================
+
+@login_required
+def staff_profile(request):
+    """Staff member profile view"""
+    user = request.user
+    
+    if user.role != 'STAFF':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Get user's requisitions stats
+    total_requisitions = Requisition.objects.filter(requested_by=user).count()
+    pending_requisitions = Requisition.objects.filter(
+        requested_by=user,
+        status__in=['DRAFT', 'SUBMITTED']
+    ).count()
+    approved_requisitions = Requisition.objects.filter(
+        requested_by=user,
+        status='APPROVED'
+    ).count()
+    rejected_requisitions = Requisition.objects.filter(
+        requested_by=user,
+        status='REJECTED'
+    ).count()
+    
+    # Recent requisitions
+    recent_requisitions = Requisition.objects.filter(
+        requested_by=user
+    ).select_related('department', 'budget').order_by('-created_at')[:5]
+    
+    # Total value of approved requisitions
+    total_value = Requisition.objects.filter(
+        requested_by=user,
+        status='APPROVED'
+    ).aggregate(total=Sum('estimated_amount'))['total'] or Decimal('0')
+    
+    # Recent activities (audit logs)
+    recent_activities = AuditLog.objects.filter(
+        user=user
+    ).order_by('-timestamp')[:10]
+    
+    context = {
+        'user': user,
+        'total_requisitions': total_requisitions,
+        'pending_requisitions': pending_requisitions,
+        'approved_requisitions': approved_requisitions,
+        'rejected_requisitions': rejected_requisitions,
+        'recent_requisitions': recent_requisitions,
+        'total_value': total_value,
+        'recent_activities': recent_activities,
+    }
+    
+    return render(request, 'profiles/staff_profile.html', context)
+
+
+# ============================================================================
+# HOD PROFILE
+# ============================================================================
+
+@login_required
+def hod_profile(request):
+    """Head of Department profile view"""
+    user = request.user
+    
+    if user.role != 'HOD':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Get department
+    department = user.head_of.first() if hasattr(user, 'head_of') else user.department
+    
+    # Approval statistics
+    total_approvals = RequisitionApproval.objects.filter(
+        approver=user,
+        approval_stage='HOD'
+    ).count()
+    
+    pending_approvals = RequisitionApproval.objects.filter(
+        approver=user,
+        approval_stage='HOD',
+        status='PENDING'
+    ).count()
+    
+    approved_count = RequisitionApproval.objects.filter(
+        approver=user,
+        approval_stage='HOD',
+        status='APPROVED'
+    ).count()
+    
+    rejected_count = RequisitionApproval.objects.filter(
+        approver=user,
+        approval_stage='HOD',
+        status='REJECTED'
+    ).count()
+    
+    # Department requisitions
+    if department:
+        dept_requisitions = Requisition.objects.filter(
+            department=department
+        ).count()
+        
+        dept_budget = Budget.objects.filter(
+            department=department,
+            is_active=True
+        ).aggregate(
+            total_allocated=Sum('allocated_amount'),
+            total_spent=Sum('actual_spent')
+        )
+    else:
+        dept_requisitions = 0
+        dept_budget = {'total_allocated': 0, 'total_spent': 0}
+    
+    # Recent approvals
+    recent_approvals = RequisitionApproval.objects.filter(
+        approver=user,
+        approval_stage='HOD'
+    ).select_related('requisition', 'requisition__department').order_by('-created_at')[:5]
+    
+    # Staff in department
+    if department:
+        dept_staff = User.objects.filter(department=department, is_active=True).count()
+    else:
+        dept_staff = 0
+    
+    context = {
+        'user': user,
+        'department': department,
+        'total_approvals': total_approvals,
+        'pending_approvals': pending_approvals,
+        'approved_count': approved_count,
+        'rejected_count': rejected_count,
+        'dept_requisitions': dept_requisitions,
+        'dept_budget': dept_budget,
+        'recent_approvals': recent_approvals,
+        'dept_staff': dept_staff,
+    }
+    
+    return render(request, 'profiles/hod_profile.html', context)
+
+
+# ============================================================================
+# PROCUREMENT OFFICER PROFILE
+# ============================================================================
+
+@login_required
+def procurement_profile(request):
+    """Procurement Officer profile view"""
+    user = request.user
+    
+    if user.role != 'PROCUREMENT':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Procurement statistics
+    total_tenders = Tender.objects.filter(created_by=user).count()
+    active_tenders = Tender.objects.filter(
+        created_by=user,
+        status__in=['PUBLISHED', 'EVALUATING']
+    ).count()
+    
+    total_pos = PurchaseOrder.objects.filter(created_by=user).count()
+    pending_pos = PurchaseOrder.objects.filter(
+        created_by=user,
+        status__in=['DRAFT', 'PENDING_APPROVAL']
+    ).count()
+    
+    # Total procurement value
+    total_procurement_value = PurchaseOrder.objects.filter(
+        created_by=user,
+        status__in=['APPROVED', 'SENT', 'DELIVERED']
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    
+    # Recent tenders
+    recent_tenders = Tender.objects.filter(
+        created_by=user
+    ).select_related('requisition').order_by('-created_at')[:5]
+    
+    # Recent POs
+    recent_pos = PurchaseOrder.objects.filter(
+        created_by=user
+    ).select_related('supplier', 'requisition').order_by('-created_at')[:5]
+    
+    # Suppliers managed
+    suppliers_count = Supplier.objects.filter(created_by=user).count()
+    
+    # Pending requisitions for processing
+    pending_requisitions = Requisition.objects.filter(
+        status='APPROVED'
+    ).count()
+    
+    context = {
+        'user': user,
+        'total_tenders': total_tenders,
+        'active_tenders': active_tenders,
+        'total_pos': total_pos,
+        'pending_pos': pending_pos,
+        'total_procurement_value': total_procurement_value,
+        'recent_tenders': recent_tenders,
+        'recent_pos': recent_pos,
+        'suppliers_count': suppliers_count,
+        'pending_requisitions': pending_requisitions,
+    }
+    
+    return render(request, 'profiles/procurement_profile.html', context)
+
+
+# ============================================================================
+# FINANCE OFFICER PROFILE
+# ============================================================================
+
+@login_required
+def finance_profile(request):
+    """Finance Officer profile view"""
+    user = request.user
+    
+    if user.role != 'FINANCE':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Budget management stats
+    budgets_created = Budget.objects.filter(created_by=user).count()
+    active_budgets = Budget.objects.filter(
+        created_by=user,
+        is_active=True
+    ).count()
+    
+    # Invoice statistics
+    invoices_verified = Invoice.objects.filter(verified_by=user).count()
+    invoices_approved = Invoice.objects.filter(approved_by=user).count()
+    
+    pending_invoices = Invoice.objects.filter(
+        status__in=['SUBMITTED', 'VERIFYING']
+    ).count()
+    
+    # Payment statistics
+    payments_processed = Payment.objects.filter(processed_by=user).count()
+    payments_approved = Payment.objects.filter(approved_by=user).count()
+    
+    total_payments_value = Payment.objects.filter(
+        processed_by=user,
+        status='COMPLETED'
+    ).aggregate(total=Sum('payment_amount'))['total'] or Decimal('0')
+    
+    # Recent invoices
+    recent_invoices = Invoice.objects.filter(
+        Q(verified_by=user) | Q(approved_by=user)
+    ).select_related('supplier', 'purchase_order').order_by('-created_at')[:5]
+    
+    # Recent payments
+    recent_payments = Payment.objects.filter(
+        Q(processed_by=user) | Q(approved_by=user)
+    ).select_related('invoice', 'invoice__supplier').order_by('-created_at')[:5]
+    
+    # Pending approvals
+    pending_budget_approvals = RequisitionApproval.objects.filter(
+        approver=user,
+        approval_stage='BUDGET',
+        status='PENDING'
+    ).count()
+    
+    context = {
+        'user': user,
+        'budgets_created': budgets_created,
+        'active_budgets': active_budgets,
+        'invoices_verified': invoices_verified,
+        'invoices_approved': invoices_approved,
+        'pending_invoices': pending_invoices,
+        'payments_processed': payments_processed,
+        'payments_approved': payments_approved,
+        'total_payments_value': total_payments_value,
+        'recent_invoices': recent_invoices,
+        'recent_payments': recent_payments,
+        'pending_budget_approvals': pending_budget_approvals,
+    }
+    
+    return render(request, 'profiles/finance_profile.html', context)
+
+
+# ============================================================================
+# STORES OFFICER PROFILE
+# ============================================================================
+
+@login_required
+def stores_profile(request):
+    """Stores Officer profile view"""
+    user = request.user
+    
+    if user.role != 'STORES':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Stores managed
+    stores_managed = Store.objects.filter(store_keeper=user).count()
+    
+    # GRN statistics
+    grns_received = GoodsReceivedNote.objects.filter(received_by=user).count()
+    grns_inspected = GoodsReceivedNote.objects.filter(inspected_by=user).count()
+    
+    pending_grns = GoodsReceivedNote.objects.filter(
+        status__in=['DRAFT', 'INSPECTING']
+    ).count()
+    
+    # Stock issues
+    issues_processed = StockIssue.objects.filter(issued_by=user).count()
+    pending_issues = StockIssue.objects.filter(
+        status='PENDING'
+    ).count()
+    
+    # Stock items in managed stores
+    stores = Store.objects.filter(store_keeper=user)
+    total_stock_items = StockItem.objects.filter(store__in=stores).count()
+    
+    low_stock_items = StockItem.objects.filter(
+        store__in=stores,
+        quantity_on_hand__lte=F('reorder_level')
+    ).count()
+    
+    # Total stock value
+    total_stock_value = StockItem.objects.filter(
+        store__in=stores
+    ).aggregate(total=Sum('total_value'))['total'] or Decimal('0')
+    
+    # Recent GRNs
+    recent_grns = GoodsReceivedNote.objects.filter(
+        Q(received_by=user) | Q(inspected_by=user)
+    ).select_related('purchase_order', 'store').order_by('-created_at')[:5]
+    
+    # Recent stock issues
+    recent_issues = StockIssue.objects.filter(
+        issued_by=user
+    ).select_related('department', 'store').order_by('-created_at')[:5]
+    
+    # Assets registered
+    assets_registered = Asset.objects.filter(
+        grn__received_by=user
+    ).count()
+    
+    context = {
+        'user': user,
+        'stores_managed': stores_managed,
+        'grns_received': grns_received,
+        'grns_inspected': grns_inspected,
+        'pending_grns': pending_grns,
+        'issues_processed': issues_processed,
+        'pending_issues': pending_issues,
+        'total_stock_items': total_stock_items,
+        'low_stock_items': low_stock_items,
+        'total_stock_value': total_stock_value,
+        'recent_grns': recent_grns,
+        'recent_issues': recent_issues,
+        'assets_registered': assets_registered,
+        'stores': stores,
+    }
+    
+    return render(request, 'profiles/stores_profile.html', context)
+
+
+# ============================================================================
+# SUPPLIER PROFILE
+# ============================================================================
+
+@login_required
+def supplier_profile(request):
+    """Supplier profile view"""
+    user = request.user
+    
+    if user.role != 'SUPPLIER':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Get supplier record
+    try:
+        supplier = Supplier.objects.get(user=user)
+    except Supplier.DoesNotExist:
+        messages.error(request, 'Supplier profile not found.')
+        return redirect('dashboard')
+    
+    # Bid statistics
+    total_bids = Bid.objects.filter(supplier=supplier).count()
+    won_bids = Bid.objects.filter(supplier=supplier, status='AWARDED').count()
+    pending_bids = Bid.objects.filter(
+        supplier=supplier,
+        status__in=['SUBMITTED', 'EVALUATING']
+    ).count()
+    
+    # Purchase orders
+    total_pos = PurchaseOrder.objects.filter(supplier=supplier).count()
+    active_pos = PurchaseOrder.objects.filter(
+        supplier=supplier,
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'PARTIAL_DELIVERY']
+    ).count()
+    
+    # Total business value
+    total_business_value = PurchaseOrder.objects.filter(
+        supplier=supplier,
+        status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'DELIVERED', 'CLOSED']
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    
+    # Invoices
+    total_invoices = Invoice.objects.filter(supplier=supplier).count()
+    pending_invoices = Invoice.objects.filter(
+        supplier=supplier,
+        status__in=['SUBMITTED', 'VERIFYING', 'APPROVED']
+    ).count()
+    paid_invoices = Invoice.objects.filter(
+        supplier=supplier,
+        status='PAID'
+    ).count()
+    
+    # Payment statistics
+    total_payments = Payment.objects.filter(
+        invoice__supplier=supplier,
+        status='COMPLETED'
+    ).aggregate(total=Sum('payment_amount'))['total'] or Decimal('0')
+    
+    # Recent tenders
+    recent_tenders = Tender.objects.filter(
+        Q(invited_suppliers=supplier) | Q(bids__supplier=supplier)
+    ).distinct().order_by('-created_at')[:5]
+    
+    # Recent POs
+    recent_pos = PurchaseOrder.objects.filter(
+        supplier=supplier
+    ).order_by('-created_at')[:5]
+    
+    # Performance rating
+    avg_rating = SupplierPerformance.objects.filter(
+        supplier=supplier
+    ).aggregate(avg=models.Avg('overall_rating'))['avg'] or Decimal('0')
+    
+    # Document compliance
+    total_documents = SupplierDocument.objects.filter(supplier=supplier).count()
+    verified_documents = SupplierDocument.objects.filter(
+        supplier=supplier,
+        is_verified=True
+    ).count()
+    
+    context = {
+        'user': user,
+        'supplier': supplier,
+        'total_bids': total_bids,
+        'won_bids': won_bids,
+        'pending_bids': pending_bids,
+        'total_pos': total_pos,
+        'active_pos': active_pos,
+        'total_business_value': total_business_value,
+        'total_invoices': total_invoices,
+        'pending_invoices': pending_invoices,
+        'paid_invoices': paid_invoices,
+        'total_payments': total_payments,
+        'recent_tenders': recent_tenders,
+        'recent_pos': recent_pos,
+        'avg_rating': avg_rating,
+        'total_documents': total_documents,
+        'verified_documents': verified_documents,
+    }
+    
+    return render(request, 'profiles/supplier_profile.html', context)
+
+
+# ============================================================================
+# AUDITOR PROFILE
+# ============================================================================
+
+@login_required
+def auditor_profile(request):
+    """Auditor profile view"""
+    user = request.user
+    
+    if user.role != 'AUDITOR':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Audit statistics (last 90 days)
+    last_90_days = timezone.now() - timedelta(days=90)
+    
+    requisitions_reviewed = Requisition.objects.filter(
+        created_at__gte=last_90_days
+    ).count()
+    
+    pos_reviewed = PurchaseOrder.objects.filter(
+        created_at__gte=last_90_days
+    ).count()
+    
+    payments_reviewed = Payment.objects.filter(
+        created_at__gte=last_90_days
+    ).count()
+    
+    # Flagged items (using notes as proxy)
+    flagged_requisitions = Requisition.objects.filter(
+        notes__icontains='audit'
+    ).count()
+    
+    # System audit logs
+    total_audit_logs = AuditLog.objects.filter(
+        timestamp__gte=last_90_days
+    ).count()
+    
+    # Recent system activities
+    recent_activities = AuditLog.objects.select_related(
+        'user'
+    ).order_by('-timestamp')[:20]
+    
+    # Compliance checks
+    non_compliant_suppliers = Supplier.objects.filter(
+        Q(tax_compliance_expiry__lt=timezone.now().date()) |
+        Q(registration_expiry__lt=timezone.now().date())
+    ).count()
+    
+    # Budget overruns
+    budget_overruns = Budget.objects.filter(
+        is_active=True
+    ).annotate(
+        total_used=F('committed_amount') + F('actual_spent')
+    ).filter(
+        total_used__gt=F('allocated_amount')
+    ).count()
+    
+    # Recent requisitions for audit
+    recent_requisitions = Requisition.objects.select_related(
+        'department',
+        'requested_by'
+    ).order_by('-created_at')[:10]
+    
+    # Recent payments for audit
+    recent_payments = Payment.objects.select_related(
+        'invoice',
+        'invoice__supplier'
+    ).order_by('-created_at')[:10]
+    
+    context = {
+        'user': user,
+        'requisitions_reviewed': requisitions_reviewed,
+        'pos_reviewed': pos_reviewed,
+        'payments_reviewed': payments_reviewed,
+        'flagged_requisitions': flagged_requisitions,
+        'total_audit_logs': total_audit_logs,
+        'recent_activities': recent_activities,
+        'non_compliant_suppliers': non_compliant_suppliers,
+        'budget_overruns': budget_overruns,
+        'recent_requisitions': recent_requisitions,
+        'recent_payments': recent_payments,
+    }
+    
+    return render(request, 'profiles/auditor_profile.html', context)
+
+
+# ============================================================================
+# ADMIN PROFILE
+# ============================================================================
+
+@login_required
+def admin_profile(request):
+    """System Administrator profile view"""
+    user = request.user
+    
+    if user.role != 'ADMIN':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # System statistics
+    total_users = User.objects.filter(is_active=True).count()
+    total_departments = Department.objects.filter(is_active=True).count()
+    total_suppliers = Supplier.objects.count()
+    
+    # Activity statistics (last 30 days)
+    last_30_days = timezone.now() - timedelta(days=30)
+    
+    recent_logins = AuditLog.objects.filter(
+        action='LOGIN',
+        timestamp__gte=last_30_days
+    ).values('user').distinct().count()
+    
+    recent_activities = AuditLog.objects.filter(
+        timestamp__gte=last_30_days
+    ).count()
+    
+    # User distribution by role
+    users_by_role = User.objects.filter(
+        is_active=True
+    ).values('role').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # System configurations
+    total_configs = SystemConfiguration.objects.count()
+    
+    # Recent audit logs
+    recent_logs = AuditLog.objects.select_related(
+        'user'
+    ).order_by('-timestamp')[:15]
+    
+    # System health checks
+    pending_requisitions = Requisition.objects.filter(
+        status='SUBMITTED'
+    ).count()
+    
+    pending_invoices = Invoice.objects.filter(
+        status__in=['SUBMITTED', 'VERIFYING']
+    ).count()
+    
+    low_stock_count = StockItem.objects.filter(
+        quantity_on_hand__lte=F('reorder_level')
+    ).count()
+    
+    # Users created by admin
+    users_created = User.objects.filter(is_active=True).count()
+    
+    # Recent user activities
+    recent_user_activities = AuditLog.objects.select_related(
+        'user'
+    ).order_by('-timestamp')[:10]
+    
+    context = {
+        'user': user,
+        'total_users': total_users,
+        'total_departments': total_departments,
+        'total_suppliers': total_suppliers,
+        'recent_logins': recent_logins,
+        'recent_activities': recent_activities,
+        'users_by_role': users_by_role,
+        'total_configs': total_configs,
+        'recent_logs': recent_logs,
+        'pending_requisitions': pending_requisitions,
+        'pending_invoices': pending_invoices,
+        'low_stock_count': low_stock_count,
+        'users_created': users_created,
+        'recent_user_activities': recent_user_activities,
+    }
+    
+    return render(request, 'profiles/admin_profile.html', context)
+
+
+# ============================================================================
+# GENERIC PROFILE (Fallback)
+# ============================================================================
+
+@login_required
+def generic_profile(request):
+    """Generic profile for users without specific role"""
+    user = request.user
+    
+    # Basic user info
+    recent_activities = AuditLog.objects.filter(
+        user=user
+    ).order_by('-timestamp')[:10]
+    
+    context = {
+        'user': user,
+        'recent_activities': recent_activities,
+    }
+    
+    return render(request, 'profiles/generic_profile.html', context)
+
+
+# ============================================================================
+# PROFILE UPDATE VIEW
+# ============================================================================
+
+@login_required
+def profile_update(request):
+    """Update user profile information"""
+    user = request.user
+    
+    if request.method == 'POST':
+        # Update basic fields
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        user.phone_number = request.POST.get('phone_number', user.phone_number)
+        
+        # Handle profile picture upload
+        if request.FILES.get('profile_picture'):
+            user.profile_picture = request.FILES['profile_picture']
+        
+        user.save()
+        
+        messages.success(request, 'Profile updated successfully.')
+        return redirect('profile')
+    
+    return render(request, 'profiles/profile_update.html', {'user': user})
