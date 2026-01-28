@@ -12997,6 +12997,72 @@ from datetime import timedelta
 import traceback
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
+from django.http import JsonResponse
+from decimal import Decimal
+from datetime import timedelta
+import traceback
+import random
+
+
+@login_required
+def get_po_details(request, po_id):
+    """AJAX endpoint to get PO details and items when PO is selected"""
+    try:
+        supplier = request.user.supplier_profile
+        po = get_object_or_404(PurchaseOrder, id=po_id, supplier=supplier)
+        
+        print(f"=== Fetching PO Details for AJAX ===")
+        print(f"PO: {po.po_number}")
+        
+        # Get PO items
+        po_items = []
+        for item in po.items.all():
+            po_items.append({
+                'id': str(item.id),
+                'description': item.item_description,
+                'specifications': item.specifications,
+                'quantity': str(item.quantity),
+                'unit_of_measure': item.unit_of_measure,
+                'unit_price': str(item.unit_price),
+                'total_price': str(item.total_price),
+            })
+        
+        print(f"Found {len(po_items)} items")
+        
+        # Generate suggested invoice number based on supplier code and date
+        supplier_code = po.supplier.supplier_number[-4:] if len(po.supplier.supplier_number) >= 4 else po.supplier.supplier_number
+        date_code = timezone.now().strftime('%Y%m%d')
+        random_suffix = random.randint(100, 999)
+        suggested_invoice_number = f"INV-{supplier_code}-{date_code}-{random_suffix}"
+        
+        print(f"Generated suggested invoice number: {suggested_invoice_number}")
+        
+        return JsonResponse({
+            'success': True,
+            'po_number': po.po_number,
+            'po_date': po.po_date.strftime('%Y-%m-%d'),
+            'department': po.requisition.department.name,
+            'total_amount': str(po.total_amount),
+            'delivery_date': po.delivery_date.strftime('%Y-%m-%d'),
+            'items': po_items,
+            'suggested_invoice_number': suggested_invoice_number,
+        })
+        
+    except Exception as e:
+        print(f"ERROR in get_po_details: {e}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
 @login_required
 def supplier_submit_invoice(request, po_id=None):
     """Submit a new invoice"""
@@ -13200,12 +13266,20 @@ def supplier_submit_invoice(request, po_id=None):
         
         initial = {}
         if po:
+            # Generate suggested invoice number
+            supplier_code = supplier.supplier_number[-4:] if len(supplier.supplier_number) >= 4 else supplier.supplier_number
+            date_code = timezone.now().strftime('%Y%m%d')
+            random_suffix = random.randint(100, 999)
+            suggested_invoice_number = f"INV-{supplier_code}-{date_code}-{random_suffix}"
+            
             initial = {
                 'purchase_order': po,
+                'supplier_invoice_number': suggested_invoice_number,
                 'invoice_date': timezone.now().date(),
                 'due_date': timezone.now().date() + timedelta(days=30)
             }
             print(f"Initial data set for PO: {po.po_number}")
+            print(f"Suggested invoice number: {suggested_invoice_number}")
         
         invoice_form = InvoiceForm(initial=initial, supplier=supplier)
         

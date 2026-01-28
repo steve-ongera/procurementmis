@@ -247,6 +247,8 @@ urlpatterns = [
     path('supplier/invoices/submit/<uuid:po_id>/', views.supplier_submit_invoice, name='supplier_submit_invoice_for_po'),
     path('supplier/payments/', views.supplier_payments, name='supplier_payments'),
     path('supplier/payment-history/', views.supplier_payment_history, name='supplier_payment_history'),
+    # AJAX endpoint for getting PO details
+    path('supplier/get-po-details/<uuid:po_id>/', views.get_po_details, name='get_po_details'),
     
     # Profile & Documents
     path('supplier/profile/', views.supplier_company_profile, name='supplier_company_profile'),
