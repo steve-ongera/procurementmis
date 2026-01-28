@@ -82,6 +82,11 @@
         white-space: nowrap;
     }
 
+    .btn-sm {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+    }
+
     .btn-secondary {
         background: #F1F5F9;
         color: #475569;
@@ -139,6 +144,252 @@
         background: #DC2626;
         border-color: #DC2626;
         transform: translateY(-1px);
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .modal-container {
+        background: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        max-width: 600px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .modal-title i {
+        color: var(--primary-color);
+        font-size: 1.5rem;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #94A3B8;
+        cursor: pointer;
+        padding: 0;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.375rem;
+        transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+        background: #F1F5F9;
+        color: #475569;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        padding: 1.5rem;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #334155;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-label.required::after {
+        content: " *";
+        color: #EF4444;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #E2E8F0;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        color: #1E293B;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-control:disabled {
+        background: #F8FAFC;
+        color: #94A3B8;
+        cursor: not-allowed;
+    }
+
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5rem;
+        padding-right: 2.5rem;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-help {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-top: 0.375rem;
+    }
+
+    .form-error {
+        font-size: 0.75rem;
+        color: #EF4444;
+        margin-top: 0.375rem;
+        display: none;
+    }
+
+    .form-error.active {
+        display: block;
+    }
+
+    /* Member Selection */
+    .member-item {
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        margin-bottom: 0.75rem;
+        background: #F8FAFC;
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .member-item-content {
+        flex: 1;
+    }
+
+    .member-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 0.5rem;
+    }
+
+    .member-name {
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .member-role {
+        font-size: 0.75rem;
+        color: #64748B;
+    }
+
+    .btn-remove-item {
+        background: #FEE2E2;
+        color: #B91C1C;
+        border: 1px solid #FECACA;
+        padding: 0.375rem 0.625rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-remove-item:hover {
+        background: #FECACAhove;
+        border-color: #B91C1C;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     /* Status Banner */
@@ -235,6 +486,9 @@
         padding: 1.25rem 1.5rem;
         border-bottom: 1px solid var(--border-color);
         background: var(--table-header);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
 
     .card-header h2 {
@@ -413,6 +667,11 @@
         color: #64748B; 
         border-color: #E2E8F0;
     }
+    .badge-active { 
+        background: #D1FAE5; 
+        color: #047857; 
+        border-color: #A7F3D0;
+    }
 
     /* Action Button */
     .action-btn {
@@ -428,6 +687,7 @@
         border: 1px solid var(--primary-light);
         text-decoration: none;
         transition: all 0.2s;
+        cursor: pointer;
     }
 
     .action-btn:hover {
@@ -454,6 +714,33 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
+    /* Alert Messages */
+    .alert {
+        padding: 1rem 1.25rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: start;
+        gap: 0.75rem;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        border: 1px solid #A7F3D0;
+        color: #047857;
+    }
+
+    .alert-error {
+        background: #FEE2E2;
+        border: 1px solid #FECACA;
+        color: #B91C1C;
+    }
+
+    .alert i {
+        flex-shrink: 0;
+        font-size: 1.25rem;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .header-actions {
@@ -472,6 +759,13 @@
         .data-table th, 
         .data-table td {
             padding: 0.75rem 1rem;
+        }
+
+        .modal-container {
+            max-width: 100%;
+            margin: 0;
+            border-radius: 0;
+            max-height: 100vh;
         }
     }
 
@@ -707,6 +1001,225 @@
 </div>
 {% endif %}
 
+<!-- Evaluation Committee Section -->
+{% if tender.status in 'PUBLISHED,CLOSED,EVALUATING,AWARDED' %}
+<div class="info-card">
+    <div class="card-header">
+        <h2>
+            <i class="bi bi-people-fill"></i> Evaluation Committee
+            {% if committee_summary %}
+            <span class="badge badge-secondary" style="font-size: 0.75rem; margin-left: 0.5rem;">
+                {{ committee_summary.members_completed }}/{{ committee_summary.total_members }} Members Completed
+            </span>
+            {% endif %}
+        </h2>
+        {% if can_manage_committee %}
+        <div style="margin-left: auto;">
+            {% if not committee %}
+            <button type="button" class="btn btn-success btn-sm" id="btnCreateCommittee">
+                <i class="bi bi-plus-circle"></i>
+                Create Committee
+            </button>
+            {% else %}
+            <button type="button" class="btn btn-info btn-sm" id="btnAddMember">
+                <i class="bi bi-person-plus"></i>
+                Add Member
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if committee %}
+        <!-- Committee Info -->
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: #F8FAFC; border-radius: 0.375rem;">
+            <div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div>
+                    <div style="font-size: 0.75rem; color: #64748B; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Committee Number</div>
+                    <div style="font-weight: 600;">{{ committee.committee_number }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: #64748B; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Type</div>
+                    <div>{{ committee.get_committee_type_display }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: #64748B; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Chairperson</div>
+                    <div>{{ committee.chairperson.get_full_name }}</div>
+                </div>
+                {% if committee.secretary %}
+                <div>
+                    <div style="font-size: 0.75rem; color: #64748B; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Secretary</div>
+                    <div>{{ committee.secretary.get_full_name }}</div>
+                </div>
+                {% endif %}
+                <div>
+                    <div style="font-size: 0.75rem; color: #64748B; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Appointment Date</div>
+                    <div>{{ committee.appointment_date|date:"M d, Y" }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: #64748B; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Status</div>
+                    <div>
+                        <span class="badge badge-{{ committee.status|lower }}">
+                            {{ committee.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            {% if committee_summary %}
+            <!-- Progress Bar -->
+            <div style="margin-top: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span style="font-size: 0.75rem; font-weight: 600; color: #64748B;">EVALUATION PROGRESS</span>
+                    <span style="font-size: 0.875rem; font-weight: 600;">{{ committee_summary.completion_percentage }}%</span>
+                </div>
+                <div style="height: 8px; background: #E2E8F0; border-radius: 1rem; overflow: hidden;">
+                    <div style="height: 100%; background: linear-gradient(90deg, #10B981, #059669); width: {{ committee_summary.completion_percentage }}%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Committee Members Table -->
+        {% if committee_members %}
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th>Role</th>
+                        <th>Department</th>
+                        <th>Expertise</th>
+                        {% if committee.committee_type == 'TECHNICAL' or committee.committee_type == 'COMBINED' %}
+                        <th>Technical</th>
+                        {% endif %}
+                        {% if committee.committee_type == 'FINANCIAL' or committee.committee_type == 'COMBINED' %}
+                        <th>Financial</th>
+                        {% endif %}
+                        <th>Progress</th>
+                        <th>Status</th>
+                        <th>Conflict</th>
+                        {% if can_manage_committee %}
+                        <th>Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in committee_members %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600;">{{ member.user.get_full_name }}</div>
+                            <div style="font-size: 0.75rem; color: #64748B;">{{ member.user.email }}</div>
+                        </td>
+                        <td>
+                            <span class="badge badge-secondary">
+                                {{ member.role_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if member.department %}
+                            {{ member.department.code }}
+                            {% else %}
+                            <span style="color: #94A3B8;">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if member.expertise_area %}
+                            {{ member.expertise_area }}
+                            {% else %}
+                            <span style="color: #94A3B8;">-</span>
+                            {% endif %}
+                        </td>
+                        {% if committee.committee_type == 'TECHNICAL' or committee.committee_type == 'COMBINED' %}
+                        <td>
+                            <span style="font-family: monospace; font-weight: 600;">
+                                {{ member.technical_evaluated }}/{{ member.total_bids }}
+                            </span>
+                        </td>
+                        {% endif %}
+                        {% if committee.committee_type == 'FINANCIAL' or committee.committee_type == 'COMBINED' %}
+                        <td>
+                            <span style="font-family: monospace; font-weight: 600;">
+                                {{ member.financial_evaluated }}/{{ member.total_bids }}
+                            </span>
+                        </td>
+                        {% endif %}
+                        <td>
+                            <div style="min-width: 120px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                    <span style="font-size: 0.75rem; font-weight: 600;">{{ member.progress_percentage }}%</span>
+                                </div>
+                                <div style="height: 6px; background: #E2E8F0; border-radius: 1rem; overflow: hidden;">
+                                    <div style="height: 100%; background: {% if member.is_complete %}#10B981{% else %}#3B82F6{% endif %}; width: {{ member.progress_percentage }}%; transition: width 0.3s;"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if member.is_complete %}
+                            <span class="badge badge-qualified">
+                                <i class="bi bi-check-circle"></i>
+                                Complete
+                            </span>
+                            {% else %}
+                            <span class="badge badge-secondary">
+                                <i class="bi bi-clock"></i>
+                                Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if member.has_conflict %}
+                            <span class="badge badge-required" title="{{ member.conflict_details }}">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Yes
+                            </span>
+                            {% else %}
+                            <span class="badge badge-qualified">
+                                <i class="bi bi-check-circle"></i>
+                                No
+                            </span>
+                            {% endif %}
+                        </td>
+                        {% if can_manage_committee %}
+                        <td>
+                            {% if not member.is_complete %}
+                            <button type="button" class="action-btn btn-remove-member" data-member-id="{{ member.id }}" data-member-name="{{ member.user.get_full_name }}">
+                                <i class="bi bi-trash"></i>
+                                Remove
+                            </button>
+                            {% else %}
+                            <span style="color: #94A3B8; font-size: 0.75rem;">Has evaluated</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">No committee members assigned</p>
+        {% endif %}
+
+        {% else %}
+        <!-- No Committee Created -->
+        <div style="text-align: center; padding: 3rem 1rem;">
+            <i class="bi bi-people" style="font-size: 3rem; color: #CBD5E1; margin-bottom: 1rem;"></i>
+            <p style="color: #64748B; margin-bottom: 1.5rem;">
+                No evaluation committee has been created for this tender yet.
+            </p>
+            {% if can_manage_committee %}
+            <button type="button" class="btn btn-success" id="btnCreateCommitteeAlt">
+                <i class="bi bi-plus-circle"></i>
+                Create Evaluation Committee
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Evaluation Criteria -->
 <div class="info-card">
     <div class="card-header">
@@ -890,4 +1403,646 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Create Committee Modal -->
+<div class="modal-overlay" id="createCommitteeModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="bi bi-people-fill"></i>
+                Create Evaluation Committee
+            </h3>
+            <button type="button" class="modal-close" data-modal="createCommitteeModal">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <form id="createCommitteeForm">
+            <div class="modal-body">
+                <div id="committeeFormAlert"></div>
+
+                <div class="form-group">
+                    <label class="form-label required">Committee Name</label>
+                    <input type="text" class="form-control" id="committeeName" 
+                           value="Evaluation Committee - {{ tender.tender_number }}" required>
+                    <div class="form-help">A descriptive name for this committee</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Committee Type</label>
+                    <select class="form-control" id="committeeType" required>
+                        <option value="COMBINED">Combined (Technical & Financial)</option>
+                        <option value="TECHNICAL">Technical Evaluation Only</option>
+                        <option value="FINANCIAL">Financial Evaluation Only</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Chairperson</label>
+                    <select class="form-control" id="chairpersonId" required>
+                        <option value="">Select Chairperson...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Secretary</label>
+                    <select class="form-control" id="secretaryId">
+                        <option value="">Select Secretary (Optional)...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Appointment Date</label>
+                    <input type="date" class="form-control" id="appointmentDate" 
+                           value="{% now 'Y-m-d' %}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Terms of Reference</label>
+                    <textarea class="form-control" id="termsOfReference" rows="3"
+                              placeholder="Define the committee's responsibilities and scope..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Evaluation Guidelines</label>
+                    <textarea class="form-control" id="evaluationGuidelines" rows="3"
+                              placeholder="Specific guidelines for evaluation process..."></textarea>
+                </div>
+
+                <hr style="margin: 1.5rem 0;">
+
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <label class="form-label" style="margin: 0;">Committee Members</label>
+                        <button type="button" class="btn btn-sm btn-info" id="btnAddCommitteeMember">
+                            <i class="bi bi-plus-circle"></i>
+                            Add Member
+                        </button>
+                    </div>
+                    <div id="committeeMembers">
+                        <!-- Members will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal="createCommitteeModal">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-success" id="btnSubmitCommittee">
+                    <i class="bi bi-check-circle"></i>
+                    Create Committee
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Member to Existing Committee Modal -->
+<div class="modal-overlay" id="addMemberModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="bi bi-person-plus"></i>
+                Add Committee Member
+            </h3>
+            <button type="button" class="modal-close" data-modal="addMemberModal">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <form id="addMemberForm">
+            <div class="modal-body">
+                <div id="addMemberFormAlert"></div>
+
+                <div class="form-group">
+                    <label class="form-label required">Select Member</label>
+                    <select class="form-control" id="newMemberUserId" required>
+                        <option value="">Choose a user...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Role</label>
+                    <select class="form-control" id="newMemberRole" required>
+                        <option value="MEMBER">Member</option>
+                        <option value="CHAIRPERSON">Chairperson</option>
+                        <option value="SECRETARY">Secretary</option>
+                        <option value="OBSERVER">Observer</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Department</label>
+                    <select class="form-control" id="newMemberDeptId">
+                        <option value="">Select Department (Optional)...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Expertise Area</label>
+                    <input type="text" class="form-control" id="newMemberExpertise" 
+                           placeholder="e.g., Technical Specifications, Financial Analysis">
+                    <div class="form-help">Member's area of expertise relevant to evaluation</div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="newMemberConflict">
+                        <span class="form-label" style="margin: 0;">Has Conflict of Interest</span>
+                    </label>
+                </div>
+
+                <div class="form-group" id="conflictDetailsGroup" style="display: none;">
+                    <label class="form-label">Conflict Details</label>
+                    <textarea class="form-control" id="newMemberConflictDetails" rows="3"
+                              placeholder="Describe the conflict of interest..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal="addMemberModal">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-success" id="btnSubmitMember">
+                    <i class="bi bi-check-circle"></i>
+                    Add Member
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Member Selection Modal (for Create Committee) -->
+<div class="modal-overlay" id="selectMemberModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="bi bi-person-plus"></i>
+                Select Committee Member
+            </h3>
+            <button type="button" class="modal-close" data-modal="selectMemberModal">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <form id="selectMemberForm">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label required">Select User</label>
+                    <select class="form-control" id="selectMemberUserId" required>
+                        <option value="">Choose a user...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Role</label>
+                    <select class="form-control" id="selectMemberRole" required>
+                        <option value="MEMBER">Member</option>
+                        <option value="OBSERVER">Observer</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Department</label>
+                    <select class="form-control" id="selectMemberDeptId">
+                        <option value="">Select Department (Optional)...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Expertise Area</label>
+                    <input type="text" class="form-control" id="selectMemberExpertise" 
+                           placeholder="e.g., Technical Specifications">
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="selectMemberConflict">
+                        <span class="form-label" style="margin: 0;">Has Conflict of Interest</span>
+                    </label>
+                </div>
+
+                <div class="form-group" id="selectConflictDetailsGroup" style="display: none;">
+                    <label class="form-label">Conflict Details</label>
+                    <textarea class="form-control" id="selectMemberConflictDetails" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal="selectMemberModal">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i>
+                    Add to Committee
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+
+    const tenderId = '{{ tender.id }}';
+    const committeeId = '{{ committee.id|default:"" }}';
+    
+    let availableUsers = [];
+    let availableDepartments = [];
+    let selectedMembers = [];
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeModals();
+        initializeButtons();
+        loadAvailableUsers();
+        loadDepartments();
+    });
+
+    // Modal Management
+    function initializeModals() {
+        // Close modal buttons
+        document.querySelectorAll('.modal-close, [data-modal]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const modalId = this.getAttribute('data-modal');
+                if (modalId) {
+                    closeModal(modalId);
+                }
+            });
+        });
+
+        // Close on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal(this.id);
+                }
+            });
+        });
+
+        // Conflict checkbox toggles
+        document.getElementById('newMemberConflict').addEventListener('change', function() {
+            document.getElementById('conflictDetailsGroup').style.display = 
+                this.checked ? 'block' : 'none';
+        });
+
+        document.getElementById('selectMemberConflict').addEventListener('change', function() {
+            document.getElementById('selectConflictDetailsGroup').style.display = 
+                this.checked ? 'block' : 'none';
+        });
+    }
+
+    function initializeButtons() {
+        // Create Committee buttons
+        const btnCreate = document.getElementById('btnCreateCommittee');
+        const btnCreateAlt = document.getElementById('btnCreateCommitteeAlt');
+        
+        if (btnCreate) {
+            btnCreate.addEventListener('click', () => openModal('createCommitteeModal'));
+        }
+        if (btnCreateAlt) {
+            btnCreateAlt.addEventListener('click', () => openModal('createCommitteeModal'));
+        }
+
+        // Add Member button (for existing committee)
+        const btnAddMember = document.getElementById('btnAddMember');
+        if (btnAddMember) {
+            btnAddMember.addEventListener('click', () => openModal('addMemberModal'));
+        }
+
+        // Add member to new committee
+        document.getElementById('btnAddCommitteeMember').addEventListener('click', function() {
+            openModal('selectMemberModal');
+        });
+
+        // Remove member buttons
+        document.querySelectorAll('.btn-remove-member').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const memberId = this.getAttribute('data-member-id');
+                const memberName = this.getAttribute('data-member-name');
+                
+                if (confirm(`Are you sure you want to remove ${memberName} from the committee?`)) {
+                    removeMember(memberId);
+                }
+            });
+        });
+
+        // Form submissions
+        document.getElementById('createCommitteeForm').addEventListener('submit', handleCreateCommittee);
+        document.getElementById('addMemberForm').addEventListener('submit', handleAddMember);
+        document.getElementById('selectMemberForm').addEventListener('submit', handleSelectMember);
+    }
+
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+        document.body.style.overflow = '';
+        
+        // Clear any alerts
+        const alertContainers = document.querySelectorAll('[id$="Alert"]');
+        alertContainers.forEach(container => container.innerHTML = '');
+    }
+
+    // Load Data
+    async function loadAvailableUsers() {
+        try {
+            const response = await fetch('/api/committee/available-evaluators/');
+            const data = await response.json();
+            
+            if (data.success) {
+                availableUsers = data.users;
+                populateUserSelects();
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+        }
+    }
+
+    async function loadDepartments() {
+        try {
+            // Assuming you have an API for departments
+            // Adjust this URL to match your actual endpoint
+            const response = await fetch('/api/departments/');
+            const data = await response.json();
+            
+            if (data.success) {
+                availableDepartments = data.departments;
+                populateDepartmentSelects();
+            }
+        } catch (error) {
+            console.error('Error loading departments:', error);
+        }
+    }
+
+    function populateUserSelects() {
+        const selects = [
+            'chairpersonId',
+            'secretaryId',
+            'newMemberUserId',
+            'selectMemberUserId'
+        ];
+
+        selects.forEach(selectId => {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const isOptional = selectId === 'secretaryId';
+            select.innerHTML = isOptional ? '<option value="">Select Secretary (Optional)...</option>' : '<option value="">Choose a user...</option>';
+
+            availableUsers.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.name} (${user.role_display})`;
+                option.dataset.email = user.email;
+                option.dataset.role = user.role;
+                option.dataset.dept = user.department ? user.department.id : '';
+                select.appendChild(option);
+            });
+        });
+    }
+
+    function populateDepartmentSelects() {
+        const selects = [
+            'newMemberDeptId',
+            'selectMemberDeptId'
+        ];
+
+        selects.forEach(selectId => {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            select.innerHTML = '<option value="">Select Department (Optional)...</option>';
+
+            availableDepartments.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept.id;
+                option.textContent = `${dept.code} - ${dept.name}`;
+                select.appendChild(option);
+            });
+        });
+    }
+
+    // Handle Create Committee
+    async function handleCreateCommittee(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('btnSubmitCommittee');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Creating...';
+
+        const data = {
+            name: document.getElementById('committeeName').value,
+            committee_type: document.getElementById('committeeType').value,
+            chairperson_id: document.getElementById('chairpersonId').value,
+            secretary_id: document.getElementById('secretaryId').value || null,
+            appointment_date: document.getElementById('appointmentDate').value,
+            terms_of_reference: document.getElementById('termsOfReference').value,
+            evaluation_guidelines: document.getElementById('evaluationGuidelines').value,
+            members: selectedMembers
+        };
+
+        try {
+            const response = await fetch(`/api/tender/${tenderId}/committee/create/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert('committeeFormAlert', 'success', 'Committee created successfully!');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showAlert('committeeFormAlert', 'error', result.error || 'Failed to create committee');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showAlert('committeeFormAlert', 'error', 'An error occurred. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    // Handle Add Member to Existing Committee
+    async function handleAddMember(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('btnSubmitMember');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Adding...';
+
+        const data = {
+            user_id: document.getElementById('newMemberUserId').value,
+            role: document.getElementById('newMemberRole').value,
+            department_id: document.getElementById('newMemberDeptId').value || null,
+            expertise_area: document.getElementById('newMemberExpertise').value,
+            has_conflict: document.getElementById('newMemberConflict').checked,
+            conflict_details: document.getElementById('newMemberConflictDetails').value
+        };
+
+        try {
+            const response = await fetch(`/api/committee/${committeeId}/add-member/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert('addMemberFormAlert', 'success', 'Member added successfully!');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showAlert('addMemberFormAlert', 'error', result.error || 'Failed to add member');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showAlert('addMemberFormAlert', 'error', 'An error occurred. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    // Handle Select Member (for new committee)
+    function handleSelectMember(e) {
+        e.preventDefault();
+
+        const userId = document.getElementById('selectMemberUserId').value;
+        const user = availableUsers.find(u => u.id === userId);
+        
+        if (!user) return;
+
+        // Check if already added
+        if (selectedMembers.some(m => m.user_id === userId)) {
+            showAlert('selectMemberFormAlert', 'error', 'This user is already added');
+            return;
+        }
+
+        const member = {
+            user_id: userId,
+            user_name: user.name,
+            user_email: user.email,
+            role: document.getElementById('selectMemberRole').value,
+            department_id: document.getElementById('selectMemberDeptId').value || null,
+            expertise_area: document.getElementById('selectMemberExpertise').value,
+            has_conflict: document.getElementById('selectMemberConflict').checked,
+            conflict_details: document.getElementById('selectMemberConflictDetails').value
+        };
+
+        selectedMembers.push(member);
+        renderSelectedMembers();
+        
+        // Reset form and close modal
+        document.getElementById('selectMemberForm').reset();
+        closeModal('selectMemberModal');
+    }
+
+    function renderSelectedMembers() {
+        const container = document.getElementById('committeeMembers');
+        
+        if (selectedMembers.length === 0) {
+            container.innerHTML = '<p class="no-data" style="padding: 1rem; margin: 0;">No members added yet. Click "Add Member" to add committee members.</p>';
+            return;
+        }
+
+        container.innerHTML = selectedMembers.map((member, index) => `
+            <div class="member-item">
+                <div class="member-item-content">
+                    <div class="member-item-header">
+                        <div>
+                            <div class="member-name">${member.user_name}</div>
+                            <div class="member-role">${member.user_email} • ${member.role}</div>
+                            ${member.expertise_area ? `<div class="member-role">Expertise: ${member.expertise_area}</div>` : ''}
+                            ${member.has_conflict ? `<div class="member-role" style="color: #EF4444;">⚠️ Conflict of Interest Declared</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-remove-item" onclick="window.removeSelectedMember(${index})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    // Remove member from selection
+    window.removeSelectedMember = function(index) {
+        selectedMembers.splice(index, 1);
+        renderSelectedMembers();
+    };
+
+    // Remove member from existing committee
+    async function removeMember(memberId) {
+        try {
+            const response = await fetch(`/api/committee/member/${memberId}/remove/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Member removed successfully');
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while removing the member');
+        }
+    }
+
+    // Helper Functions
+    function showAlert(containerId, type, message) {
+        const container = document.getElementById(containerId);
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+        const icon = type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
+        
+        container.innerHTML = `
+            <div class="alert ${alertClass}">
+                <i class="bi ${icon}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+})();
+</script>
 {% endblock %}

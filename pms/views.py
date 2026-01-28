@@ -2937,9 +2937,23 @@ def edit_tender(request, tender_id):
     return render(request, 'tenders/tender_edit.html', context)
 
 
+"""
+Updated tender_detail view with evaluation committee
+Replace your existing tender_detail view with this
+"""
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Min, Max, Avg, Q
+from .models import (
+    Tender, EvaluationCommittee, CommitteeMember,
+    TechnicalEvaluationScore, FinancialEvaluationScore
+)
+
+
 @login_required
 def tender_detail(request, pk):
-    """View tender details"""
+    """View tender details with evaluation committee"""
     tender = get_object_or_404(
         Tender.objects.select_related(
             'requisition__department', 'created_by'
@@ -2958,17 +2972,20 @@ def tender_detail(request, pk):
     can_publish = False
     can_evaluate = False
     can_award = False
+    can_manage_committee = False
     
     if request.user.role == 'ADMIN':
         can_edit = True
         can_publish = True
         can_evaluate = True
         can_award = True
+        can_manage_committee = True
     elif request.user.role == 'PROCUREMENT':
         can_edit = tender.status == 'DRAFT'
         can_publish = tender.status == 'DRAFT'
         can_evaluate = tender.status in ['CLOSED', 'EVALUATING']
         can_award = tender.status == 'EVALUATING'
+        can_manage_committee = True
     
     # Get bids statistics
     bids_stats = {
@@ -2990,18 +3007,478 @@ def tender_detail(request, pk):
         ).distinct().count()
         evaluation_complete = total_bids > 0 and total_bids == evaluated_bids
     
+    # Get evaluation committee information
+    committee = None
+    committee_members = []
+    committee_summary = None
+    
+    if tender.status in ['PUBLISHED', 'CLOSED', 'EVALUATING', 'AWARDED']:
+        committee = EvaluationCommittee.objects.filter(
+            tender=tender,
+            status='ACTIVE'
+        ).select_related(
+            'chairperson',
+            'secretary'
+        ).prefetch_related(
+            'members__user__department',
+            'members__department'
+        ).first()
+        
+        if committee:
+            # Get total bids to evaluate
+            total_bids = tender.bids.exclude(status='DISQUALIFIED').count()
+            
+            # Build committee members list with evaluation status
+            for member in committee.members.filter(is_active=True).select_related('user', 'department'):
+                # Count evaluations done by this member
+                technical_evaluated = TechnicalEvaluationScore.objects.filter(
+                    evaluator=member.user,
+                    bid__tender=tender
+                ).values('bid').distinct().count()
+                
+                financial_evaluated = FinancialEvaluationScore.objects.filter(
+                    evaluator=member.user,
+                    bid__tender=tender
+                ).values('bid').distinct().count()
+                
+                # Determine evaluated count based on committee type
+                if committee.committee_type == 'TECHNICAL':
+                    evaluated_count = technical_evaluated
+                elif committee.committee_type == 'FINANCIAL':
+                    evaluated_count = financial_evaluated
+                else:  # COMBINED
+                    evaluated_count = min(technical_evaluated, financial_evaluated)
+                
+                progress = (evaluated_count / total_bids * 100) if total_bids > 0 else 0
+                
+                committee_members.append({
+                    'id': member.id,
+                    'user': member.user,
+                    'role': member.role,
+                    'role_display': member.get_role_display(),
+                    'department': member.department,
+                    'expertise_area': member.expertise_area,
+                    'has_conflict': member.has_conflict,
+                    'conflict_details': member.conflict_details,
+                    'appointed_at': member.appointed_at,
+                    'technical_evaluated': technical_evaluated,
+                    'financial_evaluated': financial_evaluated,
+                    'evaluated_count': evaluated_count,
+                    'total_bids': total_bids,
+                    'progress_percentage': round(progress, 2),
+                    'is_complete': evaluated_count >= total_bids if total_bids > 0 else False,
+                })
+            
+            # Committee summary
+            members_completed = sum(1 for m in committee_members if m['is_complete'])
+            committee_summary = {
+                'total_members': len(committee_members),
+                'members_completed': members_completed,
+                'total_bids': total_bids,
+                'completion_percentage': round(
+                    (members_completed / len(committee_members) * 100) if committee_members else 0,
+                    2
+                )
+            }
+    
     context = {
         'tender': tender,
         'can_edit': can_edit,
         'can_publish': can_publish,
         'can_evaluate': can_evaluate,
         'can_award': can_award,
+        'can_manage_committee': can_manage_committee,
         'bids_stats': bids_stats,
         'evaluation_complete': evaluation_complete,
+        'committee': committee,
+        'committee_members': committee_members,
+        'committee_summary': committee_summary,
     }
     
     return render(request, 'tenders/tender_detail.html', context)
 
+
+"""
+Evaluation Committee APIs
+Add these to your views.py or create a separate committee_views.py
+"""
+
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.utils import timezone
+from .models import (
+    Tender, EvaluationCommittee, CommitteeMember, User, 
+    Bid, TechnicalEvaluationScore, FinancialEvaluationScore
+)
+import json
+
+
+@login_required
+@require_http_methods(["POST"])
+def create_evaluation_committee(request, tender_id):
+    """Create evaluation committee for a tender"""
+    
+    # Check permissions
+    if request.user.role not in ['ADMIN', 'PROCUREMENT']:
+        return JsonResponse({
+            'success': False,
+            'error': 'You do not have permission to create evaluation committees'
+        }, status=403)
+    
+    tender = get_object_or_404(Tender, pk=tender_id)
+    
+    # Check if tender can have committee
+    if tender.status not in ['PUBLISHED', 'CLOSED', 'EVALUATING']:
+        return JsonResponse({
+            'success': False,
+            'error': 'Committee can only be created for published/closed tenders'
+        }, status=400)
+    
+    try:
+        data = json.loads(request.body)
+        
+        with transaction.atomic():
+            # Create committee
+            committee = EvaluationCommittee.objects.create(
+                tender=tender,
+                committee_type=data.get('committee_type', 'COMBINED'),
+                name=data.get('name', f'Evaluation Committee - {tender.tender_number}'),
+                chairperson_id=data.get('chairperson_id'),
+                secretary_id=data.get('secretary_id'),
+                appointment_date=data.get('appointment_date', timezone.now().date()),
+                terms_of_reference=data.get('terms_of_reference', ''),
+                evaluation_guidelines=data.get('evaluation_guidelines', ''),
+            )
+            
+            # Add members
+            members_data = data.get('members', [])
+            for member_data in members_data:
+                CommitteeMember.objects.create(
+                    committee=committee,
+                    user_id=member_data['user_id'],
+                    role=member_data.get('role', 'MEMBER'),
+                    department_id=member_data.get('department_id'),
+                    expertise_area=member_data.get('expertise_area', ''),
+                    has_conflict=member_data.get('has_conflict', False),
+                    conflict_details=member_data.get('conflict_details', ''),
+                )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Evaluation committee created successfully',
+                'committee_id': str(committee.id),
+                'committee_number': committee.committee_number
+            })
+            
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def add_committee_member(request, committee_id):
+    """Add a member to evaluation committee"""
+    
+    # Check permissions
+    if request.user.role not in ['ADMIN', 'PROCUREMENT']:
+        return JsonResponse({
+            'success': False,
+            'error': 'You do not have permission to add committee members'
+        }, status=403)
+    
+    committee = get_object_or_404(EvaluationCommittee, pk=committee_id)
+    
+    # Check if committee is active
+    if committee.status != 'ACTIVE':
+        return JsonResponse({
+            'success': False,
+            'error': 'Cannot add members to inactive committee'
+        }, status=400)
+    
+    try:
+        data = json.loads(request.body)
+        
+        # Check if user is already a member
+        if CommitteeMember.objects.filter(
+            committee=committee,
+            user_id=data['user_id']
+        ).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'User is already a member of this committee'
+            }, status=400)
+        
+        member = CommitteeMember.objects.create(
+            committee=committee,
+            user_id=data['user_id'],
+            role=data.get('role', 'MEMBER'),
+            department_id=data.get('department_id'),
+            expertise_area=data.get('expertise_area', ''),
+            has_conflict=data.get('has_conflict', False),
+            conflict_details=data.get('conflict_details', ''),
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Committee member added successfully',
+            'member_id': str(member.id)
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def remove_committee_member(request, member_id):
+    """Remove a member from evaluation committee"""
+    
+    # Check permissions
+    if request.user.role not in ['ADMIN', 'PROCUREMENT']:
+        return JsonResponse({
+            'success': False,
+            'error': 'You do not have permission to remove committee members'
+        }, status=403)
+    
+    member = get_object_or_404(CommitteeMember, pk=member_id)
+    
+    # Check if committee is active
+    if member.committee.status != 'ACTIVE':
+        return JsonResponse({
+            'success': False,
+            'error': 'Cannot remove members from inactive committee'
+        }, status=400)
+    
+    # Check if member has already evaluated
+    has_evaluated = (
+        TechnicalEvaluationScore.objects.filter(
+            evaluator=member.user,
+            bid__tender=member.committee.tender
+        ).exists() or
+        FinancialEvaluationScore.objects.filter(
+            evaluator=member.user,
+            bid__tender=member.committee.tender
+        ).exists()
+    )
+    
+    if has_evaluated:
+        return JsonResponse({
+            'success': False,
+            'error': 'Cannot remove member who has already evaluated bids'
+        }, status=400)
+    
+    member.delete()
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Committee member removed successfully'
+    })
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_committee_members(request, tender_id):
+    """Get evaluation committee members for a tender with evaluation status"""
+    
+    tender = get_object_or_404(Tender, pk=tender_id)
+    
+    try:
+        # Get active committee for this tender
+        committee = EvaluationCommittee.objects.filter(
+            tender=tender,
+            status='ACTIVE'
+        ).select_related(
+            'chairperson',
+            'secretary'
+        ).prefetch_related(
+            'members__user',
+            'members__department'
+        ).first()
+        
+        if not committee:
+            return JsonResponse({
+                'success': True,
+                'has_committee': False,
+                'committee': None,
+                'members': []
+            })
+        
+        # Get all bids for this tender (excluding disqualified)
+        total_bids = tender.bids.exclude(status='DISQUALIFIED').count()
+        
+        # Build members list with evaluation status
+        members_list = []
+        for member in committee.members.filter(is_active=True):
+            # Count technical evaluations done by this member
+            technical_evaluated = TechnicalEvaluationScore.objects.filter(
+                evaluator=member.user,
+                bid__tender=tender
+            ).values('bid').distinct().count()
+            
+            # Count financial evaluations done by this member
+            financial_evaluated = FinancialEvaluationScore.objects.filter(
+                evaluator=member.user,
+                bid__tender=tender
+            ).values('bid').distinct().count()
+            
+            # Determine evaluation status based on committee type
+            if committee.committee_type == 'TECHNICAL':
+                evaluated_count = technical_evaluated
+            elif committee.committee_type == 'FINANCIAL':
+                evaluated_count = financial_evaluated
+            else:  # COMBINED
+                # For combined, member should evaluate both
+                evaluated_count = min(technical_evaluated, financial_evaluated)
+            
+            evaluation_progress = (evaluated_count / total_bids * 100) if total_bids > 0 else 0
+            
+            members_list.append({
+                'id': str(member.id),
+                'user': {
+                    'id': str(member.user.id),
+                    'name': member.user.get_full_name(),
+                    'email': member.user.email,
+                    'role': member.user.get_role_display(),
+                },
+                'role': member.role,
+                'role_display': member.get_role_display(),
+                'department': {
+                    'id': str(member.department.id) if member.department else None,
+                    'name': member.department.name if member.department else None,
+                } if member.department else None,
+                'expertise_area': member.expertise_area,
+                'has_conflict': member.has_conflict,
+                'conflict_details': member.conflict_details,
+                'appointed_at': member.appointed_at.isoformat(),
+                'evaluation_status': {
+                    'total_bids': total_bids,
+                    'technical_evaluated': technical_evaluated,
+                    'financial_evaluated': financial_evaluated,
+                    'evaluated_count': evaluated_count,
+                    'progress_percentage': round(evaluation_progress, 2),
+                    'is_complete': evaluated_count >= total_bids if total_bids > 0 else False,
+                }
+            })
+        
+        committee_data = {
+            'id': str(committee.id),
+            'committee_number': committee.committee_number,
+            'committee_type': committee.committee_type,
+            'committee_type_display': committee.get_committee_type_display(),
+            'name': committee.name,
+            'status': committee.status,
+            'chairperson': {
+                'id': str(committee.chairperson.id),
+                'name': committee.chairperson.get_full_name(),
+                'email': committee.chairperson.email,
+            } if committee.chairperson else None,
+            'secretary': {
+                'id': str(committee.secretary.id),
+                'name': committee.secretary.get_full_name(),
+                'email': committee.secretary.email,
+            } if committee.secretary else None,
+            'appointment_date': committee.appointment_date.isoformat(),
+            'completion_date': committee.completion_date.isoformat() if committee.completion_date else None,
+            'terms_of_reference': committee.terms_of_reference,
+            'evaluation_guidelines': committee.evaluation_guidelines,
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'has_committee': True,
+            'committee': committee_data,
+            'members': members_list,
+            'total_members': len(members_list),
+            'evaluation_summary': {
+                'total_bids': total_bids,
+                'members_completed': sum(1 for m in members_list if m['evaluation_status']['is_complete']),
+                'total_members': len(members_list),
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_available_evaluators(request):
+    """Get list of users who can be evaluators"""
+    
+    # Only users with certain roles can be evaluators
+    evaluator_roles = ['HOD', 'PROCUREMENT', 'FINANCE', 'ADMIN']
+    
+    users = User.objects.filter(
+        role__in=evaluator_roles,
+        is_active=True,
+        is_active_user=True
+    ).select_related('department').order_by('first_name', 'last_name')
+    
+    users_list = [{
+        'id': str(user.id),
+        'name': user.get_full_name(),
+        'email': user.email,
+        'role': user.role,
+        'role_display': user.get_role_display(),
+        'department': {
+            'id': str(user.department.id),
+            'name': user.department.name,
+            'code': user.department.code,
+        } if user.department else None,
+    } for user in users]
+    
+    return JsonResponse({
+        'success': True,
+        'users': users_list,
+        'total': len(users_list)
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_committee_member_conflict(request, member_id):
+    """Update conflict of interest declaration for a committee member"""
+    
+    member = get_object_or_404(CommitteeMember, pk=member_id)
+    
+    # Only the member themselves or admin/procurement can update
+    if request.user.id != member.user.id and request.user.role not in ['ADMIN', 'PROCUREMENT']:
+        return JsonResponse({
+            'success': False,
+            'error': 'You do not have permission to update this member'
+        }, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        
+        member.has_conflict = data.get('has_conflict', False)
+        member.conflict_details = data.get('conflict_details', '')
+        member.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Conflict of interest updated successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+        
+        
 @login_required
 def tender_publish(request, pk):
     """Publish tender"""
