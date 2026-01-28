@@ -16296,9 +16296,24 @@ def check_finance_permission(user):
 # DASHBOARD & ANALYTICS
 # ============================================================================
 
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Sum, Count, Q, F, DecimalField, Case, When, Value
+from django.db.models.functions import TruncMonth, Coalesce
+from django.utils import timezone
+from datetime import timedelta
+from decimal import Decimal
+import json
+
+from .models import (
+    BudgetYear, Budget, Invoice, Payment, RequisitionApproval,
+    Department, Supplier, PurchaseOrder
+)
+
 @login_required
 def finance_dashboard_view(request):
-    """Finance Officer Dashboard"""
+    """Finance Officer Dashboard with enhanced analytics"""
     if not check_finance_permission(request.user):
         messages.error(request, 'You do not have finance officer permissions.')
         return redirect('dashboard')
@@ -16306,104 +16321,281 @@ def finance_dashboard_view(request):
     # Get current budget year
     current_year = BudgetYear.objects.filter(is_active=True).first()
     
-    # Budget Statistics
+    # ============================================================================
+    # BUDGET STATISTICS
+    # ============================================================================
     if current_year:
         budgets = Budget.objects.filter(
             budget_year=current_year,
             is_active=True
         )
         
-        total_allocated = budgets.aggregate(Sum('allocated_amount'))['allocated_amount__sum'] or 0
-        total_committed = budgets.aggregate(Sum('committed_amount'))['committed_amount__sum'] or 0
-        total_spent = budgets.aggregate(Sum('actual_spent'))['actual_spent__sum'] or 0
+        total_allocated = budgets.aggregate(
+            total=Coalesce(Sum('allocated_amount'), Decimal('0'))
+        )['total']
+        
+        total_committed = budgets.aggregate(
+            total=Coalesce(Sum('committed_amount'), Decimal('0'))
+        )['total']
+        
+        total_spent = budgets.aggregate(
+            total=Coalesce(Sum('actual_spent'), Decimal('0'))
+        )['total']
+        
         available_balance = total_allocated - total_committed - total_spent
+        budget_utilization_percentage = (
+            (total_spent / total_allocated * 100) if total_allocated > 0 else 0
+        )
     else:
-        total_allocated = total_committed = total_spent = available_balance = 0
+        total_allocated = total_committed = total_spent = available_balance = Decimal('0')
+        budget_utilization_percentage = 0
     
-    # Invoice Statistics
-    pending_invoices_count = Invoice.objects.filter(
+    # ============================================================================
+    # INVOICE STATISTICS
+    # ============================================================================
+    # Pending invoices (submitted and under verification)
+    pending_invoices = Invoice.objects.filter(
         status__in=['SUBMITTED', 'VERIFYING']
+    )
+    pending_invoices_count = pending_invoices.count()
+    pending_invoices_value = pending_invoices.aggregate(
+        total=Coalesce(Sum('total_amount'), Decimal('0'))
+    )['total']
+    
+    # Approved invoices (ready for payment)
+    approved_invoices = Invoice.objects.filter(status='APPROVED')
+    approved_invoices_count = approved_invoices.count()
+    approved_invoices_value = approved_invoices.aggregate(
+        total=Coalesce(Sum('total_amount'), Decimal('0'))
+    )['total']
+    
+    # Overdue invoices (past due date and not paid)
+    today = timezone.now().date()
+    overdue_invoices = Invoice.objects.filter(
+        due_date__lt=today,
+        status__in=['APPROVED', 'MATCHED', 'VERIFYING']
+    )
+    overdue_invoices_count = overdue_invoices.count()
+    overdue_invoices_value = overdue_invoices.aggregate(
+        total=Coalesce(Sum('total_amount'), Decimal('0'))
+    )['total']
+    
+    # Total invoices this month
+    month_start = timezone.now().replace(day=1)
+    invoices_this_month = Invoice.objects.filter(
+        created_at__gte=month_start
     ).count()
     
-    pending_invoices_value = Invoice.objects.filter(
-        status__in=['SUBMITTED', 'VERIFYING']
-    ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    
-    approved_invoices_count = Invoice.objects.filter(
-        status='APPROVED'
-    ).count()
-    
-    approved_invoices_value = Invoice.objects.filter(
-        status='APPROVED'
-    ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    
-    # Payment Statistics
-    pending_payments = Payment.objects.filter(
+    # ============================================================================
+    # PAYMENT STATISTICS
+    # ============================================================================
+    # Pending payments
+    pending_payments_count = Payment.objects.filter(
         status='PENDING'
     ).count()
     
-    completed_payments = Payment.objects.filter(
+    pending_payments_value = Payment.objects.filter(
+        status='PENDING'
+    ).aggregate(
+        total=Coalesce(Sum('payment_amount'), Decimal('0'))
+    )['total']
+    
+    # Completed payments this month
+    completed_payments_count = Payment.objects.filter(
         status='COMPLETED',
-        created_at__gte=timezone.now() - timedelta(days=30)
+        payment_date__gte=month_start
     ).count()
     
     total_paid_this_month = Payment.objects.filter(
         status='COMPLETED',
-        payment_date__gte=timezone.now().replace(day=1)
-    ).aggregate(Sum('payment_amount'))['payment_amount__sum'] or 0
+        payment_date__gte=month_start
+    ).aggregate(
+        total=Coalesce(Sum('payment_amount'), Decimal('0'))
+    )['total']
     
-    # Pending Approvals (Budget Check Stage)
+    # Processing payments
+    processing_payments_count = Payment.objects.filter(
+        status='PROCESSING'
+    ).count()
+    
+    # Average payment processing time (in days)
+    completed_payments_with_dates = Payment.objects.filter(
+        status='COMPLETED',
+        payment_date__isnull=False,
+        created_at__isnull=False
+    ).annotate(
+        processing_days=F('payment_date') - F('created_at__date')
+    )
+    
+    avg_processing_time = 0
+    if completed_payments_with_dates.exists():
+        total_days = sum([p.processing_days.days for p in completed_payments_with_dates])
+        avg_processing_time = total_days / completed_payments_with_dates.count()
+    
+    # ============================================================================
+    # PENDING APPROVALS (Budget Check Stage)
+    # ============================================================================
     pending_approvals = RequisitionApproval.objects.filter(
         approval_stage='BUDGET',
         status='PENDING'
-    ).select_related('requisition', 'requisition__department')[:5]
+    ).select_related(
+        'requisition',
+        'requisition__department',
+        'requisition__requested_by'
+    ).order_by('-created_at')[:5]
     
-    # Recent Activities
+    pending_approvals_count = RequisitionApproval.objects.filter(
+        approval_stage='BUDGET',
+        status='PENDING'
+    ).count()
+    
+    # ============================================================================
+    # RECENT ACTIVITIES
+    # ============================================================================
+    # Recent invoices
     recent_invoices = Invoice.objects.filter(
-        status__in=['SUBMITTED', 'VERIFYING', 'APPROVED']
-    ).select_related('supplier', 'purchase_order').order_by('-created_at')[:5]
+        status__in=['SUBMITTED', 'VERIFYING', 'APPROVED', 'MATCHED']
+    ).select_related(
+        'supplier',
+        'purchase_order'
+    ).order_by('-created_at')[:10]
     
+    # Recent payments
     recent_payments = Payment.objects.filter(
         status__in=['PENDING', 'PROCESSING', 'COMPLETED']
-    ).select_related('invoice', 'invoice__supplier').order_by('-created_at')[:5]
+    ).select_related(
+        'invoice',
+        'invoice__supplier'
+    ).order_by('-created_at')[:10]
     
-    # Budget Utilization by Department
-    department_utilization = Budget.objects.filter(
-        budget_year=current_year,
-        is_active=True
-    ).values(
-        'department__name', 'department__code'
+    # ============================================================================
+    # DEPARTMENT BUDGET UTILIZATION
+    # ============================================================================
+    department_utilization = []
+    if current_year:
+        department_utilization = Budget.objects.filter(
+            budget_year=current_year,
+            is_active=True
+        ).values(
+            'department__name',
+            'department__code'
+        ).annotate(
+            allocated=Coalesce(Sum('allocated_amount'), Decimal('0')),
+            spent=Coalesce(Sum('actual_spent'), Decimal('0')),
+            committed=Coalesce(Sum('committed_amount'), Decimal('0'))
+        ).order_by('-allocated')[:10]
+    
+    # ============================================================================
+    # CHARTS DATA
+    # ============================================================================
+    
+    # 1. Monthly Invoice Trend (Last 6 months)
+    six_months_ago = timezone.now() - timedelta(days=180)
+    monthly_invoices = Invoice.objects.filter(
+        created_at__gte=six_months_ago
     ).annotate(
-        allocated=Sum('allocated_amount'),
-        spent=Sum('actual_spent'),
-        committed=Sum('committed_amount')
-    ).order_by('-allocated')[:10]
+        month=TruncMonth('created_at')
+    ).values('month').annotate(
+        count=Count('id'),
+        total=Coalesce(Sum('total_amount'), Decimal('0'))
+    ).order_by('month')
     
+    # 2. Payment Status Distribution
+    payment_status_distribution = Payment.objects.values('status').annotate(
+        count=Count('id'),
+        total=Coalesce(Sum('payment_amount'), Decimal('0'))
+    ).order_by('-count')
+    
+    # 3. Top 5 Suppliers by Invoice Value (This Year)
+    year_start = timezone.now().replace(month=1, day=1)
+    top_suppliers = Invoice.objects.filter(
+        created_at__gte=year_start
+    ).values(
+        'supplier__name'
+    ).annotate(
+        total=Coalesce(Sum('total_amount'), Decimal('0')),
+        count=Count('id')
+    ).order_by('-total')[:5]
+    
+    # 4. Budget vs Actual by Category (Top 8 categories)
+    if current_year:
+        category_comparison = Budget.objects.filter(
+            budget_year=current_year,
+            is_active=True
+        ).values(
+            'category__name',
+            'category__code'
+        ).annotate(
+            allocated=Coalesce(Sum('allocated_amount'), Decimal('0')),
+            spent=Coalesce(Sum('actual_spent'), Decimal('0'))
+        ).order_by('-allocated')[:8]
+    else:
+        category_comparison = []
+    
+    # ============================================================================
+    # SUPPLIER STATISTICS
+    # ============================================================================
+    total_active_suppliers = Supplier.objects.filter(status='APPROVED').count()
+    
+    # Suppliers with pending payments
+    suppliers_pending_payment = Invoice.objects.filter(
+        status='APPROVED'
+    ).values('supplier').distinct().count()
+    
+    # ============================================================================
+    # CONTEXT
+    # ============================================================================
     context = {
+        # Budget Year
         'current_year': current_year,
+        
+        # Budget Statistics
         'total_allocated': total_allocated,
         'total_committed': total_committed,
         'total_spent': total_spent,
         'available_balance': available_balance,
-        'budget_utilization_percentage': (total_spent / total_allocated * 100) if total_allocated > 0 else 0,
+        'budget_utilization_percentage': budget_utilization_percentage,
         
+        # Invoice Statistics
         'pending_invoices_count': pending_invoices_count,
         'pending_invoices_value': pending_invoices_value,
         'approved_invoices_count': approved_invoices_count,
         'approved_invoices_value': approved_invoices_value,
+        'overdue_invoices_count': overdue_invoices_count,
+        'overdue_invoices_value': overdue_invoices_value,
+        'invoices_this_month': invoices_this_month,
         
-        'pending_payments': pending_payments,
-        'completed_payments': completed_payments,
+        # Payment Statistics
+        'pending_payments_count': pending_payments_count,
+        'pending_payments_value': pending_payments_value,
+        'completed_payments_count': completed_payments_count,
         'total_paid_this_month': total_paid_this_month,
+        'processing_payments_count': processing_payments_count,
+        'avg_processing_time': round(avg_processing_time, 1),
         
+        # Approvals
         'pending_approvals': pending_approvals,
+        'pending_approvals_count': pending_approvals_count,
+        
+        # Recent Activities
         'recent_invoices': recent_invoices,
         'recent_payments': recent_payments,
+        
+        # Department Utilization
         'department_utilization': department_utilization,
+        
+        # Chart Data
+        'monthly_invoices': list(monthly_invoices),
+        'payment_status_distribution': list(payment_status_distribution),
+        'top_suppliers': list(top_suppliers),
+        'category_comparison': list(category_comparison),
+        
+        # Supplier Statistics
+        'total_active_suppliers': total_active_suppliers,
+        'suppliers_pending_payment': suppliers_pending_payment,
     }
     
     return render(request, 'finance/finance_module/dashboard.html', context)
-
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
