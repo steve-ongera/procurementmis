@@ -16295,7 +16295,6 @@ def check_finance_permission(user):
 # ============================================================================
 # DASHBOARD & ANALYTICS
 # ============================================================================
-
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -16305,11 +16304,26 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 import json
+from django.core.serializers.json import DjangoJSONEncoder
 
 from .models import (
     BudgetYear, Budget, Invoice, Payment, RequisitionApproval,
     Department, Supplier, PurchaseOrder
 )
+
+# Custom JSON encoder to handle Decimal and date objects
+class CustomJSONEncoder(DjangoJSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        if hasattr(obj, 'isoformat'):  # Handle date/datetime
+            return obj.isoformat()
+        return super().default(obj)
+
+def check_finance_permission(user):
+    """Check if user has finance officer permissions"""
+    # Add your permission logic here
+    return user.is_authenticated and (user.is_staff or hasattr(user, 'financeprofile'))
 
 @login_required
 def finance_dashboard_view(request):
@@ -16545,6 +16559,13 @@ def finance_dashboard_view(request):
     # ============================================================================
     # CONTEXT
     # ============================================================================
+    
+    # Prepare chart data for JSON serialization
+    monthly_invoices_list = list(monthly_invoices)
+    payment_status_list = list(payment_status_distribution)
+    top_suppliers_list = list(top_suppliers)
+    category_comparison_list = list(category_comparison)
+    
     context = {
         # Budget Year
         'current_year': current_year,
@@ -16584,15 +16605,18 @@ def finance_dashboard_view(request):
         # Department Utilization
         'department_utilization': department_utilization,
         
-        # Chart Data
-        'monthly_invoices': list(monthly_invoices),
-        'payment_status_distribution': list(payment_status_distribution),
-        'top_suppliers': list(top_suppliers),
-        'category_comparison': list(category_comparison),
+        # Chart Data - As lists (for json_script filter)
+        'monthly_invoices': monthly_invoices_list,
+        'payment_status_distribution': payment_status_list,
+        'top_suppliers': top_suppliers_list,
+        'category_comparison': category_comparison_list,
         
         # Supplier Statistics
         'total_active_suppliers': total_active_suppliers,
         'suppliers_pending_payment': suppliers_pending_payment,
+        
+        # Today for overdue checks
+        'today': today,
     }
     
     return render(request, 'finance/finance_module/dashboard.html', context)

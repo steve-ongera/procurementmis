@@ -489,6 +489,13 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- Store JSON data in script tags using Django's json_script filter -->
+{{ monthly_invoices|json_script:"monthlyInvoicesData" }}
+{{ payment_status_distribution|json_script:"paymentStatusData" }}
+{{ top_suppliers|json_script:"topSuppliersData" }}
+{{ category_comparison|json_script:"categoryData" }}
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Chart.js default configuration
@@ -507,11 +514,18 @@ document.addEventListener('DOMContentLoaded', function() {
         indigo: '#6366F1'
     };
     
-    // Parse JSON data from Django context
-    const monthlyInvoicesData = JSON.parse('{{ monthly_invoices_json|escapejs }}');
-    const paymentStatusData = JSON.parse('{{ payment_status_json|escapejs }}');
-    const topSuppliersData = JSON.parse('{{ top_suppliers_json|escapejs }}');
-    const categoryData = JSON.parse('{{ category_comparison_json|escapejs }}');
+    // Get JSON data from script tags
+    const monthlyInvoicesData = JSON.parse(document.getElementById('monthlyInvoicesData').textContent);
+    const paymentStatusData = JSON.parse(document.getElementById('paymentStatusData').textContent);
+    const topSuppliersData = JSON.parse(document.getElementById('topSuppliersData').textContent);
+    const categoryData = JSON.parse(document.getElementById('categoryData').textContent);
+    
+    console.log('Loaded chart data:', {
+        monthlyInvoicesData,
+        paymentStatusData,
+        topSuppliersData,
+        categoryData
+    });
     
     // 1. Monthly Invoice Trend Chart
     if (monthlyInvoicesData && monthlyInvoicesData.length > 0) {
@@ -521,13 +535,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 type: 'line',
                 data: {
                     labels: monthlyInvoicesData.map(item => {
-                        const date = new Date(item.month);
-                        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                        if (item.month) {
+                            const date = new Date(item.month);
+                            return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                        }
+                        return '';
                     }),
                     datasets: [
                         {
                             label: 'Invoice Count',
-                            data: monthlyInvoicesData.map(item => item.count),
+                            data: monthlyInvoicesData.map(item => item.count || 0),
                             borderColor: chartColors.primary,
                             backgroundColor: 'rgba(37, 99, 235, 0.1)',
                             borderWidth: 2,
@@ -537,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         {
                             label: 'Total Value (KES)',
-                            data: monthlyInvoicesData.map(item => item.total),
+                            data: monthlyInvoicesData.map(item => item.total || 0),
                             borderColor: chartColors.success,
                             backgroundColor: 'rgba(16, 185, 129, 0.1)',
                             borderWidth: 2,
@@ -620,15 +637,22 @@ document.addEventListener('DOMContentLoaded', function() {
             new Chart(ctx2, {
                 type: 'doughnut',
                 data: {
-                    labels: paymentStatusData.map(item => item.status.replace(/_/g, ' ')),
+                    labels: paymentStatusData.map(item => {
+                        if (item.status) {
+                            return item.status.replace(/_/g, ' ');
+                        }
+                        return '';
+                    }),
                     datasets: [{
-                        data: paymentStatusData.map(item => item.count),
+                        data: paymentStatusData.map(item => item.count || 0),
                         backgroundColor: [
                             chartColors.warning,
                             chartColors.info,
                             chartColors.success,
                             chartColors.danger,
-                            chartColors.purple
+                            chartColors.purple,
+                            chartColors.pink,
+                            chartColors.indigo
                         ],
                         borderWidth: 2,
                         borderColor: '#fff'
@@ -649,9 +673,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             callbacks: {
                                 label: function(context) {
                                     const item = paymentStatusData[context.dataIndex];
+                                    const label = context.label || '';
                                     return [
-                                        context.label + ': ' + context.parsed,
-                                        'Value: KES ' + item.total.toLocaleString()
+                                        label + ': ' + context.parsed,
+                                        'Value: KES ' + (item.total || 0).toLocaleString()
                                     ];
                                 }
                             }
@@ -670,12 +695,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 type: 'bar',
                 data: {
                     labels: topSuppliersData.map(item => {
-                        const name = item.supplier__name;
+                        const name = item.supplier__name || 'Unknown Supplier';
                         return name.length > 20 ? name.substring(0, 20) + '...' : name;
                     }),
                     datasets: [{
                         label: 'Invoice Value (KES)',
-                        data: topSuppliersData.map(item => item.total),
+                        data: topSuppliersData.map(item => item.total || 0),
                         backgroundColor: chartColors.primary,
                         borderRadius: 6,
                         borderWidth: 0
@@ -696,13 +721,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             borderWidth: 1,
                             callbacks: {
                                 title: function(context) {
-                                    return topSuppliersData[context[0].dataIndex].supplier__name;
+                                    const item = topSuppliersData[context[0].dataIndex];
+                                    return item.supplier__name || 'Unknown Supplier';
                                 },
                                 label: function(context) {
                                     const item = topSuppliersData[context.dataIndex];
                                     return [
                                         'Value: KES ' + context.parsed.x.toLocaleString(),
-                                        'Invoices: ' + item.count
+                                        'Invoices: ' + (item.count || 0)
                                     ];
                                 }
                             }
@@ -737,18 +763,18 @@ document.addEventListener('DOMContentLoaded', function() {
             new Chart(ctx4, {
                 type: 'bar',
                 data: {
-                    labels: categoryData.map(item => item.category__code),
+                    labels: categoryData.map(item => item.category__code || 'N/A'),
                     datasets: [
                         {
                             label: 'Allocated',
-                            data: categoryData.map(item => item.allocated),
+                            data: categoryData.map(item => item.allocated || 0),
                             backgroundColor: 'rgba(37, 99, 235, 0.6)',
                             borderRadius: 6,
                             borderWidth: 0
                         },
                         {
                             label: 'Spent',
-                            data: categoryData.map(item => item.spent),
+                            data: categoryData.map(item => item.spent || 0),
                             backgroundColor: 'rgba(16, 185, 129, 0.6)',
                             borderRadius: 6,
                             borderWidth: 0
@@ -770,7 +796,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             callbacks: {
                                 title: function(context) {
                                     const item = categoryData[context[0].dataIndex];
-                                    return item.category__name;
+                                    return item.category__name || 'Unknown Category';
                                 },
                                 label: function(context) {
                                     return context.dataset.label + ': KES ' + context.parsed.y.toLocaleString();
@@ -1034,7 +1060,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         <a href="#" class="invoice-number">
                             {{ invoice.invoice_number }}
                         </a>
-                        <div class="text-muted">{{ invoice.invoice_date }}</div>
+                        <div class="text-muted">
+                            {% if invoice.invoice_date %}
+                                {{ invoice.invoice_date }}
+                            {% else %}
+                                {{ invoice.created_at|date:"Y-m-d" }}
+                            {% endif %}
+                        </div>
                     </td>
                     <td>{{ invoice.supplier.name|truncatewords:3 }}</td>
                     <td>
