@@ -1,0 +1,1200 @@
+<!-- ========================================== -->
+<!-- procurement/procurement_module/order_detail.html -->
+<!-- ========================================== -->
+{% extends 'base.html' %}
+{% load humanize %}
+{% load custom_filters %}
+{% block title %}Purchase Order {{ po.po_number }} - Procurement Module{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --info-color: #3B82F6;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .page-title-section {
+        flex: 1;
+        min-width: 300px;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.625rem;
+        color: #94A3B8;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-badge i {
+        font-size: 0.875rem;
+    }
+
+    .status-draft {
+        background: #F1F5F9;
+        color: #475569;
+    }
+
+    .status-approved {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .status-sent {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .status-acknowledged {
+        background: #E0E7FF;
+        color: #4338CA;
+    }
+
+    .status-delivered {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .status-partial {
+        background: #FED7AA;
+        color: #9A3412;
+    }
+
+    .status-closed {
+        background: #F3F4F6;
+        color: #374151;
+    }
+
+    .status-cancelled {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    .btn-warning {
+        background: var(--warning-color);
+        color: white;
+        border-color: var(--warning-color);
+    }
+
+    .btn-warning:hover {
+        background: #D97706;
+        border-color: #D97706;
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+    }
+
+    .btn-secondary {
+        background: #F1F5F9;
+        color: #475569;
+        border-color: #E2E8F0;
+    }
+
+    .btn-secondary:hover {
+        background: #E2E8F0;
+        border-color: #CBD5E1;
+    }
+
+    .btn i {
+        font-size: 0.875rem;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-title i {
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .info-label {
+        font-size: 0.6875rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .info-value {
+        font-size: 0.8125rem;
+        color: #1E293B;
+        font-weight: 500;
+    }
+
+    .info-value.large {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .alert-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.8125rem;
+    }
+
+    .alert-warning {
+        background: #FEF3C7;
+        border: 1px solid #FCD34D;
+        color: #92400E;
+    }
+
+    .alert-info {
+        background: #DBEAFE;
+        border: 1px solid #93C5FD;
+        color: #1E40AF;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        border: 1px solid #6EE7B7;
+        color: #065F46;
+    }
+
+    .alert-banner i {
+        font-size: 1.25rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .stat-card {
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        padding: 0.875rem;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.6875rem;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #E2E8F0;
+        border-radius: 1rem;
+        overflow: hidden;
+        margin-top: 0.5rem;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--success-color);
+        transition: width 0.3s ease;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        margin-top: 1rem;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.75rem;
+    }
+
+    .data-table thead {
+        background: var(--table-header);
+    }
+
+    .data-table th {
+        padding: 0.75rem 0.5rem;
+        text-align: left;
+        font-weight: 600;
+        color: #475569;
+        border-bottom: 2px solid var(--border-color);
+        font-size: 0.6875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .data-table td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+        color: #1E293B;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .data-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .text-right {
+        text-align: right;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .amount-summary {
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .amount-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        font-size: 0.8125rem;
+    }
+
+    .amount-row.total {
+        border-top: 2px solid var(--border-color);
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--primary-color);
+        margin-top: 0.5rem;
+        padding-top: 0.75rem;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--border-color);
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -1.625rem;
+        top: 0.25rem;
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 50%;
+        background: var(--primary-color);
+        border: 2px solid white;
+        box-shadow: 0 0 0 2px var(--border-color);
+    }
+
+    .timeline-item.completed::before {
+        background: var(--success-color);
+    }
+
+    .timeline-item.pending::before {
+        background: #E2E8F0;
+    }
+
+    .timeline-date {
+        font-size: 0.6875rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .timeline-title {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .timeline-text {
+        font-size: 0.75rem;
+        color: #475569;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+
+    .badge-success {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .badge-warning {
+        background: #FED7AA;
+        color: #9A3412;
+    }
+
+    .badge-danger {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .badge-info {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .modal-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--secondary-color);
+        cursor: pointer;
+        padding: 0;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.25rem;
+        transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+        background: var(--hover-bg);
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 0.375rem;
+    }
+
+    .form-textarea {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        color: #1E293B;
+        min-height: 100px;
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .header-actions {
+            width: 100%;
+        }
+
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-section">
+        <h1 class="page-title">Purchase Order {{ po.po_number }}</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'procurement_dashboard' %}">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'procurement_all_orders' %}">
+                All Purchase Orders
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ po.po_number }}</span>
+        </div>
+        <div style="margin-top: 0.5rem;">
+            <span class="status-badge status-{{ po.status|lower }}">
+                <i class="bi bi-circle-fill"></i>
+                {{ po.get_status_display }}
+            </span>
+        </div>
+    </div>
+
+    <div class="header-actions">
+        <a href="{% url 'procurement_all_orders' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Back
+        </a>
+
+        {% if can_approve %}
+        <form method="post" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="approve">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle"></i>
+                Approve Order
+            </button>
+        </form>
+        {% endif %}
+
+        {% if can_send %}
+        <form method="post" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="send">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-send"></i>
+                Send to Supplier
+            </button>
+        </form>
+        {% endif %}
+
+        {% if can_edit %}
+        <a href="#" class="btn btn-warning">
+            <i class="bi bi-pencil"></i>
+            Edit
+        </a>
+        {% endif %}
+
+        {% if can_cancel %}
+        <button type="button" class="btn btn-danger" onclick="openCancelModal()">
+            <i class="bi bi-x-circle"></i>
+            Cancel Order
+        </button>
+        {% endif %}
+
+        <button type="button" class="btn btn-secondary" onclick="window.print()">
+            <i class="bi bi-printer"></i>
+            Print
+        </button>
+    </div>
+</div>
+
+<!-- Alert Banners -->
+{% if is_overdue %}
+<div class="alert-banner alert-warning">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div>
+        <strong>Delivery Overdue!</strong> 
+        This order was due {{ days_until_delivery|abs }} day{{ days_until_delivery|abs|pluralize }} ago.
+    </div>
+</div>
+{% elif days_until_delivery <= 3 and po.status not in 'DELIVERED,CLOSED,CANCELLED' %}
+<div class="alert-banner alert-info">
+    <i class="bi bi-info-circle-fill"></i>
+    <div>
+        <strong>Delivery Due Soon!</strong> 
+        Expected delivery in {{ days_until_delivery }} day{{ days_until_delivery|pluralize }}.
+    </div>
+</div>
+{% endif %}
+
+<div class="content-grid">
+    <!-- Main Content -->
+    <div>
+        <!-- Order Overview -->
+        <div class="card">
+            <h3 class="card-title">
+                <i class="bi bi-file-text"></i>
+                Order Overview
+            </h3>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">PO Number</span>
+                    <span class="info-value">{{ po.po_number }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">PO Date</span>
+                    <span class="info-value">{{ po.po_date|date:"M d, Y" }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Delivery Date</span>
+                    <span class="info-value">{{ po.delivery_date|date:"M d, Y" }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Created By</span>
+                    <span class="info-value">{{ po.created_by.get_full_name }}</span>
+                </div>
+
+                {% if po.approved_by %}
+                <div class="info-item">
+                    <span class="info-label">Approved By</span>
+                    <span class="info-value">{{ po.approved_by.get_full_name }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Approved On</span>
+                    <span class="info-value">{{ po.approved_at|date:"M d, Y" }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Supplier Information -->
+        <div class="card">
+            <h3 class="card-title">
+                <i class="bi bi-building"></i>
+                Supplier Information
+            </h3>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Supplier Name</span>
+                    <span class="info-value">{{ po.supplier.name }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Supplier Number</span>
+                    <span class="info-value">{{ po.supplier.supplier_number }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Contact Person</span>
+                    <span class="info-value">{{ po.supplier.contact_person }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Phone</span>
+                    <span class="info-value">{{ po.supplier.phone_number }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Email</span>
+                    <span class="info-value">{{ po.supplier.email }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Address</span>
+                    <span class="info-value">{{ po.supplier.physical_address }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delivery Information -->
+        <div class="card">
+            <h3 class="card-title">
+                <i class="bi bi-truck"></i>
+                Delivery Information
+            </h3>
+
+            <div class="info-item" style="margin-bottom: 1rem;">
+                <span class="info-label">Delivery Address</span>
+                <span class="info-value" style="white-space: pre-line;">{{ po.delivery_address }}</span>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ delivery_percentage }}%</div>
+                    <div class="stat-label">Delivered</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ items_fully_delivered }}</div>
+                    <div class="stat-label">Complete</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ items_partially_delivered }}</div>
+                    <div class="stat-label">Partial</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ items_not_delivered }}</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ delivery_percentage }}%"></div>
+            </div>
+        </div>
+
+        <!-- Order Items -->
+        <div class="card">
+            <h3 class="card-title">
+                <i class="bi bi-box-seam"></i>
+                Order Items
+            </h3>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%">#</th>
+                            <th style="width: 30%">Description</th>
+                            <th style="width: 15%">Specifications</th>
+                            <th style="width: 10%" class="text-center">Ordered</th>
+                            <th style="width: 10%" class="text-center">Delivered</th>
+                            <th style="width: 10%" class="text-right">Unit Price</th>
+                            <th style="width: 10%" class="text-right">Total</th>
+                            <th style="width: 10%" class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in po.items.all %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ item.item_description }}</strong>
+                                {% if item.notes %}
+                                <br><small style="color: #64748B;">{{ item.notes }}</small>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ item.specifications|truncatewords:10 }}</small></td>
+                            <td class="text-center">{{ item.quantity }} {{ item.unit_of_measure }}</td>
+                            <td class="text-center">
+                                {{ item.quantity_delivered }} {{ item.unit_of_measure }}
+                                {% if item.quantity_pending > 0 %}
+                                <br><small style="color: #F59E0B;">({{ item.quantity_pending }} pending)</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">KES {{ item.unit_price|floatformat:2|intcomma }}</td>
+                            <td class="text-right"><strong>KES {{ item.total_price|floatformat:2|intcomma }}</strong></td>
+                            <td class="text-center">
+                                {% if item.quantity_pending == 0 %}
+                                <span class="badge badge-success">
+                                    <i class="bi bi-check-circle"></i>
+                                    Complete
+                                </span>
+                                {% elif item.quantity_delivered > 0 %}
+                                <span class="badge badge-warning">
+                                    <i class="bi bi-clock"></i>
+                                    Partial
+                                </span>
+                                {% else %}
+                                <span class="badge badge-info">
+                                    <i class="bi bi-hourglass"></i>
+                                    Pending
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center" style="padding: 2rem; color: #64748B;">
+                                No items found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="amount-summary">
+                <div class="amount-row">
+                    <span>Subtotal:</span>
+                    <span>KES {{ po.subtotal|floatformat:2|intcomma }}</span>
+                </div>
+                <div class="amount-row">
+                    <span>Tax (16% VAT):</span>
+                    <span>KES {{ po.tax_amount|floatformat:2|intcomma }}</span>
+                </div>
+                <div class="amount-row total">
+                    <span>Total Amount:</span>
+                    <span>KES {{ po.total_amount|floatformat:2|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment & Terms -->
+        <div class="card">
+            <h3 class="card-title">
+                <i class="bi bi-credit-card"></i>
+                Payment Terms & Instructions
+            </h3>
+
+            <div class="info-item" style="margin-bottom: 1rem;">
+                <span class="info-label">Payment Terms</span>
+                <span class="info-value" style="white-space: pre-line;">{{ po.payment_terms }}</span>
+            </div>
+
+            {% if po.warranty_terms %}
+            <div class="info-item" style="margin-bottom: 1rem;">
+                <span class="info-label">Warranty Terms</span>
+                <span class="info-value" style="white-space: pre-line;">{{ po.warranty_terms }}</span>
+            </div>
+            {% endif %}
+
+            {% if po.special_instructions %}
+            <div class="info-item">
+                <span class="info-label">Special Instructions</span>
+                <span class="info-value" style="white-space: pre-line;">{{ po.special_instructions }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Related Documents -->
+        {% if grn_count > 0 or invoice_count > 0 or amendment_count > 0 %}
+        <div class="card">
+            <h3 class="card-title">
+                <i class="bi bi-files"></i>
+                Related Documents
+            </h3>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ grn_count }}</div>
+                    <div class="stat-label">GRNs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ invoice_count }}</div>
+                    <div class="stat-label">Invoices</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ amendment_count }}</div>
+                    <div class="stat-label">Amendments</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <a href="#" class="btn btn-secondary">
+                    <i class="bi bi-file-earmark-text"></i>
+                    View GRNs
+                </a>
+                <a href="#" class="btn btn-secondary">
+                    <i class="bi bi-receipt"></i>
+                    View Invoices
+                </a>
+                {% if amendment_count > 0 %}
+                <a href="#" class="btn btn-secondary">
+                    <i class="bi bi-pencil-square"></i>
+                    View Amendments
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+        <!-- Quick Actions -->
+        <div class="card">
+            <h3 class="card-title">
+                <i class="bi bi-lightning"></i>
+                Quick Actions
+            </h3>
+
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <a href="#" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                    <i class="bi bi-file-earmark-plus"></i>
+                    Create GRN
+                </a>
+                <a href="#" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                    <i class="bi bi-receipt"></i>
+                    Record Invoice
+                </a>
+                <a href="#" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                    <i class="bi bi-pencil-square"></i>
+                    Request Amendment
+                </a>
+                <a href="#" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                    <i class="bi bi-envelope"></i>
+                    Email Supplier
+                </a>
+            </div>
+        </div>
+
+        <!-- Order Timeline -->
+        <div class="card">
+            <h3 class="card-title">
+                <i class="bi bi-clock-history"></i>
+                Order Timeline
+            </h3>
+
+            <div class="timeline">
+                <div class="timeline-item completed">
+                    <div class="timeline-date">{{ po.created_at|date:"M d, Y - h:i A" }}</div>
+                    <div class="timeline-title">Order Created</div>
+                    <div class="timeline-text">By {{ po.created_by.get_full_name }}</div>
+                </div>
+
+                {% if po.approved_at %}
+                <div class="timeline-item completed">
+                    <div class="timeline-date">{{ po.approved_at|date:"M d, Y - h:i A" }}</div>
+                    <div class="timeline-title">Order Approved</div>
+                    <div class="timeline-text">By {{ po.approved_by.get_full_name }}</div>
+                </div>
+                {% endif %}
+
+                {% if po.sent_at %}
+                <div class="timeline-item completed">
+                    <div class="timeline-date">{{ po.sent_at|date:"M d, Y - h:i A" }}</div>
+                    <div class="timeline-title">Sent to Supplier</div>
+                    <div class="timeline-text">{{ po.supplier.name }}</div>
+                </div>
+                {% endif %}
+
+                {% if po.acknowledged_at %}
+                <div class="timeline-item completed">
+                    <div class="timeline-date">{{ po.acknowledged_at|date:"M d, Y - h:i A" }}</div>
+                    <div class="timeline-title">Acknowledged by Supplier</div>
+                </div>
+                {% endif %}
+
+                {% if po.status == 'DELIVERED' or po.status == 'CLOSED' %}
+                <div class="timeline-item completed">
+                    <div class="timeline-date">{{ po.updated_at|date:"M d, Y - h:i A" }}</div>
+                    <div class="timeline-title">Order Completed</div>
+                </div>
+                {% else %}
+                <div class="timeline-item pending">
+                    <div class="timeline-date">Expected: {{ po.delivery_date|date:"M d, Y" }}</div>
+                    <div class="timeline-title">Awaiting Delivery</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Linked Documents -->
+        {% if po.requisition or po.bid %}
+        <div class="card">
+            <h3 class="card-title">
+                <i class="bi bi-link-45deg"></i>
+                Linked Documents
+            </h3>
+
+            {% if po.requisition %}
+            <div class="info-item" style="margin-bottom: 1rem;">
+                <span class="info-label">Requisition</span>
+                <span class="info-value">
+                    <a href="#" 
+                       style="color: var(--primary-color); text-decoration: none;">
+                        {{ po.requisition.requisition_number }}
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </span>
+            </div>
+            {% endif %}
+
+            {% if po.bid %}
+            <div class="info-item">
+                <span class="info-label">Awarded Bid</span>
+                <span class="info-value">
+                    <a href="#" 
+                       style="color: var(--primary-color); text-decoration: none;">
+                        {{ po.bid.bid_number }}
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Cancel Order Modal -->
+<div id="cancelModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Cancel Purchase Order</h3>
+            <button type="button" class="modal-close" onclick="closeCancelModal()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="cancel">
+
+            <div class="form-group">
+                <label for="cancellation_reason" class="form-label">
+                    Reason for Cancellation *
+                </label>
+                <textarea name="cancellation_reason" 
+                          id="cancellation_reason" 
+                          class="form-textarea" 
+                          required
+                          placeholder="Please provide a detailed reason for cancelling this purchase order..."></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeCancelModal()">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-x-circle"></i>
+                    Confirm Cancellation
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openCancelModal() {
+        document.getElementById('cancelModal').classList.add('active');
+    }
+
+    function closeCancelModal() {
+        document.getElementById('cancelModal').classList.remove('active');
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('cancelModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeCancelModal();
+        }
+    });
+
+    // Handle form submissions
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const action = this.querySelector('input[name="action"]')?.value;
+            
+            if (action === 'approve') {
+                if (!confirm('Are you sure you want to approve this purchase order?')) {
+                    e.preventDefault();
+                }
+            } else if (action === 'send') {
+                if (!confirm('Are you sure you want to send this purchase order to the supplier?')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -18220,6 +18220,14 @@ def procurement_all_orders_view(request):
     return render(request, 'procurement/procurement_module/all_orders.html', context)
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db import transaction
+from django.utils import timezone
+from decimal import Decimal
+import json
+
 @login_required
 def procurement_create_order_view(request):
     """Create new purchase order"""
@@ -18228,24 +18236,341 @@ def procurement_create_order_view(request):
         return redirect('dashboard')
     
     if request.method == 'POST':
-        # Handle PO creation
-        messages.success(request, 'Purchase order created successfully.')
-        return redirect('procurement_all_orders')
+        try:
+            with transaction.atomic():
+                # Get form data
+                bid_id = request.POST.get('bid')
+                supplier_id = request.POST.get('supplier')
+                delivery_date = request.POST.get('delivery_date')
+                delivery_address = request.POST.get('delivery_address')
+                payment_terms = request.POST.get('payment_terms')
+                special_instructions = request.POST.get('special_instructions', '')
+                
+                # Validate required fields
+                if not supplier_id:
+                    messages.error(request, 'Please select a supplier.')
+                    return redirect('procurement_create_order')
+                
+                if not delivery_date or not delivery_address or not payment_terms:
+                    messages.error(request, 'Please fill in all required fields.')
+                    return redirect('procurement_create_order')
+                
+                # Get supplier
+                supplier = get_object_or_404(Supplier, id=supplier_id)
+                
+                # Get bid and requisition if bid was selected
+                bid = None
+                requisition = None
+                subtotal = Decimal('0.00')
+                tax_amount = Decimal('0.00')
+                
+                if bid_id:
+                    bid = get_object_or_404(Bid, id=bid_id, status='AWARDED')
+                    requisition = bid.tender.requisition
+                    
+                    # Calculate totals from bid
+                    subtotal = bid.bid_amount
+                    # Assuming 16% VAT (adjust as needed)
+                    tax_amount = subtotal * Decimal('0.16')
+                else:
+                    # If no bid selected, we need a requisition
+                    # This would need additional form fields to select requisition
+                    messages.error(request, 'Please select an awarded bid or provide requisition details.')
+                    return redirect('procurement_create_order')
+                
+                total_amount = subtotal + tax_amount
+                
+                # Create Purchase Order
+                po = PurchaseOrder.objects.create(
+                    requisition=requisition,
+                    supplier=supplier,
+                    bid=bid,
+                    delivery_date=delivery_date,
+                    delivery_address=delivery_address,
+                    subtotal=subtotal,
+                    tax_amount=tax_amount,
+                    total_amount=total_amount,
+                    payment_terms=payment_terms,
+                    special_instructions=special_instructions,
+                    status='DRAFT',
+                    created_by=request.user
+                )
+                
+                # Create PO items from bid items
+                if bid:
+                    for bid_item in bid.items.all():
+                        PurchaseOrderItem.objects.create(
+                            purchase_order=po,
+                            requisition_item=bid_item.requisition_item,
+                            item_description=bid_item.requisition_item.item_description,
+                            specifications=bid_item.requisition_item.specifications,
+                            quantity=bid_item.requisition_item.quantity,
+                            unit_of_measure=bid_item.requisition_item.unit_of_measure,
+                            unit_price=bid_item.quoted_unit_price,
+                            total_price=bid_item.quoted_total,
+                            notes=f"Brand: {bid_item.brand}, Model: {bid_item.model}" if bid_item.brand else ""
+                        )
+                
+                # Update requisition status
+                if requisition:
+                    requisition.status = 'APPROVED'
+                    requisition.save()
+                
+                # Create audit log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='CREATE',
+                    model_name='PurchaseOrder',
+                    object_id=str(po.id),
+                    object_repr=str(po),
+                    changes={
+                        'po_number': po.po_number,
+                        'supplier': supplier.name,
+                        'total_amount': str(total_amount)
+                    },
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT', '')
+                )
+                
+                # Create notification for supplier
+                Notification.objects.create(
+                    user=supplier.user if supplier.user else None,
+                    notification_type='PO',
+                    priority='HIGH',
+                    title='New Purchase Order Created',
+                    message=f'A new purchase order {po.po_number} has been created for your review.',
+                    link_url=f'/procurement/orders/{po.id}/'
+                )
+                
+                messages.success(
+                    request, 
+                    f'Purchase order {po.po_number} created successfully for {supplier.name}.'
+                )
+                return redirect('procurement_order_detail', po_id=po.id)
+                
+        except Exception as e:
+            messages.error(request, f'Error creating purchase order: {str(e)}')
+            return redirect('procurement_create_order')
     
+    # GET request - show form
     # Get awarded bids without POs
     awarded_bids = Bid.objects.filter(
         status='AWARDED',
         purchase_order__isnull=True
-    ).select_related('tender', 'supplier')
+    ).select_related(
+        'tender',
+        'tender__requisition', 
+        'supplier'
+    ).prefetch_related('items__requisition_item')
     
-    suppliers = Supplier.objects.filter(status='APPROVED')
+    # Prepare bid data with items as JSON for JavaScript
+    awarded_bids_data = []
+    for bid in awarded_bids:
+        bid_items = []
+        for bid_item in bid.items.all():
+            bid_items.append({
+                'item_name': bid_item.requisition_item.item.name if bid_item.requisition_item.item else 'N/A',
+                'description': bid_item.requisition_item.item_description,
+                'quantity': float(bid_item.requisition_item.quantity),
+                'unit_price': float(bid_item.quoted_unit_price),
+            })
+        
+        bid_data = bid
+        bid_data.items_json = json.dumps(bid_items)
+        awarded_bids_data.append(bid_data)
+    
+    # Get approved suppliers
+    suppliers = Supplier.objects.filter(
+        status='APPROVED'
+    ).order_by('name')
     
     context = {
-        'awarded_bids': awarded_bids,
+        'awarded_bids': awarded_bids_data,
         'suppliers': suppliers,
     }
     
     return render(request, 'procurement/procurement_module/create_order.html', context)
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Sum, Q
+from django.http import HttpResponse
+from django.utils import timezone
+
+@login_required
+def procurement_order_detail_view(request, po_id):
+    """View purchase order details"""
+    
+    # Get the purchase order with related data
+    po = get_object_or_404(
+        PurchaseOrder.objects.select_related(
+            'supplier',
+            'requisition',
+            'requisition__department',
+            'requisition__requested_by',
+            'bid',
+            'bid__tender',
+            'created_by',
+            'approved_by'
+        ).prefetch_related(
+            'items__requisition_item',
+            'items__requisition_item__item',
+            'grns',
+            'invoices',
+            'amendments'
+        ),
+        id=po_id
+    )
+    
+    # Check permissions
+    user = request.user
+    can_edit = False
+    can_approve = False
+    can_send = False
+    can_cancel = False
+    
+    if user.role == 'PROCUREMENT':
+        can_edit = po.status == 'DRAFT'
+        can_approve = po.status == 'DRAFT'
+        can_send = po.status == 'APPROVED'
+        can_cancel = po.status in ['DRAFT', 'APPROVED']
+    elif user.role == 'ADMIN':
+        can_edit = True
+        can_approve = True
+        can_send = True
+        can_cancel = True
+    
+    # Handle POST actions
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'approve' and can_approve:
+            po.status = 'APPROVED'
+            po.approved_by = user
+            po.approved_at = timezone.now()
+            po.save()
+            
+            # Create audit log
+            AuditLog.objects.create(
+                user=user,
+                action='APPROVE',
+                model_name='PurchaseOrder',
+                object_id=str(po.id),
+                object_repr=str(po),
+                changes={'status': 'APPROVED'},
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            
+            messages.success(request, f'Purchase Order {po.po_number} approved successfully.')
+            return redirect('procurement_order_detail', po_id=po.id)
+        
+        elif action == 'send' and can_send:
+            po.status = 'SENT'
+            po.sent_at = timezone.now()
+            po.save()
+            
+            # Create notification for supplier
+            if po.supplier.user:
+                Notification.objects.create(
+                    user=po.supplier.user,
+                    notification_type='PO',
+                    priority='HIGH',
+                    title='Purchase Order Sent',
+                    message=f'Purchase Order {po.po_number} has been sent to you. Please review and acknowledge.',
+                    link_url=f'/supplier/orders/{po.id}/'
+                )
+            
+            # Create audit log
+            AuditLog.objects.create(
+                user=user,
+                action='UPDATE',
+                model_name='PurchaseOrder',
+                object_id=str(po.id),
+                object_repr=str(po),
+                changes={'status': 'SENT'},
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            
+            messages.success(request, f'Purchase Order {po.po_number} sent to supplier successfully.')
+            return redirect('procurement_order_detail', po_id=po.id)
+        
+        elif action == 'cancel' and can_cancel:
+            cancellation_reason = request.POST.get('cancellation_reason', '')
+            
+            if not cancellation_reason:
+                messages.error(request, 'Please provide a reason for cancellation.')
+                return redirect('procurement_order_detail', po_id=po.id)
+            
+            po.status = 'CANCELLED'
+            po.special_instructions += f"\n\nCANCELLATION REASON ({timezone.now().strftime('%Y-%m-%d')}): {cancellation_reason}"
+            po.save()
+            
+            # Create audit log
+            AuditLog.objects.create(
+                user=user,
+                action='CANCEL',
+                model_name='PurchaseOrder',
+                object_id=str(po.id),
+                object_repr=str(po),
+                changes={'status': 'CANCELLED', 'reason': cancellation_reason},
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            
+            messages.success(request, f'Purchase Order {po.po_number} cancelled successfully.')
+            return redirect('procurement_order_detail', po_id=po.id)
+    
+    # Calculate delivery statistics
+    total_items = po.items.count()
+    items_fully_delivered = po.items.filter(quantity_pending=0).count()
+    items_partially_delivered = po.items.filter(
+        quantity_delivered__gt=0,
+        quantity_pending__gt=0
+    ).count()
+    items_not_delivered = po.items.filter(quantity_delivered=0).count()
+    
+    delivery_percentage = 0
+    if total_items > 0:
+        total_quantity = po.items.aggregate(total=Sum('quantity'))['total'] or 0
+        delivered_quantity = po.items.aggregate(total=Sum('quantity_delivered'))['total'] or 0
+        if total_quantity > 0:
+            delivery_percentage = (delivered_quantity / total_quantity) * 100
+    
+    # Get related documents count
+    grn_count = po.grns.count()
+    invoice_count = po.invoices.count()
+    amendment_count = po.amendments.count()
+    
+    # Check if overdue
+    is_overdue = False
+    days_until_delivery = 0
+    if po.delivery_date:
+        days_until_delivery = (po.delivery_date - timezone.now().date()).days
+        is_overdue = days_until_delivery < 0 and po.status not in ['DELIVERED', 'CLOSED', 'CANCELLED']
+    
+    context = {
+        'po': po,
+        'can_edit': can_edit,
+        'can_approve': can_approve,
+        'can_send': can_send,
+        'can_cancel': can_cancel,
+        'total_items': total_items,
+        'items_fully_delivered': items_fully_delivered,
+        'items_partially_delivered': items_partially_delivered,
+        'items_not_delivered': items_not_delivered,
+        'delivery_percentage': round(delivery_percentage, 1),
+        'grn_count': grn_count,
+        'invoice_count': invoice_count,
+        'amendment_count': amendment_count,
+        'is_overdue': is_overdue,
+        'days_until_delivery': days_until_delivery,
+    }
+    
+    return render(request, 'procurement/procurement_module/order_detail.html', context)
 
 
 @login_required

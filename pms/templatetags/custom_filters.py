@@ -86,3 +86,13 @@ def sum_attr(queryset, attr):
             continue
 
     return total
+
+@register.filter(name='abs')
+def absolute_value(value):
+    """
+    Usage: {{ value|abs }}
+    """
+    try:
+        return abs(int(value))
+    except (TypeError, ValueError):
+        return 0
