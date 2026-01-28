@@ -16405,27 +16405,84 @@ def finance_dashboard_view(request):
     return render(request, 'finance/finance_module/dashboard.html', context)
 
 
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from django.db.models import Sum, Count, Q, F, DecimalField
+from django.db.models.functions import TruncMonth
+from datetime import timedelta
+from decimal import Decimal
+import json
+
+from .models import (
+    BudgetYear, Budget, Payment, Invoice, 
+    PurchaseOrder, Department, BudgetCategory
+)
+
+
+def check_finance_permission(user):
+    """Check if user has finance permissions"""
+    return user.role in ['FINANCE', 'ADMIN']
+
+
 @login_required
 def finance_analytics_view(request):
-    """Finance Analytics Dashboard"""
+    """Finance Analytics Dashboard with proper data serialization for charts"""
+    
     if not check_finance_permission(request.user):
         messages.error(request, 'You do not have finance officer permissions.')
         return redirect('dashboard')
     
+    # Get current active budget year
     current_year = BudgetYear.objects.filter(is_active=True).first()
     
-    # Monthly spending trend (last 12 months)
+    if not current_year:
+        messages.warning(request, 'No active budget year found.')
+        context = {
+            'current_year': None,
+            'monthly_spending_json': '[]',
+            'category_spending_json': '[]',
+            'department_spending_json': '[]',
+            'top_suppliers': [],
+            'payment_by_method': [],
+        }
+        return render(request, 'finance/finance_module/analytics.html', context)
+    
+    # ===================================================================
+    # 1. MONTHLY SPENDING TREND (Last 12 months)
+    # ===================================================================
     twelve_months_ago = timezone.now() - timedelta(days=365)
-    monthly_spending = Payment.objects.filter(
+    
+    monthly_payments = Payment.objects.filter(
         status='COMPLETED',
         payment_date__gte=twelve_months_ago
-    ).extra(
-        select={'month': "EXTRACT(month FROM payment_date)", 'year': "EXTRACT(year FROM payment_date)"}
-    ).values('month', 'year').annotate(
+    ).annotate(
+        month_date=TruncMonth('payment_date')
+    ).values('month_date').annotate(
         total=Sum('payment_amount')
-    ).order_by('year', 'month')
+    ).order_by('month_date')
     
-    # Category-wise spending
+    # Format for Chart.js
+    monthly_spending_data = []
+    for item in monthly_payments:
+        monthly_spending_data.append({
+            'month': item['month_date'].strftime('%b %Y'),
+            'total': float(item['total'] or 0)
+        })
+    
+    # If no data, create empty months
+    if not monthly_spending_data:
+        monthly_spending_data = [
+            {'month': (timezone.now() - timedelta(days=30*i)).strftime('%b %Y'), 'total': 0}
+            for i in range(12, 0, -1)
+        ]
+    
+    monthly_spending_json = json.dumps(monthly_spending_data)
+    
+    # ===================================================================
+    # 2. CATEGORY-WISE SPENDING
+    # ===================================================================
     category_spending = Budget.objects.filter(
         budget_year=current_year,
         is_active=True
@@ -16434,7 +16491,26 @@ def finance_analytics_view(request):
         spent=Sum('actual_spent')
     ).order_by('-spent')[:10]
     
-    # Department-wise spending
+    # Format for Chart.js
+    category_spending_data = []
+    for item in category_spending:
+        if item['spent'] and item['spent'] > 0:
+            category_spending_data.append({
+                'category': item['category__name'] or 'Uncategorized',
+                'spent': float(item['spent'])
+            })
+    
+    # If no data, add dummy data
+    if not category_spending_data:
+        category_spending_data = [
+            {'category': 'No Data', 'spent': 0}
+        ]
+    
+    category_spending_json = json.dumps(category_spending_data)
+    
+    # ===================================================================
+    # 3. DEPARTMENT-WISE SPENDING
+    # ===================================================================
     department_spending = Budget.objects.filter(
         budget_year=current_year,
         is_active=True
@@ -16443,7 +16519,26 @@ def finance_analytics_view(request):
         spent=Sum('actual_spent')
     ).order_by('-spent')[:10]
     
-    # Top suppliers by payment value
+    # Format for Chart.js
+    department_spending_data = []
+    for item in department_spending:
+        if item['spent'] and item['spent'] > 0:
+            department_spending_data.append({
+                'department': item['department__name'] or 'Unknown',
+                'spent': float(item['spent'])
+            })
+    
+    # If no data, add dummy data
+    if not department_spending_data:
+        department_spending_data = [
+            {'department': 'No Data', 'spent': 0}
+        ]
+    
+    department_spending_json = json.dumps(department_spending_data)
+    
+    # ===================================================================
+    # 4. TOP SUPPLIERS BY PAYMENT VALUE
+    # ===================================================================
     top_suppliers = Payment.objects.filter(
         status='COMPLETED',
         payment_date__year=timezone.now().year
@@ -16452,7 +16547,28 @@ def finance_analytics_view(request):
         payment_count=Count('id')
     ).order_by('-total_paid')[:10]
     
-    # Payment trends
+    # Calculate total for percentage
+    total_all_payments = Payment.objects.filter(
+        status='COMPLETED',
+        payment_date__year=timezone.now().year
+    ).aggregate(total=Sum('payment_amount'))['total'] or Decimal('0')
+    
+    # Add percentage to each supplier
+    top_suppliers_list = []
+    for supplier in top_suppliers:
+        total_paid = supplier['total_paid'] or Decimal('0')
+        percentage = (total_paid / total_all_payments * 100) if total_all_payments > 0 else 0
+        
+        top_suppliers_list.append({
+            'name': supplier['invoice__supplier__name'] or 'Unknown Supplier',
+            'total_paid': total_paid,
+            'payment_count': supplier['payment_count'],
+            'percentage': float(percentage)
+        })
+    
+    # ===================================================================
+    # 5. PAYMENT METHODS DISTRIBUTION
+    # ===================================================================
     payment_by_method = Payment.objects.filter(
         status='COMPLETED',
         payment_date__year=timezone.now().year
@@ -16461,13 +16577,30 @@ def finance_analytics_view(request):
         count=Count('id')
     ).order_by('-total')
     
+    payment_methods_list = []
+    for method in payment_by_method:
+        total = method['total'] or Decimal('0')
+        count = method['count'] or 0
+        avg = (total / count) if count > 0 else Decimal('0')
+        
+        payment_methods_list.append({
+            'payment_method': method['payment_method'],
+            'total': total,
+            'count': count,
+            'average': avg
+        })
+    
+    # ===================================================================
+    # CONTEXT
+    # ===================================================================
     context = {
         'current_year': current_year,
-        'monthly_spending': list(monthly_spending),
-        'category_spending': list(category_spending),
-        'department_spending': list(department_spending),
-        'top_suppliers': list(top_suppliers),
-        'payment_by_method': list(payment_by_method),
+        'monthly_spending_json': monthly_spending_json,
+        'category_spending_json': category_spending_json,
+        'department_spending_json': department_spending_json,
+        'top_suppliers': top_suppliers_list,
+        'payment_by_method': payment_methods_list,
+        'total_all_payments': total_all_payments,
     }
     
     return render(request, 'finance/finance_module/analytics.html', context)

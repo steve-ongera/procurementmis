@@ -1,8 +1,4 @@
-<!-- ========================================== -->
-<!-- finance/analytics.html -->
-<!-- ========================================== -->
 {% extends 'base.html' %}
-{% load custom_filters %}
 {% load humanize %}
 
 {% block title %}Finance Analytics - University Procurement System{% endblock %}
@@ -135,7 +131,7 @@
 
     .chart-container {
         padding: 1.25rem;
-        height: 300px;
+        height: 350px;
         position: relative;
     }
 
@@ -168,6 +164,12 @@
         background-color: #EFF6FF;
         border-color: #BFDBFE;
         color: #1E40AF;
+    }
+
+    .alert-warning {
+        background-color: #FEF3C7;
+        border-color: #FCD34D;
+        color: #92400E;
     }
 
     .alert i {
@@ -246,11 +248,27 @@
         background: var(--hover-bg);
     }
 
+    tbody tr:last-child td {
+        border-bottom: none;
+    }
+
     .amount-cell {
         font-weight: 600;
         color: #1E293B;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 0.8125rem;
+    }
+
+    .no-data {
+        padding: 2rem;
+        text-align: center;
+        color: var(--secondary-color);
+    }
+
+    .no-data i {
+        font-size: 2rem;
+        color: #CBD5E1;
+        margin-bottom: 0.5rem;
     }
 
     /* Responsive */
@@ -274,7 +292,7 @@
         
         .chart-container {
             padding: 1rem;
-            height: 250px;
+            height: 300px;
         }
         
         .content-grid {
@@ -293,6 +311,10 @@
         
         .chart-title {
             font-size: 0.875rem;
+        }
+        
+        .chart-container {
+            height: 250px;
         }
     }
 </style>
@@ -322,10 +344,17 @@
 </div>
 
 <!-- Current Year Info -->
+{% if current_year %}
 <div class="alert alert-info">
     <i class="bi bi-info-circle"></i>
-    Analytics for Budget Year: <strong>{{ current_year.name }}</strong>
+    <span>Analytics for Budget Year: <strong>{{ current_year.name }}</strong></span>
 </div>
+{% else %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <span>No active budget year found. Analytics may be limited.</span>
+</div>
+{% endif %}
 
 <!-- Monthly Spending Trend -->
 <div class="chart-card">
@@ -392,21 +421,20 @@
             <tbody>
                 {% for supplier in top_suppliers %}
                 <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ supplier.invoice__supplier__name }}</td>
+                    <td><strong>{{ forloop.counter }}</strong></td>
+                    <td>{{ supplier.name }}</td>
                     <td>{{ supplier.payment_count }}</td>
-                    <td class="amount-cell">KES {{ supplier.total_paid|floatformat:0|intcomma }}</td>
-                    <td>
-                        {% with total=supplier.total_paid|floatformat:2|add:0 %}
-                        {% with grand_total=top_suppliers|first|getattr:"total_paid"|floatformat:2|add:0 %}
-                        {{ total|div:grand_total|mul:100|floatformat:1 }}%
-                        {% endwith %}
-                        {% endwith %}
-                    </td>
+                    <td class="amount-cell">KES {{ supplier.total_paid|floatformat:2|intcomma }}</td>
+                    <td>{{ supplier.percentage|floatformat:1 }}%</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    {% else %}
+    <div class="no-data">
+        <i class="bi bi-inbox"></i>
+        <p>No supplier payment data available</p>
     </div>
     {% endif %}
 </div>
@@ -444,12 +472,17 @@
                         </strong>
                     </td>
                     <td>{{ method.count }}</td>
-                    <td class="amount-cell">KES {{ method.total|floatformat:0|intcomma }}</td>
-                    <td class="amount-cell">KES {{ method.total|div:method.count|floatformat:0|intcomma }}</td>
+                    <td class="amount-cell">KES {{ method.total|floatformat:2|intcomma }}</td>
+                    <td class="amount-cell">KES {{ method.average|floatformat:2|intcomma }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    {% else %}
+    <div class="no-data">
+        <i class="bi bi-inbox"></i>
+        <p>No payment method data available</p>
     </div>
     {% endif %}
 </div>
@@ -457,21 +490,42 @@
 <!-- Chart.js Script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
-    // Monthly Spending Chart
-    const monthlyCtx = document.getElementById('monthlySpendingChart').getContext('2d');
-    const monthlyData = {{ monthly_spending|safe }};
-    
+console.log('=== Finance Analytics Charts Initializing ===');
+
+// Parse data from Django
+const monthlySpendingData = {{ monthly_spending_json|safe }};
+const categorySpendingData = {{ category_spending_json|safe }};
+const departmentSpendingData = {{ department_spending_json|safe }};
+
+console.log('Monthly Data:', monthlySpendingData);
+console.log('Category Data:', categorySpendingData);
+console.log('Department Data:', departmentSpendingData);
+
+// Chart colors
+const chartColors = [
+    '#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+    '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16'
+];
+
+// ============================================================
+// 1. MONTHLY SPENDING CHART
+// ============================================================
+const monthlyCtx = document.getElementById('monthlySpendingChart');
+if (monthlyCtx) {
     new Chart(monthlyCtx, {
         type: 'line',
         data: {
-            labels: monthlyData.map(d => `${d.year}-${d.month}`),
+            labels: monthlySpendingData.map(d => d.month),
             datasets: [{
                 label: 'Monthly Spending',
-                data: monthlyData.map(d => d.total),
+                data: monthlySpendingData.map(d => d.total),
                 borderColor: '#2563EB',
                 backgroundColor: 'rgba(37, 99, 235, 0.1)',
                 tension: 0.4,
-                fill: true
+                fill: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                borderWidth: 2
             }]
         },
         options: {
@@ -480,6 +534,16 @@
             plugins: {
                 legend: {
                     display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'KES ' + context.parsed.y.toLocaleString('en-KE', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        }
+                    }
                 }
             },
             scales: {
@@ -487,30 +551,39 @@
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return 'KES ' + value.toLocaleString();
+                            return 'KES ' + value.toLocaleString('en-KE');
                         }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
                     }
                 }
             }
         }
     });
+    console.log('✓ Monthly spending chart created');
+}
 
-    // Category Spending Chart
-    const categoryCtx = document.getElementById('categorySpendingChart').getContext('2d');
-    const categoryData = {{ category_spending|safe }};
-    
+// ============================================================
+// 2. CATEGORY SPENDING CHART (Doughnut)
+// ============================================================
+const categoryCtx = document.getElementById('categorySpendingChart');
+if (categoryCtx) {
     new Chart(categoryCtx, {
         type: 'doughnut',
         data: {
-            labels: categoryData.map(d => d.category__name),
+            labels: categorySpendingData.map(d => d.category),
             datasets: [{
-                data: categoryData.map(d => d.spent),
-                backgroundColor: [
-                    '#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
-                    '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16'
-                ],
-                borderWidth: 1,
-                borderColor: '#fff'
+                data: categorySpendingData.map(d => d.spent),
+                backgroundColor: chartColors,
+                borderWidth: 2,
+                borderColor: '#fff',
+                hoverOffset: 4
             }]
         },
         options: {
@@ -520,27 +593,63 @@
                 legend: {
                     position: 'right',
                     labels: {
-                        padding: 20,
-                        usePointStyle: true
+                        padding: 15,
+                        usePointStyle: true,
+                        font: {
+                            size: 11
+                        },
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return {
+                                        text: `${label} (${percentage}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            return label + ': KES ' + value.toLocaleString('en-KE', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        }
                     }
                 }
             }
         }
     });
+    console.log('✓ Category spending chart created');
+}
 
-    // Department Spending Chart
-    const deptCtx = document.getElementById('departmentSpendingChart').getContext('2d');
-    const deptData = {{ department_spending|safe }};
-    
+// ============================================================
+// 3. DEPARTMENT SPENDING CHART (Bar)
+// ============================================================
+const deptCtx = document.getElementById('departmentSpendingChart');
+if (deptCtx) {
     new Chart(deptCtx, {
         type: 'bar',
         data: {
-            labels: deptData.map(d => d.department__name),
+            labels: departmentSpendingData.map(d => d.department),
             datasets: [{
                 label: 'Amount Spent',
-                data: deptData.map(d => d.spent),
+                data: departmentSpendingData.map(d => d.spent),
                 backgroundColor: '#2563EB',
-                borderRadius: 4
+                borderRadius: 6,
+                borderSkipped: false,
             }]
         },
         options: {
@@ -549,6 +658,16 @@
             plugins: {
                 legend: {
                     display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'KES ' + context.parsed.y.toLocaleString('en-KE', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        }
+                    }
                 }
             },
             scales: {
@@ -556,12 +675,31 @@
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return 'KES ' + value.toLocaleString();
+                            return 'KES ' + value.toLocaleString('en-KE');
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        callback: function(value, index) {
+                            const label = this.getLabelForValue(value);
+                            // Truncate long department names
+                            return label.length > 20 ? label.substring(0, 20) + '...' : label;
                         }
                     }
                 }
             }
         }
     });
+    console.log('✓ Department spending chart created');
+}
+
+console.log('=== All charts initialized successfully ===');
 </script>
 {% endblock %}
