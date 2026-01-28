@@ -412,7 +412,7 @@ urlpatterns = [
     path('procurement-module/orders/create/', views.procurement_create_order_view, name='procurement_create_order'),
     path('procurement-module/orders/pending/', views.procurement_pending_orders_view, name='procurement_pending_orders'),
     path('procurement-module/orders/completed/', views.procurement_completed_orders_view, name='procurement_completed_orders'),
-    path('orders/<uuid:po_id>/', views.procurement_order_detail_view, name='procurement_order_detail'),
+    path('procurement-module/orders/<uuid:po_id>/', views.procurement_order_detail_view, name='procurement_order_detail'),
     
     # ============================================================================
     # CONTRACTS

@@ -18399,6 +18399,10 @@ from django.db.models import Sum, Q
 from django.http import HttpResponse
 from django.utils import timezone
 
+from django.core.mail import send_mail
+from django.conf import settings
+from django.template.loader import render_to_string
+
 @login_required
 def procurement_order_detail_view(request, po_id):
     """View purchase order details"""
@@ -18483,6 +18487,142 @@ def procurement_order_detail_view(request, po_id):
                     link_url=f'/supplier/orders/{po.id}/'
                 )
             
+            # Send email to supplier
+            try:
+                email_subject = f'Purchase Order {po.po_number} - Action Required'
+                
+                # Build text email content
+                email_body = f"""
+Dear {po.supplier.contact_person},
+
+PURCHASE ORDER NOTIFICATION
+
+We are pleased to inform you that Purchase Order {po.po_number} has been issued to {po.supplier.name}.
+
+PURCHASE ORDER DETAILS:
+-----------------------
+PO Number: {po.po_number}
+PO Date: {po.po_date.strftime('%B %d, %Y')}
+Delivery Date: {po.delivery_date.strftime('%B %d, %Y')}
+Total Amount: KES {po.total_amount:,.2f}
+
+SUPPLIER INFORMATION:
+--------------------
+Company: {po.supplier.name}
+Contact Person: {po.supplier.contact_person}
+Phone: {po.supplier.phone_number}
+Email: {po.supplier.email}
+
+DELIVERY ADDRESS:
+-----------------
+{po.delivery_address}
+
+ORDER ITEMS:
+------------
+"""
+                # Add items to email
+                for idx, item in enumerate(po.items.all(), 1):
+                    email_body += f"""
+{idx}. {item.item_description}
+   Quantity: {item.quantity} {item.unit_of_measure}
+   Unit Price: KES {item.unit_price:,.2f}
+   Total: KES {item.total_price:,.2f}
+"""
+
+                email_body += f"""
+
+PAYMENT TERMS:
+--------------
+{po.payment_terms}
+"""
+
+                if po.warranty_terms:
+                    email_body += f"""
+WARRANTY TERMS:
+---------------
+{po.warranty_terms}
+"""
+
+                if po.special_instructions:
+                    email_body += f"""
+SPECIAL INSTRUCTIONS:
+--------------------
+{po.special_instructions}
+"""
+
+                email_body += f"""
+
+FINANCIAL SUMMARY:
+------------------
+Subtotal: KES {po.subtotal:,.2f}
+Tax (VAT): KES {po.tax_amount:,.2f}
+TOTAL AMOUNT: KES {po.total_amount:,.2f}
+
+NEXT STEPS:
+-----------
+1. Please review the purchase order details carefully
+2. Acknowledge receipt of this purchase order
+3. Confirm the delivery date
+4. Contact us immediately if there are any issues or discrepancies
+
+Please acknowledge receipt of this purchase order by replying to this email or contacting our procurement department.
+
+For any questions or concerns regarding this purchase order, please contact:
+{user.get_full_name()}
+{user.email}
+Phone: {user.phone_number if hasattr(user, 'phone_number') and user.phone_number else 'N/A'}
+
+Thank you for your continued partnership.
+
+Best regards,
+{user.get_full_name()}
+Procurement Department
+{settings.ORGANIZATION_NAME if hasattr(settings, 'ORGANIZATION_NAME') else 'University Procurement System'}
+
+---
+This is an automated message. Please do not reply directly to this email.
+Purchase Order Number: {po.po_number}
+Generated on: {timezone.now().strftime('%B %d, %Y at %I:%M %p')}
+"""
+
+                # Send the email
+                send_mail(
+                    subject=email_subject,
+                    message=email_body,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[po.supplier.email],
+                    fail_silently=False,
+                )
+                
+                # Log email sent
+                EmailLog.objects.create(
+                    recipient=po.supplier.email,
+                    subject=email_subject,
+                    body=email_body,
+                    status='SENT',
+                    sent_at=timezone.now()
+                )
+                
+                messages.success(
+                    request, 
+                    f'Purchase Order {po.po_number} sent to supplier successfully. Email notification sent to {po.supplier.email}.'
+                )
+                
+            except Exception as e:
+                # Log email failure
+                EmailLog.objects.create(
+                    recipient=po.supplier.email,
+                    subject=email_subject,
+                    body=email_body if 'email_body' in locals() else '',
+                    status='FAILED',
+                    error_message=str(e)
+                )
+                
+                messages.warning(
+                    request, 
+                    f'Purchase Order {po.po_number} sent to supplier, but email notification failed. Please contact the supplier directly.'
+                )
+            
             # Create audit log
             AuditLog.objects.create(
                 user=user,
@@ -18490,12 +18630,11 @@ def procurement_order_detail_view(request, po_id):
                 model_name='PurchaseOrder',
                 object_id=str(po.id),
                 object_repr=str(po),
-                changes={'status': 'SENT'},
+                changes={'status': 'SENT', 'email_sent': True},
                 ip_address=request.META.get('REMOTE_ADDR'),
                 user_agent=request.META.get('HTTP_USER_AGENT', '')
             )
             
-            messages.success(request, f'Purchase Order {po.po_number} sent to supplier successfully.')
             return redirect('procurement_order_detail', po_id=po.id)
         
         elif action == 'cancel' and can_cancel:
@@ -18509,6 +18648,101 @@ def procurement_order_detail_view(request, po_id):
             po.special_instructions += f"\n\nCANCELLATION REASON ({timezone.now().strftime('%Y-%m-%d')}): {cancellation_reason}"
             po.save()
             
+            # Send cancellation email to supplier
+            try:
+                email_subject = f'CANCELLATION: Purchase Order {po.po_number}'
+                
+                email_body = f"""
+Dear {po.supplier.contact_person},
+
+PURCHASE ORDER CANCELLATION NOTICE
+
+This is to inform you that Purchase Order {po.po_number} has been CANCELLED.
+
+PURCHASE ORDER DETAILS:
+-----------------------
+PO Number: {po.po_number}
+PO Date: {po.po_date.strftime('%B %d, %Y')}
+Original Delivery Date: {po.delivery_date.strftime('%B %d, %Y')}
+Total Amount: KES {po.total_amount:,.2f}
+Cancellation Date: {timezone.now().strftime('%B %d, %Y at %I:%M %p')}
+
+SUPPLIER INFORMATION:
+--------------------
+Company: {po.supplier.name}
+Contact Person: {po.supplier.contact_person}
+
+REASON FOR CANCELLATION:
+------------------------
+{cancellation_reason}
+
+NEXT STEPS:
+-----------
+1. Please cease all work or procurement activities related to this purchase order
+2. If any goods have already been shipped, please contact us immediately
+3. If you have incurred any costs, please document them and contact our procurement department
+4. Do not deliver any items under this cancelled purchase order
+
+If you have any questions or concerns regarding this cancellation, please contact us immediately.
+
+CONTACT INFORMATION:
+--------------------
+Cancelled by: {user.get_full_name()}
+Email: {user.email}
+Phone: {user.phone_number if hasattr(user, 'phone_number') and user.phone_number else 'N/A'}
+
+We apologize for any inconvenience this may cause and appreciate your understanding.
+
+Best regards,
+{user.get_full_name()}
+Procurement Department
+{settings.ORGANIZATION_NAME if hasattr(settings, 'ORGANIZATION_NAME') else 'University Procurement System'}
+
+---
+This is an automated message. Please do not reply directly to this email.
+Purchase Order Number: {po.po_number}
+Status: CANCELLED
+Generated on: {timezone.now().strftime('%B %d, %Y at %I:%M %p')}
+"""
+
+                # Send the email
+                send_mail(
+                    subject=email_subject,
+                    message=email_body,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[po.supplier.email],
+                    fail_silently=False,
+                )
+                
+                # Log email sent
+                EmailLog.objects.create(
+                    recipient=po.supplier.email,
+                    subject=email_subject,
+                    body=email_body,
+                    status='SENT',
+                    sent_at=timezone.now()
+                )
+                
+                messages.success(
+                    request, 
+                    f'Purchase Order {po.po_number} cancelled successfully. Cancellation email sent to {po.supplier.email}.'
+                )
+                
+            except Exception as e:
+                # Log email failure
+                EmailLog.objects.create(
+                    recipient=po.supplier.email,
+                    subject=email_subject,
+                    body=email_body if 'email_body' in locals() else '',
+                    status='FAILED',
+                    error_message=str(e)
+                )
+                
+                messages.warning(
+                    request, 
+                    f'Purchase Order {po.po_number} cancelled, but email notification failed. Please contact the supplier directly.'
+                )
+            
             # Create audit log
             AuditLog.objects.create(
                 user=user,
@@ -18516,12 +18750,11 @@ def procurement_order_detail_view(request, po_id):
                 model_name='PurchaseOrder',
                 object_id=str(po.id),
                 object_repr=str(po),
-                changes={'status': 'CANCELLED', 'reason': cancellation_reason},
+                changes={'status': 'CANCELLED', 'reason': cancellation_reason, 'email_sent': True},
                 ip_address=request.META.get('REMOTE_ADDR'),
                 user_agent=request.META.get('HTTP_USER_AGENT', '')
             )
             
-            messages.success(request, f'Purchase Order {po.po_number} cancelled successfully.')
             return redirect('procurement_order_detail', po_id=po.id)
     
     # Calculate delivery statistics
@@ -18571,7 +18804,6 @@ def procurement_order_detail_view(request, po_id):
     }
     
     return render(request, 'procurement/procurement_module/order_detail.html', context)
-
 
 @login_required
 def procurement_pending_orders_view(request):
