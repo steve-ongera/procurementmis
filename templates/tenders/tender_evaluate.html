@@ -736,40 +736,63 @@
                     </div>
                 </div>
 
-                <div class="bid-actions">
-                    <a href="{% url 'bid_detail' bid.id %}" class="btn btn-secondary" target="_blank">
-                        <i class="bi bi-eye"></i>
-                        View Full Bid
-                    </a>
-                    <button type="button" class="btn btn-primary" onclick="openEvaluationModal('{{ bid.id }}', '{{ bid.bid_number }}', '{{ bid.supplier.name }}')">
-                        <i class="bi bi-clipboard-check"></i>
-                        {% if bid.evaluations.exists %}Re-evaluate{% else %}Evaluate{% endif %}
-                    </button>
-                </div>
+                <!-- Replace the bid actions section in your template with this -->
 
-                {% if bid.evaluations.exists %}
-                <div class="evaluation-history">
-                    <h4>Previous Evaluations</h4>
-                    {% for evaluation in bid.evaluations.all|slice:":3" %}
-                    <div class="evaluation-item">
-                        <div>
-                            <strong>{{ evaluation.evaluator.get_full_name }}</strong>
-                            <span class="text-muted">{{ evaluation.evaluated_at|date:"M d, Y H:i" }}</span>
-                        </div>
-                        <div class="scores">
-                            <span>Technical: {{ evaluation.technical_score }}</span>
-                            <span>Financial: {{ evaluation.financial_score }}</span>
-                            <span>Total: {{ evaluation.total_score }}</span>
-                        </div>
-                        {% if evaluation.recommendation %}
-                        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--secondary-color);">
-                            {{ evaluation.recommendation|truncatewords:20 }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
+<div class="bid-actions">
+    <a href="{% url 'bid_detail' bid.id %}" class="btn btn-secondary" target="_blank">
+        <i class="bi bi-eye"></i>
+        View Full Bid
+    </a>
+    <button type="button" class="btn btn-primary" onclick="openEvaluationModal('{{ bid.id }}', '{{ bid.bid_number }}', '{{ bid.supplier.name }}')">
+        <i class="bi bi-clipboard-check"></i>
+        {% if bid.user_has_evaluated %}
+            Re-evaluate
+        {% else %}
+            Evaluate
+        {% endif %}
+    </button>
+</div>
+
+{% if bid.user_has_evaluated and bid.user_evaluation %}
+<div class="evaluation-history">
+    <h4>Your Evaluation</h4>
+    <div class="evaluation-item">
+        <div>
+            <strong>{{ request.user.get_full_name }}</strong>
+            <span class="text-muted">{{ bid.user_evaluation.evaluated_at|date:"M d, Y H:i" }}</span>
+        </div>
+        <div class="scores">
+            <span>Technical: {{ bid.user_evaluation.technical_score }}</span>
+            <span>Financial: {{ bid.user_evaluation.financial_score }}</span>
+            <span>Total: {{ bid.user_evaluation.total_score }}</span>
+        </div>
+        {% if bid.user_evaluation.recommendation %}
+        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--secondary-color);">
+            {{ bid.user_evaluation.recommendation|truncatewords:20 }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if bid.other_evaluations_count > 0 %}
+<div class="evaluation-history">
+    <h4>Other Evaluations ({{ bid.other_evaluations_count }})</h4>
+    {% for evaluation in bid.other_evaluations %}
+    <div class="evaluation-item">
+        <div>
+            <strong>{{ evaluation.evaluator.get_full_name }}</strong>
+            <span class="text-muted">{{ evaluation.evaluated_at|date:"M d, Y H:i" }}</span>
+        </div>
+        <div class="scores">
+            <span>Technical: {{ evaluation.technical_score }}</span>
+            <span>Financial: {{ evaluation.financial_score }}</span>
+            <span>Total: {{ evaluation.total_score }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
             </div>
             {% endfor %}
         </div>

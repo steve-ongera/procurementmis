@@ -3684,26 +3684,87 @@ def tender_close(request, pk):
     
     return render(request, 'tenders/tender_close.html', {'tender': tender})
 
+"""
+Fixed tender_evaluate view that properly handles TechnicalEvaluationScore
+Replace your existing tender_evaluate view with this
+"""
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.db import transaction
+from django.db.models import Avg
+from django.utils import timezone
+from decimal import Decimal
+from .models import (
+    Tender, Bid, EvaluationCommittee, CommitteeMember,
+    TechnicalEvaluationScore, FinancialEvaluationScore,
+    TechnicalEvaluationCriteria, BidTechnicalResponse,
+    CombinedEvaluationResult, AuditLog, BidEvaluation
+)
+
 
 @login_required
 def tender_evaluate(request, pk):
-    """Start tender evaluation"""
+    """Committee member evaluation of bids"""
     tender = get_object_or_404(Tender, pk=pk)
     
-    if request.user.role not in ['PROCUREMENT', 'ADMIN']:
-        messages.error(request, 'You do not have permission to evaluate tenders.')
+    # Check if user is a committee member
+    active_committee = EvaluationCommittee.objects.filter(
+        tender=tender,
+        status='ACTIVE'
+    ).first()
+    
+    if not active_committee:
+        messages.error(request, 'No active evaluation committee found for this tender.')
         return redirect('tender_detail', pk=pk)
     
+    # Check if user is a committee member
+    membership = CommitteeMember.objects.filter(
+        committee=active_committee,
+        user=request.user,
+        is_active=True,
+        role__in=['CHAIRPERSON', 'MEMBER', 'SECRETARY']  # Exclude observers
+    ).first()
+    
+    if not membership and request.user.role != 'ADMIN':
+        messages.error(request, 'You are not a member of the evaluation committee for this tender.')
+        return redirect('tender_detail', pk=pk)
+    
+    # Check tender status
     if tender.status not in ['CLOSED', 'EVALUATING']:
         messages.error(request, 'Only closed tenders can be evaluated.')
         return redirect('tender_detail', pk=pk)
     
+    # Update tender status to evaluating if closed
     if tender.status == 'CLOSED':
         tender.status = 'EVALUATING'
         tender.save()
     
-    # Get bids for evaluation
-    bids = tender.bids.exclude(status='DISQUALIFIED').select_related('supplier')
+    # Get bids for evaluation (exclude disqualified)
+    bids = tender.bids.exclude(status='DISQUALIFIED').select_related('supplier').prefetch_related(
+        'evaluations'
+    )
+    
+    # Check which bids current user has evaluated using BidEvaluation
+    for bid in bids:
+        existing_eval = BidEvaluation.objects.filter(
+            bid=bid,
+            evaluator=request.user
+        ).first()
+        
+        bid.user_has_evaluated = existing_eval is not None
+        if existing_eval:
+            bid.user_evaluation = existing_eval
+        
+        # Get other evaluators' evaluations (exclude current user)
+        bid.other_evaluations = bid.evaluations.exclude(
+            evaluator=request.user
+        ).select_related('evaluator')[:3]
+        
+        bid.other_evaluations_count = bid.evaluations.exclude(
+            evaluator=request.user
+        ).count()
     
     if request.method == 'POST':
         try:
@@ -3711,32 +3772,128 @@ def tender_evaluate(request, pk):
                 bid_id = request.POST.get('bid_id')
                 bid = get_object_or_404(Bid, id=bid_id, tender=tender)
                 
-                # Create evaluation
-                evaluation = BidEvaluation.objects.create(
+                # Get scores
+                technical_score = Decimal(request.POST.get('technical_score', 0))
+                financial_score = Decimal(request.POST.get('financial_score', 0))
+                
+                # Get compliance
+                technical_compliance = request.POST.get('technical_compliance') == 'on'
+                financial_compliance = request.POST.get('financial_compliance') == 'on'
+                
+                # Get comments
+                strengths = request.POST.get('strengths', '')
+                weaknesses = request.POST.get('weaknesses', '')
+                recommendation = request.POST.get('recommendation', '')
+                
+                # Calculate total score (70% technical, 30% financial)
+                total_score = (technical_score * Decimal('0.7')) + (financial_score * Decimal('0.3'))
+                
+                # Create or update BidEvaluation (the original evaluation model)
+                evaluation, created = BidEvaluation.objects.update_or_create(
                     bid=bid,
                     evaluator=request.user,
-                    technical_compliance=request.POST.get('technical_compliance') == 'on',
-                    financial_compliance=request.POST.get('financial_compliance') == 'on',
-                    technical_score=Decimal(request.POST.get('technical_score')),
-                    financial_score=Decimal(request.POST.get('financial_score')),
-                    strengths=request.POST.get('strengths', ''),
-                    weaknesses=request.POST.get('weaknesses', ''),
-                    recommendation=request.POST.get('recommendation')
+                    defaults={
+                        'technical_compliance': technical_compliance,
+                        'financial_compliance': financial_compliance,
+                        'technical_score': technical_score,
+                        'financial_score': financial_score,
+                        'total_score': total_score,
+                        'strengths': strengths,
+                        'weaknesses': weaknesses,
+                        'recommendation': recommendation,
+                    }
                 )
                 
-                # Update bid scores
-                bid.technical_score = evaluation.technical_score
-                bid.financial_score = evaluation.financial_score
-                bid.evaluation_score = evaluation.total_score
+                # Also create FinancialEvaluationScore for the new system
+                financial_eval, created = FinancialEvaluationScore.objects.update_or_create(
+                    bid=bid,
+                    evaluator=request.user,
+                    defaults={
+                        'quoted_amount': bid.bid_amount,
+                        'is_arithmetic_correct': True,
+                        'is_within_budget': bid.bid_amount <= tender.estimated_budget,
+                        'is_price_reasonable': financial_compliance,
+                        'variance_from_estimate': float(
+                            ((bid.bid_amount - tender.estimated_budget) / tender.estimated_budget * 100)
+                            if tender.estimated_budget > 0 else 0
+                        ),
+                        'financial_score': financial_score,
+                        'weighted_financial_score': financial_score * Decimal('0.3'),
+                        'comments': f"Strengths: {strengths}\n\nWeaknesses: {weaknesses}\n\nRecommendation: {recommendation}",
+                    }
+                )
                 
-                # Determine if qualified
-                if evaluation.technical_compliance and evaluation.financial_compliance:
-                    bid.status = 'QUALIFIED'
-                else:
+                # Update bid status based on compliance
+                if not technical_compliance or not financial_compliance:
                     bid.status = 'DISQUALIFIED'
-                    bid.disqualification_reason = request.POST.get('disqualification_reason', '')
+                    bid.disqualification_reason = request.POST.get('disqualification_reason', 
+                        'Failed compliance requirements')
+                    bid.save()
+                elif bid.status in ['OPENED', 'SUBMITTED']:
+                    bid.status = 'EVALUATING'
+                    bid.save()
                 
-                bid.save()
+                # Check if all committee members have evaluated this bid
+                total_members = active_committee.members.filter(
+                    is_active=True,
+                    role__in=['CHAIRPERSON', 'MEMBER', 'SECRETARY']
+                ).count()
+                
+                evaluations_count = BidEvaluation.objects.filter(
+                    bid=bid,
+                    evaluator__in=active_committee.members.filter(
+                        is_active=True,
+                        role__in=['CHAIRPERSON', 'MEMBER', 'SECRETARY']
+                    ).values_list('user_id', flat=True)
+                ).count()
+                
+                # If all members have evaluated, calculate combined result
+                if evaluations_count >= total_members:
+                    # Calculate average scores from BidEvaluation
+                    avg_scores = BidEvaluation.objects.filter(
+                        bid=bid,
+                        evaluator__in=active_committee.members.filter(
+                            is_active=True,
+                            role__in=['CHAIRPERSON', 'MEMBER', 'SECRETARY']
+                        ).values_list('user_id', flat=True)
+                    ).aggregate(
+                        avg_technical=Avg('technical_score'),
+                        avg_financial=Avg('financial_score'),
+                        avg_total=Avg('total_score')
+                    )
+                    
+                    avg_technical = avg_scores['avg_technical'] or Decimal('0')
+                    avg_financial = avg_scores['avg_financial'] or Decimal('0')
+                    avg_total = avg_scores['avg_total'] or Decimal('0')
+                    
+                    # Get or create technical pass mark
+                    technical_pass_mark = getattr(tender, 'technical_pass_mark', Decimal('70'))
+                    
+                    # Create or update combined evaluation result
+                    combined, created = CombinedEvaluationResult.objects.update_or_create(
+                        bid=bid,
+                        defaults={
+                            'average_technical_score': avg_technical,
+                            'technical_percentage': avg_technical,
+                            'is_technically_qualified': avg_technical >= technical_pass_mark,
+                            'technical_pass_mark': technical_pass_mark,
+                            'average_financial_score': avg_financial,
+                            'financial_percentage': avg_financial,
+                            'combined_score': avg_total,
+                            'evaluated_by_committee': active_committee,
+                            'evaluation_date': timezone.now().date(),
+                        }
+                    )
+                    
+                    # Update bid with combined scores
+                    bid.technical_score = avg_technical
+                    bid.financial_score = avg_financial
+                    bid.evaluation_score = avg_total
+                    
+                    if combined.is_technically_qualified and bid.status != 'DISQUALIFIED':
+                        bid.status = 'QUALIFIED'
+                    
+                    bid.save()
                 
                 # Create audit log
                 AuditLog.objects.create(
@@ -3745,23 +3902,35 @@ def tender_evaluate(request, pk):
                     model_name='Bid',
                     object_id=str(bid.id),
                     object_repr=bid.bid_number,
-                    changes={'evaluated': True, 'score': float(evaluation.total_score)}
+                    changes={
+                        'action': 'evaluation_submitted',
+                        'technical_score': float(technical_score),
+                        'financial_score': float(financial_score),
+                        'total_score': float(total_score),
+                        'evaluator': request.user.get_full_name(),
+                    }
                 )
                 
-                messages.success(request, f'Bid {bid.bid_number} evaluated successfully!')
+                messages.success(request, f'Your evaluation for bid {bid.bid_number} has been submitted successfully!')
                 return redirect('tender_evaluate', pk=pk)
                 
         except Exception as e:
-            messages.error(request, f'Error evaluating bid: {str(e)}')
+            messages.error(request, f'Error submitting evaluation: {str(e)}')
+            import traceback
+            traceback.print_exc()
+    
+    # Get evaluation criteria for reference
+    criteria = tender.evaluation_criteria.all().order_by('sequence')
     
     context = {
         'tender': tender,
         'bids': bids,
-        'criteria': tender.evaluation_criteria.all().order_by('sequence'),
+        'criteria': criteria,
+        'active_committee': active_committee,
+        'membership': membership,
     }
     
     return render(request, 'tenders/tender_evaluate.html', context)
-
 
 @login_required
 def tender_award(request, pk):
