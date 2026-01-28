@@ -3932,6 +3932,483 @@ def tender_evaluate(request, pk):
     
     return render(request, 'tenders/tender_evaluate.html', context)
 
+
+"""
+Enhanced tender_award and tender_cancel views with email notifications
+Replace your existing views with these
+"""
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.db import transaction
+from django.core.mail import send_mail, EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
+from django.utils import timezone
+from .models import (
+    Tender, Bid, Notification, AuditLog, EmailLog, User, Supplier
+)
+
+
+def send_tender_award_email(winning_bid, tender, request):
+    """Send award notification email to winning supplier"""
+    try:
+        supplier = winning_bid.supplier
+        
+        # Get supplier email addresses
+        recipient_emails = []
+        
+        # Add supplier's primary email
+        if supplier.email:
+            recipient_emails.append(supplier.email)
+        
+        # Add contact person email
+        if supplier.contact_person_email:
+            recipient_emails.append(supplier.contact_person_email)
+        
+        # Add supplier user accounts
+        if hasattr(supplier, 'user') and supplier.user:
+            recipient_emails.append(supplier.user.email)
+        
+        # Remove duplicates
+        recipient_emails = list(set(recipient_emails))
+        
+        if not recipient_emails:
+            print(f"No email addresses found for supplier {supplier.name}")
+            return False
+        
+        # Prepare email context
+        context = {
+            'supplier_name': supplier.name,
+            'tender_number': tender.tender_number,
+            'tender_title': tender.title,
+            'bid_number': winning_bid.bid_number,
+            'bid_amount': winning_bid.bid_amount,
+            'awarded_by': request.user.get_full_name(),
+            'award_date': timezone.now().date(),
+            'contact_person': request.user.get_full_name(),
+            'contact_email': request.user.email,
+            'contact_phone': request.user.phone_number if hasattr(request.user, 'phone_number') else 'N/A',
+        }
+        
+        # Email subject
+        subject = f'Tender Award Notification - {tender.tender_number}'
+        
+        # Plain text email body
+        text_content = f"""
+Dear {supplier.name},
+
+TENDER AWARD NOTIFICATION
+
+We are pleased to inform you that your bid has been successful for the following tender:
+
+TENDER DETAILS:
+================
+Tender Number: {tender.tender_number}
+Tender Title: {tender.title}
+Your Bid Number: {winning_bid.bid_number}
+Bid Amount: KES {winning_bid.bid_amount:,.2f}
+Award Date: {timezone.now().date().strftime('%B %d, %Y')}
+
+NEXT STEPS:
+===========
+1. Contract Preparation: Our procurement team will contact you within 3 business days to initiate the contract preparation process.
+
+2. Required Documents: Please prepare the following documents:
+   - Valid Tax Compliance Certificate
+   - Certificate of Incorporation/Business Registration
+   - Banking details confirmation
+   - Insurance certificates (if applicable)
+   - Performance bond (if required)
+
+3. Contract Signing: You will be invited to sign the contract once all compliance requirements are met.
+
+4. Project Commencement: Work/delivery should commence as per the contract terms immediately after signing.
+
+IMPORTANT NOTES:
+================
+- This award is subject to final contract signing and compliance verification
+- Any misrepresentation of information may lead to disqualification
+- Delivery timelines commence from the contract signing date
+- Please adhere to all terms and conditions specified in the tender documents
+
+CONTACT INFORMATION:
+====================
+For any queries or clarifications, please contact:
+
+Name: {request.user.get_full_name()}
+Email: {request.user.email}
+Phone: {request.user.phone_number if hasattr(request.user, 'phone_number') else 'N/A'}
+
+Congratulations once again on this award. We look forward to a successful partnership.
+
+Best regards,
+Procurement Department
+{settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'procurement@university.ac.ke'}
+
+---
+This is an automated notification. Please do not reply to this email directly.
+"""
+        
+        # HTML email body (optional, more professional)
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: #2563EB; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }}
+        .content {{ background: #f8f9fa; padding: 20px; }}
+        .section {{ background: white; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #2563EB; }}
+        .section h3 {{ color: #2563EB; margin-top: 0; }}
+        .info-grid {{ display: grid; grid-template-columns: 150px 1fr; gap: 10px; }}
+        .info-label {{ font-weight: bold; color: #64748B; }}
+        .info-value {{ color: #334155; }}
+        .highlight {{ background: #FEF3C7; padding: 15px; border-radius: 5px; border-left: 4px solid #F59E0B; margin: 15px 0; }}
+        .steps {{ counter-reset: step; list-style: none; padding: 0; }}
+        .steps li {{ counter-increment: step; margin: 10px 0; padding-left: 30px; position: relative; }}
+        .steps li:before {{ content: counter(step); position: absolute; left: 0; top: 0; background: #2563EB; color: white; width: 25px; height: 25px; border-radius: 50%; text-align: center; line-height: 25px; font-weight: bold; }}
+        .footer {{ text-align: center; padding: 20px; color: #64748B; font-size: 12px; }}
+        .button {{ display: inline-block; background: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 TENDER AWARD NOTIFICATION</h1>
+        </div>
+        
+        <div class="content">
+            <p>Dear <strong>{supplier.name}</strong>,</p>
+            
+            <div class="highlight">
+                <strong>Congratulations!</strong> We are pleased to inform you that your bid has been successful.
+            </div>
+            
+            <div class="section">
+                <h3>Tender Details</h3>
+                <div class="info-grid">
+                    <div class="info-label">Tender Number:</div>
+                    <div class="info-value">{tender.tender_number}</div>
+                    
+                    <div class="info-label">Tender Title:</div>
+                    <div class="info-value">{tender.title}</div>
+                    
+                    <div class="info-label">Your Bid Number:</div>
+                    <div class="info-value">{winning_bid.bid_number}</div>
+                    
+                    <div class="info-label">Bid Amount:</div>
+                    <div class="info-value"><strong>KES {winning_bid.bid_amount:,.2f}</strong></div>
+                    
+                    <div class="info-label">Award Date:</div>
+                    <div class="info-value">{timezone.now().date().strftime('%B %d, %Y')}</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>Next Steps</h3>
+                <ol class="steps">
+                    <li><strong>Contract Preparation:</strong> Our team will contact you within 3 business days</li>
+                    <li><strong>Document Submission:</strong> Prepare required compliance documents</li>
+                    <li><strong>Contract Signing:</strong> Sign the contract after compliance verification</li>
+                    <li><strong>Project Commencement:</strong> Begin work/delivery as per contract terms</li>
+                </ol>
+            </div>
+            
+            <div class="section">
+                <h3>Required Documents</h3>
+                <ul>
+                    <li>Valid Tax Compliance Certificate</li>
+                    <li>Certificate of Incorporation/Business Registration</li>
+                    <li>Banking details confirmation</li>
+                    <li>Insurance certificates (if applicable)</li>
+                    <li>Performance bond (if required)</li>
+                </ul>
+            </div>
+            
+            <div class="section">
+                <h3>Contact Information</h3>
+                <p>For any queries or clarifications:</p>
+                <div class="info-grid">
+                    <div class="info-label">Name:</div>
+                    <div class="info-value">{request.user.get_full_name()}</div>
+                    
+                    <div class="info-label">Email:</div>
+                    <div class="info-value">{request.user.email}</div>
+                    
+                    <div class="info-label">Phone:</div>
+                    <div class="info-value">{request.user.phone_number if hasattr(request.user, 'phone_number') else 'N/A'}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from the Procurement Department.</p>
+            <p>Please do not reply to this email directly.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        # Send email
+        for email in recipient_emails:
+            try:
+                # Create email with both plain text and HTML versions
+                email_message = EmailMultiAlternatives(
+                    subject=subject,
+                    body=text_content,
+                    from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@university.ac.ke',
+                    to=[email],
+                    reply_to=[request.user.email] if request.user.email else None
+                )
+                
+                # Attach HTML version
+                email_message.attach_alternative(html_content, "text/html")
+                
+                # Send email
+                email_message.send(fail_silently=False)
+                
+                # Log email
+                EmailLog.objects.create(
+                    recipient=email,
+                    subject=subject,
+                    body=text_content,
+                    status='SENT',
+                    sent_at=timezone.now()
+                )
+                
+                print(f"Award email sent successfully to {email}")
+                
+            except Exception as e:
+                # Log failed email
+                EmailLog.objects.create(
+                    recipient=email,
+                    subject=subject,
+                    body=text_content,
+                    status='FAILED',
+                    error_message=str(e)
+                )
+                print(f"Failed to send award email to {email}: {str(e)}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error in send_tender_award_email: {str(e)}")
+        return False
+
+
+def send_tender_cancellation_emails(tender, reason, request):
+    """Send cancellation notification to all bidders"""
+    try:
+        # Get all bids for this tender
+        bids = tender.bids.all()
+        
+        if not bids.exists():
+            return False
+        
+        emails_sent = 0
+        
+        for bid in bids:
+            supplier = bid.supplier
+            
+            # Get supplier email addresses
+            recipient_emails = []
+            
+            if supplier.email:
+                recipient_emails.append(supplier.email)
+            if supplier.contact_person_email:
+                recipient_emails.append(supplier.contact_person_email)
+            if hasattr(supplier, 'user') and supplier.user:
+                recipient_emails.append(supplier.user.email)
+            
+            # Remove duplicates
+            recipient_emails = list(set(recipient_emails))
+            
+            if not recipient_emails:
+                continue
+            
+            # Email subject
+            subject = f'Tender Cancellation Notice - {tender.tender_number}'
+            
+            # Plain text email body
+            text_content = f"""
+Dear {supplier.name},
+
+TENDER CANCELLATION NOTICE
+
+We regret to inform you that the following tender has been cancelled:
+
+TENDER DETAILS:
+================
+Tender Number: {tender.tender_number}
+Tender Title: {tender.title}
+Your Bid Number: {bid.bid_number}
+Cancellation Date: {timezone.now().date().strftime('%B %d, %Y')}
+
+REASON FOR CANCELLATION:
+========================
+{reason}
+
+IMPACT ON YOUR BID:
+===================
+- Your bid {bid.bid_number} is no longer under consideration
+- Any bid security/bond will be returned as per tender conditions
+- No further action is required from your end
+
+We apologize for any inconvenience this may cause. We encourage you to participate in future tenders.
+
+For any questions or clarifications, please contact:
+
+Name: {request.user.get_full_name()}
+Email: {request.user.email}
+Phone: {request.user.phone_number if hasattr(request.user, 'phone_number') else 'N/A'}
+
+Thank you for your interest and participation.
+
+Best regards,
+Procurement Department
+{settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'procurement@university.ac.ke'}
+
+---
+This is an automated notification. Please do not reply to this email directly.
+"""
+            
+            # HTML email body
+            html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: #EF4444; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }}
+        .content {{ background: #f8f9fa; padding: 20px; }}
+        .section {{ background: white; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #EF4444; }}
+        .section h3 {{ color: #EF4444; margin-top: 0; }}
+        .info-grid {{ display: grid; grid-template-columns: 150px 1fr; gap: 10px; }}
+        .info-label {{ font-weight: bold; color: #64748B; }}
+        .info-value {{ color: #334155; }}
+        .reason-box {{ background: #FEE2E2; padding: 15px; border-radius: 5px; border-left: 4px solid #EF4444; margin: 15px 0; }}
+        .footer {{ text-align: center; padding: 20px; color: #64748B; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚠️ TENDER CANCELLATION NOTICE</h1>
+        </div>
+        
+        <div class="content">
+            <p>Dear <strong>{supplier.name}</strong>,</p>
+            
+            <p>We regret to inform you that the following tender has been cancelled:</p>
+            
+            <div class="section">
+                <h3>Tender Details</h3>
+                <div class="info-grid">
+                    <div class="info-label">Tender Number:</div>
+                    <div class="info-value">{tender.tender_number}</div>
+                    
+                    <div class="info-label">Tender Title:</div>
+                    <div class="info-value">{tender.title}</div>
+                    
+                    <div class="info-label">Your Bid Number:</div>
+                    <div class="info-value">{bid.bid_number}</div>
+                    
+                    <div class="info-label">Cancellation Date:</div>
+                    <div class="info-value">{timezone.now().date().strftime('%B %d, %Y')}</div>
+                </div>
+            </div>
+            
+            <div class="reason-box">
+                <h3>Reason for Cancellation:</h3>
+                <p>{reason}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Impact on Your Bid</h3>
+                <ul>
+                    <li>Your bid {bid.bid_number} is no longer under consideration</li>
+                    <li>Any bid security/bond will be returned as per tender conditions</li>
+                    <li>No further action is required from your end</li>
+                </ul>
+            </div>
+            
+            <div class="section">
+                <h3>Contact Information</h3>
+                <p>For any questions or clarifications:</p>
+                <div class="info-grid">
+                    <div class="info-label">Name:</div>
+                    <div class="info-value">{request.user.get_full_name()}</div>
+                    
+                    <div class="info-label">Email:</div>
+                    <div class="info-value">{request.user.email}</div>
+                    
+                    <div class="info-label">Phone:</div>
+                    <div class="info-value">{request.user.phone_number if hasattr(request.user, 'phone_number') else 'N/A'}</div>
+                </div>
+            </div>
+            
+            <p>We apologize for any inconvenience and encourage you to participate in future tenders.</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from the Procurement Department.</p>
+            <p>Please do not reply to this email directly.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+            
+            # Send to all recipient emails
+            for email in recipient_emails:
+                try:
+                    email_message = EmailMultiAlternatives(
+                        subject=subject,
+                        body=text_content,
+                        from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@university.ac.ke',
+                        to=[email],
+                        reply_to=[request.user.email] if request.user.email else None
+                    )
+                    
+                    email_message.attach_alternative(html_content, "text/html")
+                    email_message.send(fail_silently=False)
+                    
+                    # Log successful email
+                    EmailLog.objects.create(
+                        recipient=email,
+                        subject=subject,
+                        body=text_content,
+                        status='SENT',
+                        sent_at=timezone.now()
+                    )
+                    
+                    emails_sent += 1
+                    print(f"Cancellation email sent to {email}")
+                    
+                except Exception as e:
+                    # Log failed email
+                    EmailLog.objects.create(
+                        recipient=email,
+                        subject=subject,
+                        body=text_content,
+                        status='FAILED',
+                        error_message=str(e)
+                    )
+                    print(f"Failed to send cancellation email to {email}: {str(e)}")
+        
+        return emails_sent > 0
+        
+    except Exception as e:
+        print(f"Error in send_tender_cancellation_emails: {str(e)}")
+        return False
+
+
 @login_required
 def tender_award(request, pk):
     """Award tender to winning bidder"""
@@ -3975,16 +4452,32 @@ def tender_award(request, pk):
                         bid.status = 'REJECTED'
                     bid.save()
                 
-                # Create notification for winning supplier
-                if winning_bid.supplier.user_set.exists():
-                    for user in winning_bid.supplier.user_set.filter(role='SUPPLIER'):
+                # Send email to winning supplier
+                email_sent = send_tender_award_email(winning_bid, tender, request)
+                
+                # Create in-app notification for winning supplier
+                if hasattr(winning_bid.supplier, 'user') and winning_bid.supplier.user:
+                    Notification.objects.create(
+                        user=winning_bid.supplier.user,
+                        notification_type='TENDER',
+                        priority='URGENT',
+                        title='Tender Award - Congratulations!',
+                        message=f'Your bid {winning_bid.bid_number} has been awarded for tender {tender.tender_number}. Check your email for details.',
+                        link_url=f'/bids/{winning_bid.id}/',
+                        sent_via_email=email_sent
+                    )
+                
+                # Send notifications to unsuccessful bidders
+                unsuccessful_bids = qualified_bids.exclude(id=winning_bid.id)
+                for bid in unsuccessful_bids:
+                    if hasattr(bid.supplier, 'user') and bid.supplier.user:
                         Notification.objects.create(
-                            user=user,
+                            user=bid.supplier.user,
                             notification_type='TENDER',
-                            priority='URGENT',
-                            title='Tender Award',
-                            message=f'Congratulations! Your bid {winning_bid.bid_number} has been awarded for tender {tender.tender_number}',
-                            link_url=f'/bids/{winning_bid.id}/'
+                            priority='MEDIUM',
+                            title='Tender Evaluation Complete',
+                            message=f'The evaluation for tender {tender.tender_number} has been completed. Your bid was not selected.',
+                            link_url=f'/bids/{bid.id}/'
                         )
                 
                 # Create audit log
@@ -3994,14 +4487,28 @@ def tender_award(request, pk):
                     model_name='Tender',
                     object_id=str(tender.id),
                     object_repr=tender.tender_number,
-                    changes={'status': 'AWARDED', 'winning_bid': winning_bid.bid_number}
+                    changes={
+                        'status': 'AWARDED',
+                        'winning_bid': winning_bid.bid_number,
+                        'winning_supplier': winning_bid.supplier.name,
+                        'award_amount': float(winning_bid.bid_amount),
+                        'email_sent': email_sent
+                    }
                 )
                 
-                messages.success(request, f'Tender {tender.tender_number} awarded to {winning_bid.supplier.name}!')
+                success_msg = f'Tender {tender.tender_number} awarded to {winning_bid.supplier.name}!'
+                if email_sent:
+                    success_msg += ' Email notification sent successfully.'
+                else:
+                    success_msg += ' Warning: Email notification failed to send.'
+                
+                messages.success(request, success_msg)
                 return redirect('tender_detail', pk=pk)
                 
         except Exception as e:
             messages.error(request, f'Error awarding tender: {str(e)}')
+            import traceback
+            traceback.print_exc()
     
     context = {
         'tender': tender,
@@ -4029,10 +4536,33 @@ def tender_cancel(request, pk):
             with transaction.atomic():
                 cancellation_reason = request.POST.get('cancellation_reason')
                 
+                if not cancellation_reason or len(cancellation_reason.strip()) < 10:
+                    messages.error(request, 'Please provide a detailed cancellation reason (minimum 10 characters).')
+                    return render(request, 'tenders/tender_cancel.html', {'tender': tender})
+                
                 # Update tender status
                 old_status = tender.status
                 tender.status = 'CANCELLED'
                 tender.save()
+                
+                # Update all bids to cancelled
+                tender.bids.update(status='REJECTED')
+                
+                # Send cancellation emails to all bidders
+                emails_sent = send_tender_cancellation_emails(tender, cancellation_reason, request)
+                
+                # Create in-app notifications for all bidders
+                for bid in tender.bids.all():
+                    if hasattr(bid.supplier, 'user') and bid.supplier.user:
+                        Notification.objects.create(
+                            user=bid.supplier.user,
+                            notification_type='TENDER',
+                            priority='HIGH',
+                            title='Tender Cancelled',
+                            message=f'Tender {tender.tender_number} has been cancelled. Check your email for details.',
+                            link_url=f'/tenders/{tender.id}/',
+                            sent_via_email=emails_sent
+                        )
                 
                 # Create audit log
                 AuditLog.objects.create(
@@ -4044,15 +4574,25 @@ def tender_cancel(request, pk):
                     changes={
                         'status': 'CANCELLED',
                         'old_status': old_status,
-                        'reason': cancellation_reason
+                        'reason': cancellation_reason,
+                        'cancelled_by': request.user.get_full_name(),
+                        'emails_sent': emails_sent
                     }
                 )
                 
-                messages.success(request, f'Tender {tender.tender_number} cancelled successfully!')
+                success_msg = f'Tender {tender.tender_number} cancelled successfully!'
+                if emails_sent:
+                    success_msg += ' Email notifications sent to all bidders.'
+                else:
+                    success_msg += ' Warning: Failed to send email notifications.'
+                
+                messages.success(request, success_msg)
                 return redirect('tender_detail', pk=pk)
                 
         except Exception as e:
             messages.error(request, f'Error cancelling tender: {str(e)}')
+            import traceback
+            traceback.print_exc()
     
     return render(request, 'tenders/tender_cancel.html', {'tender': tender})
 
