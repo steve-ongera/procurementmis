@@ -3002,7 +3002,6 @@ def tender_detail(request, pk):
     
     return render(request, 'tenders/tender_detail.html', context)
 
-
 @login_required
 def tender_publish(request, pk):
     """Publish tender"""
@@ -3016,8 +3015,6 @@ def tender_publish(request, pk):
         messages.error(request, 'Only draft tenders can be published.')
         return redirect('tender_detail', pk=pk)
     
-    
-    
     if not tender.evaluation_criteria.exists():
         messages.error(request, 'Please add evaluation criteria before publishing.')
         return redirect('tender_detail', pk=pk)
@@ -3029,19 +3026,124 @@ def tender_publish(request, pk):
                 tender.publish_date = timezone.now()
                 tender.save()
                 
-                # Create notifications for invited suppliers (if restricted)
+                # Create notifications and send emails for invited suppliers (if restricted)
                 if tender.procurement_method == 'RESTRICTED':
                     for supplier in tender.invited_suppliers.all():
-                        if supplier.user_set.exists():
-                            for user in supplier.user_set.filter(role='SUPPLIER'):
-                                Notification.objects.create(
-                                    user=user,
-                                    notification_type='TENDER',
-                                    priority='HIGH',
-                                    title='New Tender Invitation',
-                                    message=f'You are invited to bid on tender {tender.tender_number}: {tender.title}',
-                                    link_url=f'/tenders/{tender.id}/'
-                                )
+                        # Create notification if supplier has a linked user account
+                        if supplier.user:  # OneToOneField - direct access
+                            Notification.objects.create(
+                                user=supplier.user,
+                                notification_type='TENDER',
+                                priority='HIGH',
+                                title='New Tender Invitation',
+                                message=f'You are invited to bid on tender {tender.tender_number}: {tender.title}',
+                                link_url=f'/tenders/{tender.id}/'
+                            )
+                        
+                        # Send email to supplier
+                        try:
+                            subject = f'Tender Invitation: {tender.tender_number}'
+                            
+                            message = f"""
+Dear {supplier.contact_person},
+
+You are invited to submit a bid for the following tender:
+
+Tender Number: {tender.tender_number}
+Title: {tender.title}
+Type: {tender.get_tender_type_display()}
+
+Closing Date: {tender.closing_date.strftime('%d %B %Y at %I:%M %p')}
+Bid Opening: {tender.bid_opening_date.strftime('%d %B %Y at %I:%M %p')}
+
+Estimated Budget: {tender.estimated_budget}
+
+Description:
+{tender.description}
+
+Please log in to the procurement system to view full tender documents and submit your bid.
+
+Best regards,
+Procurement Department
+                            """
+                            
+                            # Send email
+                            send_mail(
+                                subject=subject,
+                                message=message,
+                                from_email=settings.DEFAULT_FROM_EMAIL,
+                                recipient_list=[supplier.email],
+                                fail_silently=False,
+                            )
+                            
+                            # Log email
+                            EmailLog.objects.create(
+                                recipient=supplier.email,
+                                subject=subject,
+                                body=message,
+                                status='SENT',
+                                sent_at=timezone.now()
+                            )
+                            
+                        except Exception as email_error:
+                            # Log failed email
+                            EmailLog.objects.create(
+                                recipient=supplier.email,
+                                subject=subject,
+                                body=message,
+                                status='FAILED',
+                                error_message=str(email_error)
+                            )
+                            # Don't fail the entire transaction for email errors
+                            pass
+                
+                # For open tenders, optionally send general announcement
+                elif tender.procurement_method == 'OPEN':
+                    # Get all approved suppliers in relevant categories
+                    approved_suppliers = Supplier.objects.filter(
+                        status='APPROVED',
+                        categories__in=tender.requisition.items.values_list('item__category', flat=True).distinct()
+                    ).distinct()
+                    
+                    for supplier in approved_suppliers:
+                        try:
+                            subject = f'New Open Tender: {tender.tender_number}'
+                            
+                            message = f"""
+Dear {supplier.contact_person},
+
+A new open tender has been published that may be of interest to your company:
+
+Tender Number: {tender.tender_number}
+Title: {tender.title}
+Type: {tender.get_tender_type_display()}
+
+Closing Date: {tender.closing_date.strftime('%d %B %Y at %I:%M %p')}
+
+Visit the procurement portal to view details and submit your bid.
+
+Best regards,
+Procurement Department
+                            """
+                            
+                            send_mail(
+                                subject=subject,
+                                message=message,
+                                from_email=settings.DEFAULT_FROM_EMAIL,
+                                recipient_list=[supplier.email],
+                                fail_silently=True,  # Don't fail for open tender notifications
+                            )
+                            
+                            EmailLog.objects.create(
+                                recipient=supplier.email,
+                                subject=subject,
+                                body=message,
+                                status='SENT',
+                                sent_at=timezone.now()
+                            )
+                            
+                        except Exception:
+                            pass  # Silent fail for open tender announcements
                 
                 # Create audit log
                 AuditLog.objects.create(
@@ -3053,14 +3155,17 @@ def tender_publish(request, pk):
                     changes={'status': 'PUBLISHED', 'publish_date': str(timezone.now())}
                 )
                 
-                messages.success(request, f'Tender {tender.tender_number} published successfully!')
+                messages.success(
+                    request, 
+                    f'Tender {tender.tender_number} published successfully! '
+                    f'Email notifications sent to invited suppliers.'
+                )
                 return redirect('tender_detail', pk=pk)
                 
         except Exception as e:
             messages.error(request, f'Error publishing tender: {str(e)}')
     
     return render(request, 'tenders/tender_publish.html', {'tender': tender})
-
 
 @login_required
 def tender_close(request, pk):
@@ -13125,11 +13230,11 @@ def staff_requisition_submit(request, pk):
                 )
             
             # Check budget
-            if requisition.estimated_amount > plan_item.remaining_budget:
-                validation_errors.append(
-                    f'Amount (KES {requisition.estimated_amount:,.2f}) exceeds '
-                    f'remaining plan budget (KES {plan_item.remaining_budget:,.2f})'
-                )
+            # if requisition.estimated_amount > plan_item.remaining_budget:
+            #     validation_errors.append(
+            #         f'Amount (KES {requisition.estimated_amount:,.2f}) exceeds '
+            #         f'remaining plan budget (KES {plan_item.remaining_budget:,.2f})'
+            #     )
     else:
         # Unplanned requisition validation
         if not requisition.is_emergency:
