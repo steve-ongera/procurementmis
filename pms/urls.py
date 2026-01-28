@@ -57,29 +57,12 @@ urlpatterns = [
     path('tenders/<uuid:pk>/cancel/', views.tender_cancel, name='tender_cancel'),
     
     # Evaluation Committee APIs
-    path('api/tender/<uuid:tender_id>/committee/create/', 
-         views.create_evaluation_committee, 
-         name='api_create_committee'),
-    
-    path('api/committee/<uuid:committee_id>/add-member/', 
-         views.add_committee_member, 
-         name='api_add_committee_member'),
-    
-    path('api/committee/member/<uuid:member_id>/remove/', 
-         views.remove_committee_member, 
-         name='api_remove_committee_member'),
-    
-    path('api/tender/<uuid:tender_id>/committee/members/', 
-         views.get_committee_members, 
-         name='api_get_committee_members'),
-    
-    path('api/committee/available-evaluators/', 
-         views.get_available_evaluators, 
-         name='api_available_evaluators'),
-    
-    path('api/committee/member/<uuid:member_id>/conflict/', 
-         views.update_committee_member_conflict, 
-         name='api_update_member_conflict'),
+    path('api/tender/<uuid:tender_id>/committee/create/', views.create_evaluation_committee, name='api_create_committee'),
+    path('api/committee/<uuid:committee_id>/add-member/', views.add_committee_member, name='api_add_committee_member'),
+    path('api/committee/member/<uuid:member_id>/remove/', views.remove_committee_member,  name='api_remove_committee_member'),
+    path('api/tender/<uuid:tender_id>/committee/members/', views.get_committee_members, name='api_get_committee_members'),
+    path('api/committee/available-evaluators/', views.get_available_evaluators, name='api_available_evaluators'),
+    path('api/committee/member/<uuid:member_id>/conflict/', views.update_committee_member_conflict, name='api_update_member_conflict'),
     
     # Bid Management
     path('bids/', views.bid_list, name='bid_list'),
