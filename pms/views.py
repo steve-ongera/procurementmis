@@ -6371,6 +6371,15 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.html import strip_tags
+from django.http import HttpResponse
+from io import BytesIO
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from decimal import Decimal
 
 
 @login_required
@@ -6402,6 +6411,18 @@ def po_send(request, po_id):
                 sent_at=timezone.now()
             )
             
+            # Create audit log
+            AuditLog.objects.create(
+                user=request.user,
+                action='SUBMIT',
+                model_name='PurchaseOrder',
+                object_id=str(po.id),
+                object_repr=str(po),
+                changes={'status': 'SENT', 'sent_at': str(timezone.now())},
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            
             messages.success(request, f'Purchase Order {po.po_number} sent to supplier')
             return redirect('po_detail', po_id=po.id)
             
@@ -6426,9 +6447,286 @@ def po_send(request, po_id):
     return render(request, 'procurement/po_send.html', {'po': po})
 
 
+def generate_po_pdf(po):
+    """
+    Generate PDF for Purchase Order
+    
+    Args:
+        po: PurchaseOrder instance
+        
+    Returns:
+        BytesIO buffer containing the PDF
+    """
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    elements = []
+    
+    # Styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        textColor=colors.HexColor('#2563EB'),
+        spaceAfter=12,
+        alignment=TA_CENTER
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        textColor=colors.HexColor('#1E293B'),
+        spaceAfter=10,
+        spaceBefore=10
+    )
+    
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.HexColor('#334155')
+    )
+    
+    small_style = ParagraphStyle(
+        'CustomSmall',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.HexColor('#64748B')
+    )
+    
+    # University Header
+    header_data = [
+        [Paragraph('<b>UNIVERSITY PROCUREMENT SYSTEM</b>', title_style)],
+        [Paragraph('Purchase Order', heading_style)],
+        [Paragraph(f'PO Number: <b>{po.po_number}</b>', normal_style)],
+    ]
+    
+    header_table = Table(header_data, colWidths=[6.5*inch])
+    header_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # PO Details Section
+    po_details_data = [
+        ['PO Date:', po.po_date.strftime('%B %d, %Y'), 'Delivery Date:', po.delivery_date.strftime('%B %d, %Y')],
+        ['Requisition:', po.requisition.requisition_number, 'Department:', po.requisition.department.name],
+        ['Status:', po.get_status_display(), 'Created By:', po.created_by.get_full_name()],
+    ]
+    
+    po_details_table = Table(po_details_data, colWidths=[1.2*inch, 2*inch, 1.2*inch, 2*inch])
+    po_details_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#475569')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(po_details_table)
+    elements.append(Spacer(1, 0.2*inch))
+    
+    # Supplier Details
+    elements.append(Paragraph('Supplier Information', heading_style))
+    
+    supplier_data = [
+        ['Supplier Name:', po.supplier.name],
+        ['Contact Person:', po.supplier.contact_person],
+        ['Email:', po.supplier.email],
+        ['Phone:', po.supplier.phone_number],
+        ['Address:', po.supplier.physical_address],
+    ]
+    
+    supplier_table = Table(supplier_data, colWidths=[1.5*inch, 5*inch])
+    supplier_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#475569')),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(supplier_table)
+    elements.append(Spacer(1, 0.2*inch))
+    
+    # Delivery Details
+    elements.append(Paragraph('Delivery Information', heading_style))
+    
+    delivery_data = [
+        ['Delivery Address:', Paragraph(po.delivery_address.replace('\n', '<br/>'), normal_style)],
+        ['Expected Delivery:', po.delivery_date.strftime('%B %d, %Y')],
+    ]
+    
+    delivery_table = Table(delivery_data, colWidths=[1.5*inch, 5*inch])
+    delivery_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#475569')),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(delivery_table)
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # Items Table
+    elements.append(Paragraph('Order Items', heading_style))
+    
+    # Items header
+    items_data = [
+        ['#', 'Description', 'Specifications', 'Qty', 'Unit', 'Unit Price', 'Total']
+    ]
+    
+    # Items rows
+    for idx, item in enumerate(po.items.all(), 1):
+        items_data.append([
+            str(idx),
+            Paragraph(item.item_description[:60] + ('...' if len(item.item_description) > 60 else ''), small_style),
+            Paragraph(item.specifications[:40] + ('...' if len(item.specifications) > 40 else ''), small_style),
+            f"{item.quantity:,.2f}",
+            item.unit_of_measure,
+            f"KES {item.unit_price:,.2f}",
+            f"KES {item.total_price:,.2f}"
+        ])
+    
+    items_table = Table(items_data, colWidths=[0.3*inch, 1.8*inch, 1.5*inch, 0.6*inch, 0.6*inch, 1*inch, 1*inch])
+    items_table.setStyle(TableStyle([
+        # Header
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563EB')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        
+        # Body
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Row numbers
+        ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),  # Numbers
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        
+        # Grid
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8FAFC')]),
+        
+        # Padding
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(items_table)
+    elements.append(Spacer(1, 0.2*inch))
+    
+    # Totals
+    totals_data = [
+        ['', '', '', '', '', 'Subtotal:', f"KES {po.subtotal:,.2f}"],
+        ['', '', '', '', '', f'Tax ({(po.tax_amount/po.subtotal*100):.0f}%):', f"KES {po.tax_amount:,.2f}"],
+        ['', '', '', '', '', 'Total Amount:', f"KES {po.total_amount:,.2f}"],
+    ]
+    
+    totals_table = Table(totals_data, colWidths=[0.3*inch, 1.8*inch, 1.5*inch, 0.6*inch, 0.6*inch, 1*inch, 1*inch])
+    totals_table.setStyle(TableStyle([
+        ('FONTNAME', (5, 0), (5, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (6, 0), (6, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (5, 0), (-1, -1), 'RIGHT'),
+        ('LINEABOVE', (5, -1), (-1, -1), 2, colors.HexColor('#2563EB')),
+        ('BACKGROUND', (5, -1), (-1, -1), colors.HexColor('#EFF6FF')),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(totals_table)
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # Payment Terms
+    elements.append(Paragraph('Payment Terms', heading_style))
+    payment_text = Paragraph(po.payment_terms.replace('\n', '<br/>'), normal_style)
+    payment_table = Table([[payment_text]], colWidths=[6.5*inch])
+    payment_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    elements.append(payment_table)
+    
+    # Special Instructions (if any)
+    if po.special_instructions:
+        elements.append(Spacer(1, 0.2*inch))
+        elements.append(Paragraph('Special Instructions', heading_style))
+        instructions_text = Paragraph(po.special_instructions.replace('\n', '<br/>'), normal_style)
+        instructions_table = Table([[instructions_text]], colWidths=[6.5*inch])
+        instructions_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FEF3C7')),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#FDE68A')),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        elements.append(instructions_table)
+    
+    # Footer
+    elements.append(Spacer(1, 0.4*inch))
+    footer_data = [
+        [Paragraph('<b>Approved By:</b>', normal_style), Paragraph('<b>Date:</b>', normal_style)],
+        [po.approved_by.get_full_name() if po.approved_by else 'N/A', 
+         po.approved_at.strftime('%B %d, %Y') if po.approved_at else 'N/A'],
+        ['', ''],
+        ['_______________________', '_______________________'],
+        [Paragraph('Signature', small_style), Paragraph('Date', small_style)],
+    ]
+    
+    footer_table = Table(footer_data, colWidths=[3*inch, 3*inch])
+    footer_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(footer_table)
+    
+    # Document footer
+    elements.append(Spacer(1, 0.2*inch))
+    doc_footer = Paragraph(
+        f'<i>This is a computer-generated document. Generated on {timezone.now().strftime("%B %d, %Y at %I:%M %p")}</i>',
+        small_style
+    )
+    footer_final_table = Table([[doc_footer]], colWidths=[6.5*inch])
+    footer_final_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('LINEABOVE', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+    ]))
+    elements.append(footer_final_table)
+    
+    # Build PDF
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
 def send_po_email(po):
     """
-    Send purchase order email to supplier
+    Send purchase order email to supplier with PDF attachment
     
     Args:
         po: PurchaseOrder instance
@@ -6452,7 +6750,7 @@ def send_po_email(po):
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'procurement@university.edu')
     to_email = po.supplier.email
     
-    # Add CC if needed (procurement officer, department head, etc.)
+    # Add CC if needed
     cc_emails = []
     if po.created_by and po.created_by.email:
         cc_emails.append(po.created_by.email)
@@ -6472,12 +6770,32 @@ def send_po_email(po):
     # Attach HTML version
     email.attach_alternative(html_content, "text/html")
     
-    # TODO: Optionally attach PO PDF
-    # po_pdf = generate_po_pdf(po)
-    # email.attach(f'PO_{po.po_number}.pdf', po_pdf, 'application/pdf')
+    # Generate and attach PO PDF
+    try:
+        po_pdf_buffer = generate_po_pdf(po)
+        email.attach(f'PO_{po.po_number}.pdf', po_pdf_buffer.read(), 'application/pdf')
+    except Exception as e:
+        # Log error but don't fail the email
+        print(f"Error generating PDF: {str(e)}")
     
     # Send the email
     email.send(fail_silently=False)
+
+
+@login_required
+def po_download_pdf(request, po_id):
+    """Download PO as PDF"""
+    po = get_object_or_404(PurchaseOrder, id=po_id)
+    
+    # Generate PDF
+    pdf_buffer = generate_po_pdf(po)
+    
+    # Create response
+    response = HttpResponse(pdf_buffer.read(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="PO_{po.po_number}.pdf"'
+    
+    return response
+
 
 @login_required
 def po_cancel(request, po_id):
