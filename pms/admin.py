@@ -1218,7 +1218,7 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
     list_filter = ['status', 'po_date', 'created_at']
     search_fields = ['po_number', 'supplier__name', 'requisition__requisition_number']
     ordering = ['-created_at']
-    readonly_fields = ['po_number', 'created_at', 'updated_at', 'sent_at', 'acknowledged_at']
+    readonly_fields = ['po_number', 'po_date', 'created_at', 'updated_at', 'sent_at', 'acknowledged_at']
     inlines = [PurchaseOrderItemInline, POAmendmentInline]
     date_hierarchy = 'created_at'
     
