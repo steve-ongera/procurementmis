@@ -1,6 +1,3 @@
-<!-- ========================================== -->
-<!-- procurement/procurement_module/create_order.html -->
-<!-- ========================================== -->
 {% extends 'base.html' %}
 {% load humanize %}
 
@@ -23,7 +20,6 @@
         --table-header: #F1F5F9;
     }
 
-    /* Reduced font sizes throughout */
     .page-header {
         display: flex;
         justify-content: space-between;
@@ -34,7 +30,7 @@
     }
 
     .page-title {
-        font-size: 1.5rem; /* Reduced from 1.75rem */
+        font-size: 1.5rem;
         font-weight: 600;
         color: #1E293B;
         margin: 0 0 0.25rem 0;
@@ -44,7 +40,7 @@
         display: flex;
         align-items: center;
         gap: 0.375rem;
-        font-size: 0.75rem; /* Reduced from 0.875rem */
+        font-size: 0.75rem;
         color: var(--secondary-color);
         margin: 0;
     }
@@ -61,12 +57,12 @@
     }
 
     .breadcrumb i {
-        font-size: 0.625rem; /* Reduced from 0.75rem */
+        font-size: 0.625rem;
         color: #94A3B8;
     }
 
     .form-container {
-        max-width: 800px;
+        max-width: 1400px;
         margin: 0 auto;
     }
 
@@ -103,7 +99,44 @@
         font-size: 1rem;
     }
 
-    .bid-info {
+    .source-selection-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .source-tab {
+        padding: 0.625rem 1.25rem;
+        border: none;
+        background: transparent;
+        color: var(--secondary-color);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.2s;
+    }
+
+    .source-tab:hover {
+        color: var(--primary-color);
+    }
+
+    .source-tab.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+
+    .source-content {
+        display: none;
+    }
+
+    .source-content.active {
+        display: block;
+    }
+
+    .bid-info, .req-info {
         background: var(--primary-light);
         border: 1px solid #93C5FD;
         border-radius: 0.5rem;
@@ -112,25 +145,25 @@
         display: none;
     }
 
-    .bid-info.active {
+    .bid-info.active, .req-info.active {
         display: block;
     }
 
-    .bid-header {
+    .info-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
         margin-bottom: 0.75rem;
     }
 
-    .bid-title {
+    .info-title {
         font-size: 0.875rem;
         font-weight: 600;
         color: #1E40AF;
         margin: 0;
     }
 
-    .bid-badge {
+    .info-badge {
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
@@ -143,17 +176,17 @@
         border: none;
     }
 
-    .bid-details {
+    .info-details {
         font-size: 0.75rem;
         color: #475569;
         line-height: 1.4;
     }
 
-    .bid-details p {
+    .info-details p {
         margin: 0.25rem 0;
     }
 
-    .bid-items {
+    .items-section {
         margin-top: 0.75rem;
         padding-top: 0.75rem;
         border-top: 1px solid #93C5FD;
@@ -227,17 +260,6 @@
         resize: vertical;
         font-family: inherit;
         line-height: 1.5;
-    }
-
-    .form-select option {
-        padding: 0.375rem 0.5rem;
-        margin: 0.125rem 0;
-        border-radius: 0.25rem;
-        font-size: 0.8125rem;
-    }
-
-    .form-select option:hover {
-        background: var(--primary-light);
     }
 
     .date-input {
@@ -376,6 +398,10 @@
             width: 100%;
             justify-content: center;
         }
+        
+        .source-selection-tabs {
+            flex-direction: column;
+        }
     }
 </style>
 {% endblock %}
@@ -410,65 +436,129 @@
         <form method="post" id="poForm">
             {% csrf_token %}
             
-            <!-- Bid Selection Section -->
+            <!-- Source Selection Section -->
             <div class="form-section">
                 <h3 class="section-title">
-                    <i class="bi bi-trophy"></i>
-                    Select Awarded Bid (Optional)
+                    <i class="bi bi-list-check"></i>
+                    Select Order Source
                 </h3>
                 
-                <div class="form-group">
-                    <label for="bid" class="form-label">Awarded Bid</label>
-                    <select name="bid" id="bid" class="form-select">
-                        <option value="">Select an awarded bid...</option>
-                        {% for bid in awarded_bids %}
-                        <option value="{{ bid.id }}" 
-                                data-supplier="{{ bid.supplier.id }}"
-                                data-supplier-name="{{ bid.supplier.name }}"
-                                data-supplier-address="{{ bid.supplier.address }}"
-                                data-supplier-contact="{{ bid.supplier.contact_person }}"
-                                data-supplier-phone="{{ bid.supplier.phone }}"
-                                data-tender="{{ bid.tender.tender_number }}"
-                                data-tender-title="{{ bid.tender.title }}"
-                                data-bid-amount="{{ bid.bid_amount }}"
-                                data-requisition="{{ bid.tender.requisition.requisition_number }}"
-                                data-items='{{ bid.items_json|safe }}'>
-                            {{ bid.tender.tender_number }} - {{ bid.supplier.name }} (KES {{ bid.bid_amount|floatformat:0|intcomma }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <div class="form-help">Select an awarded bid to auto-fill supplier and item details</div>
+                <div class="source-selection-tabs">
+                    <button type="button" class="source-tab active" data-tab="bid">
+                        <i class="bi bi-trophy"></i> From Awarded Bid
+                    </button>
+                    <button type="button" class="source-tab" data-tab="requisition">
+                        <i class="bi bi-file-earmark-text"></i> From Requisition
+                    </button>
                 </div>
                 
-                <div id="bidInfo" class="bid-info">
-                    <div class="bid-header">
-                        <h4 class="bid-title" id="selectedBidTitle"></h4>
-                        <span class="bid-badge">
-                            <i class="bi bi-check-circle"></i>
-                            Awarded
-                        </span>
-                    </div>
-                    <div class="bid-details">
-                        <p><strong>Tender:</strong> <span id="selectedBidTender"></span></p>
-                        <p><strong>Requisition:</strong> <span id="selectedBidRequisition"></span></p>
-                        <p><strong>Bid Amount:</strong> KES <span id="selectedBidAmount"></span></p>
+                <!-- Bid Selection -->
+                <div class="source-content active" id="bid-content">
+                    <div class="form-group">
+                        <label for="bid" class="form-label">Awarded Bid</label>
+                        <select name="bid" id="bid" class="form-select">
+                            <option value="">Select an awarded bid...</option>
+                            {% for bid in awarded_bids %}
+                            <option value="{{ bid.id }}" 
+                                    data-supplier="{{ bid.supplier.id }}"
+                                    data-supplier-name="{{ bid.supplier.name }}"
+                                    data-supplier-address="{{ bid.supplier.physical_address }}"
+                                    data-supplier-contact="{{ bid.supplier.contact_person }}"
+                                    data-supplier-phone="{{ bid.supplier.phone_number }}"
+                                    data-supplier-email="{{ bid.supplier.email }}"
+                                    data-tender="{{ bid.tender.tender_number }}"
+                                    data-tender-title="{{ bid.tender.title }}"
+                                    data-bid-amount="{{ bid.bid_amount }}"
+                                    data-requisition="{{ bid.tender.requisition.requisition_number }}"
+                                    data-items='{{ bid.items_json|safe }}'>
+                                {{ bid.tender.tender_number }} - {{ bid.supplier.name }} (KES {{ bid.bid_amount|floatformat:0|intcomma }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-help">Select an awarded bid to auto-fill supplier and item details</div>
                     </div>
                     
-                    <div class="bid-items">
-                        <table class="items-table">
-                            <thead>
-                                <tr>
-                                    <th>Item</th>
-                                    <th>Description</th>
-                                    <th>Quantity</th>
-                                    <th>Unit Price</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bidItemsTable">
-                                <!-- Items will be populated by JavaScript -->
-                            </tbody>
-                        </table>
+                    <div id="bidInfo" class="bid-info">
+                        <div class="info-header">
+                            <h4 class="info-title" id="selectedBidTitle"></h4>
+                            <span class="info-badge">
+                                <i class="bi bi-check-circle"></i>
+                                Awarded
+                            </span>
+                        </div>
+                        <div class="info-details">
+                            <p><strong>Tender:</strong> <span id="selectedBidTender"></span></p>
+                            <p><strong>Requisition:</strong> <span id="selectedBidRequisition"></span></p>
+                            <p><strong>Bid Amount:</strong> KES <span id="selectedBidAmount"></span></p>
+                        </div>
+                        
+                        <div class="items-section">
+                            <table class="items-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Description</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bidItemsTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Requisition Selection -->
+                <div class="source-content" id="requisition-content">
+                    <div class="form-group">
+                        <label for="requisition" class="form-label">Approved Requisition</label>
+                        <select name="requisition" id="requisition" class="form-select">
+                            <option value="">Select an approved requisition...</option>
+                            {% for req in approved_requisitions %}
+                            <option value="{{ req.id }}"
+                                    data-req-number="{{ req.requisition_number }}"
+                                    data-req-title="{{ req.title }}"
+                                    data-req-amount="{{ req.estimated_amount }}"
+                                    data-department="{{ req.department.name }}"
+                                    data-requested-by="{{ req.requested_by.get_full_name }}"
+                                    data-items='{{ req.items_json|safe }}'>
+                                {{ req.requisition_number }} - {{ req.title }} (KES {{ req.estimated_amount|floatformat:0|intcomma }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-help">Select an approved requisition for direct procurement</div>
+                    </div>
+                    
+                    <div id="reqInfo" class="req-info">
+                        <div class="info-header">
+                            <h4 class="info-title" id="selectedReqTitle"></h4>
+                            <span class="info-badge">
+                                <i class="bi bi-check-circle"></i>
+                                Approved
+                            </span>
+                        </div>
+                        <div class="info-details">
+                            <p><strong>Requisition:</strong> <span id="selectedReqNumber"></span></p>
+                            <p><strong>Department:</strong> <span id="selectedReqDepartment"></span></p>
+                            <p><strong>Requested By:</strong> <span id="selectedReqRequestedBy"></span></p>
+                            <p><strong>Estimated Amount:</strong> KES <span id="selectedReqAmount"></span></p>
+                        </div>
+                        
+                        <div class="items-section">
+                            <table class="items-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Description</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reqItemsTable"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -487,11 +577,11 @@
                             <option value="">Select a supplier...</option>
                             {% for supplier in suppliers %}
                             <option value="{{ supplier.id }}" 
-                                    data-address="{{ supplier.address }}"
+                                    data-address="{{ supplier.physical_address }}"
                                     data-contact="{{ supplier.contact_person }}"
-                                    data-phone="{{ supplier.phone }}"
+                                    data-phone="{{ supplier.phone_number }}"
                                     data-email="{{ supplier.email }}">
-                                {{ supplier.name }} - {{ supplier.category|default:"General" }}
+                                {{ supplier.name }}
                             </option>
                             {% endfor %}
                         </select>
@@ -555,7 +645,7 @@
                                   id="payment_terms" 
                                   class="form-textarea" 
                                   required
-                                  placeholder="Specify payment terms, e.g., 'Net 30 days', '50% advance, 50% on delivery'..."></textarea>
+                                  placeholder="Specify payment terms..."></textarea>
                         <div class="form-help">Clearly define payment terms and conditions</div>
                     </div>
                     
@@ -589,14 +679,20 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Elements
+        const sourceTabs = document.querySelectorAll('.source-tab');
+        const sourceContents = document.querySelectorAll('.source-content');
         const bidSelect = document.getElementById('bid');
+        const requisitionSelect = document.getElementById('requisition');
         const bidInfo = document.getElementById('bidInfo');
+        const reqInfo = document.getElementById('reqInfo');
         const supplierSelect = document.getElementById('supplier');
         const supplierInfo = document.getElementById('supplierInfo');
         const deliveryDateInput = document.getElementById('delivery_date');
         const deliveryAddressTextarea = document.getElementById('delivery_address');
         const paymentTermsTextarea = document.getElementById('payment_terms');
         const bidItemsTable = document.getElementById('bidItemsTable');
+        const reqItemsTable = document.getElementById('reqItemsTable');
         
         // Set minimum delivery date to tomorrow
         const tomorrow = new Date();
@@ -605,12 +701,35 @@
         deliveryDateInput.min = formattedTomorrow;
         deliveryDateInput.value = formattedTomorrow;
         
+        // Tab switching
+        sourceTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.dataset.tab;
+                
+                // Update active tab
+                sourceTabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update active content
+                sourceContents.forEach(c => c.classList.remove('active'));
+                document.getElementById(`${tabName}-content`).classList.add('active');
+                
+                // Clear the other source
+                if (tabName === 'bid') {
+                    requisitionSelect.value = '';
+                    reqInfo.classList.remove('active');
+                } else {
+                    bidSelect.value = '';
+                    bidInfo.classList.remove('active');
+                }
+            });
+        });
+        
         // Bid selection handler
         bidSelect.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             
             if (selectedOption.value) {
-                // Show bid info
                 bidInfo.classList.add('active');
                 document.getElementById('selectedBidTitle').textContent = selectedOption.textContent;
                 document.getElementById('selectedBidTender').textContent = selectedOption.dataset.tender + ' - ' + selectedOption.dataset.tenderTitle;
@@ -623,56 +742,46 @@
                 supplierSelect.value = supplierId;
                 triggerSupplierChange(supplierId);
                 
-                // Auto-fill payment terms based on bid amount
+                // Auto-fill payment terms
                 if (!paymentTermsTextarea.value) {
                     const bidAmount = parseFloat(selectedOption.dataset.bidAmount);
-                    if (bidAmount > 1000000) {
-                        paymentTermsTextarea.value = '30% advance payment upon order confirmation, 70% upon delivery and acceptance. Payment to be made within 30 days of invoice receipt.';
-                    } else if (bidAmount > 500000) {
-                        paymentTermsTextarea.value = '50% advance payment, 50% upon delivery. Payment within 14 days of invoice receipt.';
-                    } else {
-                        paymentTermsTextarea.value = 'Payment upon delivery and acceptance. Net 30 days from invoice date.';
-                    }
+                    paymentTermsTextarea.value = generatePaymentTerms(bidAmount);
                 }
                 
-                // Populate bid items table
-                try {
-                    const items = JSON.parse(selectedOption.dataset.items);
-                    bidItemsTable.innerHTML = '';
-                    
-                    let totalAmount = 0;
-                    items.forEach(item => {
-                        const itemTotal = item.quantity * item.unit_price;
-                        totalAmount += itemTotal;
-                        
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${item.item_name || 'N/A'}</td>
-                            <td>${item.description || 'N/A'}</td>
-                            <td>${item.quantity}</td>
-                            <td>KES ${item.unit_price.toLocaleString()}</td>
-                            <td>KES ${itemTotal.toLocaleString()}</td>
-                        `;
-                        bidItemsTable.appendChild(row);
-                    });
-                    
-                    // Add total row
-                    const totalRow = document.createElement('tr');
-                    totalRow.style.fontWeight = '600';
-                    totalRow.style.background = '#F1F5F9';
-                    totalRow.innerHTML = `
-                        <td colspan="4" style="text-align: right;">Total:</td>
-                        <td>KES ${totalAmount.toLocaleString()}</td>
-                    `;
-                    bidItemsTable.appendChild(totalRow);
-                    
-                } catch (error) {
-                    bidItemsTable.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748B;">No item details available</td></tr>';
-                }
+                // Populate bid items
+                populateItemsTable(selectedOption.dataset.items, bidItemsTable);
                 
             } else {
                 bidInfo.classList.remove('active');
                 bidItemsTable.innerHTML = '';
+            }
+        });
+        
+        // Requisition selection handler
+        requisitionSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            
+            if (selectedOption.value) {
+                reqInfo.classList.add('active');
+                document.getElementById('selectedReqTitle').textContent = selectedOption.dataset.reqTitle;
+                document.getElementById('selectedReqNumber').textContent = selectedOption.dataset.reqNumber;
+                document.getElementById('selectedReqDepartment').textContent = selectedOption.dataset.department;
+                document.getElementById('selectedReqRequestedBy').textContent = selectedOption.dataset.requestedBy;
+                document.getElementById('selectedReqAmount').textContent = 
+                    parseInt(selectedOption.dataset.reqAmount).toLocaleString();
+                
+                // Auto-fill payment terms
+                if (!paymentTermsTextarea.value) {
+                    const reqAmount = parseFloat(selectedOption.dataset.reqAmount);
+                    paymentTermsTextarea.value = generatePaymentTerms(reqAmount);
+                }
+                
+                // Populate requisition items
+                populateItemsTable(selectedOption.dataset.items, reqItemsTable);
+                
+            } else {
+                reqInfo.classList.remove('active');
+                reqItemsTable.innerHTML = '';
             }
         });
         
@@ -693,10 +802,56 @@
                 
                 // Auto-fill delivery address if empty
                 if (!deliveryAddressTextarea.value && selectedOption.dataset.address) {
-                    deliveryAddressTextarea.value = `University Main Campus\nProcurement Department\nStore Room 101\n${selectedOption.dataset.address}`;
+                    deliveryAddressTextarea.value = `University Main Campus\nProcurement Department\nStore Room 101`;
                 }
             } else {
                 supplierInfo.classList.remove('active');
+            }
+        }
+        
+        function populateItemsTable(itemsJson, tableBody) {
+            try {
+                const items = JSON.parse(itemsJson);
+                tableBody.innerHTML = '';
+                
+                let totalAmount = 0;
+                items.forEach(item => {
+                    const itemTotal = item.quantity * item.unit_price;
+                    totalAmount += itemTotal;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.item_name || 'N/A'}</td>
+                        <td>${item.description || 'N/A'}</td>
+                        <td>${item.quantity}</td>
+                        <td>KES ${item.unit_price.toLocaleString()}</td>
+                        <td>KES ${itemTotal.toLocaleString()}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                // Add total row
+                const totalRow = document.createElement('tr');
+                totalRow.style.fontWeight = '600';
+                totalRow.style.background = '#F1F5F9';
+                totalRow.innerHTML = `
+                    <td colspan="4" style="text-align: right;">Total:</td>
+                    <td>KES ${totalAmount.toLocaleString()}</td>
+                `;
+                tableBody.appendChild(totalRow);
+                
+            } catch (error) {
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748B;">No item details available</td></tr>';
+            }
+        }
+        
+        function generatePaymentTerms(amount) {
+            if (amount > 1000000) {
+                return '30% advance payment upon order confirmation, 70% upon delivery and acceptance. Payment to be made within 30 days of invoice receipt.';
+            } else if (amount > 500000) {
+                return '50% advance payment, 50% upon delivery. Payment within 14 days of invoice receipt.';
+            } else {
+                return 'Payment upon delivery and acceptance. Net 30 days from invoice date.';
             }
         }
         
@@ -712,7 +867,13 @@
                 if (errorMsg) errorMsg.remove();
             });
             
-            // Validate delivery date is in the future
+            // Validate source is selected
+            if (!bidSelect.value && !requisitionSelect.value) {
+                showError(bidSelect, 'Please select either an awarded bid or a requisition');
+                isValid = false;
+            }
+            
+            // Validate delivery date
             const deliveryDate = new Date(deliveryDateInput.value);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -722,19 +883,19 @@
                 isValid = false;
             }
             
-            // Validate supplier is selected
+            // Validate supplier
             if (!supplierSelect.value) {
                 showError(supplierSelect, 'Please select a supplier');
                 isValid = false;
             }
             
-            // Validate delivery address is provided
+            // Validate delivery address
             if (!deliveryAddressTextarea.value.trim()) {
                 showError(deliveryAddressTextarea, 'Delivery address is required');
                 isValid = false;
             }
             
-            // Validate payment terms are provided
+            // Validate payment terms
             if (!paymentTermsTextarea.value.trim()) {
                 showError(paymentTermsTextarea, 'Payment terms are required');
                 isValid = false;
@@ -742,7 +903,6 @@
             
             if (!isValid) {
                 e.preventDefault();
-                // Scroll to first error
                 const firstError = document.querySelector('.has-error');
                 if (firstError) {
                     firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -758,11 +918,11 @@
             errorDiv.className = 'error-message';
             errorDiv.innerHTML = `<i class="bi bi-exclamation-circle"></i> ${message}`;
             
-            input.parentNode.insertBefore(errorDiv, input.nextSibling);
+            input.parentNode.appendChild(errorDiv);
         }
         
-        // Auto-fill sample payment terms if empty and no bid selected
-        if (!paymentTermsTextarea.value && !bidSelect.value) {
+        // Default payment terms
+        if (!paymentTermsTextarea.value) {
             paymentTermsTextarea.value = 'Payment upon delivery and acceptance. Net 30 days from invoice date. All taxes included.';
         }
     });

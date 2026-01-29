@@ -18663,6 +18663,7 @@ def procurement_create_order_view(request):
             with transaction.atomic():
                 # Get form data
                 bid_id = request.POST.get('bid')
+                requisition_id = request.POST.get('requisition')
                 supplier_id = request.POST.get('supplier')
                 delivery_date = request.POST.get('delivery_date')
                 delivery_address = request.POST.get('delivery_address')
@@ -18681,24 +18682,63 @@ def procurement_create_order_view(request):
                 # Get supplier
                 supplier = get_object_or_404(Supplier, id=supplier_id)
                 
-                # Get bid and requisition if bid was selected
+                # Initialize variables
                 bid = None
                 requisition = None
                 subtotal = Decimal('0.00')
                 tax_amount = Decimal('0.00')
+                po_items_data = []
                 
+                # Handle bid-based order
                 if bid_id:
                     bid = get_object_or_404(Bid, id=bid_id, status='AWARDED')
                     requisition = bid.tender.requisition
                     
                     # Calculate totals from bid
                     subtotal = bid.bid_amount
-                    # Assuming 16% VAT (adjust as needed)
-                    tax_amount = subtotal * Decimal('0.16')
+                    tax_amount = subtotal * Decimal('0.16')  # 16% VAT
+                    
+                    # Collect bid items for PO creation
+                    for bid_item in bid.items.all():
+                        po_items_data.append({
+                            'requisition_item': bid_item.requisition_item,
+                            'description': bid_item.requisition_item.item_description,
+                            'specifications': bid_item.requisition_item.specifications,
+                            'quantity': bid_item.requisition_item.quantity,
+                            'unit_of_measure': bid_item.requisition_item.unit_of_measure,
+                            'unit_price': bid_item.quoted_unit_price,
+                            'total_price': bid_item.quoted_total,
+                            'notes': f"Brand: {bid_item.brand}, Model: {bid_item.model}" if bid_item.brand else ""
+                        })
+                
+                # Handle direct requisition-based order (no tender/bid)
+                elif requisition_id:
+                    requisition = get_object_or_404(
+                        Requisition, 
+                        id=requisition_id, 
+                        status='APPROVED'
+                    )
+                    
+                    # Calculate totals from requisition items
+                    for req_item in requisition.items.all():
+                        item_total = req_item.estimated_total
+                        subtotal += item_total
+                        
+                        po_items_data.append({
+                            'requisition_item': req_item,
+                            'description': req_item.item_description,
+                            'specifications': req_item.specifications,
+                            'quantity': req_item.quantity,
+                            'unit_of_measure': req_item.unit_of_measure,
+                            'unit_price': req_item.estimated_unit_price,
+                            'total_price': req_item.estimated_total,
+                            'notes': ''
+                        })
+                    
+                    tax_amount = subtotal * Decimal('0.16')  # 16% VAT
+                
                 else:
-                    # If no bid selected, we need a requisition
-                    # This would need additional form fields to select requisition
-                    messages.error(request, 'Please select an awarded bid or provide requisition details.')
+                    messages.error(request, 'Please select either an awarded bid or an approved requisition.')
                     return redirect('procurement_create_order')
                 
                 total_amount = subtotal + tax_amount
@@ -18719,20 +18759,19 @@ def procurement_create_order_view(request):
                     created_by=request.user
                 )
                 
-                # Create PO items from bid items
-                if bid:
-                    for bid_item in bid.items.all():
-                        PurchaseOrderItem.objects.create(
-                            purchase_order=po,
-                            requisition_item=bid_item.requisition_item,
-                            item_description=bid_item.requisition_item.item_description,
-                            specifications=bid_item.requisition_item.specifications,
-                            quantity=bid_item.requisition_item.quantity,
-                            unit_of_measure=bid_item.requisition_item.unit_of_measure,
-                            unit_price=bid_item.quoted_unit_price,
-                            total_price=bid_item.quoted_total,
-                            notes=f"Brand: {bid_item.brand}, Model: {bid_item.model}" if bid_item.brand else ""
-                        )
+                # Create PO items
+                for item_data in po_items_data:
+                    PurchaseOrderItem.objects.create(
+                        purchase_order=po,
+                        requisition_item=item_data['requisition_item'],
+                        item_description=item_data['description'],
+                        specifications=item_data['specifications'],
+                        quantity=item_data['quantity'],
+                        unit_of_measure=item_data['unit_of_measure'],
+                        unit_price=item_data['unit_price'],
+                        total_price=item_data['total_price'],
+                        notes=item_data['notes']
+                    )
                 
                 # Update requisition status
                 if requisition:
@@ -18749,21 +18788,23 @@ def procurement_create_order_view(request):
                     changes={
                         'po_number': po.po_number,
                         'supplier': supplier.name,
-                        'total_amount': str(total_amount)
+                        'total_amount': str(total_amount),
+                        'source': 'bid' if bid else 'requisition'
                     },
                     ip_address=request.META.get('REMOTE_ADDR'),
                     user_agent=request.META.get('HTTP_USER_AGENT', '')
                 )
                 
                 # Create notification for supplier
-                Notification.objects.create(
-                    user=supplier.user if supplier.user else None,
-                    notification_type='PO',
-                    priority='HIGH',
-                    title='New Purchase Order Created',
-                    message=f'A new purchase order {po.po_number} has been created for your review.',
-                    link_url=f'/procurement/orders/{po.id}/'
-                )
+                if supplier.user:
+                    Notification.objects.create(
+                        user=supplier.user,
+                        notification_type='PO',
+                        priority='HIGH',
+                        title='New Purchase Order Created',
+                        message=f'A new purchase order {po.po_number} has been created for your review.',
+                        link_url=f'/procurement/orders/{po.id}/'
+                    )
                 
                 messages.success(
                     request, 
@@ -18786,7 +18827,7 @@ def procurement_create_order_view(request):
         'supplier'
     ).prefetch_related('items__requisition_item')
     
-    # Prepare bid data with items as JSON for JavaScript
+    # Prepare bid data with items as JSON
     awarded_bids_data = []
     for bid in awarded_bids:
         bid_items = []
@@ -18796,11 +18837,39 @@ def procurement_create_order_view(request):
                 'description': bid_item.requisition_item.item_description,
                 'quantity': float(bid_item.requisition_item.quantity),
                 'unit_price': float(bid_item.quoted_unit_price),
+                'total': float(bid_item.quoted_total),
             })
         
         bid_data = bid
         bid_data.items_json = json.dumps(bid_items)
         awarded_bids_data.append(bid_data)
+    
+    # Get approved requisitions without POs and without tenders
+    approved_requisitions = Requisition.objects.filter(
+        status='APPROVED',
+        purchase_orders__isnull=True
+    ).select_related(
+        'department',
+        'budget',
+        'requested_by'
+    ).prefetch_related('items__item')
+    
+    # Prepare requisition data with items as JSON
+    approved_requisitions_data = []
+    for req in approved_requisitions:
+        req_items = []
+        for req_item in req.items.all():
+            req_items.append({
+                'item_name': req_item.item.name if req_item.item else 'N/A',
+                'description': req_item.item_description,
+                'quantity': float(req_item.quantity),
+                'unit_price': float(req_item.estimated_unit_price),
+                'total': float(req_item.estimated_total),
+            })
+        
+        req_data = req
+        req_data.items_json = json.dumps(req_items)
+        approved_requisitions_data.append(req_data)
     
     # Get approved suppliers
     suppliers = Supplier.objects.filter(
@@ -18809,6 +18878,7 @@ def procurement_create_order_view(request):
     
     context = {
         'awarded_bids': awarded_bids_data,
+        'approved_requisitions': approved_requisitions_data,
         'suppliers': suppliers,
     }
     
