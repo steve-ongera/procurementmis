@@ -21544,19 +21544,187 @@ def store_pending_deliveries_view(request):
     return render(request, 'stores/pending_deliveries.html', context)
 
 
+from django.db.models import Sum, Q, Prefetch
+from decimal import Decimal
+
 @login_required
 def store_receive_goods_view(request, po_id=None):
-    """Receive goods and create GRN"""
+    """Receive goods and create GRN with comprehensive PO details"""
     
     stores = Store.objects.filter(is_active=True)
     
+    po = None
+    po_items = []
+    po_details = {}
+    
     if po_id:
-        po = get_object_or_404(PurchaseOrder, id=po_id)
+        po = get_object_or_404(
+            PurchaseOrder.objects.select_related(
+                'requisition__requested_by',
+                'requisition__department',
+                'requisition__procurement_plan_item__procurement_plan',
+                'supplier',
+                'bid__tender',
+                'approved_by'
+            ).prefetch_related(
+                'items__requisition_item__item',
+                'invoices__payments'
+            ),
+            id=po_id
+        )
         po_items = po.items.all()
-    else:
-        po = None
-        po_items = []
         
+        # Build comprehensive PO details
+        po_details = {
+            'basic_info': {
+                'po_number': po.po_number,
+                'po_date': po.po_date,
+                'supplier': po.supplier,
+                'total_amount': po.total_amount,
+                'status': po.status,
+                'delivery_date': po.delivery_date,
+                'approved_by': po.approved_by,
+                'approved_at': po.approved_at,
+            },
+            
+            # Requisition details
+            'requisition': {
+                'number': po.requisition.requisition_number,
+                'title': po.requisition.title,
+                'requested_by': po.requisition.requested_by,
+                'department': po.requisition.department,
+                'priority': po.requisition.priority,
+                'is_planned': po.requisition.is_planned,
+                'is_emergency': po.requisition.is_emergency,
+            },
+            
+            # Tender/Bid details (if applicable)
+            'tender_info': None,
+            'bid_info': None,
+            
+            # Payment information
+            'payment_info': {
+                'total_invoiced': Decimal('0'),
+                'total_paid': Decimal('0'),
+                'balance_due': Decimal('0'),
+                'invoices': [],
+                'payments': [],
+            },
+            
+            # Procurement plan details (if applicable)
+            'plan_info': None,
+        }
+        
+        # Get tender and bid information
+        if po.bid:
+            bid = po.bid
+            tender = bid.tender
+            
+            po_details['bid_info'] = {
+                'bid_number': bid.bid_number,
+                'bid_amount': bid.bid_amount,
+                'rank': bid.rank,
+                'technical_score': bid.technical_score,
+                'financial_score': bid.financial_score,
+                'evaluation_score': bid.evaluation_score,
+                'submitted_at': bid.submitted_at,
+            }
+            
+            po_details['tender_info'] = {
+                'tender_number': tender.tender_number,
+                'title': tender.title,
+                'tender_type': tender.get_tender_type_display(),
+                'procurement_method': tender.get_procurement_method_display(),
+                'estimated_budget': tender.estimated_budget,
+                'closing_date': tender.closing_date,
+                'number_of_bids': tender.bids.count(),
+                
+                # Evaluation details
+                'requires_technical_evaluation': tender.requires_technical_evaluation,
+                'technical_pass_mark': tender.technical_pass_mark,
+                'preliminary_evaluation_complete': tender.preliminary_evaluation_complete,
+                'technical_evaluation_complete': tender.technical_evaluation_complete,
+                'financial_evaluation_complete': tender.financial_evaluation_complete,
+            }
+            
+            # Get evaluation committee if exists
+            evaluation_committee = tender.evaluation_committees.filter(
+                status='ACTIVE'
+            ).select_related('chairperson', 'secretary').first()
+            
+            if evaluation_committee:
+                po_details['tender_info']['evaluation_committee'] = {
+                    'committee_number': evaluation_committee.committee_number,
+                    'chairperson': evaluation_committee.chairperson,
+                    'secretary': evaluation_committee.secretary,
+                    'committee_type': evaluation_committee.get_committee_type_display(),
+                }
+        
+        # Get procurement plan information
+        if po.requisition.procurement_plan_item:
+            plan_item = po.requisition.procurement_plan_item
+            plan = plan_item.procurement_plan
+            
+            po_details['plan_info'] = {
+                'plan_number': plan.plan_number,
+                'budget_year': plan.budget_year.name,
+                'item_description': plan_item.description,
+                'estimated_cost': plan_item.estimated_cost,
+                'planned_quarter': plan_item.get_planned_quarter_display(),
+                'procurement_method': plan_item.get_procurement_method_display(),
+                'source_of_funds': plan_item.source_of_funds,
+                'status': plan_item.get_status_display(),
+            }
+        
+        # Get payment information
+        invoices = po.invoices.all()
+        total_invoiced = invoices.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+        
+        all_payments = []
+        total_paid = Decimal('0')
+        
+        for invoice in invoices:
+            invoice_payments = invoice.payments.filter(status='COMPLETED')
+            invoice_paid = invoice_payments.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0')
+            total_paid += invoice_paid
+            
+            po_details['payment_info']['invoices'].append({
+                'invoice_number': invoice.invoice_number,
+                'supplier_invoice_number': invoice.supplier_invoice_number,
+                'invoice_date': invoice.invoice_date,
+                'due_date': invoice.due_date,
+                'total_amount': invoice.total_amount,
+                'amount_paid': invoice_paid,
+                'balance': invoice.total_amount - invoice_paid,
+                'status': invoice.get_status_display(),
+                'verified_by': invoice.verified_by,
+                'approved_by': invoice.approved_by,
+            })
+            
+            # Collect all payments
+            for payment in invoice_payments:
+                all_payments.append({
+                    'payment_number': payment.payment_number,
+                    'payment_date': payment.payment_date,
+                    'payment_amount': payment.payment_amount,
+                    'payment_method': payment.get_payment_method_display(),
+                    'payment_reference': payment.payment_reference,
+                    'processed_by': payment.processed_by,
+                    'approved_by': payment.approved_by,
+                    'invoice_number': invoice.invoice_number,
+                })
+        
+        po_details['payment_info']['total_invoiced'] = total_invoiced
+        po_details['payment_info']['total_paid'] = total_paid
+        po_details['payment_info']['balance_due'] = total_invoiced - total_paid
+        po_details['payment_info']['payments'] = all_payments
+        
+        # Calculate payment percentage
+        if total_invoiced > 0:
+            po_details['payment_info']['payment_percentage'] = (total_paid / total_invoiced * 100)
+        else:
+            po_details['payment_info']['payment_percentage'] = 0
+            
     if request.method == 'POST':
         try:
             po = get_object_or_404(PurchaseOrder, id=request.POST.get('purchase_order'))
@@ -21575,6 +21743,7 @@ def store_receive_goods_view(request, po_id=None):
             )
             
             # Create GRN Items
+            items_received = 0
             for po_item in po.items.all():
                 qty_delivered = Decimal(request.POST.get(f'qty_delivered_{po_item.id}', '0'))
                 qty_accepted = Decimal(request.POST.get(f'qty_accepted_{po_item.id}', '0'))
@@ -21596,8 +21765,34 @@ def store_receive_goods_view(request, po_id=None):
                     # Update PO item delivered quantity
                     po_item.quantity_delivered += qty_accepted
                     po_item.save()
+                    
+                    items_received += 1
             
-            messages.success(request, f'GRN {grn.grn_number} created successfully!')
+            # Update PO status based on delivery
+            if po.items.filter(quantity_pending__gt=0).exists():
+                po.status = 'PARTIAL_DELIVERY'
+            else:
+                po.status = 'DELIVERED'
+            po.save()
+            
+            # Create audit log
+            AuditLog.objects.create(
+                user=request.user,
+                action='CREATE',
+                model_name='GoodsReceivedNote',
+                object_id=str(grn.id),
+                object_repr=grn.grn_number,
+                changes={
+                    'purchase_order': po.po_number,
+                    'store': store.name,
+                    'items_received': items_received,
+                }
+            )
+            
+            messages.success(
+                request, 
+                f'GRN {grn.grn_number} created successfully with {items_received} items!'
+            )
             return redirect('store_receipt_history')
             
         except Exception as e:
@@ -21606,13 +21801,15 @@ def store_receive_goods_view(request, po_id=None):
     # Get pending POs for selection
     pending_pos = PurchaseOrder.objects.filter(
         status__in=['APPROVED', 'SENT', 'ACKNOWLEDGED', 'PARTIAL_DELIVERY']
-    ).select_related('supplier')
+    ).select_related('supplier', 'requisition__department').order_by('-po_date')
     
     context = {
         'stores': stores,
         'po': po,
         'po_items': po_items,
+        'po_details': po_details,
         'pending_pos': pending_pos,
+        'today': timezone.now().date(),
     }
     
     return render(request, 'stores/receive_goods.html', context)
