@@ -21547,6 +21547,9 @@ def store_pending_deliveries_view(request):
 from django.db.models import Sum, Q, Prefetch
 from decimal import Decimal
 
+from django.db.models import Sum, Q, Prefetch
+from decimal import Decimal
+
 @login_required
 def store_receive_goods_view(request, po_id=None):
     """Receive goods and create GRN with comprehensive PO details"""
@@ -21557,9 +21560,13 @@ def store_receive_goods_view(request, po_id=None):
     po_items = []
     po_details = {}
     
+    # Handle both URL parameter and query parameter
+    if not po_id:
+        po_id = request.GET.get('po_id')  # Get from query parameter
+    
     if po_id:
-        po = get_object_or_404(
-            PurchaseOrder.objects.select_related(
+        try:
+            po = PurchaseOrder.objects.select_related(
                 'requisition__requested_by',
                 'requisition__department',
                 'requisition__procurement_plan_item__procurement_plan',
@@ -21569,161 +21576,165 @@ def store_receive_goods_view(request, po_id=None):
             ).prefetch_related(
                 'items__requisition_item__item',
                 'invoices__payments'
-            ),
-            id=po_id
-        )
-        po_items = po.items.all()
-        
-        # Build comprehensive PO details
-        po_details = {
-            'basic_info': {
-                'po_number': po.po_number,
-                'po_date': po.po_date,
-                'supplier': po.supplier,
-                'total_amount': po.total_amount,
-                'status': po.status,
-                'delivery_date': po.delivery_date,
-                'approved_by': po.approved_by,
-                'approved_at': po.approved_at,
-            },
+            ).get(id=po_id)
             
-            # Requisition details
-            'requisition': {
-                'number': po.requisition.requisition_number,
-                'title': po.requisition.title,
-                'requested_by': po.requisition.requested_by,
-                'department': po.requisition.department,
-                'priority': po.requisition.priority,
-                'is_planned': po.requisition.is_planned,
-                'is_emergency': po.requisition.is_emergency,
-            },
+            po_items = po.items.all()
             
-            # Tender/Bid details (if applicable)
-            'tender_info': None,
-            'bid_info': None,
-            
-            # Payment information
-            'payment_info': {
-                'total_invoiced': Decimal('0'),
-                'total_paid': Decimal('0'),
-                'balance_due': Decimal('0'),
-                'invoices': [],
-                'payments': [],
-            },
-            
-            # Procurement plan details (if applicable)
-            'plan_info': None,
-        }
-        
-        # Get tender and bid information
-        if po.bid:
-            bid = po.bid
-            tender = bid.tender
-            
-            po_details['bid_info'] = {
-                'bid_number': bid.bid_number,
-                'bid_amount': bid.bid_amount,
-                'rank': bid.rank,
-                'technical_score': bid.technical_score,
-                'financial_score': bid.financial_score,
-                'evaluation_score': bid.evaluation_score,
-                'submitted_at': bid.submitted_at,
-            }
-            
-            po_details['tender_info'] = {
-                'tender_number': tender.tender_number,
-                'title': tender.title,
-                'tender_type': tender.get_tender_type_display(),
-                'procurement_method': tender.get_procurement_method_display(),
-                'estimated_budget': tender.estimated_budget,
-                'closing_date': tender.closing_date,
-                'number_of_bids': tender.bids.count(),
+            # Build comprehensive PO details
+            po_details = {
+                'basic_info': {
+                    'po_number': po.po_number,
+                    'po_date': po.po_date,
+                    'supplier': po.supplier,
+                    'total_amount': po.total_amount,
+                    'status': po.status,
+                    'delivery_date': po.delivery_date,
+                    'approved_by': po.approved_by,
+                    'approved_at': po.approved_at,
+                },
                 
-                # Evaluation details
-                'requires_technical_evaluation': tender.requires_technical_evaluation,
-                'technical_pass_mark': tender.technical_pass_mark,
-                'preliminary_evaluation_complete': tender.preliminary_evaluation_complete,
-                'technical_evaluation_complete': tender.technical_evaluation_complete,
-                'financial_evaluation_complete': tender.financial_evaluation_complete,
+                # Requisition details
+                'requisition': {
+                    'number': po.requisition.requisition_number,
+                    'title': po.requisition.title,
+                    'requested_by': po.requisition.requested_by,
+                    'department': po.requisition.department,
+                    'priority': po.requisition.priority,
+                    'is_planned': po.requisition.is_planned,
+                    'is_emergency': po.requisition.is_emergency,
+                },
+                
+                # Tender/Bid details (if applicable)
+                'tender_info': None,
+                'bid_info': None,
+                
+                # Payment information
+                'payment_info': {
+                    'total_invoiced': Decimal('0'),
+                    'total_paid': Decimal('0'),
+                    'balance_due': Decimal('0'),
+                    'invoices': [],
+                    'payments': [],
+                },
+                
+                # Procurement plan details (if applicable)
+                'plan_info': None,
             }
             
-            # Get evaluation committee if exists
-            evaluation_committee = tender.evaluation_committees.filter(
-                status='ACTIVE'
-            ).select_related('chairperson', 'secretary').first()
-            
-            if evaluation_committee:
-                po_details['tender_info']['evaluation_committee'] = {
-                    'committee_number': evaluation_committee.committee_number,
-                    'chairperson': evaluation_committee.chairperson,
-                    'secretary': evaluation_committee.secretary,
-                    'committee_type': evaluation_committee.get_committee_type_display(),
+            # Get tender and bid information
+            if po.bid:
+                bid = po.bid
+                tender = bid.tender
+                
+                po_details['bid_info'] = {
+                    'bid_number': bid.bid_number,
+                    'bid_amount': bid.bid_amount,
+                    'rank': bid.rank,
+                    'technical_score': bid.technical_score,
+                    'financial_score': bid.financial_score,
+                    'evaluation_score': bid.evaluation_score,
+                    'submitted_at': bid.submitted_at,
                 }
-        
-        # Get procurement plan information
-        if po.requisition.procurement_plan_item:
-            plan_item = po.requisition.procurement_plan_item
-            plan = plan_item.procurement_plan
+                
+                po_details['tender_info'] = {
+                    'tender_number': tender.tender_number,
+                    'title': tender.title,
+                    'tender_type': tender.get_tender_type_display(),
+                    'procurement_method': tender.get_procurement_method_display(),
+                    'estimated_budget': tender.estimated_budget,
+                    'closing_date': tender.closing_date,
+                    'number_of_bids': tender.bids.count(),
+                    
+                    # Evaluation details
+                    'requires_technical_evaluation': tender.requires_technical_evaluation,
+                    'technical_pass_mark': tender.technical_pass_mark,
+                    'preliminary_evaluation_complete': tender.preliminary_evaluation_complete,
+                    'technical_evaluation_complete': tender.technical_evaluation_complete,
+                    'financial_evaluation_complete': tender.financial_evaluation_complete,
+                }
+                
+                # Get evaluation committee if exists
+                evaluation_committee = tender.evaluation_committees.filter(
+                    status='ACTIVE'
+                ).select_related('chairperson', 'secretary').first()
+                
+                if evaluation_committee:
+                    po_details['tender_info']['evaluation_committee'] = {
+                        'committee_number': evaluation_committee.committee_number,
+                        'chairperson': evaluation_committee.chairperson,
+                        'secretary': evaluation_committee.secretary,
+                        'committee_type': evaluation_committee.get_committee_type_display(),
+                    }
             
-            po_details['plan_info'] = {
-                'plan_number': plan.plan_number,
-                'budget_year': plan.budget_year.name,
-                'item_description': plan_item.description,
-                'estimated_cost': plan_item.estimated_cost,
-                'planned_quarter': plan_item.get_planned_quarter_display(),
-                'procurement_method': plan_item.get_procurement_method_display(),
-                'source_of_funds': plan_item.source_of_funds,
-                'status': plan_item.get_status_display(),
-            }
-        
-        # Get payment information
-        invoices = po.invoices.all()
-        total_invoiced = invoices.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
-        
-        all_payments = []
-        total_paid = Decimal('0')
-        
-        for invoice in invoices:
-            invoice_payments = invoice.payments.filter(status='COMPLETED')
-            invoice_paid = invoice_payments.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0')
-            total_paid += invoice_paid
+            # Get procurement plan information
+            if po.requisition.procurement_plan_item:
+                plan_item = po.requisition.procurement_plan_item
+                plan = plan_item.procurement_plan
+                
+                po_details['plan_info'] = {
+                    'plan_number': plan.plan_number,
+                    'budget_year': plan.budget_year.name,
+                    'item_description': plan_item.description,
+                    'estimated_cost': plan_item.estimated_cost,
+                    'planned_quarter': plan_item.get_planned_quarter_display(),
+                    'procurement_method': plan_item.get_procurement_method_display(),
+                    'source_of_funds': plan_item.source_of_funds,
+                    'status': plan_item.get_status_display(),
+                }
             
-            po_details['payment_info']['invoices'].append({
-                'invoice_number': invoice.invoice_number,
-                'supplier_invoice_number': invoice.supplier_invoice_number,
-                'invoice_date': invoice.invoice_date,
-                'due_date': invoice.due_date,
-                'total_amount': invoice.total_amount,
-                'amount_paid': invoice_paid,
-                'balance': invoice.total_amount - invoice_paid,
-                'status': invoice.get_status_display(),
-                'verified_by': invoice.verified_by,
-                'approved_by': invoice.approved_by,
-            })
+            # Get payment information
+            invoices = po.invoices.all()
+            total_invoiced = invoices.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
             
-            # Collect all payments
-            for payment in invoice_payments:
-                all_payments.append({
-                    'payment_number': payment.payment_number,
-                    'payment_date': payment.payment_date,
-                    'payment_amount': payment.payment_amount,
-                    'payment_method': payment.get_payment_method_display(),
-                    'payment_reference': payment.payment_reference,
-                    'processed_by': payment.processed_by,
-                    'approved_by': payment.approved_by,
+            all_payments = []
+            total_paid = Decimal('0')
+            
+            for invoice in invoices:
+                invoice_payments = invoice.payments.filter(status='COMPLETED')
+                invoice_paid = invoice_payments.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0')
+                total_paid += invoice_paid
+                
+                po_details['payment_info']['invoices'].append({
                     'invoice_number': invoice.invoice_number,
+                    'supplier_invoice_number': invoice.supplier_invoice_number,
+                    'invoice_date': invoice.invoice_date,
+                    'due_date': invoice.due_date,
+                    'total_amount': invoice.total_amount,
+                    'amount_paid': invoice_paid,
+                    'balance': invoice.total_amount - invoice_paid,
+                    'status': invoice.get_status_display(),
+                    'verified_by': invoice.verified_by,
+                    'approved_by': invoice.approved_by,
                 })
-        
-        po_details['payment_info']['total_invoiced'] = total_invoiced
-        po_details['payment_info']['total_paid'] = total_paid
-        po_details['payment_info']['balance_due'] = total_invoiced - total_paid
-        po_details['payment_info']['payments'] = all_payments
-        
-        # Calculate payment percentage
-        if total_invoiced > 0:
-            po_details['payment_info']['payment_percentage'] = (total_paid / total_invoiced * 100)
-        else:
-            po_details['payment_info']['payment_percentage'] = 0
+                
+                # Collect all payments
+                for payment in invoice_payments:
+                    all_payments.append({
+                        'payment_number': payment.payment_number,
+                        'payment_date': payment.payment_date,
+                        'payment_amount': payment.payment_amount,
+                        'payment_method': payment.get_payment_method_display(),
+                        'payment_reference': payment.payment_reference,
+                        'processed_by': payment.processed_by,
+                        'approved_by': payment.approved_by,
+                        'invoice_number': invoice.invoice_number,
+                    })
+            
+            po_details['payment_info']['total_invoiced'] = total_invoiced
+            po_details['payment_info']['total_paid'] = total_paid
+            po_details['payment_info']['balance_due'] = total_invoiced - total_paid
+            po_details['payment_info']['payments'] = all_payments
+            
+            # Calculate payment percentage
+            if total_invoiced > 0:
+                po_details['payment_info']['payment_percentage'] = float((total_paid / total_invoiced * 100))
+            else:
+                po_details['payment_info']['payment_percentage'] = 0
+                
+        except PurchaseOrder.DoesNotExist:
+            messages.error(request, 'Purchase Order not found.')
+        except Exception as e:
+            messages.error(request, f'Error loading PO details: {str(e)}')
             
     if request.method == 'POST':
         try:

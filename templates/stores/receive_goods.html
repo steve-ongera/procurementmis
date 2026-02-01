@@ -270,6 +270,21 @@
         color: #1E40AF; 
         border-color: #BFDBFE;
     }
+    .status-approved {
+        background: #D1FAE5;
+        color: #065F46;
+        border-color: #A7F3D0;
+    }
+    .status-sent {
+        background: #DBEAFE;
+        color: #1E40AF;
+        border-color: #BFDBFE;
+    }
+    .status-partial_delivery {
+        background: #FEF3C7;
+        color: #92400E;
+        border-color: #FDE68A;
+    }
 
     /* Info Card */
     .info-card {
@@ -322,6 +337,122 @@
         color: #92400E;
     }
 
+    .alert-success {
+        background: #D1FAE5;
+        border-color: #A7F3D0;
+        color: #065F46;
+    }
+
+    .alert-error {
+        background: #FEE2E2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    /* Info Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item label {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+    }
+
+    .info-item strong {
+        font-size: 0.875rem;
+        color: #1E293B;
+    }
+
+    /* Details Boxes */
+    .details-box {
+        background: var(--hover-bg);
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .details-box h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin: 0 0 0.75rem 0;
+        color: #1E293B;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .details-box h4 i {
+        color: var(--primary-color);
+    }
+
+    .tender-box {
+        background: var(--primary-light);
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .plan-box {
+        background: #FEF3C7;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--warning-color);
+    }
+
+    .payment-box {
+        background: white;
+        border: 1px solid var(--border-color);
+        padding: 1rem;
+        border-radius: 0.375rem;
+    }
+
+    .payment-list {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .payment-item {
+        padding: 0.5rem;
+        background: var(--hover-bg);
+        margin-bottom: 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    .payment-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .payment-item-details {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-top: 0.25rem;
+    }
+
+    .progress-bar {
+        background: #E2E8F0;
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 0.25rem;
+    }
+
+    .progress-fill {
+        background: var(--success-color);
+        height: 100%;
+        transition: width 0.3s ease;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .form-card {
@@ -344,6 +475,10 @@
         th, td {
             padding: 0.75rem 1rem;
         }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     @media (max-width: 640px) {
@@ -355,6 +490,13 @@
         
         .form-card {
             padding: 1rem;
+        }
+
+        .details-box,
+        .tender-box,
+        .plan-box,
+        .payment-box {
+            padding: 0.75rem;
         }
     }
 </style>
@@ -442,6 +584,353 @@
                 <textarea name="notes" class="form-control" rows="3" placeholder="Any additional notes about this delivery"></textarea>
             </div>
         </div>
+
+        {% if po_details %}
+        <!-- PO Details Section -->
+        <div class="form-section">
+            <h3 class="section-title">
+                <i class="bi bi-file-text"></i>
+                Purchase Order Details
+            </h3>
+            
+            <!-- Basic PO Info -->
+            <div class="info-grid" style="margin-bottom: 1.5rem;">
+                <div class="info-item">
+                    <label>PO Number</label>
+                    <strong>{{ po_details.basic_info.po_number }}</strong>
+                </div>
+                <div class="info-item">
+                    <label>PO Date</label>
+                    <strong>{{ po_details.basic_info.po_date|date:"d M, Y" }}</strong>
+                </div>
+                <div class="info-item">
+                    <label>Total Amount</label>
+                    <strong style="color: var(--primary-color);">KES {{ po_details.basic_info.total_amount|floatformat:2|intcomma }}</strong>
+                </div>
+                <div class="info-item">
+                    <label>Status</label>
+                    <span class="status-badge status-{{ po_details.basic_info.status|lower }}">
+                        {{ po_details.basic_info.status }}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <label>Delivery Date</label>
+                    <strong>{{ po_details.basic_info.delivery_date|date:"d M, Y" }}</strong>
+                </div>
+                <div class="info-item">
+                    <label>Approved By</label>
+                    <strong>
+                        {% if po_details.basic_info.approved_by %}
+                            {{ po_details.basic_info.approved_by.get_full_name }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+            
+            <!-- Requisition Info -->
+            <div class="details-box">
+                <h4>
+                    <i class="bi bi-clipboard-check"></i> Requisition Information
+                </h4>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Requisition Number</label>
+                        <strong>{{ po_details.requisition.number }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Title</label>
+                        <strong>{{ po_details.requisition.title }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Department</label>
+                        <strong>{{ po_details.requisition.department.name }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Requested By</label>
+                        <strong>{{ po_details.requisition.requested_by.get_full_name }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Priority</label>
+                        <span class="status-badge">{{ po_details.requisition.priority }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Type</label>
+                        {% if po_details.requisition.is_planned %}
+                            <span class="status-badge" style="background: #D1FAE5; color: #065F46;">Planned</span>
+                        {% elif po_details.requisition.is_emergency %}
+                            <span class="status-badge" style="background: #FEE2E2; color: #991B1B;">Emergency</span>
+                        {% else %}
+                            <span class="status-badge" style="background: #DBEAFE; color: #1E40AF;">Unplanned</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tender Information (if applicable) -->
+            {% if po_details.tender_info %}
+            <div class="tender-box">
+                <h4>
+                    <i class="bi bi-megaphone"></i> Tender/Competitive Procurement
+                </h4>
+                <div class="info-grid" style="margin-bottom: 0.75rem;">
+                    <div class="info-item">
+                        <label>Tender Number</label>
+                        <strong>{{ po_details.tender_info.tender_number }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Title</label>
+                        <strong>{{ po_details.tender_info.title }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Tender Type</label>
+                        <strong>{{ po_details.tender_info.tender_type }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Procurement Method</label>
+                        <strong>{{ po_details.tender_info.procurement_method }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Number of Bids</label>
+                        <strong>{{ po_details.tender_info.number_of_bids }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Estimated Budget</label>
+                        <strong>KES {{ po_details.tender_info.estimated_budget|floatformat:2|intcomma }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Closing Date</label>
+                        <strong>{{ po_details.tender_info.closing_date|date:"d M, Y H:i" }}</strong>
+                    </div>
+                </div>
+                
+                <!-- Evaluation Status -->
+                <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.75rem;">
+                    <label style="font-size: 0.75rem; color: var(--secondary-color); display: block; margin-bottom: 0.5rem;">
+                        <strong>Evaluation Status</strong>
+                    </label>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.875rem;">
+                        <div>
+                            <i class="bi bi-{{ po_details.tender_info.preliminary_evaluation_complete|yesno:'check-circle-fill,circle' }}" 
+                               style="color: {{ po_details.tender_info.preliminary_evaluation_complete|yesno:'var(--success-color),var(--secondary-color)' }}"></i>
+                            Preliminary
+                        </div>
+                        {% if po_details.tender_info.requires_technical_evaluation %}
+                        <div>
+                            <i class="bi bi-{{ po_details.tender_info.technical_evaluation_complete|yesno:'check-circle-fill,circle' }}" 
+                               style="color: {{ po_details.tender_info.technical_evaluation_complete|yesno:'var(--success-color),var(--secondary-color)' }}"></i>
+                            Technical (Pass Mark: {{ po_details.tender_info.technical_pass_mark }}%)
+                        </div>
+                        {% endif %}
+                        <div>
+                            <i class="bi bi-{{ po_details.tender_info.financial_evaluation_complete|yesno:'check-circle-fill,circle' }}" 
+                               style="color: {{ po_details.tender_info.financial_evaluation_complete|yesno:'var(--success-color),var(--secondary-color)' }}"></i>
+                            Financial
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bid Information -->
+                {% if po_details.bid_info %}
+                <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.75rem;">
+                    <label style="font-size: 0.75rem; color: var(--secondary-color); display: block; margin-bottom: 0.5rem;">
+                        <strong>Winning Bid:</strong> {{ po_details.bid_info.bid_number }}
+                    </label>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Bid Amount</label>
+                            <strong>KES {{ po_details.bid_info.bid_amount|floatformat:2|intcomma }}</strong>
+                        </div>
+                        {% if po_details.bid_info.rank %}
+                        <div class="info-item">
+                            <label>Rank</label>
+                            <strong>#{{ po_details.bid_info.rank }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if po_details.bid_info.technical_score %}
+                        <div class="info-item">
+                            <label>Technical Score</label>
+                            <strong>{{ po_details.bid_info.technical_score }}%</strong>
+                        </div>
+                        {% endif %}
+                        {% if po_details.bid_info.financial_score %}
+                        <div class="info-item">
+                            <label>Financial Score</label>
+                            <strong>{{ po_details.bid_info.financial_score }}%</strong>
+                        </div>
+                        {% endif %}
+                        {% if po_details.bid_info.evaluation_score %}
+                        <div class="info-item">
+                            <label>Overall Score</label>
+                            <strong style="color: var(--success-color);">{{ po_details.bid_info.evaluation_score }}%</strong>
+                        </div>
+                        {% endif %}
+                        <div class="info-item">
+                            <label>Submitted</label>
+                            <strong>{{ po_details.bid_info.submitted_at|date:"d M, Y" }}</strong>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Evaluation Committee -->
+                {% if po_details.tender_info.evaluation_committee %}
+                <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.75rem;">
+                    <label style="font-size: 0.75rem; color: var(--secondary-color); display: block; margin-bottom: 0.5rem;">
+                        <strong>Evaluation Committee:</strong> {{ po_details.tender_info.evaluation_committee.committee_number }}
+                        ({{ po_details.tender_info.evaluation_committee.committee_type }})
+                    </label>
+                    <div style="font-size: 0.875rem;">
+                        <div><strong>Chairperson:</strong> {{ po_details.tender_info.evaluation_committee.chairperson.get_full_name }}</div>
+                        {% if po_details.tender_info.evaluation_committee.secretary %}
+                        <div><strong>Secretary:</strong> {{ po_details.tender_info.evaluation_committee.secretary.get_full_name }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Procurement Plan Information (if applicable) -->
+            {% if po_details.plan_info %}
+            <div class="plan-box">
+                <h4>
+                    <i class="bi bi-calendar-check"></i> Procurement Plan
+                </h4>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Plan Number</label>
+                        <strong>{{ po_details.plan_info.plan_number }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Budget Year</label>
+                        <strong>{{ po_details.plan_info.budget_year }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Planned Quarter</label>
+                        <strong>{{ po_details.plan_info.planned_quarter }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Source of Funds</label>
+                        <strong>{{ po_details.plan_info.source_of_funds }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Procurement Method</label>
+                        <strong>{{ po_details.plan_info.procurement_method }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Estimated Cost</label>
+                        <strong>KES {{ po_details.plan_info.estimated_cost|floatformat:2|intcomma }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Status</label>
+                        <span class="status-badge">{{ po_details.plan_info.status }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Payment Information -->
+            <div class="payment-box">
+                <h4>
+                    <i class="bi bi-credit-card"></i> Payment Status
+                </h4>
+                
+                <!-- Payment Summary -->
+                <div class="info-grid" style="margin-bottom: 1rem;">
+                    <div class="info-item">
+                        <label>Total Invoiced</label>
+                        <strong style="color: #1E293B;">KES {{ po_details.payment_info.total_invoiced|floatformat:2|intcomma }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Total Paid</label>
+                        <strong style="color: var(--success-color);">KES {{ po_details.payment_info.total_paid|floatformat:2|intcomma }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Balance Due</label>
+                        <strong style="color: var(--warning-color);">KES {{ po_details.payment_info.balance_due|floatformat:2|intcomma }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Payment Progress</label>
+                        <div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ po_details.payment_info.payment_percentage }}%;"></div>
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--secondary-color);">{{ po_details.payment_info.payment_percentage|floatformat:1 }}%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Invoices Summary -->
+                {% if po_details.payment_info.invoices %}
+                <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.75rem;">
+                    <label style="font-size: 0.75rem; color: var(--secondary-color); display: block; margin-bottom: 0.5rem;">
+                        <strong>Invoices ({{ po_details.payment_info.invoices|length }})</strong>
+                    </label>
+                    <div class="payment-list">
+                        {% for invoice in po_details.payment_info.invoices %}
+                        <div class="payment-item">
+                            <div class="payment-item-header">
+                                <div>
+                                    <strong>{{ invoice.invoice_number }}</strong>
+                                    <span style="color: var(--secondary-color); margin-left: 0.5rem; font-size: 0.75rem;">
+                                        {{ invoice.invoice_date|date:"d M, Y" }}
+                                    </span>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div><strong>KES {{ invoice.total_amount|floatformat:2|intcomma }}</strong></div>
+                                    <span class="status-badge" style="font-size: 0.65rem; padding: 0.25rem 0.5rem;">{{ invoice.status }}</span>
+                                </div>
+                            </div>
+                            <div class="payment-item-details">
+                                Paid: KES {{ invoice.amount_paid|floatformat:2|intcomma }} | 
+                                Balance: KES {{ invoice.balance|floatformat:2|intcomma }}
+                                {% if invoice.verified_by %}
+                                | Verified by: {{ invoice.verified_by.get_full_name }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Recent Payments -->
+                {% if po_details.payment_info.payments %}
+                <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.75rem;">
+                    <label style="font-size: 0.75rem; color: var(--secondary-color); display: block; margin-bottom: 0.5rem;">
+                        <strong>Recent Payments ({{ po_details.payment_info.payments|length }})</strong>
+                    </label>
+                    <div class="payment-list">
+                        {% for payment in po_details.payment_info.payments|slice:":5" %}
+                        <div class="payment-item">
+                            <div class="payment-item-header">
+                                <div>
+                                    <strong>{{ payment.payment_number }}</strong>
+                                    <span style="color: var(--secondary-color); margin-left: 0.5rem;">{{ payment.payment_date|date:"d M, Y" }}</span>
+                                </div>
+                                <strong style="color: var(--success-color);">KES {{ payment.payment_amount|floatformat:2|intcomma }}</strong>
+                            </div>
+                            <div class="payment-item-details">
+                                {{ payment.payment_method }} | Ref: {{ payment.payment_reference }}
+                                {% if payment.processed_by %}
+                                | Processed by: {{ payment.processed_by.get_full_name }}
+                                {% endif %}
+                                | Invoice: {{ payment.invoice_number }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 1rem; color: var(--secondary-color); font-size: 0.875rem; border-top: 1px solid var(--border-color); margin-top: 0.75rem;">
+                    <i class="bi bi-info-circle"></i> No payments recorded yet
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
         
         {% if po_items %}
         <!-- Items Received -->
@@ -469,9 +958,14 @@
                         <tr>
                             <td>
                                 <strong>{{ item.item_description }}</strong>
-                                {% if item.item_code %}
+                                {% if item.requisition_item.item %}
                                 <div style="font-size: 0.75rem; color: var(--secondary-color);">
-                                    Code: {{ item.item_code }}
+                                    Code: {{ item.requisition_item.item.code }}
+                                </div>
+                                {% endif %}
+                                {% if item.specifications %}
+                                <div style="font-size: 0.75rem; color: var(--secondary-color); margin-top: 0.25rem;">
+                                    {{ item.specifications|truncatewords:10 }}
                                 </div>
                                 {% endif %}
                             </td>
@@ -509,6 +1003,15 @@
                 </table>
             </div>
         </div>
+        {% elif po %}
+        <!-- Info Card when no items in selected PO -->
+        <div class="info-card">
+            <i class="bi bi-exclamation-triangle"></i>
+            <div>
+                <strong>No Items Found</strong>
+                <p>This purchase order doesn't have any items to receive.</p>
+            </div>
+        </div>
         {% else %}
         <!-- Info Card when no PO selected -->
         <div class="info-card">
@@ -526,10 +1029,12 @@
                 <i class="bi bi-x-circle"></i>
                 Cancel
             </a>
+            {% if po_items %}
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-check-circle"></i>
                 Create GRN
             </button>
+            {% endif %}
         </div>
     </form>
 </div>
@@ -559,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const rejected = parseFloat(rejectedInput.value) || 0;
             
             // Auto-calculate accepted = delivered - rejected
-            acceptedInput.value = Math.max(0, delivered - rejected);
+            acceptedInput.value = Math.max(0, delivered - rejected).toFixed(2);
         });
     });
     
@@ -575,7 +1080,23 @@ document.addEventListener('DOMContentLoaded', function() {
             const accepted = parseFloat(this.value) || 0;
             
             // Auto-calculate rejected = delivered - accepted
-            rejectedInput.value = Math.max(0, delivered - accepted);
+            rejectedInput.value = Math.max(0, delivered - accepted).toFixed(2);
+        });
+    });
+
+    // Auto-calculate rejected quantity when delivered or accepted changes
+    const rejectedInputs = document.querySelectorAll('input[name^="qty_rejected_"]');
+    rejectedInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const id = this.name.split('_')[2];
+            const deliveredInput = document.querySelector(`input[name="qty_delivered_${id}"]`);
+            const acceptedInput = document.querySelector(`input[name="qty_accepted_${id}"]`);
+            
+            const delivered = parseFloat(deliveredInput.value) || 0;
+            const rejected = parseFloat(this.value) || 0;
+            
+            // Auto-calculate accepted = delivered - rejected
+            acceptedInput.value = Math.max(0, delivered - rejected).toFixed(2);
         });
     });
 });
