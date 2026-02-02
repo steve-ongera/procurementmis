@@ -89,6 +89,17 @@
         transform: translateY(-1px);
     }
 
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
     .btn-success {
         background: var(--success-color);
         color: white;
@@ -98,6 +109,22 @@
     .btn-success:hover {
         background: #059669;
         border-color: #059669;
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+        border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+        background: #DC2626;
+        border-color: #DC2626;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
     }
 
     /* Card Styles */
@@ -113,6 +140,9 @@
         padding: 1rem 1.25rem;
         border-bottom: 1px solid var(--border-color);
         background: var(--hover-bg);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .card-header h3 {
@@ -161,6 +191,12 @@
         background: var(--warning-bg);
         color: #92400E;
         border: 1px solid #FDE68A;
+    }
+
+    .alert-success {
+        background: #D1FAE5;
+        color: #065F46;
+        border: 1px solid #A7F3D0;
     }
 
     /* Form Styles */
@@ -238,22 +274,271 @@
         border-top: 1px solid var(--border-color);
     }
 
-    /* List Styles */
-    ol, ul {
-        margin: 0 0 1.25rem 0;
-        padding-left: 1.5rem;
-        color: #334155;
+    /* Item Search */
+    .search-container {
+        position: relative;
+        margin-bottom: 1rem;
     }
 
-    li {
-        margin-bottom: 0.5rem;
+    .search-input-wrapper {
+        position: relative;
+    }
+
+    .search-input-wrapper i {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94A3B8;
+    }
+
+    .search-input-wrapper input {
+        padding-left: 2.5rem;
+    }
+
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        margin-top: 0.25rem;
+        max-height: 300px;
+        overflow-y: auto;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        display: none;
+    }
+
+    .search-results.show {
+        display: block;
+    }
+
+    .search-result-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+
+    .search-result-item:hover {
+        background: var(--hover-bg);
+    }
+
+    .search-result-item-name {
+        font-weight: 500;
+        color: #1E293B;
         font-size: 0.8125rem;
-        line-height: 1.5;
     }
 
-    li strong {
+    .search-result-item-code {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-right: 0.5rem;
+    }
+
+    .search-result-item-desc {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-top: 0.25rem;
+    }
+
+    /* Items Table */
+    .items-table-container {
+        overflow-x: auto;
+        margin-bottom: 1rem;
+    }
+
+    .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8125rem;
+    }
+
+    .items-table thead {
+        background: var(--hover-bg);
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .items-table th {
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        color: #475569;
+        white-space: nowrap;
+    }
+
+    .items-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: top;
+    }
+
+    .items-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .items-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .item-description {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--secondary-color);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #CBD5E1;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    /* Badge */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .badge-primary {
+        background: var(--primary-light);
+        color: var(--primary-dark);
+    }
+
+    .badge-success {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .badge-warning {
+        background: var(--warning-bg);
+        color: #92400E;
+    }
+
+    /* Summary */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .summary-card {
+        background: var(--hover-bg);
+        padding: 1rem;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .summary-label {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-value {
+        font-size: 1.25rem;
         font-weight: 600;
         color: #1E293B;
+    }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        overflow-y: auto;
+    }
+
+    .modal.show {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 0.5rem;
+        max-width: 800px;
+        width: 100%;
+        max-height: calc(100vh - 4rem);
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        padding: 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--secondary-color);
+        cursor: pointer;
+        padding: 0;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.25rem;
+        transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+        background: var(--hover-bg);
+        color: #1E293B;
+    }
+
+    .modal-body {
+        padding: 1.25rem;
+    }
+
+    .modal-footer {
+        padding: 1rem 1.25rem;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
     }
 
     /* Responsive */
@@ -262,43 +547,17 @@
             grid-template-columns: 1fr;
         }
         
-        .header-actions {
-            width: 100%;
+        .items-table-container {
+            font-size: 0.75rem;
         }
         
-        .header-actions .btn {
-            flex: 1;
-            justify-content: center;
+        .items-table th,
+        .items-table td {
+            padding: 0.5rem;
         }
         
-        .form-actions {
-            flex-direction: column;
-        }
-        
-        .form-actions .btn {
-            width: 100%;
-            justify-content: center;
-        }
-    }
-
-    @media (max-width: 640px) {
-        .page-header {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 1rem;
-        }
-        
-        .card-header h3 {
-            font-size: 0.9375rem;
-        }
-        
-        .alert {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        
-        .alert i {
-            align-self: flex-start;
+        .summary-grid {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -328,25 +587,19 @@
 </div>
 
 <!-- Create Plan Form -->
-<div class="card">
-    <div class="card-header">
-        <h3>
-            <i class="bi bi-file-earmark-plus"></i>
-            Create New Procurement Plan
-        </h3>
-    </div>
-    <div class="card-body">
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i>
-            <div>
-                <strong>Note:</strong> You can only create one procurement plan per department per budget year. 
-                After creating the plan, you'll be able to add items to it.
-            </div>
+<form method="post" id="planForm">
+    {% csrf_token %}
+    <input type="hidden" name="items_data" id="itemsDataInput">
+    
+    <!-- Plan Details Card -->
+    <div class="card">
+        <div class="card-header">
+            <h3>
+                <i class="bi bi-file-earmark-text"></i>
+                Plan Details
+            </h3>
         </div>
-        
-        <form method="post">
-            {% csrf_token %}
-            
+        <div class="card-body">
             <div class="form-grid">
                 <div class="form-group">
                     <label for="budget_year" class="required">Budget Year</label>
@@ -391,48 +644,228 @@
                           placeholder="Optional: Enter additional description or notes about this plan"></textarea>
                 <small class="form-text">Provide any additional details about this procurement plan</small>
             </div>
-            
-            <div class="form-actions">
-                <button type="submit" class="btn btn-success">
-                    <i class="bi bi-plus-circle"></i>
-                    Create Plan
-                </button>
-                <a href="{% url 'procurement_plan_list' %}" class="btn">
-                    <i class="bi bi-x-circle"></i>
-                    Cancel
-                </a>
-            </div>
-        </form>
+        </div>
     </div>
-</div>
 
-<!-- Help Section -->
-<div class="card">
-    <div class="card-header">
-        <h3>
-            <i class="bi bi-question-circle"></i>
-            How to Create a Procurement Plan
-        </h3>
-    </div>
-    <div class="card-body">
-        <ol>
-            <li><strong>Select Budget Year:</strong> Choose the financial year for this procurement plan</li>
-            <li><strong>Select Department:</strong> Choose your department (only one plan allowed per department/year)</li>
-            <li><strong>Enter Title:</strong> Provide a clear, descriptive title for the plan</li>
-            <li><strong>Add Description:</strong> Optionally add more details about the plan</li>
-            <li><strong>Create:</strong> Click "Create Plan" to proceed to adding items</li>
-        </ol>
-        
-        <div class="alert alert-warning">
-            <i class="bi bi-exclamation-triangle"></i>
-            <div>
-                <strong>Important:</strong> After creating the plan, you'll need to:
-                <ul style="margin-top: 0.5rem; margin-bottom: 0;">
-                    <li>Add procurement items with estimated costs and quarters</li>
-                    <li>Assign budget allocations to each item</li>
-                    <li>Submit the plan for approval</li>
-                </ul>
+    <!-- Plan Items Card -->
+    <div class="card">
+        <div class="card-header">
+            <h3>
+                <i class="bi bi-list-check"></i>
+                Plan Items
+                <span class="badge badge-primary" id="itemCount">0 items</span>
+            </h3>
+            <button type="button" class="btn btn-primary btn-sm" id="addItemBtn">
+                <i class="bi bi-plus-circle"></i>
+                Add Item
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="items-table-container" id="itemsTableContainer">
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>No items added yet. Click "Add Item" to get started.</p>
+                </div>
             </div>
+
+            <!-- Summary -->
+            <div id="summarySection" style="display: none;">
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">Total Items</div>
+                        <div class="summary-value" id="summaryTotalItems">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Total Estimated Cost</div>
+                        <div class="summary-value" id="summaryTotalCost">KES 0.00</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Goods</div>
+                        <div class="summary-value" id="summaryGoods">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Services</div>
+                        <div class="summary-value" id="summaryServices">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Works</div>
+                        <div class="summary-value" id="summaryWorks">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+        <button type="submit" class="btn btn-success" id="submitBtn">
+            <i class="bi bi-check-circle"></i>
+            Create Plan
+        </button>
+        <a href="{% url 'procurement_plan_list' %}" class="btn">
+            <i class="bi bi-x-circle"></i>
+            Cancel
+        </a>
+    </div>
+</form>
+
+<!-- Add/Edit Item Modal -->
+<div class="modal" id="itemModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Add Plan Item</h3>
+            <button type="button" class="modal-close" id="modalCloseBtn">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <!-- Search for existing items -->
+            <div class="search-container">
+                <label>Search Existing Items</label>
+                <div class="search-input-wrapper">
+                    <i class="bi bi-search"></i>
+                    <input type="text" 
+                           id="itemSearch" 
+                           class="form-control" 
+                           placeholder="Search by name, code, or description...">
+                </div>
+                <div class="search-results" id="searchResults"></div>
+            </div>
+
+            <div style="text-align: center; margin: 1rem 0; color: var(--secondary-color); font-size: 0.8125rem;">
+                - OR -
+            </div>
+
+            <!-- Manual item entry -->
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="itemType" class="required">Item Type</label>
+                    <select id="itemType" class="form-control" required>
+                        <option value="">Select Type</option>
+                        {% for type_code, type_name in item_types %}
+                        <option value="{{ type_code }}">{{ type_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="itemCategory">Category</label>
+                    <select id="itemCategory" class="form-control">
+                        <option value="">Select Category (Optional)</option>
+                        {% for category in item_categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="itemDescription" class="required">Description</label>
+                <textarea id="itemDescription" 
+                          class="form-control" 
+                          rows="2" 
+                          placeholder="Enter detailed description of the item"
+                          required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="itemSpecifications">Specifications</label>
+                <textarea id="itemSpecifications" 
+                          class="form-control" 
+                          rows="2" 
+                          placeholder="Enter technical specifications or requirements"></textarea>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="itemQuantity" class="required">Quantity</label>
+                    <input type="number" 
+                           id="itemQuantity" 
+                           class="form-control" 
+                           step="0.01" 
+                           min="0.01"
+                           placeholder="0.00"
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="itemUnit" class="required">Unit of Measure</label>
+                    <input type="text" 
+                           id="itemUnit" 
+                           class="form-control" 
+                           placeholder="e.g., pieces, kg, litres"
+                           required>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="itemCost" class="required">Estimated Cost (KES)</label>
+                    <input type="number" 
+                           id="itemCost" 
+                           class="form-control" 
+                           step="0.01" 
+                           min="0"
+                           placeholder="0.00"
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="itemBudget">Budget Allocation</label>
+                    <select id="itemBudget" class="form-control">
+                        <option value="">Select Budget (Optional)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="itemMethod" class="required">Procurement Method</label>
+                    <select id="itemMethod" class="form-control" required>
+                        <option value="">Select Method</option>
+                        {% for method_code, method_name in procurement_methods %}
+                        <option value="{{ method_code }}">{{ method_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="itemQuarter" class="required">Planned Quarter</label>
+                    <select id="itemQuarter" class="form-control" required>
+                        <option value="">Select Quarter</option>
+                        {% for quarter_code, quarter_name in quarters %}
+                        <option value="{{ quarter_code }}">{{ quarter_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="itemSource" class="required">Source of Funds</label>
+                <input type="text" 
+                       id="itemSource" 
+                       class="form-control" 
+                       value="Government Budget"
+                       placeholder="e.g., Government Budget, Donor Funds, IGR"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label for="itemNotes">Notes</label>
+                <textarea id="itemNotes" 
+                          class="form-control" 
+                          rows="2" 
+                          placeholder="Any additional notes or remarks"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-primary" id="saveItemBtn">
+                <i class="bi bi-check-circle"></i>
+                <span id="saveItemBtnText">Add Item</span>
+            </button>
+            <button type="button" class="btn" id="cancelItemBtn">
+                Cancel
+            </button>
         </div>
     </div>
 </div>
@@ -440,37 +873,439 @@
 
 {% block extra_js %}
 <script>
+// Application State
+const app = {
+    items: [],
+    editingIndex: null,
+    selectedItem: null,
+    budgets: []
+};
+
+// DOM Elements
+const elements = {
+    modal: document.getElementById('itemModal'),
+    addItemBtn: document.getElementById('addItemBtn'),
+    modalCloseBtn: document.getElementById('modalCloseBtn'),
+    cancelItemBtn: document.getElementById('cancelItemBtn'),
+    saveItemBtn: document.getElementById('saveItemBtn'),
+    planForm: document.getElementById('planForm'),
+    itemsDataInput: document.getElementById('itemsDataInput'),
+    itemsTableContainer: document.getElementById('itemsTableContainer'),
+    summarySection: document.getElementById('summarySection'),
+    itemCount: document.getElementById('itemCount'),
+    department: document.getElementById('department'),
+    budgetYear: document.getElementById('budget_year'),
+    itemSearch: document.getElementById('itemSearch'),
+    searchResults: document.getElementById('searchResults')
+};
+
+// Initialize
 document.addEventListener('DOMContentLoaded', function() {
-    // Form validation
-    const form = document.querySelector('form');
-    const budgetYear = document.getElementById('budget_year');
-    const department = document.getElementById('department');
-    const title = document.getElementById('title');
+    initializeEventListeners();
+});
+
+function initializeEventListeners() {
+    // Modal controls
+    elements.addItemBtn.addEventListener('click', () => openModal());
+    elements.modalCloseBtn.addEventListener('click', () => closeModal());
+    elements.cancelItemBtn.addEventListener('click', () => closeModal());
+    elements.saveItemBtn.addEventListener('click', () => saveItem());
     
-    form.addEventListener('submit', function(e) {
-        let isValid = true;
-        let errors = [];
-        
-        if (!budgetYear.value) {
-            errors.push('Please select a budget year');
-            isValid = false;
-        }
-        
-        if (!department.value) {
-            errors.push('Please select a department');
-            isValid = false;
-        }
-        
-        if (!title.value.trim()) {
-            errors.push('Please enter a plan title');
-            isValid = false;
-        }
-        
-        if (!isValid) {
-            e.preventDefault();
-            alert('Please fill in all required fields:\n\n' + errors.join('\n'));
+    // Close modal on outside click
+    elements.modal.addEventListener('click', (e) => {
+        if (e.target === elements.modal) closeModal();
+    });
+    
+    // Form submission
+    elements.planForm.addEventListener('submit', handleFormSubmit);
+    
+    // Department/Budget Year changes
+    elements.department.addEventListener('change', loadBudgets);
+    elements.budgetYear.addEventListener('change', loadBudgets);
+    
+    // Item search
+    let searchTimeout;
+    elements.itemSearch.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => searchItems(e.target.value), 300);
+    });
+    
+    // Close search results on outside click
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-container')) {
+            elements.searchResults.classList.remove('show');
         }
     });
-});
+}
+
+function openModal(index = null) {
+    app.editingIndex = index;
+    
+    if (index !== null) {
+        // Edit mode
+        const item = app.items[index];
+        document.getElementById('modalTitle').textContent = 'Edit Plan Item';
+        document.getElementById('saveItemBtnText').textContent = 'Update Item';
+        populateModalForm(item);
+    } else {
+        // Add mode
+        document.getElementById('modalTitle').textContent = 'Add Plan Item';
+        document.getElementById('saveItemBtnText').textContent = 'Add Item';
+        resetModalForm();
+    }
+    
+    elements.modal.classList.add('show');
+}
+
+function closeModal() {
+    elements.modal.classList.remove('show');
+    resetModalForm();
+    app.editingIndex = null;
+    app.selectedItem = null;
+}
+
+function resetModalForm() {
+    document.getElementById('itemType').value = '';
+    document.getElementById('itemCategory').value = '';
+    document.getElementById('itemDescription').value = '';
+    document.getElementById('itemSpecifications').value = '';
+    document.getElementById('itemQuantity').value = '';
+    document.getElementById('itemUnit').value = '';
+    document.getElementById('itemCost').value = '';
+    document.getElementById('itemBudget').value = '';
+    document.getElementById('itemMethod').value = '';
+    document.getElementById('itemQuarter').value = '';
+    document.getElementById('itemSource').value = 'Government Budget';
+    document.getElementById('itemNotes').value = '';
+    elements.itemSearch.value = '';
+    elements.searchResults.classList.remove('show');
+}
+
+function populateModalForm(item) {
+    document.getElementById('itemType').value = item.item_type;
+    document.getElementById('itemDescription').value = item.description;
+    document.getElementById('itemSpecifications').value = item.specifications || '';
+    document.getElementById('itemQuantity').value = item.quantity;
+    document.getElementById('itemUnit').value = item.unit_of_measure;
+    document.getElementById('itemCost').value = item.estimated_cost;
+    document.getElementById('itemBudget').value = item.budget_id || '';
+    document.getElementById('itemMethod').value = item.procurement_method;
+    document.getElementById('itemQuarter').value = item.planned_quarter;
+    document.getElementById('itemSource').value = item.source_of_funds;
+    document.getElementById('itemNotes').value = item.notes || '';
+}
+
+function saveItem() {
+    // Validate
+    const itemType = document.getElementById('itemType').value;
+    const description = document.getElementById('itemDescription').value.trim();
+    const quantity = parseFloat(document.getElementById('itemQuantity').value);
+    const unit = document.getElementById('itemUnit').value.trim();
+    const cost = parseFloat(document.getElementById('itemCost').value);
+    const method = document.getElementById('itemMethod').value;
+    const quarter = document.getElementById('itemQuarter').value;
+    const source = document.getElementById('itemSource').value.trim();
+    
+    if (!itemType || !description || !quantity || !unit || !cost || !method || !quarter || !source) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    const item = {
+        item_id: app.selectedItem ? app.selectedItem.id : null,
+        item_type: itemType,
+        description: description,
+        specifications: document.getElementById('itemSpecifications').value.trim(),
+        quantity: quantity,
+        unit_of_measure: unit,
+        estimated_cost: cost,
+        budget_id: document.getElementById('itemBudget').value || null,
+        procurement_method: method,
+        planned_quarter: quarter,
+        source_of_funds: source,
+        notes: document.getElementById('itemNotes').value.trim()
+    };
+    
+    if (app.editingIndex !== null) {
+        // Update existing item
+        app.items[app.editingIndex] = item;
+    } else {
+        // Add new item
+        app.items.push(item);
+    }
+    
+    renderItemsTable();
+    updateSummary();
+    closeModal();
+}
+
+function deleteItem(index) {
+    if (confirm('Are you sure you want to remove this item?')) {
+        app.items.splice(index, 1);
+        renderItemsTable();
+        updateSummary();
+    }
+}
+
+function renderItemsTable() {
+    if (app.items.length === 0) {
+        elements.itemsTableContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p>No items added yet. Click "Add Item" to get started.</p>
+            </div>
+        `;
+        elements.summarySection.style.display = 'none';
+        return;
+    }
+    
+    let html = `
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Unit</th>
+                    <th>Cost (KES)</th>
+                    <th>Quarter</th>
+                    <th>Method</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    app.items.forEach((item, index) => {
+        const typeLabel = getItemTypeLabel(item.item_type);
+        const methodLabel = getMethodLabel(item.procurement_method);
+        const quarterLabel = getQuarterLabel(item.planned_quarter);
+        
+        html += `
+            <tr>
+                <td>${index + 1}</td>
+                <td><span class="badge badge-${getTypeBadgeClass(item.item_type)}">${typeLabel}</span></td>
+                <td>
+                    <div class="item-description" title="${item.description}">
+                        ${item.description}
+                    </div>
+                </td>
+                <td>${formatNumber(item.quantity)}</td>
+                <td>${item.unit_of_measure}</td>
+                <td>${formatCurrency(item.estimated_cost)}</td>
+                <td>${quarterLabel}</td>
+                <td style="font-size: 0.75rem;">${methodLabel}</td>
+                <td>
+                    <button type="button" 
+                            class="btn btn-sm" 
+                            onclick="openModal(${index})"
+                            title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" 
+                            class="btn btn-sm btn-danger" 
+                            onclick="deleteItem(${index})"
+                            title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            </tbody>
+        </table>
+    `;
+    
+    elements.itemsTableContainer.innerHTML = html;
+    elements.summarySection.style.display = 'block';
+}
+
+function updateSummary() {
+    const totalItems = app.items.length;
+    const totalCost = app.items.reduce((sum, item) => sum + parseFloat(item.estimated_cost), 0);
+    const goods = app.items.filter(item => item.item_type === 'GOODS').length;
+    const services = app.items.filter(item => item.item_type === 'SERVICES').length;
+    const works = app.items.filter(item => item.item_type === 'WORKS').length;
+    
+    elements.itemCount.textContent = `${totalItems} item${totalItems !== 1 ? 's' : ''}`;
+    document.getElementById('summaryTotalItems').textContent = totalItems;
+    document.getElementById('summaryTotalCost').textContent = formatCurrency(totalCost);
+    document.getElementById('summaryGoods').textContent = goods;
+    document.getElementById('summaryServices').textContent = services;
+    document.getElementById('summaryWorks').textContent = works;
+}
+
+function handleFormSubmit(e) {
+    // Validate plan details
+    const budgetYear = elements.budgetYear.value;
+    const department = elements.department.value;
+    const title = document.getElementById('title').value.trim();
+    
+    if (!budgetYear || !department || !title) {
+        e.preventDefault();
+        alert('Please fill in all required plan details');
+        return false;
+    }
+    
+    // Validate items
+    if (app.items.length === 0) {
+        e.preventDefault();
+        alert('Please add at least one item to the procurement plan');
+        return false;
+    }
+    
+    // Set items data
+    elements.itemsDataInput.value = JSON.stringify(app.items);
+    
+    // Show loading state
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Creating...';
+    
+    return true;
+}
+
+async function loadBudgets() {
+    const departmentId = elements.department.value;
+    const budgetYearId = elements.budgetYear.value;
+    
+    if (!departmentId) return;
+    
+    try {
+        const params = new URLSearchParams();
+        if (budgetYearId) params.append('budget_year', budgetYearId);
+        
+        const response = await fetch(`/api/departments/${departmentId}/budgets/?${params}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            app.budgets = data.budgets;
+            populateBudgetSelect();
+        }
+    } catch (error) {
+        console.error('Error loading budgets:', error);
+    }
+}
+
+function populateBudgetSelect() {
+    const budgetSelect = document.getElementById('itemBudget');
+    budgetSelect.innerHTML = '<option value="">Select Budget (Optional)</option>';
+    
+    app.budgets.forEach(budget => {
+        const option = document.createElement('option');
+        option.value = budget.id;
+        option.textContent = `${budget.category.name} - ${formatCurrency(budget.available_balance)} available`;
+        budgetSelect.appendChild(option);
+    });
+}
+
+async function searchItems(query) {
+    if (!query || query.length < 2) {
+        elements.searchResults.classList.remove('show');
+        return;
+    }
+    
+    try {
+        const params = new URLSearchParams({ q: query, limit: 10 });
+        const response = await fetch(`/api/items/search/?${params}`);
+        const data = await response.json();
+        
+        if (data.success && data.items.length > 0) {
+            renderSearchResults(data.items);
+        } else {
+            elements.searchResults.innerHTML = '<div style="padding: 1rem; text-align: center; color: #64748B;">No items found</div>';
+            elements.searchResults.classList.add('show');
+        }
+    } catch (error) {
+        console.error('Error searching items:', error);
+    }
+}
+
+function renderSearchResults(items) {
+    let html = '';
+    items.forEach(item => {
+        html += `
+            <div class="search-result-item" onclick='selectSearchItem(${JSON.stringify(item)})'>
+                <div>
+                    <span class="search-result-item-code">${item.code}</span>
+                    <span class="search-result-item-name">${item.name}</span>
+                </div>
+                <div class="search-result-item-desc">${item.description}</div>
+            </div>
+        `;
+    });
+    elements.searchResults.innerHTML = html;
+    elements.searchResults.classList.add('show');
+}
+
+function selectSearchItem(item) {
+    app.selectedItem = item;
+    
+    // Populate form with item data
+    document.getElementById('itemType').value = item.category.type;
+    document.getElementById('itemDescription').value = item.name;
+    document.getElementById('itemUnit').value = item.unit_of_measure;
+    
+    if (item.standard_price) {
+        document.getElementById('itemCost').value = item.standard_price;
+    }
+    
+    elements.itemSearch.value = `${item.code} - ${item.name}`;
+    elements.searchResults.classList.remove('show');
+}
+
+// Helper functions
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-KE', {
+        style: 'currency',
+        currency: 'KES'
+    }).format(amount);
+}
+
+function formatNumber(number) {
+    return new Intl.NumberFormat('en-KE').format(number);
+}
+
+function getItemTypeLabel(type) {
+    const types = {
+        'GOODS': 'Goods',
+        'SERVICES': 'Services',
+        'WORKS': 'Works'
+    };
+    return types[type] || type;
+}
+
+function getMethodLabel(method) {
+    const methods = {
+        'OPEN_TENDER': 'Open Tender',
+        'RESTRICTED_TENDER': 'Restricted Tender',
+        'RFQ': 'RFQ',
+        'DIRECT_PROCUREMENT': 'Direct',
+        'FRAMEWORK': 'Framework'
+    };
+    return methods[method] || method;
+}
+
+function getQuarterLabel(quarter) {
+    const quarters = {
+        'Q1': 'Q1',
+        'Q2': 'Q2',
+        'Q3': 'Q3',
+        'Q4': 'Q4'
+    };
+    return quarters[quarter] || quarter;
+}
+
+function getTypeBadgeClass(type) {
+    const classes = {
+        'GOODS': 'primary',
+        'SERVICES': 'success',
+        'WORKS': 'warning'
+    };
+    return classes[type] || 'primary';
+}
 </script>
 {% endblock %}

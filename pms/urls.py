@@ -446,6 +446,13 @@ urlpatterns = [
     
     # Create & Edit
     path('plans/create/', views.procurement_plan_create, name='procurement_plan_create'),
+    path('plans/<uuid:pk>/', views.procurement_plan_detail, name='procurement_plan_detail'),
+    path('plans/<uuid:pk>/edit/', views.procurement_plan_edit, name='procurement_plan_edit'),
+    
+    # API Endpoints
+    path('api/items/search/', views.api_search_items, name='api_search_items'),
+    path('api/departments/<uuid:department_id>/budgets/', views.api_get_department_budgets, name='api_get_department_budgets'),
+    path('api/categories/', views.api_get_item_categories, name='api_get_item_categories'),
     path('plans/<uuid:pk>/edit/', views.procurement_plan_edit, name='procurement_plan_edit'),
     # Workflow Actions
     path('plans/<uuid:pk>/submit/', views.procurement_plan_submit, name='procurement_plan_submit'),

@@ -20796,20 +20796,56 @@ def procurement_plan_detail(request, pk):
 # CREATE & EDIT PROCUREMENT PLAN
 # ============================================================================
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from django.http import JsonResponse
+from django.db.models import Q
+from django.views.decorators.http import require_http_methods
+from decimal import Decimal
+import json
+
+from .models import (
+    ProcurementPlan, ProcurementPlanItem, BudgetYear, 
+    Department, Item, ItemCategory, Budget
+)
+
+
+def procurement_or_admin_required(user):
+    """Check if user is procurement officer or admin"""
+    return user.role in ['PROCUREMENT', 'ADMIN', 'HOD']
+
+
 @login_required
 @user_passes_test(procurement_or_admin_required)
 def procurement_plan_create(request):
-    """Create new procurement plan"""
+    """Create new procurement plan with items"""
     
     if request.method == 'POST':
+        # Get form data
         plan_title = request.POST.get('title')
         plan_description = request.POST.get('description', '')
         budget_year_id = request.POST.get('budget_year')
         department_id = request.POST.get('department')
         
+        # Get items data (JSON string from frontend)
+        items_json = request.POST.get('items_data', '[]')
+        
         # Validation
         if not all([plan_title, budget_year_id, department_id]):
             messages.error(request, 'Please fill in all required fields.')
+            return redirect('procurement_plan_create')
+        
+        # Parse items
+        try:
+            items_data = json.loads(items_json)
+        except json.JSONDecodeError:
+            messages.error(request, 'Invalid items data.')
+            return redirect('procurement_plan_create')
+        
+        # Validate items
+        if not items_data:
+            messages.error(request, 'Please add at least one item to the procurement plan.')
             return redirect('procurement_plan_create')
         
         # Check if plan already exists for this department/year
@@ -20836,24 +20872,196 @@ def procurement_plan_create(request):
             submitted_by=request.user
         )
         
-        messages.success(
-            request,
-            f'Procurement plan {plan.plan_number} created successfully! '
-            f'Now add items to the plan.'
-        )
-        return redirect('procurement_plan_edit', pk=plan.pk)
+        # Create plan items
+        sequence = 1
+        created_items = 0
+        
+        for item_data in items_data:
+            try:
+                # Get item if ID provided, otherwise None
+                item = None
+                if item_data.get('item_id'):
+                    item = Item.objects.get(id=item_data['item_id'])
+                
+                # Get budget if provided
+                budget = None
+                if item_data.get('budget_id'):
+                    budget = Budget.objects.get(id=item_data['budget_id'])
+                
+                # Create plan item
+                ProcurementPlanItem.objects.create(
+                    procurement_plan=plan,
+                    item=item,
+                    item_type=item_data['item_type'],
+                    description=item_data['description'],
+                    specifications=item_data.get('specifications', ''),
+                    quantity=Decimal(str(item_data['quantity'])),
+                    unit_of_measure=item_data['unit_of_measure'],
+                    estimated_cost=Decimal(str(item_data['estimated_cost'])),
+                    budget=budget,
+                    procurement_method=item_data['procurement_method'],
+                    planned_quarter=item_data['planned_quarter'],
+                    source_of_funds=item_data.get('source_of_funds', 'Government Budget'),
+                    sequence=sequence,
+                    notes=item_data.get('notes', '')
+                )
+                
+                sequence += 1
+                created_items += 1
+                
+            except Exception as e:
+                messages.warning(
+                    request,
+                    f'Failed to add item: {item_data.get("description", "Unknown")} - {str(e)}'
+                )
+                continue
+        
+        if created_items > 0:
+            messages.success(
+                request,
+                f'Procurement plan {plan.plan_number} created successfully with {created_items} items!'
+            )
+            return redirect('procurement_plan_detail', pk=plan.pk)
+        else:
+            # Delete plan if no items were created
+            plan.delete()
+            messages.error(request, 'Failed to create any items. Plan not saved.')
+            return redirect('procurement_plan_create')
     
     # GET request
     budget_years = BudgetYear.objects.all().order_by('-start_date')
     departments = Department.objects.filter(is_active=True).order_by('name')
+    item_categories = ItemCategory.objects.filter(is_active=True).order_by('name')
+    
+    # Get procurement methods and quarters from model choices
+    procurement_methods = ProcurementPlan.PROCUREMENT_METHOD_CHOICES
+    quarters = ProcurementPlan.QUARTER_CHOICES
+    item_types = ProcurementPlanItem.ITEM_TYPE_CHOICES
     
     context = {
         'budget_years': budget_years,
         'departments': departments,
+        'item_categories': item_categories,
+        'procurement_methods': procurement_methods,
+        'quarters': quarters,
+        'item_types': item_types,
         'page_title': 'Create Procurement Plan',
     }
     
     return render(request, 'procurement/plan_create.html', context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_search_items(request):
+    """API endpoint to search items"""
+    query = request.GET.get('q', '').strip()
+    category_id = request.GET.get('category', '')
+    limit = int(request.GET.get('limit', 20))
+    
+    # Build query
+    items = Item.objects.filter(is_active=True)
+    
+    if query:
+        items = items.filter(
+            Q(name__icontains=query) |
+            Q(code__icontains=query) |
+            Q(description__icontains=query)
+        )
+    
+    if category_id:
+        items = items.filter(category_id=category_id)
+    
+    # Limit results
+    items = items[:limit]
+    
+    # Prepare response
+    results = []
+    for item in items:
+        results.append({
+            'id': str(item.id),
+            'code': item.code,
+            'name': item.name,
+            'description': item.description,
+            'unit_of_measure': item.unit_of_measure,
+            'standard_price': float(item.standard_price) if item.standard_price else None,
+            'category': {
+                'id': str(item.category.id),
+                'name': item.category.name,
+                'type': item.category.category_type
+            }
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'count': len(results),
+        'items': results
+    })
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_get_department_budgets(request, department_id):
+    """API endpoint to get budgets for a department"""
+    budget_year_id = request.GET.get('budget_year')
+    
+    budgets = Budget.objects.filter(
+        department_id=department_id,
+        is_active=True
+    )
+    
+    if budget_year_id:
+        budgets = budgets.filter(budget_year_id=budget_year_id)
+    
+    # Prepare response
+    results = []
+    for budget in budgets:
+        results.append({
+            'id': str(budget.id),
+            'category': {
+                'id': str(budget.category.id),
+                'code': budget.category.code,
+                'name': budget.category.name
+            },
+            'budget_type': budget.budget_type,
+            'allocated_amount': float(budget.allocated_amount),
+            'available_balance': float(budget.available_balance),
+            'budget_year': budget.budget_year.name
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'count': len(results),
+        'budgets': results
+    })
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_get_item_categories(request):
+    """API endpoint to get item categories"""
+    category_type = request.GET.get('type', '')
+    
+    categories = ItemCategory.objects.filter(is_active=True)
+    
+    if category_type:
+        categories = categories.filter(category_type=category_type)
+    
+    # Prepare response
+    results = []
+    for category in categories.order_by('name'):
+        results.append({
+            'id': str(category.id),
+            'code': category.code,
+            'name': category.name,
+            'type': category.category_type
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'count': len(results),
+        'categories': results
+    })
 
 
 @login_required
