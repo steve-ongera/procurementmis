@@ -996,20 +996,83 @@ function populateModalForm(item) {
 }
 
 function saveItem() {
-    // Validate
+    // Get all values
     const itemType = document.getElementById('itemType').value;
     const description = document.getElementById('itemDescription').value.trim();
-    const quantity = parseFloat(document.getElementById('itemQuantity').value);
+    const quantityValue = document.getElementById('itemQuantity').value;
     const unit = document.getElementById('itemUnit').value.trim();
-    const cost = parseFloat(document.getElementById('itemCost').value);
+    const costValue = document.getElementById('itemCost').value;
     const method = document.getElementById('itemMethod').value;
     const quarter = document.getElementById('itemQuarter').value;
     const source = document.getElementById('itemSource').value.trim();
     
-    if (!itemType || !description || !quantity || !unit || !cost || !method || !quarter || !source) {
-        alert('Please fill in all required fields');
+    // Detailed validation with specific error messages
+    const errors = [];
+    
+    if (!itemType) {
+        errors.push('• Item Type is required');
+        document.getElementById('itemType').style.borderColor = '#EF4444';
+    } else {
+        document.getElementById('itemType').style.borderColor = '#E2E8F0';
+    }
+    
+    if (!description) {
+        errors.push('• Description is required');
+        document.getElementById('itemDescription').style.borderColor = '#EF4444';
+    } else {
+        document.getElementById('itemDescription').style.borderColor = '#E2E8F0';
+    }
+    
+    if (!quantityValue || parseFloat(quantityValue) <= 0) {
+        errors.push('• Quantity is required (must be greater than 0)');
+        document.getElementById('itemQuantity').style.borderColor = '#EF4444';
+    } else {
+        document.getElementById('itemQuantity').style.borderColor = '#E2E8F0';
+    }
+    
+    if (!unit) {
+        errors.push('• Unit of Measure is required');
+        document.getElementById('itemUnit').style.borderColor = '#EF4444';
+    } else {
+        document.getElementById('itemUnit').style.borderColor = '#E2E8F0';
+    }
+    
+    if (!costValue || parseFloat(costValue) < 0) {
+        errors.push('• Estimated Cost is required');
+        document.getElementById('itemCost').style.borderColor = '#EF4444';
+    } else {
+        document.getElementById('itemCost').style.borderColor = '#E2E8F0';
+    }
+    
+    if (!method) {
+        errors.push('• Procurement Method is required');
+        document.getElementById('itemMethod').style.borderColor = '#EF4444';
+    } else {
+        document.getElementById('itemMethod').style.borderColor = '#E2E8F0';
+    }
+    
+    if (!quarter) {
+        errors.push('• Planned Quarter is required');
+        document.getElementById('itemQuarter').style.borderColor = '#EF4444';
+    } else {
+        document.getElementById('itemQuarter').style.borderColor = '#E2E8F0';
+    }
+    
+    if (!source) {
+        errors.push('• Source of Funds is required');
+        document.getElementById('itemSource').style.borderColor = '#EF4444';
+    } else {
+        document.getElementById('itemSource').style.borderColor = '#E2E8F0';
+    }
+    
+    if (errors.length > 0) {
+        alert('Please fill in all required fields:\n\n' + errors.join('\n'));
         return;
     }
+    
+    // Parse values
+    const quantity = parseFloat(quantityValue);
+    const cost = parseFloat(costValue);
     
     const item = {
         item_id: app.selectedItem ? app.selectedItem.id : null,
@@ -1139,31 +1202,65 @@ function updateSummary() {
 }
 
 function handleFormSubmit(e) {
+    console.log('=== Form Submit Started ===');
+    
     // Validate plan details
     const budgetYear = elements.budgetYear.value;
     const department = elements.department.value;
     const title = document.getElementById('title').value.trim();
     
+    console.log('Plan Details:', {
+        budgetYear: budgetYear,
+        department: department,
+        title: title,
+        itemsCount: app.items.length
+    });
+    
     if (!budgetYear || !department || !title) {
         e.preventDefault();
-        alert('Please fill in all required plan details');
+        const missing = [];
+        if (!budgetYear) missing.push('Budget Year');
+        if (!department) missing.push('Department');
+        if (!title) missing.push('Plan Title');
+        
+        alert('Please fill in all required plan details:\n\n• ' + missing.join('\n• '));
+        
+        // Focus on first missing field
+        if (!budgetYear) {
+            elements.budgetYear.focus();
+            elements.budgetYear.style.borderColor = '#EF4444';
+        } else if (!department) {
+            elements.department.focus();
+            elements.department.style.borderColor = '#EF4444';
+        } else if (!title) {
+            document.getElementById('title').focus();
+            document.getElementById('title').style.borderColor = '#EF4444';
+        }
+        
         return false;
     }
     
     // Validate items
     if (app.items.length === 0) {
         e.preventDefault();
-        alert('Please add at least one item to the procurement plan');
+        alert('Please add at least one item to the procurement plan.\n\nClick the "Add Item" button to add items.');
+        elements.addItemBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => elements.addItemBtn.focus(), 300);
         return false;
     }
     
     // Set items data
-    elements.itemsDataInput.value = JSON.stringify(app.items);
+    const itemsJSON = JSON.stringify(app.items);
+    elements.itemsDataInput.value = itemsJSON;
+    
+    console.log('Items JSON Length:', itemsJSON.length);
+    console.log('First Item:', app.items[0]);
+    console.log('=== Form Submit Valid - Proceeding ===');
     
     // Show loading state
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Creating...';
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Creating Plan...';
     
     return true;
 }
