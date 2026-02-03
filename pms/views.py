@@ -21230,15 +21230,15 @@ def procurement_plan_item_get(request, item_pk):
     """Get item data for editing via AJAX"""
     
     try:
-        item = get_object_or_404(
-            ProcurementPlanItem.objects.select_related(
-                'procurement_plan',
-                'item',
-                'budget',
-                'budget__category'
-            ),
-            pk=item_pk
-        )
+        # Fetch item - don't use select_related for nullable fields initially
+        item = get_object_or_404(ProcurementPlanItem, pk=item_pk)
+        
+        # Check if procurement_plan exists
+        if not item.procurement_plan:
+            return JsonResponse({
+                'success': False,
+                'error': 'Item has no associated procurement plan'
+            })
         
         # Check if plan can be edited
         if item.procurement_plan.status not in ['DRAFT', 'SUBMITTED']:
@@ -21247,22 +21247,40 @@ def procurement_plan_item_get(request, item_pk):
                 'error': 'Cannot edit items in an approved or active plan'
             })
         
-        # Prepare item data
+        # Safely extract budget ID
+        budget_id = ''
+        if item.budget is not None:
+            try:
+                budget_id = str(item.budget.id)
+            except Exception as e:
+                print(f"Error getting budget ID: {e}")
+                budget_id = ''
+        
+        # Safely extract catalog item ID
+        catalog_item_id = ''
+        if item.item is not None:
+            try:
+                catalog_item_id = str(item.item.id)
+            except Exception as e:
+                print(f"Error getting catalog item ID: {e}")
+                catalog_item_id = ''
+        
+        # Prepare item data with safe defaults
         item_data = {
             'id': str(item.id),
-            'item_type': item.item_type,
-            'description': item.description,
+            'item_type': item.item_type or 'GOODS',
+            'description': item.description or '',
             'specifications': item.specifications or '',
-            'quantity': float(item.quantity),
-            'unit_of_measure': item.unit_of_measure,
-            'estimated_cost': float(item.estimated_cost),
-            'budget_id': str(item.budget.id) if item.budget else '',
-            'procurement_method': item.procurement_method,
-            'planned_quarter': item.planned_quarter,
-            'source_of_funds': item.source_of_funds,
+            'quantity': float(item.quantity) if item.quantity else 0.0,
+            'unit_of_measure': item.unit_of_measure or '',
+            'estimated_cost': float(item.estimated_cost) if item.estimated_cost else 0.0,
+            'budget_id': budget_id,
+            'procurement_method': item.procurement_method or '',
+            'planned_quarter': item.planned_quarter or '',
+            'source_of_funds': item.source_of_funds or '',
             'notes': item.notes or '',
-            'catalog_item_id': str(item.item.id) if item.item else '',
-            'sequence': item.sequence
+            'catalog_item_id': catalog_item_id,
+            'sequence': item.sequence if item.sequence else 1
         }
         
         return JsonResponse({
@@ -21270,18 +21288,35 @@ def procurement_plan_item_get(request, item_pk):
             'item': item_data
         })
         
-    except Exception as e:
+    except ProcurementPlanItem.DoesNotExist:
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': 'Item not found'
         })
-
+    except Exception as e:
+        # Detailed error logging
+        import logging
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error fetching item {item_pk}:")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error message: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Error loading item: {str(e)}'
+        })
 
 @login_required
 @user_passes_test(procurement_or_admin_required)
 @require_http_methods(["POST"])
 def procurement_plan_item_edit(request, item_pk):
     """Edit existing plan item via AJAX"""
+    
+    print("\n" + "="*60)
+    print(f"EDIT ITEM REQUEST - Item ID: {item_pk}")
+    print("="*60)
     
     try:
         item = get_object_or_404(
@@ -21292,8 +21327,13 @@ def procurement_plan_item_edit(request, item_pk):
             pk=item_pk
         )
         
+        print(f"✓ Item found: {item.description[:50]}")
+        print(f"  Current budget: {item.budget}")
+        print(f"  Current cost: {item.estimated_cost}")
+        
         # Check if plan can be edited
         if item.procurement_plan.status not in ['DRAFT', 'SUBMITTED']:
+            print(f"✗ Cannot edit - Plan status: {item.procurement_plan.status}")
             return JsonResponse({
                 'success': False,
                 'error': 'Cannot edit items in an approved or active plan'
@@ -21301,7 +21341,11 @@ def procurement_plan_item_edit(request, item_pk):
         
         # Store old values for budget update
         old_cost = item.estimated_cost
-        old_budget = item.budget
+        old_budget = item.budget  # This can be None
+        
+        print(f"\nOLD VALUES:")
+        print(f"  Cost: {old_cost}")
+        print(f"  Budget: {old_budget}")
         
         # Get form data
         item_type = request.POST.get('item_type')
@@ -21315,60 +21359,126 @@ def procurement_plan_item_edit(request, item_pk):
         planned_quarter = request.POST.get('planned_quarter')
         source_of_funds = request.POST.get('source_of_funds')
         notes = request.POST.get('notes', '')
+        
+        # Check both possible field names for catalog item
         catalog_item_id = request.POST.get('item_id')
+        if not catalog_item_id:
+            catalog_item_id = request.POST.get('catalog_item')
+        
+        print(f"\nRECEIVED DATA:")
+        print(f"  item_type: {item_type}")
+        print(f"  description: {description[:50] if description else 'None'}")
+        print(f"  quantity: {quantity}")
+        print(f"  unit_of_measure: {unit_of_measure}")
+        print(f"  estimated_cost: {estimated_cost}")
+        print(f"  budget_id: {budget_id}")
+        print(f"  procurement_method: {procurement_method}")
+        print(f"  planned_quarter: {planned_quarter}")
+        print(f"  source_of_funds: {source_of_funds}")
+        print(f"  catalog_item_id: {catalog_item_id}")
         
         # Validation
         if not all([item_type, description, quantity, unit_of_measure, 
                     estimated_cost, budget_id, procurement_method, 
                     planned_quarter, source_of_funds]):
+            print(f"✗ VALIDATION FAILED - Missing required fields")
+            missing = []
+            if not item_type: missing.append('item_type')
+            if not description: missing.append('description')
+            if not quantity: missing.append('quantity')
+            if not unit_of_measure: missing.append('unit_of_measure')
+            if not estimated_cost: missing.append('estimated_cost')
+            if not budget_id: missing.append('budget')
+            if not procurement_method: missing.append('procurement_method')
+            if not planned_quarter: missing.append('planned_quarter')
+            if not source_of_funds: missing.append('source_of_funds')
+            print(f"  Missing fields: {', '.join(missing)}")
+            
             return JsonResponse({
                 'success': False,
-                'error': 'Please fill in all required fields'
+                'error': 'Please fill in all required fields: ' + ', '.join(missing)
             })
+        
+        print(f"✓ Validation passed")
         
         # Get new budget
         new_budget = get_object_or_404(Budget, pk=budget_id)
         new_cost = Decimal(estimated_cost)
         
-        # Check budget availability
-        if new_budget.id != old_budget.id:
-            # Different budget - check new budget has space
+        print(f"\nNEW VALUES:")
+        print(f"  Cost: {new_cost}")
+        print(f"  Budget: {new_budget}")
+        
+        # Check budget availability - FIXED SECTION
+        # Handle case where old_budget might be None
+        old_budget_id = old_budget.id if old_budget else None
+        
+        if old_budget_id != new_budget.id:
+            # Different budget (or no previous budget)
+            if old_budget:
+                print(f"\nBudget changed from {old_budget.category.code} to {new_budget.category.code}")
+            else:
+                print(f"\nBudget assigned for first time: {new_budget.category.code}")
+            
+            print(f"  New budget available: {new_budget.available_balance}")
+            
             if new_cost > new_budget.available_balance:
+                print(f"✗ Insufficient budget")
                 return JsonResponse({
                     'success': False,
                     'error': f'Estimated cost exceeds available budget. Available: KES {new_budget.available_balance:,.2f}'
                 })
         else:
             # Same budget - check adjusted amount
+            print(f"\nSame budget - checking cost adjustment")
             cost_difference = new_cost - old_cost
+            print(f"  Cost difference: {cost_difference}")
+            print(f"  Budget available: {new_budget.available_balance}")
+            
             if cost_difference > new_budget.available_balance:
+                print(f"✗ Insufficient budget for increase")
                 return JsonResponse({
                     'success': False,
                     'error': f'Cost increase exceeds available budget. Available: KES {new_budget.available_balance:,.2f}'
                 })
         
+        print(f"✓ Budget validation passed")
+        
         # Get catalog item if provided
         catalog_item = None
         if catalog_item_id:
             catalog_item = Item.objects.filter(pk=catalog_item_id).first()
+            print(f"  Catalog item: {catalog_item.name if catalog_item else 'Not found'}")
         
         # Update item
+        print(f"\nUPDATING ITEM...")
         with transaction.atomic():
-            # Update budget committed amounts
-            if old_budget.id != new_budget.id:
-                # Different budgets - update both
-                old_budget.committed_amount -= old_cost
-                old_budget.save()
+            # Update budget committed amounts - FIXED SECTION
+            if old_budget_id != new_budget.id:
+                # Different budgets (or no previous budget) - update both
+                if old_budget:
+                    print(f"  Updating old budget {old_budget.category.code}:")
+                    print(f"    Before: {old_budget.committed_amount}")
+                    old_budget.committed_amount -= old_cost
+                    print(f"    After: {old_budget.committed_amount}")
+                    old_budget.save()
                 
+                print(f"  Updating new budget {new_budget.category.code}:")
+                print(f"    Before: {new_budget.committed_amount}")
                 new_budget.committed_amount += new_cost
+                print(f"    After: {new_budget.committed_amount}")
                 new_budget.save()
             else:
                 # Same budget - update by difference
                 cost_difference = new_cost - old_cost
+                print(f"  Updating budget {new_budget.category.code}:")
+                print(f"    Before: {new_budget.committed_amount}")
                 new_budget.committed_amount += cost_difference
+                print(f"    After: {new_budget.committed_amount}")
                 new_budget.save()
             
             # Update item
+            print(f"  Updating item fields...")
             item.item = catalog_item
             item.item_type = item_type
             item.description = description
@@ -21382,13 +21492,33 @@ def procurement_plan_item_edit(request, item_pk):
             item.source_of_funds = source_of_funds
             item.notes = notes
             item.save()
+            
+            print(f"✓ Item saved successfully")
+        
+        print(f"\n✓ UPDATE COMPLETE")
+        print("="*60 + "\n")
         
         return JsonResponse({
             'success': True,
             'message': 'Item updated successfully'
         })
         
+    except Budget.DoesNotExist:
+        print(f"✗ Budget not found: {request.POST.get('budget')}")
+        print("="*60 + "\n")
+        return JsonResponse({
+            'success': False,
+            'error': 'Selected budget not found'
+        })
     except Exception as e:
+        import traceback
+        print(f"\n✗ ERROR OCCURRED:")
+        print(f"  Type: {type(e).__name__}")
+        print(f"  Message: {str(e)}")
+        print(f"\nFull traceback:")
+        print(traceback.format_exc())
+        print("="*60 + "\n")
+        
         return JsonResponse({
             'success': False,
             'error': str(e)
