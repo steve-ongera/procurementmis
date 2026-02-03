@@ -119,11 +119,15 @@ class BudgetCategoryAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at']
 
 
+
 from decimal import Decimal
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.safestring import SafeString
+
 @admin.register(Budget)
 class BudgetAdmin(admin.ModelAdmin):
+
     list_display = (
         'department',
         'category',
@@ -136,26 +140,9 @@ class BudgetAdmin(admin.ModelAdmin):
         'is_active',
     )
 
-    list_filter = (
-        'budget_year',
-        'budget_type',
-        'is_active',
-        'department',
-        'created_at',
-    )
-
-    search_fields = (
-        'department__name',
-        'category__name',
-        'reference_number',
-    )
-
-    ordering = ('-created_at',)
-
     readonly_fields = (
         'created_at',
         'updated_at',
-        'formatted_available_balance',
     )
 
     fieldsets = (
@@ -173,7 +160,6 @@ class BudgetAdmin(admin.ModelAdmin):
                 'allocated_amount',
                 'committed_amount',
                 'actual_spent',
-                'formatted_available_balance',
             )
         }),
         ('Additional Information', {
@@ -192,9 +178,7 @@ class BudgetAdmin(admin.ModelAdmin):
         }),
     )
 
-    # ============================
-    # SAFE FORMATTERS (ADMIN ONLY)
-    # ============================
+    # ========= LIST VIEW FORMATTERS =========
 
     @admin.display(description='Allocated Amount')
     def formatted_allocated_amount(self, obj):
@@ -214,27 +198,34 @@ class BudgetAdmin(admin.ModelAdmin):
         color = 'green' if balance > 0 else 'red'
         return self._format_money(balance, color=color)
 
-    # ============================
-    # HELPER (ONE SOURCE OF TRUTH)
-    # ============================
+    # ========= SAFE FORMATTER =========
 
     def _format_money(self, value, color=None):
-        """
-        Ensures:
-        - value is numeric
-        - formatting happens ONCE
-        - no SafeString contamination
-        """
-        value = Decimal(value or 0)
-
+        if isinstance(value, SafeString):
+            return value
+        
+        try:
+            # Ensure we have a Decimal
+            if value is None:
+                value = Decimal('0')
+            elif not isinstance(value, Decimal):
+                value = Decimal(str(value))
+        except (InvalidOperation, TypeError, ValueError):
+            value = Decimal('0')
+        
+        # Format as string first, then pass to format_html
+        formatted_value = format(value, ',.2f')
+        
         if color:
             return format_html(
-                '<span style="color: {}; font-weight: 600;">{:,.2f}</span>',
+                '<span style="color:{}; font-weight:600;">{}</span>',
                 color,
-                value,
+                formatted_value
             )
+        
+        return format_html('{}', formatted_value)
 
-        return format_html('{:,.2f}', value)
+
 
 @admin.register(BudgetReallocation)
 class BudgetReallocationAdmin(admin.ModelAdmin):

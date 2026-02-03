@@ -21064,6 +21064,26 @@ def api_get_item_categories(request):
     })
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.db import transaction
+from decimal import Decimal
+import json
+
+from .models import (
+    ProcurementPlan, ProcurementPlanItem, BudgetYear, 
+    Department, Item, ItemCategory, Budget
+)
+
+
+def procurement_or_admin_required(user):
+    """Check if user is procurement officer or admin"""
+    return user.role in ['PROCUREMENT', 'ADMIN', 'HOD']
+
+
 @login_required
 @user_passes_test(procurement_or_admin_required)
 def procurement_plan_edit(request, pk):
@@ -21080,7 +21100,11 @@ def procurement_plan_edit(request, pk):
         return redirect('procurement_plan_detail', pk=pk)
     
     # Get plan items
-    plan_items = plan.items.select_related('budget', 'item').order_by('sequence')
+    plan_items = plan.items.select_related(
+        'budget', 
+        'budget__category', 
+        'item'
+    ).order_by('sequence')
     
     # Get available budgets for this department
     available_budgets = Budget.objects.filter(
@@ -21090,7 +21114,9 @@ def procurement_plan_edit(request, pk):
     ).select_related('category')
     
     # Get item catalog
-    item_categories = ItemCategory.objects.filter(is_active=True).prefetch_related('items')
+    item_categories = ItemCategory.objects.filter(
+        is_active=True
+    ).prefetch_related('items')
     
     context = {
         'plan': plan,
@@ -21101,6 +21127,356 @@ def procurement_plan_edit(request, pk):
     }
     
     return render(request, 'procurement/plan_edit.html', context)
+
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+@require_http_methods(["POST"])
+def procurement_plan_item_add(request, plan_pk):
+    """Add new item to procurement plan via AJAX"""
+    
+    try:
+        plan = get_object_or_404(ProcurementPlan, pk=plan_pk)
+        
+        # Check if plan can be edited
+        if plan.status not in ['DRAFT', 'SUBMITTED']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Cannot edit an approved or active plan'
+            })
+        
+        # Get form data
+        item_type = request.POST.get('item_type')
+        description = request.POST.get('description')
+        specifications = request.POST.get('specifications', '')
+        quantity = request.POST.get('quantity')
+        unit_of_measure = request.POST.get('unit_of_measure')
+        estimated_cost = request.POST.get('estimated_cost')
+        budget_id = request.POST.get('budget')
+        procurement_method = request.POST.get('procurement_method')
+        planned_quarter = request.POST.get('planned_quarter')
+        source_of_funds = request.POST.get('source_of_funds')
+        notes = request.POST.get('notes', '')
+        catalog_item_id = request.POST.get('item_id')  # Optional catalog item
+        
+        # Validation
+        if not all([item_type, description, quantity, unit_of_measure, 
+                    estimated_cost, budget_id, procurement_method, 
+                    planned_quarter, source_of_funds]):
+            return JsonResponse({
+                'success': False,
+                'error': 'Please fill in all required fields'
+            })
+        
+        # Get budget
+        budget = get_object_or_404(Budget, pk=budget_id)
+        
+        # Check budget availability
+        if Decimal(estimated_cost) > budget.available_balance:
+            return JsonResponse({
+                'success': False,
+                'error': f'Estimated cost exceeds available budget. Available: KES {budget.available_balance:,.2f}'
+            })
+        
+        # Get catalog item if provided
+        catalog_item = None
+        if catalog_item_id:
+            catalog_item = Item.objects.filter(pk=catalog_item_id).first()
+        
+        # Get next sequence number
+        last_item = plan.items.order_by('-sequence').first()
+        next_sequence = (last_item.sequence + 1) if last_item else 1
+        
+        # Create plan item
+        with transaction.atomic():
+            plan_item = ProcurementPlanItem.objects.create(
+                procurement_plan=plan,
+                item=catalog_item,
+                item_type=item_type,
+                description=description,
+                specifications=specifications,
+                quantity=Decimal(quantity),
+                unit_of_measure=unit_of_measure,
+                estimated_cost=Decimal(estimated_cost),
+                budget=budget,
+                procurement_method=procurement_method,
+                planned_quarter=planned_quarter,
+                source_of_funds=source_of_funds,
+                notes=notes,
+                sequence=next_sequence
+            )
+            
+            # Update budget committed amount
+            budget.committed_amount += Decimal(estimated_cost)
+            budget.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Item added successfully',
+            'item_id': str(plan_item.id)
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+@require_http_methods(["GET"])
+def procurement_plan_item_get(request, item_pk):
+    """Get item data for editing via AJAX"""
+    
+    try:
+        item = get_object_or_404(
+            ProcurementPlanItem.objects.select_related(
+                'procurement_plan',
+                'item',
+                'budget',
+                'budget__category'
+            ),
+            pk=item_pk
+        )
+        
+        # Check if plan can be edited
+        if item.procurement_plan.status not in ['DRAFT', 'SUBMITTED']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Cannot edit items in an approved or active plan'
+            })
+        
+        # Prepare item data
+        item_data = {
+            'id': str(item.id),
+            'item_type': item.item_type,
+            'description': item.description,
+            'specifications': item.specifications or '',
+            'quantity': float(item.quantity),
+            'unit_of_measure': item.unit_of_measure,
+            'estimated_cost': float(item.estimated_cost),
+            'budget_id': str(item.budget.id) if item.budget else '',
+            'procurement_method': item.procurement_method,
+            'planned_quarter': item.planned_quarter,
+            'source_of_funds': item.source_of_funds,
+            'notes': item.notes or '',
+            'catalog_item_id': str(item.item.id) if item.item else '',
+            'sequence': item.sequence
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'item': item_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+@require_http_methods(["POST"])
+def procurement_plan_item_edit(request, item_pk):
+    """Edit existing plan item via AJAX"""
+    
+    try:
+        item = get_object_or_404(
+            ProcurementPlanItem.objects.select_related(
+                'procurement_plan',
+                'budget'
+            ),
+            pk=item_pk
+        )
+        
+        # Check if plan can be edited
+        if item.procurement_plan.status not in ['DRAFT', 'SUBMITTED']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Cannot edit items in an approved or active plan'
+            })
+        
+        # Store old values for budget update
+        old_cost = item.estimated_cost
+        old_budget = item.budget
+        
+        # Get form data
+        item_type = request.POST.get('item_type')
+        description = request.POST.get('description')
+        specifications = request.POST.get('specifications', '')
+        quantity = request.POST.get('quantity')
+        unit_of_measure = request.POST.get('unit_of_measure')
+        estimated_cost = request.POST.get('estimated_cost')
+        budget_id = request.POST.get('budget')
+        procurement_method = request.POST.get('procurement_method')
+        planned_quarter = request.POST.get('planned_quarter')
+        source_of_funds = request.POST.get('source_of_funds')
+        notes = request.POST.get('notes', '')
+        catalog_item_id = request.POST.get('item_id')
+        
+        # Validation
+        if not all([item_type, description, quantity, unit_of_measure, 
+                    estimated_cost, budget_id, procurement_method, 
+                    planned_quarter, source_of_funds]):
+            return JsonResponse({
+                'success': False,
+                'error': 'Please fill in all required fields'
+            })
+        
+        # Get new budget
+        new_budget = get_object_or_404(Budget, pk=budget_id)
+        new_cost = Decimal(estimated_cost)
+        
+        # Check budget availability
+        if new_budget.id != old_budget.id:
+            # Different budget - check new budget has space
+            if new_cost > new_budget.available_balance:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Estimated cost exceeds available budget. Available: KES {new_budget.available_balance:,.2f}'
+                })
+        else:
+            # Same budget - check adjusted amount
+            cost_difference = new_cost - old_cost
+            if cost_difference > new_budget.available_balance:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Cost increase exceeds available budget. Available: KES {new_budget.available_balance:,.2f}'
+                })
+        
+        # Get catalog item if provided
+        catalog_item = None
+        if catalog_item_id:
+            catalog_item = Item.objects.filter(pk=catalog_item_id).first()
+        
+        # Update item
+        with transaction.atomic():
+            # Update budget committed amounts
+            if old_budget.id != new_budget.id:
+                # Different budgets - update both
+                old_budget.committed_amount -= old_cost
+                old_budget.save()
+                
+                new_budget.committed_amount += new_cost
+                new_budget.save()
+            else:
+                # Same budget - update by difference
+                cost_difference = new_cost - old_cost
+                new_budget.committed_amount += cost_difference
+                new_budget.save()
+            
+            # Update item
+            item.item = catalog_item
+            item.item_type = item_type
+            item.description = description
+            item.specifications = specifications
+            item.quantity = Decimal(quantity)
+            item.unit_of_measure = unit_of_measure
+            item.estimated_cost = new_cost
+            item.budget = new_budget
+            item.procurement_method = procurement_method
+            item.planned_quarter = planned_quarter
+            item.source_of_funds = source_of_funds
+            item.notes = notes
+            item.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Item updated successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+@require_http_methods(["POST"])
+def procurement_plan_item_delete(request, item_pk):
+    """Delete plan item via AJAX"""
+    
+    try:
+        item = get_object_or_404(
+            ProcurementPlanItem.objects.select_related(
+                'procurement_plan',
+                'budget'
+            ),
+            pk=item_pk
+        )
+        
+        # Check if plan can be edited
+        if item.procurement_plan.status not in ['DRAFT', 'SUBMITTED']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Cannot delete items from an approved or active plan'
+            })
+        
+        # Update budget
+        with transaction.atomic():
+            if item.budget:
+                item.budget.committed_amount -= item.estimated_cost
+                item.budget.save()
+            
+            # Delete item
+            item.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Item deleted successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@login_required
+@user_passes_test(procurement_or_admin_required)
+@require_http_methods(["POST"])
+def procurement_plan_update_details(request, pk):
+    """Update plan basic details (title, description)"""
+    
+    try:
+        plan = get_object_or_404(ProcurementPlan, pk=pk)
+        
+        # Check if plan can be edited
+        if plan.status not in ['DRAFT', 'SUBMITTED']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Cannot edit an approved or active plan'
+            })
+        
+        title = request.POST.get('title')
+        description = request.POST.get('description', '')
+        
+        if not title:
+            return JsonResponse({
+                'success': False,
+                'error': 'Title is required'
+            })
+        
+        plan.title = title
+        plan.description = description
+        plan.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Plan details updated successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
 
 
 # ============================================================================

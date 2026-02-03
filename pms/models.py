@@ -216,9 +216,13 @@ class Budget(models.Model):
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='budgets')
     category = models.ForeignKey(BudgetCategory, on_delete=models.CASCADE, related_name='budgets')
     budget_type = models.CharField(max_length=20, choices=BUDGET_TYPE)
-    allocated_amount = models.DecimalField(max_digits=15, decimal_places=2, validators=[MinValueValidator(0)])
-    committed_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    actual_spent = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    allocated_amount = models.DecimalField(max_digits=15, decimal_places=2)
+    committed_amount = models.DecimalField(
+        max_digits=15, decimal_places=2, default=Decimal('0.00')
+    )
+    actual_spent = models.DecimalField(
+        max_digits=15, decimal_places=2, default=Decimal('0.00')
+    )
     reference_number = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
@@ -236,7 +240,10 @@ class Budget(models.Model):
 
     @property
     def available_balance(self):
-        return self.allocated_amount - self.committed_amount - self.actual_spent
+        allocated = self.allocated_amount or Decimal('0.00')
+        committed = self.committed_amount or Decimal('0.00')
+        spent = self.actual_spent or Decimal('0.00')
+        return allocated - committed - spent
 
 
 class BudgetReallocation(models.Model):

@@ -454,14 +454,18 @@ urlpatterns = [
     path('api/departments/<uuid:department_id>/budgets/', views.api_get_department_budgets, name='api_get_department_budgets'),
     path('api/categories/', views.api_get_item_categories, name='api_get_item_categories'),
     path('plans/<uuid:pk>/edit/', views.procurement_plan_edit, name='procurement_plan_edit'),
+    
     # Workflow Actions
     path('plans/<uuid:pk>/submit/', views.procurement_plan_submit, name='procurement_plan_submit'),
-    
     path('plans/<uuid:pk>/approve/', views.procurement_plan_approve, name='procurement_plan_approve'),
-    
     path('plans/<uuid:pk>/reject/', views.procurement_plan_reject, name='procurement_plan_reject'),
-    
     path('plans/<uuid:pk>/activate/', views.procurement_plan_activate, name='procurement_plan_activate'),
+    
+    # Plan Item Management URLs
+    path('procurement/plans/<uuid:plan_pk>/items/add/', views.procurement_plan_item_add, name='procurement_plan_item_add'),
+    path('procurement/plans/items/<uuid:item_pk>/get/', views.procurement_plan_item_get, name='procurement_plan_item_get'),
+    path('procurement/plans/items/<uuid:item_pk>/edit/', views.procurement_plan_item_edit, name='procurement_plan_item_edit'),
+    path('procurement/plans/items/<uuid:item_pk>/delete/', views.procurement_plan_item_delete, name='procurement_plan_item_delete'),
     
     # ========================================================================
     # PLAN ITEMS MANAGEMENT
