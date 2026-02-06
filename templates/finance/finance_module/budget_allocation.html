@@ -188,8 +188,8 @@
         color: var(--secondary-color);
     }
 
-    /* Department Summary Section */
-    .dept-summary-section {
+    /* Department Budget Section */
+    .budget-section {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
         border-radius: 0.5rem;
@@ -224,173 +224,332 @@
     .section-actions {
         display: flex;
         gap: 0.5rem;
+        align-items: center;
     }
 
-    /* Department Cards */
-    .dept-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 1rem;
-        padding: 1.5rem;
-    }
-
-    .dept-card {
+    /* Tabs Navigation */
+    .tabs-navigation {
+        display: flex;
+        gap: 0.25rem;
+        padding: 0.75rem 1.5rem 0;
         background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
-        padding: 1.25rem;
-        transition: all 0.2s;
+        border-bottom: 2px solid var(--border-color);
+        overflow-x: auto;
+        scrollbar-width: thin;
     }
 
-    .dept-card:hover {
-        border-color: var(--primary-color);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    .tabs-navigation::-webkit-scrollbar {
+        height: 4px;
     }
 
-    .dept-card-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        margin-bottom: 1rem;
-    }
-
-    .dept-name {
-        font-size: 0.9375rem;
-        font-weight: 600;
-        color: #1E293B;
-        margin: 0 0 0.25rem 0;
-    }
-
-    .dept-budget-count {
-        font-size: 0.75rem;
-        color: var(--secondary-color);
-    }
-
-    .dept-expand-btn {
-        background: none;
-        border: none;
-        color: var(--secondary-color);
-        cursor: pointer;
-        padding: 0.25rem;
-        border-radius: 0.25rem;
-        transition: all 0.2s;
-    }
-
-    .dept-expand-btn:hover {
-        background: var(--hover-bg);
-        color: var(--primary-color);
-    }
-
-    .dept-stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-    }
-
-    .dept-stat {
-        text-align: center;
-    }
-
-    .dept-stat-label {
-        font-size: 0.6875rem;
-        color: var(--secondary-color);
-        text-transform: uppercase;
-        letter-spacing: 0.025em;
-        margin-bottom: 0.25rem;
-    }
-
-    .dept-stat-value {
-        font-size: 0.9375rem;
-        font-weight: 600;
-        color: #1E293B;
-    }
-
-    .dept-stat-value.success {
-        color: var(--success-color);
-    }
-
-    .dept-stat-value.warning {
-        color: var(--warning-color);
-    }
-
-    .dept-stat-value.danger {
-        color: var(--danger-color);
-    }
-
-    /* Progress Bar */
-    .progress-bar-container {
-        margin-bottom: 0.75rem;
-    }
-
-    .progress-label {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.75rem;
-        color: var(--secondary-color);
-        margin-bottom: 0.375rem;
-    }
-
-    .progress-bar {
-        width: 100%;
-        height: 0.5rem;
+    .tabs-navigation::-webkit-scrollbar-track {
         background: var(--border-color);
-        border-radius: 0.25rem;
-        overflow: hidden;
     }
 
-    .progress-fill {
-        height: 100%;
+    .tabs-navigation::-webkit-scrollbar-thumb {
+        background: var(--secondary-color);
+        border-radius: 2px;
+    }
+
+    .tab-button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--secondary-color);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+        position: relative;
+        margin-bottom: -2px;
+    }
+
+    .tab-button:hover {
+        color: var(--primary-color);
+        background: var(--hover-bg);
+    }
+
+    .tab-button.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+
+    .tab-button i {
+        font-size: 1rem;
+    }
+
+    .tab-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.25rem;
+        height: 1.25rem;
+        padding: 0 0.375rem;
+        background: var(--border-color);
+        color: var(--secondary-color);
+        border-radius: 0.625rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+
+    .tab-button.active .tab-badge {
         background: var(--primary-color);
-        transition: width 0.3s;
-        border-radius: 0.25rem;
+        color: white;
     }
 
-    .progress-fill.success {
-        background: var(--success-color);
+    /* Tab Content */
+    .tabs-content {
+        padding: 0;
     }
 
-    .progress-fill.warning {
-        background: var(--warning-color);
-    }
-
-    .progress-fill.danger {
-        background: var(--danger-color);
-    }
-
-    /* Budget Details Table */
-    .budget-details {
+    .tab-panel {
         display: none;
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--border-color);
     }
 
-    .budget-details.active {
+    .tab-panel.active {
         display: block;
     }
 
-    .budget-table {
+    /* Search and Filter Bar */
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.5rem;
+        background: var(--table-header);
+        border-bottom: 1px solid var(--border-color);
+        flex-wrap: wrap;
+    }
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        min-width: 250px;
+        max-width: 400px;
+        position: relative;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        background: var(--card-bg);
+        transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        color: var(--secondary-color);
+        pointer-events: none;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* Table */
+    .data-table-container {
+        overflow-x: auto;
+    }
+
+    .data-table {
         width: 100%;
+        border-collapse: collapse;
         font-size: 0.8125rem;
     }
 
-    .budget-table th {
-        text-align: left;
-        font-weight: 500;
-        color: var(--secondary-color);
-        padding: 0.5rem 0.75rem;
+    .data-table thead {
         background: var(--table-header);
+        position: sticky;
+        top: 0;
+        z-index: 10;
     }
 
-    .budget-table td {
-        padding: 0.625rem 0.75rem;
-        border-top: 1px solid var(--border-color);
+    .data-table th {
+        padding: 0.875rem 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #1E293B;
+        border-bottom: 2px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    .data-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .data-table th.sortable:hover {
+        background: var(--border-color);
+    }
+
+    .data-table th.sortable i {
+        margin-left: 0.25rem;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .data-table td {
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        color: #334155;
+    }
+
+    .data-table tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .text-right {
+        text-align: right !important;
+    }
+
+    .text-center {
+        text-align: center !important;
+    }
+
+    /* Department Cell */
+    .dept-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .dept-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        font-size: 0.875rem;
+        flex-shrink: 0;
+    }
+
+    .dept-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .dept-name {
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.125rem;
+    }
+
+    .dept-meta {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    /* Progress Column */
+    .progress-column {
+        min-width: 150px;
+    }
+
+    .mini-progress {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .mini-progress-bar {
+        flex: 1;
+        height: 0.375rem;
+        background: var(--border-color);
+        border-radius: 0.1875rem;
+        overflow: hidden;
+    }
+
+    .mini-progress-fill {
+        height: 100%;
+        background: var(--success-color);
+        border-radius: 0.1875rem;
+        transition: width 0.3s;
+    }
+
+    .mini-progress-fill.warning {
+        background: var(--warning-color);
+    }
+
+    .mini-progress-fill.danger {
+        background: var(--danger-color);
+    }
+
+    .mini-progress-text {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--secondary-color);
+        min-width: 2.5rem;
+        text-align: right;
+    }
+
+    /* Amount Cells */
+    .amount-cell {
+        font-weight: 600;
         color: #1E293B;
     }
 
-    .budget-table tr:hover {
-        background: var(--hover-bg);
+    .amount-positive {
+        color: var(--success-color);
+    }
+
+    .amount-negative {
+        color: var(--danger-color);
+    }
+
+    /* Badge */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: 0.25rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .badge-departmental {
+        background: #EFF6FF;
+        color: #1E40AF;
+    }
+
+    .badge-project {
+        background: #F0FDF4;
+        color: #15803D;
+    }
+
+    .badge-grant {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .badge-capital {
+        background: #F3E8FF;
+        color: #6B21A8;
     }
 
     /* Buttons */
@@ -431,34 +590,13 @@
         font-size: 0.75rem;
     }
 
+    .btn-icon {
+        padding: 0.375rem 0.5rem;
+        border-radius: 0.375rem;
+    }
+
     .btn i {
         font-size: 0.875rem;
-    }
-
-    /* Badge */
-    .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        font-size: 0.6875rem;
-        font-weight: 500;
-    }
-
-    .badge-success {
-        background: #ECFDF5;
-        color: var(--success-color);
-    }
-
-    .badge-warning {
-        background: #FEF3C7;
-        color: var(--warning-color);
-    }
-
-    .badge-danger {
-        background: #FEE2E2;
-        color: var(--danger-color);
     }
 
     /* Empty State */
@@ -486,24 +624,76 @@
         margin-bottom: 1.5rem;
     }
 
+    /* Summary Row in Table */
+    .summary-row {
+        background: var(--table-header);
+        font-weight: 600;
+    }
+
+    .summary-row td {
+        border-top: 2px solid var(--border-color);
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    /* Action Buttons in Table */
+    .action-buttons {
+        display: flex;
+        gap: 0.25rem;
+        justify-content: flex-end;
+    }
+
     /* Responsive */
+    @media (max-width: 1024px) {
+        .tabs-navigation {
+            padding: 0.5rem 1rem 0;
+        }
+
+        .tab-button {
+            padding: 0.625rem 1rem;
+            font-size: 0.8125rem;
+        }
+    }
+
     @media (max-width: 768px) {
         .summary-cards {
             grid-template-columns: 1fr;
         }
 
-        .dept-cards {
-            grid-template-columns: 1fr;
-            padding: 1rem;
-        }
-
-        .dept-stats {
-            grid-template-columns: 1fr;
-        }
-
-        .year-selector {
+        .filter-bar {
             flex-direction: column;
-            align-items: flex-start;
+            align-items: stretch;
+        }
+
+        .search-box {
+            max-width: 100%;
+        }
+
+        .filter-actions {
+            width: 100%;
+        }
+
+        .filter-actions .btn {
+            flex: 1;
+        }
+
+        .data-table {
+            font-size: 0.75rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.625rem 0.75rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
         }
 
         .header-actions {
@@ -514,12 +704,10 @@
             flex: 1;
             justify-content: center;
         }
-    }
 
-    @media (max-width: 640px) {
-        .page-header {
+        .year-selector {
             flex-direction: column;
-            align-items: stretch;
+            align-items: flex-start;
         }
 
         .section-header {
@@ -532,17 +720,13 @@
             width: 100%;
         }
 
-        .section-actions .btn {
-            flex: 1;
+        .tabs-navigation {
+            padding: 0.5rem 0.75rem 0;
         }
 
-        .budget-table {
+        .tab-button {
+            padding: 0.5rem 0.75rem;
             font-size: 0.75rem;
-        }
-
-        .budget-table th,
-        .budget-table td {
-            padding: 0.5rem;
         }
     }
 </style>
@@ -596,222 +780,374 @@
 <!-- Summary Cards -->
 {% if dept_summary %}
 <div class="summary-cards">
-    {% with total_allocated=dept_summary|length total_spent=0 total_committed=0 total_available=0 %}
-        {% for dept in dept_summary %}
-            {% with total_allocated=total_allocated|add:dept.total_allocated total_spent=total_spent|add:dept.total_spent total_committed=total_committed|add:dept.total_committed %}
-            {% endwith %}
-        {% endfor %}
-        
-        <div class="summary-card">
-            <div class="summary-card-header">
-                <span class="summary-card-title">Total Allocated</span>
-                <div class="summary-card-icon icon-primary">
-                    <i class="bi bi-wallet2"></i>
-                </div>
+    <div class="summary-card">
+        <div class="summary-card-header">
+            <span class="summary-card-title">Total Allocated</span>
+            <div class="summary-card-icon icon-primary">
+                <i class="bi bi-wallet2"></i>
             </div>
-            <div class="summary-card-value">
-                {% for dept in dept_summary %}
-                    {% if forloop.first %}
-                        KES {{ dept.total_allocated|default:0|floatformat:2|intcomma }}
-                    {% endif %}
-                {% empty %}
-                    KES 0.00
-                {% endfor %}
-            </div>
-            <div class="summary-card-subtitle">Across all departments</div>
         </div>
+        <div class="summary-card-value">
+            {% if dept_summary.0.total_allocated %}
+                KES {{ dept_summary.0.total_allocated|floatformat:2|intcomma }}
+            {% else %}
+                KES 0.00
+            {% endif %}
+        </div>
+        <div class="summary-card-subtitle">Across all departments</div>
+    </div>
 
-        <div class="summary-card">
-            <div class="summary-card-header">
-                <span class="summary-card-title">Total Spent</span>
-                <div class="summary-card-icon icon-success">
-                    <i class="bi bi-cash-stack"></i>
-                </div>
+    <div class="summary-card">
+        <div class="summary-card-header">
+            <span class="summary-card-title">Total Spent</span>
+            <div class="summary-card-icon icon-success">
+                <i class="bi bi-cash-stack"></i>
             </div>
-            <div class="summary-card-value">
-                {% for dept in dept_summary %}
-                    {% if forloop.first %}
-                        KES {{ dept.total_spent|default:0|floatformat:2|intcomma }}
-                    {% endif %}
-                {% empty %}
-                    KES 0.00
-                {% endfor %}
-            </div>
-            <div class="summary-card-subtitle">Actual expenditure</div>
         </div>
+        <div class="summary-card-value">
+            {% if dept_summary.0.total_spent %}
+                KES {{ dept_summary.0.total_spent|floatformat:2|intcomma }}
+            {% else %}
+                KES 0.00
+            {% endif %}
+        </div>
+        <div class="summary-card-subtitle">Actual expenditure</div>
+    </div>
 
-        <div class="summary-card">
-            <div class="summary-card-header">
-                <span class="summary-card-title">Committed</span>
-                <div class="summary-card-icon icon-warning">
-                    <i class="bi bi-hourglass-split"></i>
-                </div>
+    <div class="summary-card">
+        <div class="summary-card-header">
+            <span class="summary-card-title">Committed</span>
+            <div class="summary-card-icon icon-warning">
+                <i class="bi bi-hourglass-split"></i>
             </div>
-            <div class="summary-card-value">
-                {% for dept in dept_summary %}
-                    {% if forloop.first %}
-                        KES {{ dept.total_committed|default:0|floatformat:2|intcomma }}
-                    {% endif %}
-                {% empty %}
-                    KES 0.00
-                {% endfor %}
-            </div>
-            <div class="summary-card-subtitle">Pending commitments</div>
         </div>
+        <div class="summary-card-value">
+            {% if dept_summary.0.total_committed %}
+                KES {{ dept_summary.0.total_committed|floatformat:2|intcomma }}
+            {% else %}
+                KES 0.00
+            {% endif %}
+        </div>
+        <div class="summary-card-subtitle">Pending commitments</div>
+    </div>
 
-        <div class="summary-card">
-            <div class="summary-card-header">
-                <span class="summary-card-title">Available</span>
-                <div class="summary-card-icon icon-info">
-                    <i class="bi bi-piggy-bank"></i>
-                </div>
+    <div class="summary-card">
+        <div class="summary-card-header">
+            <span class="summary-card-title">Available</span>
+            <div class="summary-card-icon icon-info">
+                <i class="bi bi-piggy-bank"></i>
             </div>
-            <div class="summary-card-value">
-                {% for dept in dept_summary %}
-                    {% if forloop.first %}
-                        {% widthratio dept.total_allocated|default:0 1 1 as allocated %}
-                        {% widthratio dept.total_spent|default:0 1 1 as spent %}
-                        {% widthratio dept.total_committed|default:0 1 1 as committed %}
-                        {% widthratio allocated|add:spent|add:committed 1 -1 as available %}
-                        KES {{ available|floatformat:2|intcomma }}
-                    {% endif %}
-                {% empty %}
-                    KES 0.00
-                {% endfor %}
-            </div>
-            <div class="summary-card-subtitle">Remaining balance</div>
         </div>
-    {% endwith %}
+        <div class="summary-card-value">
+            {% if dept_summary.0.total_allocated and dept_summary.0.total_spent and dept_summary.0.total_committed %}
+                {% widthratio dept_summary.0.total_allocated 1 1 as allocated %}
+                {% widthratio dept_summary.0.total_spent 1 1 as spent %}
+                {% widthratio dept_summary.0.total_committed 1 1 as committed %}
+                KES {{ allocated|floatformat:2|intcomma }}
+            {% else %}
+                KES 0.00
+            {% endif %}
+        </div>
+        <div class="summary-card-subtitle">Remaining balance</div>
+    </div>
 </div>
 
-<!-- Department Summary Section -->
-<div class="dept-summary-section">
+<!-- Department Budget Table with Tabs -->
+<div class="budget-section">
     <div class="section-header">
         <h2 class="section-title">
             <i class="bi bi-building"></i>
             Department Budget Summary
         </h2>
         <div class="section-actions">
-            <button class="btn btn-sm" onclick="expandAll()">
-                <i class="bi bi-arrows-expand"></i>
-                Expand All
+            <button class="btn btn-sm" onclick="exportToExcel()">
+                <i class="bi bi-file-earmark-excel"></i>
+                Export
             </button>
-            <button class="btn btn-sm" onclick="collapseAll()">
-                <i class="bi bi-arrows-collapse"></i>
-                Collapse All
+            <button class="btn btn-sm" onclick="printTable()">
+                <i class="bi bi-printer"></i>
+                Print
             </button>
         </div>
     </div>
 
-    <div class="dept-cards">
+    <!-- Tabs Navigation -->
+    <div class="tabs-navigation">
+        <button class="tab-button active" onclick="switchTab('all-departments')" data-tab="all-departments">
+            <i class="bi bi-grid"></i>
+            All Departments
+            <span class="tab-badge">{{ dept_summary|length }}</span>
+        </button>
         {% for dept in dept_summary %}
-        <div class="dept-card">
-            <div class="dept-card-header">
-                <div>
-                    <h3 class="dept-name">{{ dept.department__name }}</h3>
-                    <p class="dept-budget-count">
-                        {% with count=budgets|length %}
-                            {{ budgets|length }} budget line{{ budgets|length|pluralize }}
+        <button class="tab-button" onclick="switchTab('dept-{{ forloop.counter }}')" data-tab="dept-{{ forloop.counter }}">
+            <i class="bi bi-building"></i>
+            {{ dept.department__name|truncatewords:3 }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tabs-content">
+        <!-- All Departments Tab -->
+        <div class="tab-panel active" id="tab-all-departments">
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search departments or categories..." onkeyup="filterTable()">
+                </div>
+                <div class="filter-actions">
+                    <select class="btn btn-sm" id="budgetTypeFilter" onchange="filterTable()">
+                        <option value="">All Types</option>
+                        <option value="DEPARTMENTAL">Departmental</option>
+                        <option value="PROJECT">Project</option>
+                        <option value="GRANT">Grant</option>
+                        <option value="CAPITAL">Capital</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="data-table-container">
+                <table class="data-table" id="budgetTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="sortTable(0)">
+                                Department
+                                <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="sortable" onclick="sortTable(1)">
+                                Category
+                                <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th>Type</th>
+                            <th class="text-right sortable" onclick="sortTable(3)">
+                                Allocated
+                                <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="text-right sortable" onclick="sortTable(4)">
+                                Spent
+                                <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="text-right sortable" onclick="sortTable(5)">
+                                Committed
+                                <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="text-right sortable" onclick="sortTable(6)">
+                                Available
+                                <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="progress-column">Utilization</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for budget in budgets %}
+                        <tr>
+                            <td>
+                                <div class="dept-cell">
+                                    <div class="dept-icon">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <div class="dept-info">
+                                        <div class="dept-name">{{ budget.department.name }}</div>
+                                        <div class="dept-meta">{{ budget.department.code }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <strong>{{ budget.category.name }}</strong>
+                                {% if budget.reference_number %}
+                                <br><small style="color: var(--secondary-color);">Ref: {{ budget.reference_number }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ budget.budget_type|lower }}">
+                                    {{ budget.get_budget_type_display }}
+                                </span>
+                            </td>
+                            <td class="text-right">
+                                <span class="amount-cell">KES {{ budget.allocated_amount|floatformat:2|intcomma }}</span>
+                            </td>
+                            <td class="text-right">
+                                <span class="amount-cell">KES {{ budget.actual_spent|floatformat:2|intcomma }}</span>
+                            </td>
+                            <td class="text-right">
+                                <span class="amount-cell">KES {{ budget.committed_amount|floatformat:2|intcomma }}</span>
+                            </td>
+                            <td class="text-right">
+                                {% widthratio budget.allocated_amount 1 1 as allocated %}
+                                {% widthratio budget.actual_spent 1 1 as spent %}
+                                {% widthratio budget.committed_amount 1 1 as committed %}
+                                <span class="amount-cell {% if allocated|add:spent|add:committed < 0 %}amount-negative{% else %}amount-positive{% endif %}">
+                                    KES {{ budget.available_balance|floatformat:2|intcomma }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="mini-progress">
+                                    <div class="mini-progress-bar">
+                                        {% if budget.allocated_amount > 0 %}
+                                            {% widthratio budget.actual_spent budget.allocated_amount 100 as percentage %}
+                                            <div class="mini-progress-fill {% if percentage >= 90 %}danger{% elif percentage >= 75 %}warning{% endif %}" 
+                                                 style="width: {{ percentage }}%"></div>
+                                        {% else %}
+                                            <div class="mini-progress-fill" style="width: 0%"></div>
+                                        {% endif %}
+                                    </div>
+                                    <span class="mini-progress-text">
+                                        {% if budget.allocated_amount > 0 %}
+                                            {% widthratio budget.actual_spent budget.allocated_amount 100 %}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{% url 'finance_budget_detail' budget.id %}" class="btn btn-icon btn-sm" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'finance_budget_edit' budget.id %}" class="btn btn-icon btn-sm" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Individual Department Tabs -->
+        {% for dept in dept_summary %}
+        <div class="tab-panel" id="tab-dept-{{ forloop.counter }}">
+            <!-- Department Header -->
+            <div class="filter-bar">
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 0.25rem 0; font-size: 1.125rem; color: #1E293B;">{{ dept.department__name }}</h3>
+                    <p style="margin: 0; font-size: 0.8125rem; color: var(--secondary-color);">
+                        {% with budget_count=budgets|length %}
+                            {{ budget_count }} budget allocation{{ budget_count|pluralize }}
                         {% endwith %}
                     </p>
                 </div>
-                <button class="dept-expand-btn" onclick="toggleDeptDetails(this)" data-dept="{{ dept.department__name }}">
-                    <i class="bi bi-chevron-down"></i>
-                </button>
-            </div>
-
-            <div class="dept-stats">
-                <div class="dept-stat">
-                    <div class="dept-stat-label">Allocated</div>
-                    <div class="dept-stat-value">
-                        KES {{ dept.total_allocated|default:0|floatformat:0|intcomma }}
-                    </div>
-                </div>
-                <div class="dept-stat">
-                    <div class="dept-stat-label">Spent</div>
-                    <div class="dept-stat-value success">
-                        KES {{ dept.total_spent|default:0|floatformat:0|intcomma }}
-                    </div>
-                </div>
-                <div class="dept-stat">
-                    <div class="dept-stat-label">Available</div>
-                    <div class="dept-stat-value {% if dept.total_allocated|default:0|floatformat:0 < dept.total_spent|default:0|floatformat:0 %}danger{% else %}success{% endif %}">
-                        {% widthratio dept.total_allocated|default:0 1 1 as allocated %}
-                        {% widthratio dept.total_spent|default:0 1 1 as spent %}
-                        {% widthratio dept.total_committed|default:0 1 1 as committed %}
-                        KES {{ allocated|add:"-"|add:spent|add:"-"|add:committed|floatformat:0|intcomma }}
-                    </div>
+                <div class="filter-actions">
+                    <button class="btn btn-sm btn-primary" onclick="location.href='{% url 'finance_budget_create' %}'">
+                        <i class="bi bi-plus-circle"></i>
+                        Add Budget
+                    </button>
                 </div>
             </div>
 
-            <div class="progress-bar-container">
-                <div class="progress-label">
-                    <span>Utilization</span>
-                    <span>
-                        {% if dept.total_allocated > 0 %}
-                            {% widthratio dept.total_spent dept.total_allocated 100 %}%
-                        {% else %}
-                            0%
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="progress-bar">
-                    {% if dept.total_allocated > 0 %}
-                        {% widthratio dept.total_spent dept.total_allocated 100 as percentage %}
-                        <div class="progress-fill {% if percentage >= 90 %}danger{% elif percentage >= 75 %}warning{% else %}success{% endif %}" 
-                             style="width: {{ percentage }}%"></div>
-                    {% else %}
-                        <div class="progress-fill" style="width: 0%"></div>
-                    {% endif %}
+            <!-- Department Summary Stats -->
+            <div style="padding: 1.5rem; background: var(--table-header); border-bottom: 1px solid var(--border-color);">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color); margin-bottom: 0.25rem;">Total Allocated</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #1E293B;">
+                            KES {{ dept.total_allocated|default:0|floatformat:2|intcomma }}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color); margin-bottom: 0.25rem;">Total Spent</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--success-color);">
+                            KES {{ dept.total_spent|default:0|floatformat:2|intcomma }}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color); margin-bottom: 0.25rem;">Committed</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--warning-color);">
+                            KES {{ dept.total_committed|default:0|floatformat:2|intcomma }}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-color); margin-bottom: 0.25rem;">Available Balance</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--info-color);">
+                            {% widthratio dept.total_allocated|default:0 1 1 as allocated %}
+                            {% widthratio dept.total_spent|default:0 1 1 as spent %}
+                            {% widthratio dept.total_committed|default:0 1 1 as committed %}
+                            KES {{ allocated|floatformat:2|intcomma }}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Budget Details (Hidden by default) -->
-            <div class="budget-details" data-dept="{{ dept.department__name }}">
-                <table class="budget-table">
+            <!-- Department Budgets Table -->
+            <div class="data-table-container">
+                <table class="data-table">
                     <thead>
                         <tr>
                             <th>Category</th>
                             <th>Type</th>
+                            <th>Reference</th>
                             <th class="text-right">Allocated</th>
                             <th class="text-right">Spent</th>
+                            <th class="text-right">Committed</th>
                             <th class="text-right">Available</th>
-                            <th></th>
+                            <th class="progress-column">Utilization</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for budget in budgets %}
                             {% if budget.department.name == dept.department__name %}
                             <tr>
-                                <td>
-                                    <strong>{{ budget.category.name }}</strong>
-                                    {% if budget.reference_number %}
-                                        <br><small style="color: var(--secondary-color);">{{ budget.reference_number }}</small>
-                                    {% endif %}
-                                </td>
+                                <td><strong>{{ budget.category.name }}</strong></td>
                                 <td>
                                     <span class="badge badge-{{ budget.budget_type|lower }}">
                                         {{ budget.get_budget_type_display }}
                                     </span>
                                 </td>
-                                <td class="text-right">
-                                    KES {{ budget.allocated_amount|floatformat:2|intcomma }}
+                                <td>
+                                    <small style="color: var(--secondary-color);">
+                                        {{ budget.reference_number|default:"—" }}
+                                    </small>
                                 </td>
                                 <td class="text-right">
-                                    KES {{ budget.actual_spent|floatformat:2|intcomma }}
+                                    <span class="amount-cell">KES {{ budget.allocated_amount|floatformat:2|intcomma }}</span>
                                 </td>
                                 <td class="text-right">
-                                    {% widthratio budget.allocated_amount 1 1 as allocated %}
-                                    {% widthratio budget.actual_spent 1 1 as spent %}
-                                    {% widthratio budget.committed_amount 1 1 as committed %}
-                                    <span class="{% if allocated < spent %}text-danger{% else %}text-success{% endif %}">
-                                        KES {{ allocated|add:"-"|add:spent|add:"-"|add:committed|floatformat:2|intcomma }}
+                                    <span class="amount-cell">KES {{ budget.actual_spent|floatformat:2|intcomma }}</span>
+                                </td>
+                                <td class="text-right">
+                                    <span class="amount-cell">KES {{ budget.committed_amount|floatformat:2|intcomma }}</span>
+                                </td>
+                                <td class="text-right">
+                                    <span class="amount-cell {% if budget.available_balance < 0 %}amount-negative{% else %}amount-positive{% endif %}">
+                                        KES {{ budget.available_balance|floatformat:2|intcomma }}
                                     </span>
                                 </td>
-                                <td class="text-right">
-                                    <a href="{% url 'finance_budget_detail' budget.id %}" class="btn btn-sm">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
+                                <td>
+                                    <div class="mini-progress">
+                                        <div class="mini-progress-bar">
+                                            {% if budget.allocated_amount > 0 %}
+                                                {% widthratio budget.actual_spent budget.allocated_amount 100 as percentage %}
+                                                <div class="mini-progress-fill {% if percentage >= 90 %}danger{% elif percentage >= 75 %}warning{% endif %}" 
+                                                     style="width: {{ percentage }}%"></div>
+                                            {% else %}
+                                                <div class="mini-progress-fill" style="width: 0%"></div>
+                                            {% endif %}
+                                        </div>
+                                        <span class="mini-progress-text">
+                                            {% if budget.allocated_amount > 0 %}
+                                                {% widthratio budget.actual_spent budget.allocated_amount 100 %}%
+                                            {% else %}
+                                                0%
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{% url 'finance_budget_detail' budget.id %}" class="btn btn-icon btn-sm" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{% url 'finance_budget_edit' budget.id %}" class="btn btn-icon btn-sm" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             {% endif %}
@@ -823,8 +1159,10 @@
         {% endfor %}
     </div>
 </div>
+
 {% else %}
-<div class="dept-summary-section">
+<!-- No Budgets -->
+<div class="budget-section">
     <div class="empty-state">
         <i class="bi bi-inbox"></i>
         <h3>No Budget Allocations</h3>
@@ -839,7 +1177,7 @@
 
 {% else %}
 <!-- No Active Year -->
-<div class="dept-summary-section">
+<div class="budget-section">
     <div class="empty-state">
         <i class="bi bi-calendar-x"></i>
         <h3>No Active Budget Year</h3>
@@ -853,43 +1191,140 @@
 {% endif %}
 
 <script>
-    // Toggle department details
-    function toggleDeptDetails(button) {
-        const deptName = button.getAttribute('data-dept');
-        const detailsDiv = document.querySelector(`.budget-details[data-dept="${deptName}"]`);
-        const icon = button.querySelector('i');
+    // Tab Switching
+    function switchTab(tabId) {
+        // Hide all panels
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
         
-        detailsDiv.classList.toggle('active');
+        // Deactivate all buttons
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.classList.remove('active');
+        });
         
-        if (detailsDiv.classList.contains('active')) {
-            icon.classList.remove('bi-chevron-down');
-            icon.classList.add('bi-chevron-up');
-        } else {
-            icon.classList.remove('bi-chevron-up');
-            icon.classList.add('bi-chevron-down');
+        // Show selected panel
+        document.getElementById('tab-' + tabId).classList.add('active');
+        
+        // Activate selected button
+        document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+    }
+
+    // Table Filtering
+    function filterTable() {
+        const searchInput = document.getElementById('searchInput').value.toLowerCase();
+        const typeFilter = document.getElementById('budgetTypeFilter').value;
+        const table = document.getElementById('budgetTable');
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        
+        for (let row of rows) {
+            const deptText = row.cells[0].textContent.toLowerCase();
+            const categoryText = row.cells[1].textContent.toLowerCase();
+            const typeText = row.cells[2].textContent;
+            
+            const matchesSearch = deptText.includes(searchInput) || categoryText.includes(searchInput);
+            const matchesType = !typeFilter || typeText.includes(typeFilter);
+            
+            if (matchesSearch && matchesType) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
         }
     }
 
-    // Expand all departments
-    function expandAll() {
-        document.querySelectorAll('.budget-details').forEach(div => {
-            div.classList.add('active');
+    // Table Sorting
+    let sortDirection = {};
+    
+    function sortTable(columnIndex) {
+        const table = document.getElementById('budgetTable');
+        const tbody = table.getElementsByTagName('tbody')[0];
+        const rows = Array.from(tbody.getElementsByTagName('tr'));
+        
+        // Toggle sort direction
+        sortDirection[columnIndex] = !sortDirection[columnIndex];
+        const ascending = sortDirection[columnIndex];
+        
+        rows.sort((a, b) => {
+            let aValue = a.cells[columnIndex].textContent.trim();
+            let bValue = b.cells[columnIndex].textContent.trim();
+            
+            // Remove currency formatting for numeric columns
+            if (columnIndex >= 3 && columnIndex <= 6) {
+                aValue = parseFloat(aValue.replace(/[^\d.-]/g, ''));
+                bValue = parseFloat(bValue.replace(/[^\d.-]/g, ''));
+            }
+            
+            if (aValue < bValue) return ascending ? -1 : 1;
+            if (aValue > bValue) return ascending ? 1 : -1;
+            return 0;
         });
-        document.querySelectorAll('.dept-expand-btn i').forEach(icon => {
-            icon.classList.remove('bi-chevron-down');
-            icon.classList.add('bi-chevron-up');
+        
+        rows.forEach(row => tbody.appendChild(row));
+        
+        // Update sort icons
+        document.querySelectorAll('.data-table th.sortable i').forEach(icon => {
+            icon.className = 'bi bi-arrow-down-up';
         });
+        
+        const currentIcon = table.querySelectorAll('th.sortable')[columnIndex].querySelector('i');
+        currentIcon.className = ascending ? 'bi bi-arrow-up' : 'bi bi-arrow-down';
     }
 
-    // Collapse all departments
-    function collapseAll() {
-        document.querySelectorAll('.budget-details').forEach(div => {
-            div.classList.remove('active');
+    // Export to Excel
+    function exportToExcel() {
+        // Simple CSV export
+        const table = document.getElementById('budgetTable');
+        let csv = [];
+        
+        // Headers
+        const headers = Array.from(table.querySelectorAll('thead th')).map(th => 
+            th.textContent.trim().replace(/\s+/g, ' ')
+        );
+        csv.push(headers.join(','));
+        
+        // Rows
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            if (row.style.display !== 'none') {
+                const cells = Array.from(row.cells).map(cell => 
+                    '"' + cell.textContent.trim().replace(/"/g, '""') + '"'
+                );
+                csv.push(cells.join(','));
+            }
         });
-        document.querySelectorAll('.dept-expand-btn i').forEach(icon => {
-            icon.classList.remove('bi-chevron-up');
-            icon.classList.add('bi-chevron-down');
-        });
+        
+        // Download
+        const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'budget-allocation.csv';
+        a.click();
+    }
+
+    // Print Table
+    function printTable() {
+        window.print();
     }
 </script>
+
+<style media="print">
+    .header-actions,
+    .filter-bar,
+    .action-buttons,
+    .tabs-navigation,
+    .section-actions {
+        display: none !important;
+    }
+    
+    .tab-panel {
+        display: block !important;
+    }
+    
+    .data-table {
+        font-size: 10pt;
+    }
+</style>
+
 {% endblock %}
