@@ -1,0 +1,895 @@
+<!-- finance/finance_module/budget_allocation.html -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Budget Allocation - University Procurement System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-color: #2563EB;
+        --primary-light: #EFF6FF;
+        --primary-dark: #1D4ED8;
+        --secondary-color: #64748B;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --info-color: #3B82F6;
+        --border-color: #E2E8F0;
+        --card-bg: #FFFFFF;
+        --hover-bg: #F8FAFC;
+        --table-header: #F1F5F9;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+        margin: 0;
+    }
+
+    .breadcrumb a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.6875rem;
+        color: #94A3B8;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    /* Year Selector */
+    .year-selector {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .year-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .year-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        border-radius: 0.375rem;
+        font-weight: 600;
+        font-size: 0.9375rem;
+    }
+
+    .year-badge i {
+        font-size: 1.125rem;
+    }
+
+    .year-dates {
+        font-size: 0.8125rem;
+        color: var(--secondary-color);
+    }
+
+    /* Summary Cards */
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .summary-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .summary-card-title {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .summary-card-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .icon-primary {
+        background: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .icon-success {
+        background: #ECFDF5;
+        color: var(--success-color);
+    }
+
+    .icon-warning {
+        background: #FEF3C7;
+        color: var(--warning-color);
+    }
+
+    .icon-info {
+        background: #EFF6FF;
+        color: var(--info-color);
+    }
+
+    .summary-card-value {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-card-subtitle {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    /* Department Summary Section */
+    .dept-summary-section {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--table-header);
+    }
+
+    .section-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: var(--secondary-color);
+        font-size: 1.125rem;
+    }
+
+    .section-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* Department Cards */
+    .dept-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1rem;
+        padding: 1.5rem;
+    }
+
+    .dept-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        transition: all 0.2s;
+    }
+
+    .dept-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .dept-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .dept-name {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .dept-budget-count {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+    }
+
+    .dept-expand-btn {
+        background: none;
+        border: none;
+        color: var(--secondary-color);
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 0.25rem;
+        transition: all 0.2s;
+    }
+
+    .dept-expand-btn:hover {
+        background: var(--hover-bg);
+        color: var(--primary-color);
+    }
+
+    .dept-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .dept-stat {
+        text-align: center;
+    }
+
+    .dept-stat-label {
+        font-size: 0.6875rem;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        margin-bottom: 0.25rem;
+    }
+
+    .dept-stat-value {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1E293B;
+    }
+
+    .dept-stat-value.success {
+        color: var(--success-color);
+    }
+
+    .dept-stat-value.warning {
+        color: var(--warning-color);
+    }
+
+    .dept-stat-value.danger {
+        color: var(--danger-color);
+    }
+
+    /* Progress Bar */
+    .progress-bar-container {
+        margin-bottom: 0.75rem;
+    }
+
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.375rem;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 0.5rem;
+        background: var(--border-color);
+        border-radius: 0.25rem;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--primary-color);
+        transition: width 0.3s;
+        border-radius: 0.25rem;
+    }
+
+    .progress-fill.success {
+        background: var(--success-color);
+    }
+
+    .progress-fill.warning {
+        background: var(--warning-color);
+    }
+
+    .progress-fill.danger {
+        background: var(--danger-color);
+    }
+
+    /* Budget Details Table */
+    .budget-details {
+        display: none;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .budget-details.active {
+        display: block;
+    }
+
+    .budget-table {
+        width: 100%;
+        font-size: 0.8125rem;
+    }
+
+    .budget-table th {
+        text-align: left;
+        font-weight: 500;
+        color: var(--secondary-color);
+        padding: 0.5rem 0.75rem;
+        background: var(--table-header);
+    }
+
+    .budget-table td {
+        padding: 0.625rem 0.75rem;
+        border-top: 1px solid var(--border-color);
+        color: #1E293B;
+    }
+
+    .budget-table tr:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        background: var(--card-bg);
+        color: var(--secondary-color);
+    }
+
+    .btn:hover {
+        background: var(--hover-bg);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
+    }
+
+    .btn i {
+        font-size: 0.875rem;
+    }
+
+    /* Badge */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.6875rem;
+        font-weight: 500;
+    }
+
+    .badge-success {
+        background: #ECFDF5;
+        color: var(--success-color);
+    }
+
+    .badge-warning {
+        background: #FEF3C7;
+        color: var(--warning-color);
+    }
+
+    .badge-danger {
+        background: #FEE2E2;
+        color: var(--danger-color);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: var(--secondary-color);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1E293B;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .summary-cards {
+            grid-template-columns: 1fr;
+        }
+
+        .dept-cards {
+            grid-template-columns: 1fr;
+            padding: 1rem;
+        }
+
+        .dept-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .year-selector {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .header-actions {
+            width: 100%;
+        }
+
+        .header-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .section-header {
+            flex-direction: column;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .section-actions {
+            width: 100%;
+        }
+
+        .section-actions .btn {
+            flex: 1;
+        }
+
+        .budget-table {
+            font-size: 0.75rem;
+        }
+
+        .budget-table th,
+        .budget-table td {
+            padding: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Budget Allocation</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'dashboard' %}">
+                <i class="bi bi-house"></i>
+                Home
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'finance_dashboard' %}">Finance</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Budget Allocation</span>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'finance_budget_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create Budget
+        </a>
+        <a href="{% url 'finance_budgets_list' %}" class="btn">
+            <i class="bi bi-list-ul"></i>
+            All Budgets
+        </a>
+    </div>
+</div>
+
+<!-- Year Selector -->
+{% if current_year %}
+<div class="year-selector">
+    <div class="year-info">
+        <div class="year-badge">
+            <i class="bi bi-calendar-check"></i>
+            {{ current_year.name }}
+        </div>
+        <div class="year-dates">
+            {{ current_year.start_date|date:"M d, Y" }} - {{ current_year.end_date|date:"M d, Y" }}
+        </div>
+    </div>
+    <a href="{% url 'finance_budgets_list' %}" class="btn btn-sm">
+        <i class="bi bi-calendar3"></i>
+        Change Year
+    </a>
+</div>
+
+<!-- Summary Cards -->
+{% if dept_summary %}
+<div class="summary-cards">
+    {% with total_allocated=dept_summary|length total_spent=0 total_committed=0 total_available=0 %}
+        {% for dept in dept_summary %}
+            {% with total_allocated=total_allocated|add:dept.total_allocated total_spent=total_spent|add:dept.total_spent total_committed=total_committed|add:dept.total_committed %}
+            {% endwith %}
+        {% endfor %}
+        
+        <div class="summary-card">
+            <div class="summary-card-header">
+                <span class="summary-card-title">Total Allocated</span>
+                <div class="summary-card-icon icon-primary">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+            </div>
+            <div class="summary-card-value">
+                {% for dept in dept_summary %}
+                    {% if forloop.first %}
+                        KES {{ dept.total_allocated|default:0|floatformat:2|intcomma }}
+                    {% endif %}
+                {% empty %}
+                    KES 0.00
+                {% endfor %}
+            </div>
+            <div class="summary-card-subtitle">Across all departments</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-header">
+                <span class="summary-card-title">Total Spent</span>
+                <div class="summary-card-icon icon-success">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+            </div>
+            <div class="summary-card-value">
+                {% for dept in dept_summary %}
+                    {% if forloop.first %}
+                        KES {{ dept.total_spent|default:0|floatformat:2|intcomma }}
+                    {% endif %}
+                {% empty %}
+                    KES 0.00
+                {% endfor %}
+            </div>
+            <div class="summary-card-subtitle">Actual expenditure</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-header">
+                <span class="summary-card-title">Committed</span>
+                <div class="summary-card-icon icon-warning">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+            </div>
+            <div class="summary-card-value">
+                {% for dept in dept_summary %}
+                    {% if forloop.first %}
+                        KES {{ dept.total_committed|default:0|floatformat:2|intcomma }}
+                    {% endif %}
+                {% empty %}
+                    KES 0.00
+                {% endfor %}
+            </div>
+            <div class="summary-card-subtitle">Pending commitments</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-header">
+                <span class="summary-card-title">Available</span>
+                <div class="summary-card-icon icon-info">
+                    <i class="bi bi-piggy-bank"></i>
+                </div>
+            </div>
+            <div class="summary-card-value">
+                {% for dept in dept_summary %}
+                    {% if forloop.first %}
+                        {% widthratio dept.total_allocated|default:0 1 1 as allocated %}
+                        {% widthratio dept.total_spent|default:0 1 1 as spent %}
+                        {% widthratio dept.total_committed|default:0 1 1 as committed %}
+                        {% widthratio allocated|add:spent|add:committed 1 -1 as available %}
+                        KES {{ available|floatformat:2|intcomma }}
+                    {% endif %}
+                {% empty %}
+                    KES 0.00
+                {% endfor %}
+            </div>
+            <div class="summary-card-subtitle">Remaining balance</div>
+        </div>
+    {% endwith %}
+</div>
+
+<!-- Department Summary Section -->
+<div class="dept-summary-section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <i class="bi bi-building"></i>
+            Department Budget Summary
+        </h2>
+        <div class="section-actions">
+            <button class="btn btn-sm" onclick="expandAll()">
+                <i class="bi bi-arrows-expand"></i>
+                Expand All
+            </button>
+            <button class="btn btn-sm" onclick="collapseAll()">
+                <i class="bi bi-arrows-collapse"></i>
+                Collapse All
+            </button>
+        </div>
+    </div>
+
+    <div class="dept-cards">
+        {% for dept in dept_summary %}
+        <div class="dept-card">
+            <div class="dept-card-header">
+                <div>
+                    <h3 class="dept-name">{{ dept.department__name }}</h3>
+                    <p class="dept-budget-count">
+                        {% with count=budgets|length %}
+                            {{ budgets|length }} budget line{{ budgets|length|pluralize }}
+                        {% endwith %}
+                    </p>
+                </div>
+                <button class="dept-expand-btn" onclick="toggleDeptDetails(this)" data-dept="{{ dept.department__name }}">
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+            </div>
+
+            <div class="dept-stats">
+                <div class="dept-stat">
+                    <div class="dept-stat-label">Allocated</div>
+                    <div class="dept-stat-value">
+                        KES {{ dept.total_allocated|default:0|floatformat:0|intcomma }}
+                    </div>
+                </div>
+                <div class="dept-stat">
+                    <div class="dept-stat-label">Spent</div>
+                    <div class="dept-stat-value success">
+                        KES {{ dept.total_spent|default:0|floatformat:0|intcomma }}
+                    </div>
+                </div>
+                <div class="dept-stat">
+                    <div class="dept-stat-label">Available</div>
+                    <div class="dept-stat-value {% if dept.total_allocated|default:0|floatformat:0 < dept.total_spent|default:0|floatformat:0 %}danger{% else %}success{% endif %}">
+                        {% widthratio dept.total_allocated|default:0 1 1 as allocated %}
+                        {% widthratio dept.total_spent|default:0 1 1 as spent %}
+                        {% widthratio dept.total_committed|default:0 1 1 as committed %}
+                        KES {{ allocated|add:"-"|add:spent|add:"-"|add:committed|floatformat:0|intcomma }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-bar-container">
+                <div class="progress-label">
+                    <span>Utilization</span>
+                    <span>
+                        {% if dept.total_allocated > 0 %}
+                            {% widthratio dept.total_spent dept.total_allocated 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="progress-bar">
+                    {% if dept.total_allocated > 0 %}
+                        {% widthratio dept.total_spent dept.total_allocated 100 as percentage %}
+                        <div class="progress-fill {% if percentage >= 90 %}danger{% elif percentage >= 75 %}warning{% else %}success{% endif %}" 
+                             style="width: {{ percentage }}%"></div>
+                    {% else %}
+                        <div class="progress-fill" style="width: 0%"></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Budget Details (Hidden by default) -->
+            <div class="budget-details" data-dept="{{ dept.department__name }}">
+                <table class="budget-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Type</th>
+                            <th class="text-right">Allocated</th>
+                            <th class="text-right">Spent</th>
+                            <th class="text-right">Available</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for budget in budgets %}
+                            {% if budget.department.name == dept.department__name %}
+                            <tr>
+                                <td>
+                                    <strong>{{ budget.category.name }}</strong>
+                                    {% if budget.reference_number %}
+                                        <br><small style="color: var(--secondary-color);">{{ budget.reference_number }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge badge-{{ budget.budget_type|lower }}">
+                                        {{ budget.get_budget_type_display }}
+                                    </span>
+                                </td>
+                                <td class="text-right">
+                                    KES {{ budget.allocated_amount|floatformat:2|intcomma }}
+                                </td>
+                                <td class="text-right">
+                                    KES {{ budget.actual_spent|floatformat:2|intcomma }}
+                                </td>
+                                <td class="text-right">
+                                    {% widthratio budget.allocated_amount 1 1 as allocated %}
+                                    {% widthratio budget.actual_spent 1 1 as spent %}
+                                    {% widthratio budget.committed_amount 1 1 as committed %}
+                                    <span class="{% if allocated < spent %}text-danger{% else %}text-success{% endif %}">
+                                        KES {{ allocated|add:"-"|add:spent|add:"-"|add:committed|floatformat:2|intcomma }}
+                                    </span>
+                                </td>
+                                <td class="text-right">
+                                    <a href="{% url 'finance_budget_detail' budget.id %}" class="btn btn-sm">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="dept-summary-section">
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <h3>No Budget Allocations</h3>
+        <p>There are no budget allocations for the current year.</p>
+        <a href="{% url 'finance_budget_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create First Budget
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<!-- No Active Year -->
+<div class="dept-summary-section">
+    <div class="empty-state">
+        <i class="bi bi-calendar-x"></i>
+        <h3>No Active Budget Year</h3>
+        <p>Please set up an active budget year to manage allocations.</p>
+        <a href="{% url 'finance_dashboard' %}" class="btn btn-primary">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    // Toggle department details
+    function toggleDeptDetails(button) {
+        const deptName = button.getAttribute('data-dept');
+        const detailsDiv = document.querySelector(`.budget-details[data-dept="${deptName}"]`);
+        const icon = button.querySelector('i');
+        
+        detailsDiv.classList.toggle('active');
+        
+        if (detailsDiv.classList.contains('active')) {
+            icon.classList.remove('bi-chevron-down');
+            icon.classList.add('bi-chevron-up');
+        } else {
+            icon.classList.remove('bi-chevron-up');
+            icon.classList.add('bi-chevron-down');
+        }
+    }
+
+    // Expand all departments
+    function expandAll() {
+        document.querySelectorAll('.budget-details').forEach(div => {
+            div.classList.add('active');
+        });
+        document.querySelectorAll('.dept-expand-btn i').forEach(icon => {
+            icon.classList.remove('bi-chevron-down');
+            icon.classList.add('bi-chevron-up');
+        });
+    }
+
+    // Collapse all departments
+    function collapseAll() {
+        document.querySelectorAll('.budget-details').forEach(div => {
+            div.classList.remove('active');
+        });
+        document.querySelectorAll('.dept-expand-btn i').forEach(icon => {
+            icon.classList.remove('bi-chevron-up');
+            icon.classList.add('bi-chevron-down');
+        });
+    }
+</script>
+{% endblock %}
